@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <title>Настройки — TasteID</title>
-<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/style.css?v=14">
 <link rel="stylesheet" href="/admin.css?v=12">
-<link rel="stylesheet" href="/themes.css?v=12">
-<script src="/js/utils.js?v=13"></script>
+<link rel="stylesheet" href="/themes.css?v=13">
+<script src="/js/utils.js?v=14"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/api.js?v=12"></script>
 <script src="/js/cards.js?v=12"></script>
 <script src="/js/passports.js?v=13"></script>
 <script src="/js/import-formats.js?v=14"></script>
-<script src="/js/import.js?v=16"></script>
+<script src="/js/import.js?v=17"></script>
 <style>
   body { display: flex; }
 
@@ -288,22 +288,7 @@
 
     <div class="panel" id="panel-stats">
       <p class="panel-intro">Что показывать на вкладке "Статистика".</p>
-      <div class="row">
-        <div><label><input type="checkbox" id="stat-counters" style="width:auto;margin-right:6px;">По типам (цифры)</label></div>
-        <div><label><input type="checkbox" id="stat-donut" style="width:auto;margin-right:6px;">По типам (диаграмма)</label></div>
-      </div>
-      <div class="row">
-        <div><label><input type="checkbox" id="stat-watch-bars" style="width:auto;margin-right:6px;">По годам просмотра</label></div>
-        <div><label><input type="checkbox" id="stat-release-bars" style="width:auto;margin-right:6px;">По годам выхода</label></div>
-      </div>
-      <div class="row">
-        <div><label><input type="checkbox" id="stat-grades" style="width:auto;margin-right:6px;">Распределение оценок</label></div>
-        <div><label><input type="checkbox" id="stat-rewatch" style="width:auto;margin-right:6px;">Пересмотры</label></div>
-      </div>
-      <div class="row">
-        <div><label><input type="checkbox" id="stat-tags" style="width:auto;margin-right:6px;">Облако тегов</label></div>
-        <div><label><input type="checkbox" id="stat-spotlight" style="width:auto;margin-right:6px;">Топ тайтлы года</label></div>
-      </div>
+      <div id="statsList"></div>
       <button class="btn-save" onclick="saveSettings()">Сохранить</button>
       <div class="status-msg" id="status-stats"></div>
     </div>
@@ -439,6 +424,29 @@
     return `<button type="button" class="icon-btn" title="${hidden ? "Показать" : "Скрыть"}" onclick="${onclickExpr}">${eyeIcon(hidden)}</button>`;
   }
 
+  // ── Блоки статистики ──
+  const STAT_BLOCKS = [
+    { key: "counters", label: "По типам (цифры)" },
+    { key: "donut", label: "По типам (диаграмма)" },
+    { key: "watch-bars", label: "По годам просмотра" },
+    { key: "release-bars", label: "По годам выхода" },
+    { key: "grades", label: "Распределение оценок" },
+    { key: "rewatch", label: "Пересмотры" },
+    { key: "tags", label: "Облако тегов" },
+    { key: "spotlight", label: "Топ тайтлы года" },
+  ];
+  let hiddenStatsState = new Set();
+
+  function renderStatsList() {
+    const container = document.getElementById("statsList");
+    container.innerHTML = STAT_BLOCKS.map((b) => `
+      <div class="tab-row">
+        ${eyeButton(hiddenStatsState.has(b.key), `hiddenStatsState.has('${b.key}') ? hiddenStatsState.delete('${b.key}') : hiddenStatsState.add('${b.key}'); renderStatsList();`)}
+        <span class="tab-name">${esc(b.label)}</span>
+      </div>
+    `).join("");
+  }
+
   // ── Шкала оценок ──
   const SCALE_TYPES = [
     { id: "categorical", label: "Названия" },
@@ -534,8 +542,8 @@
     }
   }
 
-  function removeShelfRow(i, containerId, withRange) {
-    if (!confirm(`Удалить полку «${shelves[i].name}»?`)) return;
+  async function removeShelfRow(i, containerId, withRange) {
+    if (!(await confirmDialog(`Удалить полку «${shelves[i].name}»?`))) return;
     shelves.splice(i, 1);
     renderShelvesList(containerId, withRange);
   }
@@ -625,10 +633,10 @@
     container.innerHTML = rows + restore;
   }
 
-  function removeFavSection(key) {
+  async function removeFavSection(key) {
     const def = FAV_SECTIONS.find(s => s.key === key);
     const label = favSectionLabels[key] || def.def;
-    if (!confirm(`Удалить раздел «${label}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.`)) return;
+    if (!(await confirmDialog(`Удалить раздел «${label}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.`))) return;
     removedFavSections.add(key);
     hiddenFavSectionsState.add(key);
     renderFavSectionsList();
@@ -693,8 +701,8 @@
     renderFavCollectionsList();
   }
 
-  function removeFavCollection(id) {
-    if (!confirm("Удалить раздел? Уже добавленные записи останутся в данных, но перестанут где-либо отображаться.")) return;
+  async function removeFavCollection(id) {
+    if (!(await confirmDialog("Удалить раздел? Уже добавленные записи останутся в данных, но перестанут где-либо отображаться."))) return;
     favCollections = favCollections.filter(c => c.id !== id);
     hiddenFavSectionsState.delete(id);
     renderFavCollectionsList();
@@ -762,11 +770,11 @@
     renderCollectionsList();
   }
 
-  function removeCollection(id) {
+  async function removeCollection(id) {
     const c = tierCollections.find(x => x.id === id);
     const label = c ? c.label : id;
     const file = id === "characters" ? "characters-tier.json" : `tier-${id}.json`;
-    if (!confirm(`Удалить коллекцию «${label}»?\n\nСам тир-лист останется лежать в ${file}, вместе с картинками, — пропадёт только кнопка на вкладке.`)) return;
+    if (!(await confirmDialog(`Удалить коллекцию «${label}»?\n\nСам тир-лист останется лежать в ${file}, вместе с картинками, — пропадёт только кнопка на вкладке.`))) return;
     tierCollections = tierCollections.filter(x => x.id !== id);
     hiddenTierModesState.delete(id);
     if (id === BUILTIN_COLLECTION.id) removedBuiltinCollection = true;
@@ -1208,7 +1216,7 @@
       ? `\n\nВ этом статусе ${used} ${plural(used, ["запись", "записи", "записей"])}. Они останутся в данных, но пропадут со вкладки «Статусы», пока им не поставить другой статус.`
       : "";
 
-    if (!confirm(`Удалить раздел «${label}»?${warn}`)) return;
+    if (!(await confirmDialog(`Удалить раздел «${label}»?${warn}`))) return;
     statusBuckets = statusBuckets.filter(b => b.key !== key);
     hiddenStatusesState.delete(key);
     renderStatusesList();
@@ -1354,11 +1362,8 @@
     renderScaleTypeGrid();
     updateScaleBlocks();
 
-    const hiddenStats = settings.hiddenStatsBlocks || [];
-    ["counters","donut","watch-bars","release-bars","grades","rewatch","tags","spotlight"].forEach(key => {
-      const el = document.getElementById(`stat-${key}`);
-      if (el) el.checked = !hiddenStats.includes(key);
-    });
+    hiddenStatsState = new Set(settings.hiddenStatsBlocks || []);
+    renderStatsList();
 
     typeLabels = { ...BUILTIN_TYPE_DEFAULTS, ...(settings.customTypes || {}) };
     const typeOverrides = labels.types || {};
@@ -1532,11 +1537,7 @@
     }
     const hiddenStatuses = [...hiddenStatusesState];
 
-    const statKeys = ["counters","donut","watch-bars","release-bars","grades","rewatch","tags","spotlight"];
-    const hiddenStatsBlocks = statKeys.filter((key) => {
-      const el = document.getElementById(`stat-${key}`);
-      return el && !el.checked;
-    });
+    const hiddenStatsBlocks = [...hiddenStatsState];
 
     Object.keys(typeLabels).forEach(key => {
       const input = document.getElementById(`type-input-${key}`);
@@ -1644,7 +1645,10 @@
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      flashStatus(statusId, data.ok, data.ok ? "Сохранено ✓ (обнови страницу на сайте, чтобы увидеть изменения)" : "Ошибка: " + data.error);
+      // В приложении обновлять нечего: страница и есть само хранилище,
+      // а не отдельно выложенный сайт со своей задержкой публикации.
+      const savedNote = appInfo ? "Сохранено ✓" : "Сохранено ✓ (обнови страницу на сайте, чтобы увидеть изменения)";
+      flashStatus(statusId, data.ok, data.ok ? savedNote : "Ошибка: " + data.error);
     } catch (e) {
       flashStatus(statusId, false, "Ошибка: " + e.message);
     }

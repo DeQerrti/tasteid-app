@@ -10,13 +10,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
-<script src="/js/utils.js?v=13"></script>
+<script src="/js/utils.js?v=14"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/external-ids.js?v=12"></script>
-<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/style.css?v=14">
 <link rel="stylesheet" href="/admin.css?v=12">
-<link rel="stylesheet" href="/themes.css?v=12">
+<link rel="stylesheet" href="/themes.css?v=13">
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
 
@@ -1040,7 +1040,7 @@ async function submitTag() {
 async function deleteTag() {
   const name = tmTagEdit;
   if (!name) return;
-  if (!confirm(`Удалить тег «${name}»?\n\nОн пропадёт и из уже сохранённых отзывов.`)) return;
+  if (!(await confirmDialog(`Удалить тег «${name}»?\n\nОн пропадёт и из уже сохранённых отзывов.`))) return;
 
   const btn = document.getElementById("tm-tag-del");
   btn.disabled = true;
@@ -1177,7 +1177,7 @@ async function deleteCategory() {
     tmStatus(`В категории ещё ${used} ${word} — сначала перенеси их в другую`, "err");
     return;
   }
-  if (!confirm(`Удалить категорию «${CAT_LABELS[key]}»?`)) return;
+  if (!(await confirmDialog(`Удалить категорию «${CAT_LABELS[key]}»?`))) return;
 
   const btn = document.getElementById("tm-cat-del");
   btn.disabled = true;
@@ -1363,7 +1363,7 @@ async function confirmAddType(n) {
 }
 
 async function removeSourceType(key) {
-  if (!confirm(`Удалить источник «${SOURCE_LABELS[key]}»?`)) return;
+  if (!(await confirmDialog(`Удалить источник «${SOURCE_LABELS[key]}»?`))) return;
   try {
     await patchSiteSettings((settings) => {
       settings.customSources = settings.customSources || {};
@@ -1514,7 +1514,7 @@ async function confirmAddType() {
 }
 
 async function removeTypePicker(key) {
-  if (!confirm(`Удалить тип «${TYPE_LABELS[key]}»?`)) return;
+  if (!(await confirmDialog(`Удалить тип «${TYPE_LABELS[key]}»?`))) return;
   try {
     await patchSiteSettings((settings) => {
       settings.customTypes = settings.customTypes || {};
@@ -1682,7 +1682,7 @@ async function confirmAddStatus() {
 }
 
 async function removeStatusPicker(key) {
-  if (!confirm(`Удалить статус «${statusLabel(key)}»?`)) return;
+  if (!(await confirmDialog(`Удалить статус «${statusLabel(key)}»?`))) return;
   try {
     await patchSiteSettings((settings) => {
       if (!settings.statusBuckets) return;
@@ -1839,7 +1839,7 @@ async function deleteReview() {
   if (typeof editingId !== "number") return;
 
   const title = document.getElementById("f-title").value.trim() || "эту запись";
-  if (!confirm(`Удалить «${title}»?\n\nЗапись пропадёт из отзывов, «Любимого» и тир-листа.\nВернуть её можно будет только откатом в «Истории версий».`)) return;
+  if (!(await confirmDialog(`Удалить «${title}»?\n\nЗапись пропадёт из отзывов, «Любимого» и тир-листа.\nВернуть её можно будет только откатом в «Истории версий».`))) return;
 
   setStatus("", "Удаляем…");
   try {

@@ -19,9 +19,9 @@
   через «← Назад», а не крупные карточки с плашками пояснений: это шаг
   перед работой, а не сама работа.
 -->
-<link rel="stylesheet" href="/style.css?v=13">
-<link rel="stylesheet" href="/themes.css?v=12">
-<script src="/js/utils.js?v=13"></script>
+<link rel="stylesheet" href="/style.css?v=14">
+<link rel="stylesheet" href="/themes.css?v=13">
+<script src="/js/utils.js?v=14"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
 <style>
@@ -38,21 +38,21 @@
   }
   .card { width: 100%; max-width: 460px; }
 
-  /* Бренд — крупный и на своей строке: единственное, что видно первым
-     секунду до перехода к делу, и единственное место, где размер уместен —
-     остальной мастер намеренно компактный. */
-  .brand { margin-bottom: 1.7rem; }
+  /* Бренд — крупный, по центру и на своей строке: единственное, что
+     видно первым секунду до перехода к делу, и единственное место, где
+     размер уместен — остальной мастер намеренно компактный. */
+  .brand { margin-bottom: 1.8rem; text-align: center; }
   .brand-name {
     display: block;
     font-family: 'Playfair Display', Georgia, serif;
-    font-size: 2.1rem; font-weight: 700; color: var(--text-hi);
+    font-size: 3rem; font-weight: 700; color: var(--text-hi);
     line-height: 1.1;
   }
   .brand-sub {
     display: block;
     font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: .62rem; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--text-dim); margin-top: .35rem;
+    font-size: .64rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--text-dim); margin-top: .4rem;
   }
 
   .back-link {
@@ -397,9 +397,9 @@ function renderShelvesList() {
     });
   });
   $("shelvesList").querySelectorAll("[data-remove]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const i = Number(btn.dataset.remove);
-      if (!confirm(`Удалить полку «${shelves[i].name}»?`)) return;
+      if (!(await confirmDialog(`Удалить полку «${shelves[i].name}»?`))) return;
       shelves.splice(i, 1);
       renderShelvesList();
     });

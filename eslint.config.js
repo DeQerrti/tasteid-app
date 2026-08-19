@@ -36,6 +36,7 @@ const sharedBrowserGlobals = [
   "closeCollectionModalOnOverlay",
   "closeReviewModal",
   "COLLAPSE_KEY",
+  "confirmDialog",
   "collectionFileFor",
   "compareOneSidedHtml",
   "comparePairsHtml",

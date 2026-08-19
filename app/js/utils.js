@@ -86,3 +86,61 @@ function plural(n, [one, few, many]) {
   if (rem >= 2 && rem <= 4)   return few;
   return many;
 }
+
+// ── Подтверждение — в теме сайта, а не окном ОС ────────────────────
+// window.confirm() рисует сама операционная система: чужой шрифт, чужое
+// скругление, обрезанный текст, — единственное на весь сайт место, где
+// это заметно. Один диалог на все страницы: DOM и стили создаются лениво,
+// при первом вызове, дальше переиспользуются. Классы .modal-overlay/.modal
+// — общие (style.css), поэтому тема и палитра подхватываются сами, без
+// отдельной подгонки под каждый скин.
+//
+// Использование: if (!(await confirmDialog("Удалить «Тег»?"))) return;
+let confirmDialogEl = null;
+
+function confirmDialog(message, okLabel = "Удалить") {
+  if (!confirmDialogEl) {
+    confirmDialogEl = document.createElement("div");
+    confirmDialogEl.id = "confirm-dialog-overlay";
+    confirmDialogEl.className = "modal-overlay hidden";
+    confirmDialogEl.innerHTML = `
+      <div class="modal confirm-dialog">
+        <div class="confirm-dialog-text"></div>
+        <div class="confirm-dialog-actions">
+          <button type="button" class="btn btn-ghost" data-act="cancel">Отмена</button>
+          <button type="button" class="btn btn-primary" data-act="ok"></button>
+        </div>
+      </div>`;
+    document.body.appendChild(confirmDialogEl);
+  }
+
+  const textEl = confirmDialogEl.querySelector(".confirm-dialog-text");
+  const okBtn = confirmDialogEl.querySelector('[data-act="ok"]');
+  const cancelBtn = confirmDialogEl.querySelector('[data-act="cancel"]');
+  textEl.textContent = message;
+  okBtn.textContent = okLabel;
+  confirmDialogEl.classList.remove("hidden");
+  okBtn.focus();
+
+  return new Promise((resolve) => {
+    const finish = (result) => {
+      confirmDialogEl.classList.add("hidden");
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      confirmDialogEl.onclick = null;
+      document.removeEventListener("keydown", onKey);
+      resolve(result);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") finish(false);
+    };
+    okBtn.onclick = () => finish(true);
+    cancelBtn.onclick = () => finish(false);
+    // Клик по подложке — тот же жест, что и Отмена, а не ОК: случайный
+    // клик мимо диалога не должен удалять то, что спросили удалить.
+    confirmDialogEl.onclick = (e) => {
+      if (e.target === confirmDialogEl) finish(false);
+    };
+    document.addEventListener("keydown", onKey);
+  });
+}

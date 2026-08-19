@@ -321,6 +321,12 @@ select option { background: var(--bg2); }
   transition: all .15s;
   border: 1px solid;
   background: none;
+  /* Без этого длинная надпись в узком ряду переносится внутри самой
+     кнопки раньше, чем сосед рядом успевает уйти на новую строку —
+     кнопка растёт по высоте, а соседняя нет, и ряд выглядит "съехавшим".
+     nowrap здесь же не даёт кнопке ужаться у́же своего текста: перенос
+     строки — единственный способ сделать её у́же, и с nowrap его нет. */
+  white-space: nowrap;
 }
 .btn-primary { background: var(--accent-fill); border-color: var(--accent-line); color: var(--text-hi); }
 .btn-primary:hover { background: var(--accent-fill-hi); border-color: var(--red); }
@@ -532,3 +538,20 @@ select option { background: var(--bg2); }
   transition: color .15s;
 }
 .modal-close:hover { color: var(--text-hi); }
+
+/* Диалог подтверждения (utils.js: confirmDialog) — та же коробка, что и
+   у остальных модалок, только компактнее и без крестика: закрывают его
+   явным выбором, кнопкой или Esc, а не мимоходом. */
+.confirm-dialog { max-width: 360px; }
+.confirm-dialog-text {
+  font-size: .88rem;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-line;
+  margin-bottom: 1.4rem;
+}
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+}

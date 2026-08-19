@@ -84,7 +84,7 @@
   }
 
   async function doLogout(btn) {
-    if (!confirm("Выйти из режима администратора?")) return;
+    if (!(await confirmDialog("Выйти из режима администратора?", "Выйти"))) return;
     const originalText = btn.textContent;
     btn.textContent = "⎋ Выходим...";
     btn.disabled = true;

@@ -10,10 +10,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/style.css?v=14">
 <link rel="stylesheet" href="/admin.css?v=12">
-<link rel="stylesheet" href="/themes.css?v=12">
-<script src="/js/utils.js?v=13"></script>
+<link rel="stylesheet" href="/themes.css?v=13">
+<script src="/js/utils.js?v=14"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
 <style>
@@ -617,9 +617,9 @@ async function addTitle() {
   selectTitle(id);
 }
 
-function deleteTitle(e, id) {
+async function deleteTitle(e, id) {
   e.stopPropagation();
-  if (!confirm("Удалить тайтл и все его тир-листы?")) return;
+  if (!(await confirmDialog("Удалить тайтл и все его тир-листы?"))) return;
   data = data.filter(t => t.id !== id);
   if (activeId === id) { activeId = data[0]?.id || null; activeListId = null; }
   renderSidebar();
@@ -718,8 +718,8 @@ function addList() {
   renderEditor();
 }
 
-function deleteList(listId) {
-  if (!confirm("Удалить этот тир-лист?")) return;
+async function deleteList(listId) {
+  if (!(await confirmDialog("Удалить этот тир-лист?"))) return;
   const title = data.find(t => t.id === activeId);
   title.tierlists = title.tierlists.filter(l => l.id !== listId);
   activeListId = title.tierlists[0]?.id || null;
@@ -745,8 +745,8 @@ function addTier() {
   renderEditor();
 }
 
-function deleteTier(listId, ti) {
-  if (!confirm("Удалить тир? Персонажи в нём тоже удалятся.")) return;
+async function deleteTier(listId, ti) {
+  if (!(await confirmDialog("Удалить тир? Персонажи в нём тоже удалятся."))) return;
   const title = data.find(t => t.id === activeId);
   const list  = title?.tierlists.find(l => l.id === listId);
   if (!list) return;
@@ -769,12 +769,12 @@ function recolorTier(listId, ti, val) {
 }
 
 // ══ ПЕРСОНАЖИ ══════════════════════════════════
-function deleteChar(titleId, listId, ti, ci) {
+async function deleteChar(titleId, listId, ti, ci) {
   const title = data.find(t => t.id === titleId);
   const list  = title?.tierlists.find(l => l.id === listId);
   if (!list) return;
   const char = list.tiers[ti].chars[ci];
-  if (!confirm(`Удалить «${char?.name || "персонажа"}» из тир-листа?`)) return;
+  if (!(await confirmDialog(`Удалить «${char?.name || "персонажа"}» из тир-листа?`))) return;
   list.tiers[ti].chars.splice(ci, 1);
   renderEditor();
 }

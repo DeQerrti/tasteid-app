@@ -221,14 +221,30 @@ async function createWindow({ compact = false } = {}) {
     // подхватываем его после загрузки, чтобы рамка не осталась тёмной
     // на светлой теме.
     try {
-      const currentSkin = await win.webContents.executeJavaScript(
-        "document.documentElement.dataset.skin || 'classic'"
-      );
+      // Цвета берём не по названию темы (их всего два варианта, светлый
+      // и тёмный), а прямо из вычисленных --bg/--text-dim страницы —
+      // так рамка совпадает и с ботанической тёмной (она не чёрная, а
+      // тёмно-зелёная), и с любой перекрашенной вручную палитрой, а не
+      // только с двумя зашитыми парами цветов.
+      const {
+        skin: currentSkin,
+        bg,
+        symbol,
+      } = await win.webContents.executeJavaScript(`
+        (() => {
+          const cs = getComputedStyle(document.documentElement);
+          return {
+            skin: document.documentElement.dataset.skin || "classic",
+            bg: cs.getPropertyValue("--bg").trim(),
+            symbol: cs.getPropertyValue("--text-dim").trim(),
+          };
+        })()
+      `);
       if (currentSkin !== config.skin) await saveConfig({ skin: currentSkin });
+      const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v);
+      const liveColors = isHex(bg) && isHex(symbol) ? { bg, symbol } : overlayColors(currentSkin);
       if (process.platform !== "darwin" && win.setTitleBarOverlay) {
-        win.setTitleBarOverlay(
-          titleBarOptions(process.platform, overlayColors(currentSkin)).titleBarOverlay
-        );
+        win.setTitleBarOverlay(titleBarOptions(process.platform, liveColors).titleBarOverlay);
       }
       nativeTheme.themeSource = /light|^soft$|^neomorphism$|^doodle$|^brutal$/.test(currentSkin)
         ? "light"
