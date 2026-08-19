@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TasteID — Редактор тир-листов персонажей</title>
+<link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/admin.css?v=12">
+<link rel="stylesheet" href="/themes.css?v=12">
+<script src="/js/utils.js?v=13"></script>
+<script src="/js/theme.js?v=13"></script>
+<script src="/js/config.js?v=14"></script>
+<style>
+
+header { padding: 2.5rem 1rem 2rem; }
+.logo { font-size: clamp(2.2rem, 6vw, 3.5rem); display: block; }
+.header-sub { font-size: .6rem; margin-top: .5rem; }
+
+main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: grid; grid-template-columns: 280px 1fr; gap: 2rem; }
+@media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+
+/* ── Левая панель ── */
+.sidebar { display: flex; flex-direction: column; gap: 1rem; }
+.section-label { font-family: 'DM Sans', sans-serif; font-size: .6rem; letter-spacing: .15em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: .4rem; }
+.title-list { display: flex; flex-direction: column; gap: .35rem; }
+.title-item { display: flex; align-items: center; gap: .6rem; padding: .55rem .75rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 2px; cursor: pointer;
+  transition: border-color .15s, background .15s; }
+.title-item:hover { border-color: var(--border2); }
+.title-item.active { border-color: var(--red-dim); background: var(--surface2); }
+.title-item-cover { width: 32px; height: 48px; object-fit: cover; border-radius: 1px; flex-shrink: 0; background: var(--surface2); }
+.title-item-name { font-family: 'Cormorant Garamond', serif; font-size: .95rem; font-weight: 600; color: var(--text-hi); flex: 1; line-height: 1.3; }
+.title-item-del { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: .8rem; padding: .2rem; transition: color .15s; flex-shrink: 0; }
+.title-item-del:hover { color: var(--red-hi); }
+.title-item.dragging     { opacity: .35; }
+.title-item.drag-over-up { border-top: 2px solid var(--red); }
+.title-item.drag-over-dn { border-bottom: 2px solid var(--red); }
+.title-item-edit { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: .75rem; padding: .2rem; transition: color .15s; flex-shrink: 0; }
+.title-item-edit:hover { color: var(--green-hi); }
+
+.new-title-form { display: flex; flex-direction: column; gap: .5rem; padding: .85rem; background: var(--surface); border: 1px solid var(--border); border-radius: 2px; }
+.new-title-form.hidden { display: none; }
+
+/* ── Правая панель ── */
+.editor { display: flex; flex-direction: column; gap: 1.5rem; }
+.editor-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.editor-title { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic; font-size: 1.3rem; color: var(--text-hi); }
+
+.list-tabs { display: flex; gap: .4rem; flex-wrap: wrap; }
+.list-tab { font-family: 'DM Sans', sans-serif; font-size: .62rem; font-weight: 500; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-dim); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 1px; padding: .3rem .75rem; cursor: pointer; transition: all .15s; }
+.list-tab:hover { color: var(--text); border-color: var(--border2); }
+.list-tab.active { color: var(--text-hi); border-color: var(--red-dim); background: var(--surface2); }
+.list-tab-add { color: var(--text-dim); border-style: dashed; }
+.list-tab-add:hover { color: var(--green-hi); border-color: var(--green-hi); }
+
+.tl-editor-rows { display: flex; flex-direction: column; gap: .6rem; }
+.tl-editor-row { display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: 2px; overflow: visible;
+  position: relative; min-height: 90px; }
+.tl-editor-row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--tl-color, var(--red-dim)); opacity: .6; }
+.tl-editor-label { width: 100px; flex-shrink: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: .75rem .5rem;
+  border-right: 1px solid var(--border); background: var(--surface); gap: .3rem; position: relative; }
+.tl-editor-label::after { content: ''; position: absolute; inset: 0; background: var(--tl-color, #888); opacity: .12; pointer-events: none; }
+
+.tl-label-input { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic; font-size: .85rem;
+  color: var(--tl-color, var(--text-hi)); text-align: center; background: none; border: none;
+  outline: none; width: 100%; cursor: pointer; line-height: 1.2; padding: 0; }
+.tl-label-input:focus { background: var(--tint-hi); border-radius: 2px; }
+.tl-color-input { width: 20px; height: 20px; border: 1px solid var(--border2); border-radius: 2px; padding: 0; cursor: pointer; background: none; }
+
+.tl-editor-cards { flex: 1; display: flex; flex-wrap: wrap; gap: .4rem; padding: .6rem;
+  background: var(--surface); align-content: flex-start; min-height: 90px; position: relative; }
+.tl-editor-cards.drag-over { background: var(--accent-wash); }
+
+/* ── Drop indicator — вертикальная красная черта ── */
+.drop-indicator {
+  width: 2px;
+  align-self: stretch;
+  min-height: 72px;
+  background: var(--red-hi);
+  border-radius: 2px;
+  flex-shrink: 0;
+  pointer-events: none;
+  opacity: .8;
+}
+
+.char-card { width: 72px; flex-shrink: 0; position: relative; cursor: grab;
+  border-radius: 1px; overflow: hidden; border: 1px solid var(--border);
+  transition: border-color .15s, transform .15s; background: var(--surface2); animation: fadeUp .2s ease both; }
+.char-card:active { cursor: grabbing; }
+.char-card.dragging { opacity: .3; }
+.char-card img { width: 100%; height: 108px; object-fit: contain; object-position: center top; display: block; filter: brightness(.85); pointer-events: none; background: var(--surface); }
+.char-card-name { font-family: 'DM Sans', sans-serif; font-size: .52rem; color: var(--text); padding: .2rem .3rem; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.char-card-del { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--poster-scrim); border: none; color: var(--text-dim); font-size: .65rem; cursor: pointer;
+  display: none; align-items: center; justify-content: center; line-height: 1; padding: 0; transition: color .15s; }
+.char-card:hover .char-card-del { display: flex; }
+.char-card-del:hover { color: var(--red-hi); }
+
+.add-char-btn { width: 72px; height: 108px; flex-shrink: 0; border: 1px dashed var(--border2);
+  border-radius: 1px; background: none; color: var(--text-dim); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: .6rem; letter-spacing: .06em; text-transform: uppercase;
+  line-height: 1.3; padding: .3rem; text-align: center;
+  transition: border-color .15s, color .15s; display: flex; align-items: center; justify-content: center; }
+.add-char-btn:hover { border-color: var(--red-dim); color: var(--red-hi); }
+
+.tl-row-del { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border2); color: var(--text-dim); font-size: .6rem;
+  cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 5; transition: all .15s; }
+.tl-editor-row:hover .tl-row-del { display: flex; }
+.tl-row-del:hover { border-color: var(--red); color: var(--red-hi); }
+
+/* ── Модалка ── */
+.modal { max-width: 560px; }
+
+/* ── Дропдаун папки в модалке ── */
+.folder-select-wrap { position: relative; margin-bottom: 1rem; }
+.folder-select-wrap::after { content: '▾'; position: absolute; right: .75rem; top: 50%;
+  transform: translateY(-50%); color: var(--text-dim); pointer-events: none; font-size: .75rem; }
+.folder-select-wrap select { width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 2px; padding: .6rem .8rem; padding-right: 2rem; color: var(--text-hi);
+  font-family: 'DM Sans', sans-serif; font-size: .85rem; outline: none; transition: border-color .2s;
+  appearance: none; -webkit-appearance: none; }
+.folder-select-wrap select:focus { border-color: var(--red); }
+.folder-select-wrap select option { background: var(--bg2); }
+.folder-select-label { font-family: 'DM Sans', sans-serif; font-size: .62rem; color: var(--text-dim);
+  letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: .35rem; }
+
+/* ── Галерея в модалке ── */
+.gallery-status { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
+  margin-bottom: 1rem; font-style: italic; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: .5rem; margin-bottom: 1.25rem; min-height: 60px; }
+.gallery-item { position: relative; cursor: pointer; border-radius: 1px; border: 2px solid transparent;
+  overflow: hidden; transition: border-color .15s, transform .15s, opacity .15s; background: var(--surface2); }
+.gallery-item:hover { border-color: var(--border2); transform: translateY(-2px); }
+.gallery-item.selected { border-color: var(--red-hi); }
+.gallery-item.used { opacity: .4; }
+.gallery-item.used:hover { opacity: .65; }
+.gallery-item img { width: 100%; height: 120px; object-fit: contain; object-position: center top; display: block; filter: brightness(.85); background: var(--surface); }
+.gallery-item-name { font-family: 'DM Sans', sans-serif; font-size: .52rem; color: var(--text);
+  padding: .2rem .3rem; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gallery-item.selected .gallery-item-name { color: var(--text-hi); }
+.gallery-check { position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--red-hi); display: none; align-items: center; justify-content: center; font-size: .6rem; color: #fff; }
+.gallery-item.selected .gallery-check { display: flex; }
+
+/* Ручной ввод (фолбэк) */
+.manual-toggle { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim);
+  cursor: pointer; text-decoration: underline; text-decoration-style: dotted; margin-bottom: .75rem; display: inline-block; }
+.manual-toggle:hover { color: var(--text); }
+.manual-section { display: none; }
+.manual-section.visible { display: block; }
+
+/* Общие инпуты */
+.field { margin-bottom: .85rem; }
+.field label { font-family: 'DM Sans', sans-serif; font-size: .62rem; color: var(--text-dim);
+  letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: .35rem; }
+.field input { width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 2px; padding: .6rem .8rem; color: var(--text-hi); font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; outline: none; transition: border-color .2s; }
+.field input:focus { border-color: var(--red); }
+.field input::placeholder { color: var(--text-dim); }
+.img-preview { width: 60px; height: 90px; object-fit: cover; border-radius: 1px; border: 1px solid var(--border2); margin-top: .5rem; display: none; }
+
+/* Кнопки — общие .btn/.btn-primary/.btn-ghost/.btn-green/.btn-dashed/.icon-btn
+   теперь в style.css, тут остаются только специфичные для этой страницы. */
+.status-msg { font-size: .75rem; }
+
+.add-tier-row { display: flex; align-items: center; gap: .5rem; padding: .6rem; border: 1px dashed var(--border2); border-radius: 2px; flex-wrap: wrap; }
+.add-tier-row input { flex: 1; min-width: 120px; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 2px; padding: .5rem .7rem; color: var(--text-hi); font-family: 'Cormorant Garamond', serif; font-size: .95rem; outline: none; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.state-box { padding: 3rem; font-size: 1rem; }
+.editor-empty { text-align: center; padding: 4rem 2rem; color: var(--text-dim); font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-style: italic; border: 1px dashed var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-sub" id="header-sub">Редактор тир-листов персонажей</div>
+  <a href="/" class="logo">TasteID</a>
+</header>
+
+<main>
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Тайтлы</div>
+      <div class="title-list" id="title-list"></div>
+    </div>
+    <div class="new-title-form hidden" id="new-title-form">
+      <div class="field">
+        <label>Название тайтла *</label>
+        <input type="text" id="nt-name" placeholder="Название">
+      </div>
+      <div class="field">
+  <label>ID (латиница, без пробелов) *</label>
+  <input type="text" id="nt-id" placeholder="korotkij-id">
+  <div id="nt-id-hint" style="font-family:'DM Sans',sans-serif;font-size:.6rem;color:var(--text-dim);margin-top:.3rem;display:none">
+    ID нельзя менять у существующего тайтла — на него уже могут ссылаться сохранённые данные.
+  </div>
+</div>
+      <div class="field">
+        <label>Папка по умолчанию в chars/ *</label>
+        <input type="text" id="nt-folder" placeholder="имя-папки">
+      </div>
+      <div class="field">
+        <label>Обложка (URL)</label>
+        <input type="text" id="nt-cover" placeholder="https://..." oninput="scheduleBackupTitleCover()">
+        <input type="hidden" id="nt-cover-backup">
+        <div id="nt-cover-backup-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
+      </div>
+      <div class="field">
+        <label>Или загрузить с компьютера</label>
+        <label class="btn btn-ghost file-btn">
+          <input type="file" id="nt-cover-upload" accept="image/*" onchange="updateFileBtnName(this)">
+          <span>Выбрать файл</span>
+        </label>
+        <span class="file-btn-name" id="nt-cover-upload-name"></span>
+        <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadTitleCoverFile()">Загрузить и использовать</button>
+        <div id="nt-cover-upload-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
+      </div>
+      <div style="display:flex;gap:.5rem">
+  <button class="btn btn-primary" id="nt-submit-btn" onclick="submitTitleForm()">Добавить</button>
+  <button class="btn btn-ghost" onclick="toggleNewTitleForm(false)">Отмена</button>
+</div>
+    </div>
+    <button class="btn btn-dashed" id="btn-add-title" onclick="toggleNewTitleForm(true)">Новый тайтл</button>
+  </aside>
+
+  <div class="editor" id="editor">
+    <div class="editor-empty">Выбери тайтл слева или создай новый</div>
+  </div>
+</main>
+
+<!-- ── Модалка добавления персонажа ── -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title-label">Добавить персонажа</div>
+
+    <div id="folder-field">
+      <span class="folder-select-label">Папка (источник)</span>
+      <div class="folder-select-wrap">
+        <select id="m-folder" onchange="onFolderChange()">
+          <option value="">Загружаем…</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="gallery-status" id="gallery-status"></div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+
+    <div class="field">
+      <label>Имя персонажа *</label>
+      <input type="text" id="m-name" placeholder="Имя персонажа">
+    </div>
+
+    <span class="manual-toggle" onclick="toggleManual()">Ввести URL вручную</span>
+    <div class="manual-section" id="manual-section">
+      <div class="field">
+        <label>URL картинки</label>
+        <input type="text" id="m-img" placeholder="https://..." oninput="previewModalImg(this.value); scheduleBackupModalImg();">
+        <input type="hidden" id="m-img-backup">
+        <img id="m-img-preview" class="img-preview">
+        <div id="m-img-backup-status" style="font-size:.75rem;margin-top:.35rem;"></div>
+      </div>
+    </div>
+
+    <span class="manual-toggle" onclick="toggleUpload()">⬆ Загрузить с компьютера</span>
+    <div class="manual-section" id="upload-section">
+      <div class="field">
+        <label class="btn btn-ghost file-btn">
+          <input type="file" id="m-upload-file" accept="image/*" onchange="updateFileBtnName(this)">
+          <span>Выбрать файл</span>
+        </label>
+        <span class="file-btn-name" id="m-upload-file-name"></span>
+        <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadCharImage()">Загрузить и использовать</button>
+        <div id="upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.5rem;margin-top:.75rem">
+      <button class="btn btn-primary" id="m-btn-add" onclick="confirmAddChar()">Добавить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ СОСТОЯНИЕ ══════════════════════════════════
+let data         = [];
+let activeId     = null;
+let activeListId = null;
+let pendingTier  = null;
+let dragSrc      = null;
+let selectedGalleryImg = null;
+let galleryCache = {};
+let foldersCache = null;
+
+// ── Drop indicator ──────────────────────────────
+let dropIndicator = null;
+
+function clearDropIndicator() {
+  dropIndicator?.remove();
+  dropIndicator = null;
+}
+
+function getInsertIndex(zone, clientX, clientY) {
+  const cards = [...zone.querySelectorAll(".char-card:not(.dragging)")];
+  if (!cards.length) return 0;
+  for (let i = 0; i < cards.length; i++) {
+    const rect = cards[i].getBoundingClientRect();
+    if (clientY < rect.bottom) {
+      if (clientX < rect.left + rect.width / 2) return i;
+      const next = cards[i + 1];
+      if (!next || next.getBoundingClientRect().top > rect.top) return i + 1;
+    }
+  }
+  return cards.length;
+}
+
+function updateDropIndicator(zone, clientX, clientY) {
+  clearDropIndicator();
+  const idx   = getInsertIndex(zone, clientX, clientY);
+  const cards = [...zone.querySelectorAll(".char-card:not(.dragging)")];
+  dropIndicator = document.createElement("div");
+  dropIndicator.className = "drop-indicator";
+  const ref = idx < cards.length ? cards[idx] : zone.querySelector(".add-char-btn");
+  zone.insertBefore(dropIndicator, ref);
+}
+
+// ══ КОЛЛЕКЦИЯ ══════════════════════════════════
+// По умолчанию — встроенные "Персонажи". Если открыли с ?collection=X,
+// редактируем именно эту коллекцию (её название и файлы данных отдельные).
+const COLLECTION = new URLSearchParams(location.search).get("collection") || "characters";
+const COLLECTION_LABEL = (window.SITE_TIER_COLLECTIONS || []).find(c => c.id === COLLECTION)?.label
+  || (COLLECTION === "characters" ? "Персонажи" : COLLECTION);
+const DATA_FILE = COLLECTION === "characters" ? "characters-tier.json" : `tier-${COLLECTION}.json`;
+
+document.title = `TasteID — Редактор: ${COLLECTION_LABEL}`;
+document.addEventListener("site-labels-ready", () => {
+  const label = (window.SITE_TIER_COLLECTIONS || []).find(c => c.id === COLLECTION)?.label
+    || (COLLECTION === "characters" ? "Персонажи" : COLLECTION);
+  document.title = `TasteID — Редактор: ${label}`;
+  const headerEl = document.getElementById("header-sub");
+  if (headerEl) headerEl.textContent = `Редактор: ${label}`;
+});
+
+// ══ ЗАГРУЗКА ═══════════════════════════════════
+async function init() {
+  try {
+    const res = await fetch(`/${DATA_FILE}?_=` + Date.now());
+    if (res.ok) data = await res.json();
+    else data = [];
+  } catch { data = []; }
+  renderSidebar();
+  if (data.length) selectTitle(data[0].id);
+}
+
+// ══ САЙДБАР ════════════════════════════════════
+function renderSidebar() {
+  const list = document.getElementById("title-list");
+  list.innerHTML = data.map(t => `
+    <div class="title-item${t.id === activeId ? " active" : ""}" draggable="true" data-title-id="${esc(t.id)}" onclick="selectTitle('${esc(t.id)}')">
+      <img class="title-item-cover" src="${esc(t.cover || t.cover_backup || "")}" alt="" data-hide-on-error>
+      <div class="title-item-name">${esc(t.title)}</div>
+      <button class="title-item-edit" onclick="openEditTitleForm(event,'${esc(t.id)}')" title="Редактировать">✎</button>
+      <button class="title-item-del" onclick="deleteTitle(event,'${esc(t.id)}')" title="Удалить">✕</button>
+    </div>
+  `).join("");
+  bindTitleDrag();
+}
+
+function bindTitleDrag() {
+  let dragSrcId = null;
+  document.querySelectorAll(".title-item[draggable]").forEach(el => {
+    el.addEventListener("dragstart", e => {
+      dragSrcId = el.dataset.titleId;
+      el.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", () => {
+      el.classList.remove("dragging");
+      document.querySelectorAll(".title-item").forEach(i =>
+        i.classList.remove("drag-over-up","drag-over-dn"));
+    });
+    el.addEventListener("dragover", e => {
+      e.preventDefault();
+      document.querySelectorAll(".title-item").forEach(i =>
+        i.classList.remove("drag-over-up","drag-over-dn"));
+      const rect = el.getBoundingClientRect();
+      const half = e.clientY < rect.top + rect.height / 2;
+      el.classList.add(half ? "drag-over-up" : "drag-over-dn");
+    });
+    el.addEventListener("dragleave", () => {
+      el.classList.remove("drag-over-up","drag-over-dn");
+    });
+    el.addEventListener("drop", e => {
+      e.preventDefault();
+      el.classList.remove("drag-over-up","drag-over-dn");
+      if (!dragSrcId || dragSrcId === el.dataset.titleId) return;
+
+      const rect = el.getBoundingClientRect();
+      const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+      const fromIdx = data.findIndex(t => t.id === dragSrcId);
+      const toIdx   = data.findIndex(t => t.id === el.dataset.titleId);
+      if (fromIdx === -1 || toIdx === -1) return;
+
+      const [moved] = data.splice(fromIdx, 1);
+      const newIdx  = data.findIndex(t => t.id === el.dataset.titleId);
+      data.splice(insertBefore ? newIdx : newIdx + 1, 0, moved);
+
+      dragSrcId = null;
+      renderSidebar();
+    });
+  });
+}
+
+function selectTitle(id) {
+  activeId = id;
+  const title = data.find(t => t.id === id);
+  if (title) activeListId = title.tierlists[0]?.id || null;
+  renderSidebar();
+  renderEditor();
+}
+
+let editingTitleId = null; // null = создаём новый тайтл, иначе редактируем существующий
+
+function toggleNewTitleForm(show) {
+  document.getElementById("new-title-form").classList.toggle("hidden", !show);
+  document.getElementById("btn-add-title").style.display = show ? "none" : "";
+  if (!show) {
+    editingTitleId = null;
+    resetTitleForm();
+  } else {
+    document.getElementById("nt-name").focus();
+  }
+}
+
+function resetTitleForm() {
+  document.getElementById("nt-name").value   = "";
+  document.getElementById("nt-id").value     = "";
+  document.getElementById("nt-folder").value = "";
+  document.getElementById("nt-cover").value  = "";
+  document.getElementById("nt-cover-backup").value = "";
+  document.getElementById("nt-cover-backup-status").textContent = "";
+  document.getElementById("nt-cover-upload-status").textContent = "";
+  document.getElementById("nt-cover-upload").value = "";
+  document.getElementById("nt-id").disabled  = false;
+  document.getElementById("nt-id-hint").style.display = "none";
+  document.getElementById("nt-submit-btn").textContent = "Добавить";
+}
+
+// ── Резервная копия обложки тайтла по ссылке (качается на сервере) ──
+let backupTitleCoverTimer = null;
+function scheduleBackupTitleCover() {
+  clearTimeout(backupTitleCoverTimer);
+  document.getElementById("nt-cover-backup").value = "";
+  backupTitleCoverTimer = setTimeout(backupTitleCoverNow, 1200);
+}
+
+async function backupTitleCoverNow() {
+  const url = document.getElementById("nt-cover").value.trim();
+  const status = document.getElementById("nt-cover-backup-status");
+  if (!url || !url.startsWith("http")) return;
+
+  const name = document.getElementById("nt-name").value.trim() || "title";
+  const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
+
+  status.textContent = "Делаю резервную копию обложки...";
+  status.style.color = "";
+  try {
+    const res = await fetch("/api/backup-cover", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, filename: slug }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Не удалось сохранить копию");
+    document.getElementById("nt-cover-backup").value = data.url || ("/" + data.path);
+    status.textContent = "Резервная копия сохранена ✓";
+    status.style.color = "var(--green, #4a8c5c)";
+  } catch (e) {
+    status.textContent = "Резервную копию сделать не удалось: " + e.message;
+    status.style.color = "var(--red-hi, #c0392b)";
+  }
+}
+
+async function uploadTitleCoverFile() {
+  const fileInput = document.getElementById("nt-cover-upload");
+  const status = document.getElementById("nt-cover-upload-status");
+  if (!fileInput.files.length) {
+    status.textContent = "Выбери файл";
+    status.style.color = "var(--red-hi)";
+    return;
+  }
+  const name = document.getElementById("nt-name").value.trim() || "title";
+  const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
+
+  status.textContent = "Обрабатываю...";
+  status.style.color = "";
+  try {
+    const base64 = await convertToWebpForChar(fileInput.files[0]);
+    const res = await fetch("/api/upload-char-image", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ basePath: "title-covers", filename: slug + ".webp", contentBase64: base64 }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Ошибка загрузки");
+
+    // Обложка загружена напрямую — своя резервная копия ей не нужна.
+    document.getElementById("nt-cover").value = "";
+    document.getElementById("nt-cover-backup").value = "/" + data.path;
+    status.textContent = "Загружено ✓";
+    status.style.color = "var(--green, #4a8c5c)";
+  } catch (e) {
+    status.textContent = "Ошибка: " + e.message;
+    status.style.color = "var(--red-hi, #c0392b)";
+  }
+}
+
+function openEditTitleForm(e, id) {
+  e.stopPropagation();
+  const title = data.find(t => t.id === id);
+  if (!title) return;
+
+  editingTitleId = id;
+  document.getElementById("nt-name").value   = title.title;
+  document.getElementById("nt-id").value     = title.id;
+  document.getElementById("nt-folder").value = title.folder || "";
+  document.getElementById("nt-cover").value  = title.cover  || "";
+  document.getElementById("nt-cover-backup").value = title.cover_backup || "";
+  document.getElementById("nt-cover-backup-status").textContent = "";
+  document.getElementById("nt-cover-upload-status").textContent = "";
+  document.getElementById("nt-cover-upload").value = "";
+  document.getElementById("nt-id").disabled  = true;
+  document.getElementById("nt-id-hint").style.display = "block";
+  document.getElementById("nt-submit-btn").textContent = "Сохранить изменения";
+
+  document.getElementById("new-title-form").classList.remove("hidden");
+  document.getElementById("btn-add-title").style.display = "none";
+  document.getElementById("nt-name").focus();
+}
+
+async function submitTitleForm() {
+  if (editingTitleId) await saveTitleEdit();
+  else await addTitle();
+}
+
+async function saveTitleEdit() {
+  const name   = document.getElementById("nt-name").value.trim();
+  const folder = document.getElementById("nt-folder").value.trim();
+  const cover  = document.getElementById("nt-cover").value.trim();
+  if (!name || !folder) { alert("Заполни название и папку"); return; }
+
+  // Подстраховка: если ссылку вписали и сразу сохранили, не дожидаясь
+  // паузы в 1.2с — досылаем бэкап прямо сейчас.
+  if (cover && cover.startsWith("http") && !document.getElementById("nt-cover-backup").value) {
+    clearTimeout(backupTitleCoverTimer);
+    await backupTitleCoverNow();
+  }
+  const coverBackup = document.getElementById("nt-cover-backup").value.trim();
+
+  const title = data.find(t => t.id === editingTitleId);
+  if (!title) return;
+
+  title.title  = name;
+  title.folder = folder;
+  title.cover  = cover || "";
+  title.cover_backup = coverBackup || "";
+
+  toggleNewTitleForm(false);
+  selectTitle(title.id);
+}
+
+async function addTitle() {
+  const name   = document.getElementById("nt-name").value.trim();
+  const id     = document.getElementById("nt-id").value.trim();
+  const folder = document.getElementById("nt-folder").value.trim();
+  const cover  = document.getElementById("nt-cover").value.trim();
+  if (!name || !id || !folder) { alert("Заполни название, ID и папку"); return; }
+  if (data.find(t => t.id === id)) { alert("Тайтл с таким ID уже существует"); return; }
+
+  // Подстраховка: если ссылку вписали и сразу сохранили, не дожидаясь
+  // паузы в 1.2с — досылаем бэкап прямо сейчас.
+  if (cover && cover.startsWith("http") && !document.getElementById("nt-cover-backup").value) {
+    clearTimeout(backupTitleCoverTimer);
+    await backupTitleCoverNow();
+  }
+  const coverBackup = document.getElementById("nt-cover-backup").value.trim();
+
+  data.push({
+    id, title: name, cover: cover || "", cover_backup: coverBackup || "", folder,
+    tierlists: [{
+      id: id + "-design",
+      label: "Дизайн & Впечатление",
+      tiers: defaultTiers()
+    }]
+  });
+
+  toggleNewTitleForm(false);
+  selectTitle(id);
+}
+
+function deleteTitle(e, id) {
+  e.stopPropagation();
+  if (!confirm("Удалить тайтл и все его тир-листы?")) return;
+  data = data.filter(t => t.id !== id);
+  if (activeId === id) { activeId = data[0]?.id || null; activeListId = null; }
+  renderSidebar();
+  renderEditor();
+}
+
+function defaultTiers() {
+  return [
+    { name: "Резонанс", color: "#7c3aed", chars: [] },
+    { name: "Топ",      color: "#2563a8", chars: [] },
+    { name: "Хорошо",   color: "#2d8a4e", chars: [] },
+    { name: "Средне",   color: "#d4a017", chars: [] },
+    { name: "Слабо",    color: "#6b7280", chars: [] },
+  ];
+}
+
+// ══ РЕДАКТОР ═══════════════════════════════════
+function renderEditor() {
+  const box = document.getElementById("editor");
+  if (!activeId) { box.innerHTML = `<div class="editor-empty">Выбери тайтл слева или создай новый</div>`; return; }
+
+  const title = data.find(t => t.id === activeId);
+  if (!title) return;
+  if (!activeListId) activeListId = title.tierlists[0]?.id || null;
+  const list = title.tierlists.find(l => l.id === activeListId) || title.tierlists[0];
+
+  const tabs = title.tierlists.map(l =>
+    `<button class="list-tab${l.id === (list?.id) ? " active" : ""}" onclick="selectList('${esc(l.id)}')">${esc(l.label)}</button>`
+  ).join("") + `<button class="list-tab list-tab-add" onclick="addList()">Создать список</button>`;
+
+  const rows = (list?.tiers || []).map((tier, ti) => renderTierRow(title, list, tier, ti)).join("");
+
+  box.innerHTML = `
+    <div class="editor-top">
+      <div class="editor-title">${esc(title.title)}</div>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        ${list ? `<button class="btn btn-ghost" onclick="deleteList('${esc(list.id)}')">Удалить список</button>` : ""}
+      </div>
+    </div>
+    <div class="list-tabs">${tabs}</div>
+    <div class="tl-editor-rows" id="tl-editor-rows">${rows}</div>
+    <div class="add-tier-row">
+      <input type="text" id="new-tier-name" placeholder="Название нового тира">
+      <input type="color" id="new-tier-color" value="#888888" style="width:32px;height:32px;border:1px solid var(--border2);border-radius:2px;padding:2px;cursor:pointer;background:none;">
+      <button class="btn btn-dashed" onclick="addTier()">Добавить тир</button>
+    </div>
+    <div class="save-bar">
+      <button class="btn btn-green" id="btn-save" onclick="saveAll()">Сохранить всё</button>
+      <span class="status-msg" id="status-msg"></span>
+    </div>`;
+
+  bindDragDrop();
+}
+
+// Заглушка для карточки персонажа — размер под .char-card
+const CHAR_PLACEHOLDER = "https://placehold.co/72x108/111114/4a4540?text=?";
+
+function renderTierRow(title, list, tier, ti) {
+  const chars = tier.chars.map((ch, ci) => `
+    <div class="char-card" draggable="true"
+      data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}" data-char="${ci}">
+      <img src="${esc(ch.img || ch.img_backup || "")}" alt="${esc(ch.name)}" ${imgFallbackAttrs(ch.img, ch.img_backup, CHAR_PLACEHOLDER)}>
+      <div class="char-card-name">${esc(ch.name)}</div>
+      <button class="char-card-del" onclick="deleteChar('${esc(title.id)}','${esc(list.id)}',${ti},${ci})">✕</button>
+    </div>
+  `).join("");
+
+  return `
+    <div class="tl-editor-row" style="--tl-color:${esc(tier.color)}">
+      <button class="tl-row-del" onclick="deleteTier('${esc(list.id)}',${ti})">✕</button>
+      <div class="tl-editor-label">
+        <div class="tl-label-dot"></div>
+        <input class="tl-label-input" type="text" value="${esc(tier.name)}"
+          style="color:${esc(tier.color)}"
+          onchange="renameTier('${esc(list.id)}',${ti},this.value)">
+        <input class="tl-color-input" type="color" value="${esc(tier.color)}"
+          oninput="recolorTier('${esc(list.id)}',${ti},this.value)">
+      </div>
+      <div class="tl-editor-cards" data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}">
+        ${chars}
+        <button class="add-char-btn" onclick="openModal('${esc(title.id)}','${esc(list.id)}',${ti})">Добавить</button>
+      </div>
+    </div>`;
+}
+
+// ══ ТИР-ЛИСТЫ ══════════════════════════════════
+function selectList(id) { activeListId = id; renderEditor(); }
+
+function addList() {
+  const label = prompt("Название нового тир-листа:");
+  if (!label) return;
+  const title = data.find(t => t.id === activeId);
+  const id    = activeId + "-" + Date.now();
+  title.tierlists.push({ id, label, tiers: defaultTiers() });
+  activeListId = id;
+  renderEditor();
+}
+
+function deleteList(listId) {
+  if (!confirm("Удалить этот тир-лист?")) return;
+  const title = data.find(t => t.id === activeId);
+  title.tierlists = title.tierlists.filter(l => l.id !== listId);
+  activeListId = title.tierlists[0]?.id || null;
+  renderEditor();
+}
+
+// ══ ТИРЫ ═══════════════════════════════════════
+function getTier(listId, ti) {
+  const title = data.find(t => t.id === activeId);
+  const list  = title?.tierlists.find(l => l.id === listId);
+  return list?.tiers[ti];
+}
+
+function addTier() {
+  const name  = document.getElementById("new-tier-name").value.trim();
+  const color = document.getElementById("new-tier-color").value;
+  if (!name) { alert("Введи название тира"); return; }
+  const title = data.find(t => t.id === activeId);
+  const list  = title?.tierlists.find(l => l.id === activeListId);
+  if (!list) return;
+  list.tiers.push({ name, color, chars: [] });
+  document.getElementById("new-tier-name").value = "";
+  renderEditor();
+}
+
+function deleteTier(listId, ti) {
+  if (!confirm("Удалить тир? Персонажи в нём тоже удалятся.")) return;
+  const title = data.find(t => t.id === activeId);
+  const list  = title?.tierlists.find(l => l.id === listId);
+  if (!list) return;
+  list.tiers.splice(ti, 1);
+  renderEditor();
+}
+
+function renameTier(listId, ti, val) { const t = getTier(listId, ti); if (t) t.name = val; }
+
+function recolorTier(listId, ti, val) {
+  const tier = getTier(listId, ti);
+  if (!tier) return;
+  tier.color = val;
+  const row = document.querySelectorAll(".tl-editor-row")[ti];
+  if (row) {
+    row.style.setProperty("--tl-color", val);
+    const inp = row.querySelector(".tl-label-input");
+    if (inp) inp.style.color = val;
+  }
+}
+
+// ══ ПЕРСОНАЖИ ══════════════════════════════════
+function deleteChar(titleId, listId, ti, ci) {
+  const title = data.find(t => t.id === titleId);
+  const list  = title?.tierlists.find(l => l.id === listId);
+  if (!list) return;
+  list.tiers[ti].chars.splice(ci, 1);
+  renderEditor();
+}
+
+// ══ ПАПКИ ══════════════════════════════════════
+async function loadFolders() {
+  if (foldersCache !== null) return foldersCache;
+  try {
+    const res = await fetch(`/api/list-chars?collection=${encodeURIComponent(COLLECTION)}`, { credentials: "include" });
+    const json = await res.json();
+    foldersCache = json.folders || [];
+  } catch {
+    foldersCache = [];
+  }
+  return foldersCache;
+}
+
+async function onFolderChange() {
+  const folder = document.getElementById("m-folder").value;
+  if (!folder) return;
+  selectedGalleryImg = null;
+  document.querySelectorAll(".gallery-item").forEach(i => i.classList.remove("selected"));
+  document.getElementById("m-name").value = "";
+  const title = pendingTier ? data.find(t => t.id === pendingTier.titleId) : null;
+  await loadGallery(folder, title);
+}
+
+// ══ ГАЛЕРЕЯ ════════════════════════════════════
+async function loadGallery(folder, title) {
+  const statusEl = document.getElementById("gallery-status");
+  const gridEl   = document.getElementById("gallery-grid");
+
+  if (!folder) {
+    statusEl.textContent = "Выбери папку выше.";
+    gridEl.innerHTML = "";
+    return;
+  }
+
+  statusEl.textContent = "Загружаем…";
+  gridEl.innerHTML = "";
+  document.getElementById("manual-section").classList.remove("visible");
+
+  if (!galleryCache[folder]) {
+    try {
+      const res  = await fetch(`/api/list-chars?folder=${encodeURIComponent(folder)}&collection=${encodeURIComponent(COLLECTION)}`, { credentials: "include" });
+      const json = await res.json();
+      galleryCache[folder] = json.files || [];
+    } catch {
+      galleryCache[folder] = [];
+    }
+  }
+
+  const files = galleryCache[folder];
+
+  if (!files.length) {
+    statusEl.textContent = `Картинки не найдены в папке chars/${folder}. Введи URL вручную.`;
+    document.getElementById("manual-section").classList.add("visible");
+    return;
+  }
+
+  const usedNames = title
+    ? new Set(title.tierlists.flatMap(l => l.tiers.flatMap(t => t.chars.map(c => c.name))))
+    : new Set();
+
+  statusEl.textContent = `${files.length} персонажей в папке chars/${folder}. Кликни на нужного.`;
+
+  gridEl.innerHTML = files.map(f => {
+    const used = usedNames.has(f.name);
+    return `<div class="gallery-item${used ? " used" : ""}"
+        data-name="${esc(f.name)}" data-url="${esc(f.url)}"
+        onclick="selectGalleryItem(this)"
+        title="${esc(f.name)}${used ? " (уже добавлен)" : ""}">
+      <img src="${esc(f.preview || f.url)}" alt="${esc(f.name)}" loading="lazy"
+        data-placeholder="https://placehold.co/80x120/111114/4a4540?text=?">
+      <div class="gallery-item-name">${esc(f.name)}</div>
+      <div class="gallery-check">✓</div>
+    </div>`;
+  }).join("");
+}
+
+// ══ МОДАЛКА ════════════════════════════════════
+async function openModal(titleId, listId, ti) {
+  pendingTier = { titleId, listId, tierIdx: ti };
+  selectedGalleryImg = null;
+
+  document.getElementById("m-name").value = "";
+  document.getElementById("m-img").value  = "";
+  document.getElementById("m-img-backup").value = "";
+  document.getElementById("m-img-backup-status").textContent = "";
+  document.getElementById("m-img-preview").style.display = "none";
+  document.getElementById("manual-section").classList.remove("visible");
+  document.getElementById("gallery-status").textContent = "Загружаем папки…";
+  document.getElementById("gallery-grid").innerHTML = "";
+  document.getElementById("modal-overlay").classList.remove("hidden");
+
+  const title   = data.find(t => t.id === titleId);
+  const folders = await loadFolders();
+  const sel     = document.getElementById("m-folder");
+
+  if (!folders.length) {
+    sel.innerHTML = '<option value="">Папки не найдены</option>';
+    document.getElementById("gallery-status").textContent = "Папки не найдены в chars/. Введи URL вручную.";
+    document.getElementById("manual-section").classList.add("visible");
+    return;
+  }
+
+  sel.innerHTML = folders
+    .map(f => `<option value="${esc(f)}"${f === title?.folder ? " selected" : ""}>${esc(f)}</option>`)
+    .join("");
+
+  await loadGallery(sel.value, title);
+  document.getElementById("m-name").focus();
+}
+
+function selectGalleryItem(el) {
+  document.querySelectorAll(".gallery-item").forEach(i => i.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedGalleryImg = { name: el.dataset.name, url: el.dataset.url };
+  document.getElementById("m-name").value = el.dataset.name;
+  document.getElementById("m-img").value = "";
+  document.getElementById("m-img-backup").value = "";
+  document.getElementById("m-img-backup-status").textContent = "";
+  document.getElementById("m-img-preview").style.display = "none";
+}
+
+function toggleManual() {
+  const section = document.getElementById("manual-section");
+  section.classList.toggle("visible");
+  if (section.classList.contains("visible")) {
+    selectedGalleryImg = null;
+    document.querySelectorAll(".gallery-item").forEach(i => i.classList.remove("selected"));
+    document.getElementById("m-img").focus();
+  }
+}
+
+function toggleUpload() {
+  document.getElementById("upload-section").classList.toggle("visible");
+}
+
+function convertToWebpForChar(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      const maxSide = Math.max(width, height);
+      if (maxSide > 1200) {
+        const scale = 1200 / maxSide;
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error("Не удалось сконвертировать"));
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }, "image/webp", 0.85);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function uploadCharImage() {
+  const folder = document.getElementById("m-folder").value;
+  const fileInput = document.getElementById("m-upload-file");
+  const status = document.getElementById("upload-status");
+
+  if (!folder) {
+    status.textContent = "Сначала выбери папку выше";
+    status.style.color = "var(--red-hi)";
+    return;
+  }
+  if (!fileInput.files.length) {
+    status.textContent = "Выбери файл";
+    status.style.color = "var(--red-hi)";
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const filename = file.name.replace(/\.[^.]+$/, "") + ".webp";
+
+  status.textContent = "Обрабатываю...";
+  status.style.color = "var(--text-dim)";
+
+  try {
+    const base64 = await convertToWebpForChar(file);
+    const res = await fetch("/api/upload-char-image", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder, filename, contentBase64: base64, basePath: COLLECTION === "characters" ? undefined : COLLECTION }),
+    });
+    const result = await res.json();
+    if (!result.ok) throw new Error(result.error || "Ошибка загрузки");
+
+    status.textContent = "Загружено ✓ Обновляю список...";
+    status.style.color = "var(--green)";
+
+    delete galleryCache[folder]; // заставляем перечитать папку заново
+    const title = pendingTier ? data.find(t => t.id === pendingTier.titleId) : null;
+    await loadGallery(folder, title);
+
+    const nameGuess = filename.replace(/\.webp$/, "");
+    const item = document.querySelector(`.gallery-item[data-name="${CSS.escape(nameGuess)}"]`);
+    if (item) {
+      selectGalleryItem(item);
+      document.getElementById("upload-section").classList.remove("visible");
+      status.textContent = "";
+    }
+    fileInput.value = "";
+  } catch (e) {
+    status.textContent = "Ошибка: " + e.message;
+    status.style.color = "var(--red-hi)";
+  }
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.add("hidden");
+  pendingTier = null;
+  selectedGalleryImg = null;
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById("modal-overlay")) closeModal();
+}
+
+function previewModalImg(url) {
+  const img = document.getElementById("m-img-preview");
+  if (url && url.startsWith("http")) { img.src = url; img.style.display = "block"; selectedGalleryImg = null; }
+  else img.style.display = "none";
+}
+
+// ── Резервная копия картинки персонажа по ссылке (качается на сервере) ──
+let backupModalImgTimer = null;
+function scheduleBackupModalImg() {
+  clearTimeout(backupModalImgTimer);
+  document.getElementById("m-img-backup").value = "";
+  backupModalImgTimer = setTimeout(backupModalImgNow, 1200);
+}
+
+async function backupModalImgNow() {
+  const url = document.getElementById("m-img").value.trim();
+  const status = document.getElementById("m-img-backup-status");
+  if (!url || !url.startsWith("http")) return;
+
+  const name = document.getElementById("m-name").value.trim() || "char";
+  const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
+
+  status.textContent = "Делаю резервную копию...";
+  status.style.color = "";
+  try {
+    const res = await fetch("/api/backup-cover", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, filename: slug }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Не удалось сохранить копию");
+    document.getElementById("m-img-backup").value = data.url || ("/" + data.path);
+    status.textContent = "Резервная копия сохранена ✓";
+    status.style.color = "var(--green, #4a8c5c)";
+  } catch (e) {
+    status.textContent = "Резервную копию сделать не удалось: " + e.message;
+    status.style.color = "var(--red-hi, #c0392b)";
+  }
+}
+
+async function confirmAddChar() {
+  const name      = document.getElementById("m-name").value.trim();
+  const manualImg = document.getElementById("m-img").value.trim();
+  if (!name) { alert("Введи имя персонажа"); return; }
+  if (!pendingTier) return;
+
+  // Подстраховка: если ссылку вписали и сразу нажали «Добавить», не
+  // дожидаясь паузы в 1.2с — досылаем бэкап прямо сейчас.
+  if (!selectedGalleryImg && manualImg && manualImg.startsWith("http") && !document.getElementById("m-img-backup").value) {
+    clearTimeout(backupModalImgTimer);
+    const btn = document.getElementById("m-btn-add");
+    btn.disabled = true;
+    btn.textContent = "Делаю резервную копию...";
+    await backupModalImgNow();
+    btn.disabled = false;
+    btn.textContent = "Добавить";
+  }
+  const manualImgBackup = document.getElementById("m-img-backup").value.trim();
+
+  const img = selectedGalleryImg?.url || manualImg || "";
+  const imgBackup = selectedGalleryImg ? "" : manualImgBackup;
+
+  const { titleId, listId, tierIdx } = pendingTier;
+  const title = data.find(t => t.id === titleId);
+  const list  = title?.tierlists.find(l => l.id === listId);
+  if (!list) return;
+
+  const char = { name, img };
+  if (imgBackup) char.img_backup = imgBackup;
+  list.tiers[tierIdx].chars.push(char);
+  closeModal();
+  renderEditor();
+}
+
+// ══ DRAG & DROP — с позиционным индикатором ════
+function bindDragDrop() {
+  document.querySelectorAll(".char-card").forEach(card => {
+    card.addEventListener("dragstart", e => {
+      dragSrc = {
+        titleId: card.dataset.title, listId: card.dataset.list,
+        tierIdx: parseInt(card.dataset.tier), charIdx: parseInt(card.dataset.char),
+      };
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      clearDropIndicator();
+      document.querySelectorAll(".tl-editor-cards").forEach(z => z.classList.remove("drag-over"));
+    });
+  });
+
+  document.querySelectorAll(".tl-editor-cards").forEach(zone => {
+    zone.addEventListener("dragover", e => {
+      e.preventDefault();
+      zone.classList.add("drag-over");
+      updateDropIndicator(zone, e.clientX, e.clientY);
+    });
+    zone.addEventListener("dragleave", e => {
+      if (!zone.contains(e.relatedTarget)) {
+        zone.classList.remove("drag-over");
+        clearDropIndicator();
+      }
+    });
+    zone.addEventListener("drop", e => {
+      e.preventDefault();
+      zone.classList.remove("drag-over");
+      if (!dragSrc) return;
+
+      const insertIdx   = getInsertIndex(zone, e.clientX, e.clientY);
+      const destTitleId = zone.dataset.title;
+      const destListId  = zone.dataset.list;
+      const destTierIdx = parseInt(zone.dataset.tier);
+
+      const srcTitle = data.find(t => t.id === dragSrc.titleId);
+      const srcList  = srcTitle?.tierlists.find(l => l.id === dragSrc.listId);
+      if (!srcList) return;
+
+      const [moved] = srcList.tiers[dragSrc.tierIdx].chars.splice(dragSrc.charIdx, 1);
+
+      const destTitle = data.find(t => t.id === destTitleId);
+      const destList  = destTitle?.tierlists.find(l => l.id === destListId);
+      if (!destList) {
+        srcList.tiers[dragSrc.tierIdx].chars.splice(dragSrc.charIdx, 0, moved);
+        return;
+      }
+
+      destList.tiers[destTierIdx].chars.splice(insertIdx, 0, moved);
+      dragSrc = null;
+      renderEditor();
+    });
+  });
+}
+
+// ══ СОХРАНЕНИЕ ══════════════════════════════════
+async function saveAll() {
+  const btn    = document.getElementById("btn-save");
+  const status = document.getElementById("status-msg");
+  btn.disabled = true;
+  btn.textContent = "Сохраняем…";
+  status.className = "status-msg";
+  status.textContent = "";
+  try {
+    const res = await fetch("/api/save-chars-tier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ collection: COLLECTION, data }),
+    });
+    const resp = await res.json();
+    if (res.ok) {
+      status.className = "status-msg ok";
+      status.textContent = "Сохранено. Сайт обновится через ~30 секунд.";
+    } else {
+      status.className = "status-msg err";
+      status.textContent = "Ошибка: " + (resp.error || "неизвестная");
+    }
+  } catch (e) {
+    status.className = "status-msg err";
+    status.textContent = "Ошибка сети: " + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = "Сохранить всё";
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeModal();
+  if (e.key === "Enter" && !document.getElementById("modal-overlay").classList.contains("hidden")) {
+    confirmAddChar();
+  }
+});
+
+init();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="/js/backup.js?v=12"></script>
+</body>
+</html>

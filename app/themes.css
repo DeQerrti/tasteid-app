@@ -1,0 +1,2517 @@
+/* ══════════════════════════════════════════════
+   THEMES.CSS — все темы оформления сайта
+
+   Каждая тема это один блок [data-skin="имя"]. Атрибут проставляет
+   js/theme.js по значению theme из site-settings.json.
+
+   Что здесь лежит:
+     • палитра темы (--bg, --surface, --border, --text…);
+     • переменные «визуального языка» — скругления, тени, рамки
+       карточек, вид бейджей;
+     • структурные правила, которые переменной не выразить
+       (например, навигация пилюлями вместо подчёркивания).
+
+   Чего здесь НЕТ: акцентный цвет. Его человек задаёт отдельно в
+   настройках, и theme.js подставляет его последним, поверх темы.
+   Тема может лишь предложить свой акцент по умолчанию — это
+   указывается в js/theme.js, в реестре THEME_PRESETS.
+
+   Чтобы добавить тему: блок сюда + строка в THEME_PRESETS. Больше
+   ничего править не нужно — список в настройках строится по реестру.
+
+   Подключать ПОСЛЕ style.css и admin.css: правила тем специфичнее
+   базовых за счёт [data-skin], но порядок делает намерение явным.
+   ══════════════════════════════════════════════ */
+
+/* ══ КЛАССИЧЕСКАЯ ════════════════════════════════
+   Значения по умолчанию живут в :root в style.css — здесь тема
+   названа явно, чтобы список скинов читался целиком в одном файле. */
+[data-skin="classic"] {
+  color-scheme: dark;
+}
+
+/* ══ КЛАССИЧЕСКАЯ СВЕТЛАЯ ════════════════════════
+   Тот же журнальный визуальный язык, что у тёмной классической —
+   тонкие рамки, маленькое скругление, засечковые заголовки курсивом —
+   он весь уже живёт в базовых значениях :root, а не в переопределениях
+   темы. Поэтому здесь только палитра: тёплая бумага вместо чёрного,
+   больше почти ничего не меняется — эта тема и задумана как пример
+   того, что смена настроения не всегда требует новой формы. */
+[data-skin="classic-light"] {
+  color-scheme: light;
+
+  --bg: #f7f5f0;
+  --bg2: #eeebe2;
+  --surface: #ffffff;
+  --surface2: #f3f0e8;
+  --border: #ddd8cc;
+  --border2: #c7c0ae;
+  --text: #4a453e;
+  --text-dim: #928c7d;
+  --text-hi: #1f1c17;
+
+  --tint: rgba(31, 28, 23, 0.04);
+  --tint-hi: rgba(31, 28, 23, 0.08);
+  --tint-line: rgba(31, 28, 23, 0.14);
+  --tint-line-hi: rgba(31, 28, 23, 0.24);
+
+  --scrim: rgba(31, 28, 23, 0.55);
+  --poster-scrim: rgba(31, 28, 23, 0.5);
+  --nav-bg: rgba(247, 245, 240, 0.92);
+  --shadow: rgba(31, 28, 23, 0.25);
+  --shadow-soft: rgba(31, 28, 23, 0.12);
+
+  --ok: #3f7a4d;
+  --ok-wash: rgba(63, 122, 77, 0.1);
+  --ok-fill: rgba(63, 122, 77, 0.18);
+  --ok-line: rgba(63, 122, 77, 0.38);
+  --err: #a83232;
+}
+
+/* ══ МЯГКИЙ БОТАНИЧЕСКИЙ ═════════════════════════
+   Светлая тема и единственная, которая меняет не только палитру:
+   скруглённые карточки, мягкие тени вместо рамок, навигация пилюлями,
+   крупные курсивные заголовки. Служит образцом того, как тема задаёт
+   собственный визуальный язык, а не только цвета.
+
+   Палитра: тёплый кремовый фон, шалфейно-оливковая зелень, глубокий
+   тёмно-зелёный для текста. Контраст текста к фону держится выше 7:1,
+   чтобы читалось на солнце и на плохих экранах. */
+[data-skin="soft"] {
+  color-scheme: light;
+
+  /* Фон — тёплый кремовый, панели и карточки — приглушённый авокадо.
+     Раньше --surface был почти белым (#fbf8f0) и блоки выглядели
+     «голыми»: в тёплой зелёной теме белый читается как дырка в макете. */
+  --bg: #f4efe3;
+  --bg2: #ece5d5;
+  --surface: #e9edd8;
+  --surface2: #dee4c5;
+  --border: #d0d7b4;
+  --border2: #b3bd90;
+  --text: #555c48;
+  --text-dim: #8b9077;
+  --text-hi: #2f3a26;
+
+  /* Визуальный язык */
+  --radius-btn: 999px;
+  --card-radius: 20px;
+  --card-border: none;
+  --card-shadow: 0 10px 26px -14px rgba(58, 62, 40, 0.32);
+  --card-shadow-hover: 0 18px 38px -16px rgba(58, 62, 40, 0.42);
+  --card-corner-display: none;
+  --card-img-filter: saturate(0.96);
+  --card-img-filter-hover: saturate(1.05);
+
+  /* Бейджи на карточках: в тёмных темах они тёмные, здесь на светлых
+     обложках такие сливались бы — поэтому шалфейные с тёмным текстом. */
+  --badge-bg: rgba(125, 143, 95, 0.9);
+  --badge-text: #f7f4e8;
+  --badge-text-dim: #ebe7d6;
+  --badge-border: transparent;
+  --badge-accent-border: transparent;
+
+  /* Нейтральные подсветки в :root — осветление (белый с малой альфой):
+     на тёмном фоне это работает, на кремовом такой слой не виден вовсе.
+     Здесь они, наоборот, затемняют. */
+  --tint: rgba(58, 62, 40, 0.05);
+  --tint-hi: rgba(58, 62, 40, 0.09);
+  --tint-line: rgba(58, 62, 40, 0.14);
+  --tint-line-hi: rgba(58, 62, 40, 0.24);
+
+  --scrim: rgba(58, 62, 40, 0.42);
+  --poster-scrim: rgba(125, 143, 95, 0.9);
+  --nav-bg: rgba(244, 239, 227, 0.92);
+  --shadow: rgba(58, 62, 40, 0.28);
+  --shadow-soft: rgba(58, 62, 40, 0.16);
+
+  /* Служебные цвета из :root рассчитаны на тёмный фон и на кремовом
+     светятся неоном — здесь приглушённые. */
+  --ok: #5d8a4a;
+  --ok-wash: rgba(93, 138, 74, 0.12);
+  --ok-fill: rgba(93, 138, 74, 0.22);
+  --ok-line: rgba(93, 138, 74, 0.4);
+  --err: #b4553f;
+}
+
+/* Структурные отличия темы — то, что переменной не выразить */
+[data-skin="soft"] nav {
+  border-bottom-color: var(--border);
+}
+[data-skin="soft"] .tab-btn {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  border-radius: var(--radius-btn, 3px);
+  border-bottom: none;
+  margin: 0.5rem 0.15rem;
+  padding: 0.55rem 1.25rem;
+}
+[data-skin="soft"] .tab-btn.active {
+  color: var(--text-hi);
+  background: rgba(125, 143, 95, 0.24);
+}
+[data-skin="soft"] .tab-btn.active::before {
+  display: none;
+}
+
+/* Заголовки — крупные, курсивные, без линеек-засечек */
+[data-skin="soft"] .section-title {
+  font-size: 2rem;
+  font-weight: 600;
+  gap: 0.6rem;
+}
+[data-skin="soft"] .section-title::before,
+[data-skin="soft"] .section-title::after {
+  display: none;
+}
+
+/* Шапка: вместо резкой красной полосы — мягкий градиент */
+[data-skin="soft"] header {
+  border-bottom-color: var(--border);
+}
+[data-skin="soft"] header::after {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(125, 143, 95, 0.5) 35%,
+    rgba(125, 143, 95, 0.7) 50%,
+    rgba(125, 143, 95, 0.5) 65%,
+    transparent
+  );
+}
+
+/* Бейджи: цвета приходят переменными выше, здесь только форма и отступ */
+[data-skin="soft"] .type-tag,
+[data-skin="soft"] .watch-badge {
+  top: 0.5rem;
+  border-radius: var(--radius-btn, 999px);
+  border: none;
+  backdrop-filter: none;
+}
+[data-skin="soft"] .type-tag {
+  right: 0.5rem;
+}
+[data-skin="soft"] .watch-badge {
+  left: 0.5rem;
+}
+
+[data-skin="soft"] .year-divider::before,
+[data-skin="soft"] .year-divider::after {
+  background: linear-gradient(90deg, transparent, var(--border));
+}
+
+/* Поля ввода и кнопки в админке — скруглённые, на светлой подложке */
+[data-skin="soft"] input,
+[data-skin="soft"] select,
+[data-skin="soft"] textarea {
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: 12px;
+}
+[data-skin="soft"] .btn,
+[data-skin="soft"] .btn-new,
+[data-skin="soft"] .src-add-btn,
+[data-skin="soft"] .src-type-btn,
+[data-skin="soft"] .tl-mode-add-btn,
+[data-skin="soft"] .theme-option,
+[data-skin="soft"] .icon-btn,
+[data-skin="soft"] .file-tab,
+[data-skin="soft"] .list-tab,
+[data-skin="soft"] .tl-list-btn,
+[data-skin="soft"] .tag-toggle,
+[data-skin="soft"] input[type="color"] {
+  border-radius: var(--radius-btn, 999px);
+}
+/* Кружок в input[type=color] съедает почти всё поле — здесь оставляем
+   скруглённый прямоугольник, а не пилюлю. */
+[data-skin="soft"] input[type="color"] {
+  border-radius: 10px;
+}
+
+/* Декоративные уголки у «Сохранить» — приём прямоугольной темы.
+   На скруглённой кнопке они торчат обрубками по углам. */
+[data-skin="soft"] .btn-save::before,
+[data-skin="soft"] .btn-save::after {
+  display: none;
+}
+[data-skin="soft"] .btn-save,
+[data-skin="soft"] .sec-body,
+[data-skin="soft"] .modal,
+[data-skin="soft"] .review-modal-panel {
+  border-radius: 16px;
+}
+
+/* Публичные карточки и панели: базовые стили дают им прямые углы и
+   тонкую рамку — в этой теме вместо них скругление и мягкая тень.
+   Собрано отдельным блоком, потому что переменных для этих элементов
+   в базовом CSS нет, а заводить их ради одной темы избыточно. */
+[data-skin="soft"] .review-card {
+  border: none;
+  border-radius: var(--card-radius, 20px);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="soft"] .review-card-wrap:hover .review-card {
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="soft"] .review-card img {
+  border-radius: 14px;
+}
+
+/* Панель фильтров. Скруглять надо именно .rv-filters — это inline-flex
+   коробка с падингом; .rv-toolbar же тянется на всю ширину строки и
+   фон на ней превращался в пустую растянутую плашку. */
+[data-skin="soft"] .rv-filters {
+  border: none;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+/* Поле поиска лежит внутри .rv-filters — на общем фоне оно бы слилось,
+   поэтому оно светлее панели, а не темнее. */
+[data-skin="soft"] .rv-search-input {
+  background: var(--bg);
+}
+[data-skin="soft"] .rv-search-input:focus {
+  background: #fbf8ee;
+  border-color: var(--border2);
+}
+[data-skin="soft"] .rv-filter-btn,
+[data-skin="soft"] .rv-search-input,
+[data-skin="soft"] .admin-add-btn,
+[data-skin="soft"] .rtag,
+[data-skin="soft"] .grade-chip,
+[data-skin="soft"] .review-source-link {
+  border-radius: var(--radius-btn, 999px);
+}
+/* Статистика и тир-лист: те же прямые углы из базовой темы, что и у
+   панели фильтров, — приводим к общему скруглению. */
+[data-skin="soft"] .stat-counters {
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="soft"] .stat-counter {
+  border-right-color: var(--bg2);
+}
+[data-skin="soft"] .tl-filter,
+[data-skin="soft"] .tl-mode-btn {
+  border-radius: var(--radius-btn, 999px);
+}
+[data-skin="soft"] .tl-row,
+[data-skin="soft"] .tl-editor-row {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="soft"] .tl-label,
+[data-skin="soft"] .tl-editor-label {
+  border-right-color: var(--bg2);
+}
+[data-skin="soft"] .tl-poster,
+[data-skin="soft"] .tl-char-poster {
+  border-radius: 12px;
+}
+[data-skin="soft"] .tl-filter.active,
+[data-skin="soft"] .tl-mode-btn.active,
+[data-skin="soft"] .tl-list-btn.active {
+  background: rgba(125, 143, 95, 0.24);
+  border-color: transparent;
+  color: var(--text-hi);
+}
+
+[data-skin="soft"] .rv-filter-btn.active {
+  background: rgba(125, 143, 95, 0.24);
+  border-color: transparent;
+  color: var(--text-hi);
+}
+
+/* ══ МЯГКИЙ БОТАНИЧЕСКИЙ ТЁМНЫЙ ═══════════════════
+   Тот же визуальный язык, что у светлой версии (пилюли, скругление,
+   курсив), — здесь только палитра переворачивается в глубокий
+   ночной лес: почти чёрный зелёный фон, шалфей на поверхностях,
+   светлая тёплая зелень вместо тёмной. Структурные правила ниже —
+   копия светлой версии 1:1, потому что форма от палитры не зависит;
+   отдельный блок нужен только там, где светлая тема использует
+   литералы rgba() вместо переменных (акцентные подсветки, градиент
+   шапки) — они пересчитаны под тёмный фон. */
+[data-skin="soft-dark"] {
+  color-scheme: dark;
+
+  --bg: #141a10;
+  --bg2: #1b2314;
+  --surface: #202b19;
+  --surface2: #29361f;
+  --border: #3a4a2c;
+  --border2: #4d6339;
+  --text: #c9d0b8;
+  --text-dim: #8a9678;
+  --text-hi: #eef2e2;
+
+  --radius-btn: 999px;
+  --card-radius: 20px;
+  --card-border: none;
+  --card-shadow: 0 10px 26px -14px rgba(0, 0, 0, 0.55);
+  --card-shadow-hover: 0 18px 38px -16px rgba(0, 0, 0, 0.65);
+  --card-corner-display: none;
+  --card-img-filter: saturate(0.96) brightness(0.95);
+  --card-img-filter-hover: saturate(1.05) brightness(1);
+
+  --badge-bg: rgba(41, 54, 31, 0.85);
+  --badge-text: #eef2e2;
+  --badge-text-dim: #c9d0b8;
+  --badge-border: transparent;
+  --badge-accent-border: transparent;
+
+  --tint: rgba(255, 255, 255, 0.04);
+  --tint-hi: rgba(255, 255, 255, 0.08);
+  --tint-line: rgba(238, 242, 226, 0.14);
+  --tint-line-hi: rgba(238, 242, 226, 0.24);
+
+  --scrim: rgba(0, 0, 0, 0.72);
+  --poster-scrim: rgba(20, 26, 16, 0.82);
+  --nav-bg: rgba(20, 26, 16, 0.92);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --shadow-soft: rgba(0, 0, 0, 0.35);
+
+  --ok: #7fae5a;
+  --ok-wash: rgba(127, 174, 90, 0.14);
+  --ok-fill: rgba(127, 174, 90, 0.24);
+  --ok-line: rgba(127, 174, 90, 0.42);
+  --err: #d97a63;
+}
+
+[data-skin="soft-dark"] nav {
+  border-bottom-color: var(--border);
+}
+[data-skin="soft-dark"] .tab-btn {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  border-radius: var(--radius-btn, 3px);
+  border-bottom: none;
+  margin: 0.5rem 0.15rem;
+  padding: 0.55rem 1.25rem;
+}
+[data-skin="soft-dark"] .tab-btn.active {
+  color: var(--text-hi);
+  background: rgba(143, 174, 106, 0.3);
+}
+[data-skin="soft-dark"] .tab-btn.active::before {
+  display: none;
+}
+
+[data-skin="soft-dark"] .section-title {
+  font-size: 2rem;
+  font-weight: 600;
+  gap: 0.6rem;
+}
+[data-skin="soft-dark"] .section-title::before,
+[data-skin="soft-dark"] .section-title::after {
+  display: none;
+}
+
+[data-skin="soft-dark"] header {
+  border-bottom-color: var(--border);
+}
+[data-skin="soft-dark"] header::after {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(143, 174, 106, 0.4) 35%,
+    rgba(143, 174, 106, 0.6) 50%,
+    rgba(143, 174, 106, 0.4) 65%,
+    transparent
+  );
+}
+
+[data-skin="soft-dark"] .type-tag,
+[data-skin="soft-dark"] .watch-badge {
+  top: 0.5rem;
+  border-radius: var(--radius-btn, 999px);
+  border: none;
+  backdrop-filter: none;
+}
+[data-skin="soft-dark"] .type-tag {
+  right: 0.5rem;
+}
+[data-skin="soft-dark"] .watch-badge {
+  left: 0.5rem;
+}
+
+[data-skin="soft-dark"] .year-divider::before,
+[data-skin="soft-dark"] .year-divider::after {
+  background: linear-gradient(90deg, transparent, var(--border));
+}
+
+[data-skin="soft-dark"] input,
+[data-skin="soft-dark"] select,
+[data-skin="soft-dark"] textarea {
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: 12px;
+}
+[data-skin="soft-dark"] .btn,
+[data-skin="soft-dark"] .btn-new,
+[data-skin="soft-dark"] .src-add-btn,
+[data-skin="soft-dark"] .src-type-btn,
+[data-skin="soft-dark"] .tl-mode-add-btn,
+[data-skin="soft-dark"] .theme-option,
+[data-skin="soft-dark"] .icon-btn,
+[data-skin="soft-dark"] .file-tab,
+[data-skin="soft-dark"] .list-tab,
+[data-skin="soft-dark"] .tl-list-btn,
+[data-skin="soft-dark"] .tag-toggle,
+[data-skin="soft-dark"] input[type="color"] {
+  border-radius: var(--radius-btn, 999px);
+}
+[data-skin="soft-dark"] input[type="color"] {
+  border-radius: 10px;
+}
+
+[data-skin="soft-dark"] .btn-save::before,
+[data-skin="soft-dark"] .btn-save::after {
+  display: none;
+}
+[data-skin="soft-dark"] .btn-save,
+[data-skin="soft-dark"] .sec-body,
+[data-skin="soft-dark"] .modal,
+[data-skin="soft-dark"] .review-modal-panel {
+  border-radius: 16px;
+}
+
+[data-skin="soft-dark"] .review-card {
+  border: none;
+  border-radius: var(--card-radius, 20px);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="soft-dark"] .review-card-wrap:hover .review-card {
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="soft-dark"] .review-card img {
+  border-radius: 14px;
+}
+
+[data-skin="soft-dark"] .rv-filters {
+  border: none;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="soft-dark"] .rv-search-input {
+  background: var(--bg);
+}
+[data-skin="soft-dark"] .rv-search-input:focus {
+  background: #2f3d23;
+  border-color: var(--border2);
+}
+[data-skin="soft-dark"] .rv-filter-btn,
+[data-skin="soft-dark"] .rv-search-input,
+[data-skin="soft-dark"] .admin-add-btn,
+[data-skin="soft-dark"] .rtag,
+[data-skin="soft-dark"] .grade-chip,
+[data-skin="soft-dark"] .review-source-link {
+  border-radius: var(--radius-btn, 999px);
+}
+[data-skin="soft-dark"] .stat-counters {
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="soft-dark"] .stat-counter {
+  border-right-color: var(--bg2);
+}
+[data-skin="soft-dark"] .tl-filter,
+[data-skin="soft-dark"] .tl-mode-btn {
+  border-radius: var(--radius-btn, 999px);
+}
+[data-skin="soft-dark"] .tl-row,
+[data-skin="soft-dark"] .tl-editor-row {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="soft-dark"] .tl-label,
+[data-skin="soft-dark"] .tl-editor-label {
+  border-right-color: var(--bg2);
+}
+[data-skin="soft-dark"] .tl-poster,
+[data-skin="soft-dark"] .tl-char-poster {
+  border-radius: 12px;
+}
+[data-skin="soft-dark"] .tl-filter.active,
+[data-skin="soft-dark"] .tl-mode-btn.active,
+[data-skin="soft-dark"] .tl-list-btn.active {
+  background: rgba(143, 174, 106, 0.3);
+  border-color: transparent;
+  color: var(--text-hi);
+}
+
+[data-skin="soft-dark"] .rv-filter-btn.active {
+  background: rgba(143, 174, 106, 0.3);
+  border-color: transparent;
+  color: var(--text-hi);
+}
+
+/* ══ БРУТАЛИЗМ ═══════════════════════════════════
+   Противоположность мягкой теме и намеренный слом базовой: вместо
+   тонких линий и приглушённых тонов — жирные чёрные рамки, прямые
+   углы, жёсткие тени со смещением без размытия и один кричащий цвет.
+
+   Шрифты тоже другие. Базовые Playfair Display и Cormorant Garamond —
+   это про изящество, здесь они всё портят, поэтому заголовки уходят в
+   моноширинный, а текст — в голый гротеск. Оба системные: тема не
+   тянет ни одного лишнего файла.
+
+   Селекторы шрифтов начинаются с html[data-skin=…], а не просто
+   [data-skin=…]: собственные <style> страниц подключаются ПОСЛЕ
+   themes.css, и при равной специфичности выигрывали бы они. Лишний
+   html поднимает вес и снимает вопрос без !important. */
+[data-skin="brutal"] {
+  color-scheme: light;
+
+  --bg: #e9e7df;
+  --bg2: #dcd9cd;
+  /* Белый здесь не «недоделанный блок», а приём: белый прямоугольник в
+     жирной чёрной рамке — основа этого стиля. */
+  --surface: #ffffff;
+  --surface2: #f1efe7;
+  --border: #000000;
+  --border2: #000000;
+  --text: #000000;
+  --text-dim: #6b6b6b;
+  --text-hi: #000000;
+
+  /* Визуальный язык: нулевые скругления, толстые рамки, тень —
+     сплошной чёрный прямоугольник со сдвигом, без размытия. */
+  --radius-btn: 0;
+  --card-radius: 0;
+  --card-border: 3px solid #000;
+  --card-shadow: 6px 6px 0 #000;
+  --card-shadow-hover: 10px 10px 0 var(--red);
+  --card-corner-display: none;
+  --card-img-filter: contrast(1.08) saturate(1.05);
+  --card-img-filter-hover: contrast(1.15) saturate(1.15);
+
+  --badge-bg: #000;
+  --badge-text: #fff;
+  --badge-text-dim: #d8d8d8;
+  --badge-border: transparent;
+  --badge-accent-border: transparent;
+
+  --tint: rgba(0, 0, 0, 0.06);
+  --tint-hi: rgba(0, 0, 0, 0.11);
+  --tint-line: #000;
+  --tint-line-hi: #000;
+
+  --scrim: rgba(0, 0, 0, 0.72);
+  --poster-scrim: #000;
+  --nav-bg: #e9e7df;
+  --shadow: #000;
+  --shadow-soft: rgba(0, 0, 0, 0.4);
+
+  --ok: #007a2f;
+  --ok-wash: rgba(0, 122, 47, 0.14);
+  --ok-fill: rgba(0, 122, 47, 0.24);
+  --ok-line: #007a2f;
+  --err: #d00000;
+}
+
+/* ── Шрифты ── */
+html[data-skin="brutal"] * {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-style: normal;
+}
+html[data-skin="brutal"] .logo,
+html[data-skin="brutal"] .section-title,
+html[data-skin="brutal"] .modal-title,
+html[data-skin="brutal"] .tab-btn,
+html[data-skin="brutal"] .btn-save,
+html[data-skin="brutal"] .card-title,
+html[data-skin="brutal"] .review-title,
+html[data-skin="brutal"] h1,
+html[data-skin="brutal"] h2 {
+  font-family: "Courier New", ui-monospace, monospace;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ── Шапка и навигация ── */
+[data-skin="brutal"] .logo {
+  text-transform: uppercase;
+}
+[data-skin="brutal"] header {
+  border-bottom: 4px solid #000;
+}
+/* Мягкий градиент под шапкой базовой темы — здесь сплошная полоса
+   акцента во всю ширину. */
+[data-skin="brutal"] header::after {
+  height: 8px;
+  background: var(--red);
+}
+[data-skin="brutal"] nav {
+  border-bottom: 4px solid #000;
+}
+[data-skin="brutal"] .tab-btn {
+  text-transform: uppercase;
+  border: 3px solid #000;
+  border-bottom: 3px solid #000;
+  margin: 0.5rem 0.2rem;
+  padding: 0.5rem 1.1rem;
+  background: var(--surface);
+}
+[data-skin="brutal"] .tab-btn.active {
+  background: #000;
+  color: var(--bg);
+}
+[data-skin="brutal"] .tab-btn.active::before {
+  display: none;
+}
+
+/* ── Заголовки ── */
+[data-skin="brutal"] .section-title {
+  text-transform: uppercase;
+  font-size: 1.4rem;
+}
+/* Тонкая засечка перед заголовком превращается в залитый квадрат */
+[data-skin="brutal"] .section-title::before {
+  width: 14px;
+  height: 14px;
+  background: var(--red);
+}
+[data-skin="brutal"] .section-title::after {
+  display: none;
+}
+[data-skin="brutal"] .year-divider::before,
+[data-skin="brutal"] .year-divider::after {
+  background: #000;
+  height: 2px;
+}
+
+/* ── Карточки и панели ── */
+[data-skin="brutal"] .review-card {
+  border: 3px solid #000;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="brutal"] .review-card-wrap:hover .review-card {
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="brutal"] .rv-filters,
+[data-skin="brutal"] .stat-counters,
+[data-skin="brutal"] .tl-row,
+[data-skin="brutal"] .tl-editor-row,
+[data-skin="brutal"] .modal,
+[data-skin="brutal"] .review-modal-panel {
+  border: 3px solid #000;
+  border-radius: 0;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="brutal"] .stat-counter {
+  border-right: 2px solid #000;
+}
+[data-skin="brutal"] .tl-label,
+[data-skin="brutal"] .tl-editor-label {
+  border-right: 3px solid #000;
+}
+
+/* ── Бейджи на обложках ── */
+[data-skin="brutal"] .type-tag,
+[data-skin="brutal"] .watch-badge {
+  top: 0;
+  border-radius: 0;
+  border: none;
+  backdrop-filter: none;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+[data-skin="brutal"] .type-tag {
+  right: 0;
+}
+[data-skin="brutal"] .watch-badge {
+  left: 0;
+}
+
+/* ── Поля и кнопки ── */
+[data-skin="brutal"] input,
+[data-skin="brutal"] select,
+[data-skin="brutal"] textarea {
+  background: var(--surface);
+  border: 2px solid #000;
+  border-radius: 0;
+}
+[data-skin="brutal"] .btn,
+[data-skin="brutal"] .btn-new,
+[data-skin="brutal"] .src-add-btn,
+[data-skin="brutal"] .src-type-btn,
+[data-skin="brutal"] .tl-mode-add-btn,
+[data-skin="brutal"] .theme-option,
+[data-skin="brutal"] .icon-btn,
+[data-skin="brutal"] .file-tab,
+[data-skin="brutal"] .list-tab,
+[data-skin="brutal"] .tag-toggle,
+[data-skin="brutal"] .rtag,
+[data-skin="brutal"] .grade-chip,
+[data-skin="brutal"] .review-source-link,
+[data-skin="brutal"] .rv-filter-btn,
+[data-skin="brutal"] .rv-search-input,
+[data-skin="brutal"] .admin-add-btn,
+[data-skin="brutal"] .tl-filter,
+[data-skin="brutal"] .tl-mode-btn,
+[data-skin="brutal"] .tl-list-btn,
+[data-skin="brutal"] .sec-body,
+[data-skin="brutal"] input[type="color"] {
+  border-radius: 0;
+  border-color: #000;
+}
+[data-skin="brutal"] .rv-filter-btn.active,
+[data-skin="brutal"] .tl-filter.active,
+[data-skin="brutal"] .tl-mode-btn.active,
+[data-skin="brutal"] .tl-list-btn.active,
+[data-skin="brutal"] .theme-option.selected,
+[data-skin="brutal"] .list-tab.active,
+[data-skin="brutal"] .tag-toggle.active {
+  background: #000;
+  border-color: #000;
+  color: var(--bg);
+}
+
+/* Главная кнопка: заливка акцентом, жёсткая тень, при нажатии кнопка
+   уезжает в тень — единственная анимация, которую тема себе позволяет. */
+[data-skin="brutal"] .btn-save {
+  background: var(--red);
+  color: #fff;
+  border: 3px solid #000;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #000;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+[data-skin="brutal"] .btn-save:hover {
+  background: var(--red);
+  box-shadow: 3px 3px 0 #000;
+  transform: translate(3px, 3px);
+}
+[data-skin="brutal"] .btn-save::before,
+[data-skin="brutal"] .btn-save::after {
+  display: none;
+}
+
+/* Плашки-теги и ссылки на источник: в базовой теме у них едва заметные
+   рамки — здесь всё обводится чёрным, иначе на белом они пропадают. */
+[data-skin="brutal"] .rtag,
+[data-skin="brutal"] .review-source-link,
+[data-skin="brutal"] .admin-add-btn,
+[data-skin="brutal"] .tag-toggle {
+  border-color: #000;
+  color: var(--text);
+  background: var(--surface);
+}
+[data-skin="brutal"] .admin-add-btn,
+[data-skin="brutal"] .tl-mode-add-btn {
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* Тонкие рамки в 1px базовой темы здесь везде становятся жирными:
+   на этом стиль и держится. Собрано одним правилом, чтобы не гоняться
+   за каждым компонентом по отдельности. */
+[data-skin="brutal"] .src-add-btn,
+[data-skin="brutal"] .src-type-btn,
+[data-skin="brutal"] .file-btn,
+[data-skin="brutal"] .fav-toggle,
+[data-skin="brutal"] .sec-body,
+[data-skin="brutal"] .btn,
+[data-skin="brutal"] .btn-new,
+[data-skin="brutal"] .icon-btn,
+[data-skin="brutal"] input,
+[data-skin="brutal"] select,
+[data-skin="brutal"] textarea {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #000;
+}
+[data-skin="brutal"] .fav-toggle.on {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ══ БРУТАЛИЗМ ТЁМНЫЙ ═════════════════════════════
+   Зеркало светлого брутализма: «белый прямоугольник в чёрной рамке»
+   становится «чёрный прямоугольник в белой рамке» — тот же приём,
+   инвертированный. Структурные правила ниже — копия светлой версии,
+   с заменой всех литералов #000 на #fff (форма темы не зависит от
+   палитры, только контраст). Инверсия активных состояний
+   (background:#fff; color:var(--bg)) ничего менять не потребовала —
+   она и в светлой версии считалась от var(--bg), а не от литерала. */
+[data-skin="brutal-dark"] {
+  color-scheme: dark;
+
+  --bg: #121212;
+  --bg2: #1c1c1c;
+  --surface: #000000;
+  --surface2: #171717;
+  --border: #ffffff;
+  --border2: #ffffff;
+  --text: #ffffff;
+  --text-dim: #a8a8a8;
+  --text-hi: #ffffff;
+
+  --radius-btn: 0;
+  --card-radius: 0;
+  --card-border: 3px solid #fff;
+  --card-shadow: 6px 6px 0 #fff;
+  --card-shadow-hover: 10px 10px 0 var(--red);
+  --card-corner-display: none;
+  --card-img-filter: contrast(1.08) saturate(1.05) brightness(0.95);
+  --card-img-filter-hover: contrast(1.15) saturate(1.15) brightness(1);
+
+  --badge-bg: #fff;
+  --badge-text: #000;
+  --badge-text-dim: #3a3a3a;
+  --badge-border: transparent;
+  --badge-accent-border: transparent;
+
+  --tint: rgba(255, 255, 255, 0.08);
+  --tint-hi: rgba(255, 255, 255, 0.14);
+  --tint-line: #fff;
+  --tint-line-hi: #fff;
+
+  --scrim: rgba(0, 0, 0, 0.8);
+  --poster-scrim: #000;
+  --nav-bg: #121212;
+  --shadow: #fff;
+  --shadow-soft: rgba(255, 255, 255, 0.3);
+
+  --ok: #2fdc6b;
+  --ok-wash: rgba(47, 220, 107, 0.14);
+  --ok-fill: rgba(47, 220, 107, 0.24);
+  --ok-line: #2fdc6b;
+  --err: #ff4747;
+}
+
+html[data-skin="brutal-dark"] * {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-style: normal;
+}
+html[data-skin="brutal-dark"] .logo,
+html[data-skin="brutal-dark"] .section-title,
+html[data-skin="brutal-dark"] .modal-title,
+html[data-skin="brutal-dark"] .tab-btn,
+html[data-skin="brutal-dark"] .btn-save,
+html[data-skin="brutal-dark"] .card-title,
+html[data-skin="brutal-dark"] .review-title,
+html[data-skin="brutal-dark"] h1,
+html[data-skin="brutal-dark"] h2 {
+  font-family: "Courier New", ui-monospace, monospace;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+[data-skin="brutal-dark"] .logo {
+  text-transform: uppercase;
+}
+[data-skin="brutal-dark"] header {
+  border-bottom: 4px solid #fff;
+}
+/* В светлой версии сплошная акцентная полоса работает как громкий
+   бренд-росчерк на спокойном фоне — на чёрном фоне рядом с белой
+   рамкой она читается как случайная деталь, а не приём. Здесь и без
+   неё есть чёткая белая линия под шапкой. */
+[data-skin="brutal-dark"] header::after {
+  display: none;
+}
+[data-skin="brutal-dark"] nav {
+  border-bottom: 4px solid #fff;
+}
+[data-skin="brutal-dark"] .tab-btn {
+  text-transform: uppercase;
+  border: 3px solid #fff;
+  border-bottom: 3px solid #fff;
+  margin: 0.5rem 0.2rem;
+  padding: 0.5rem 1.1rem;
+  background: var(--surface);
+}
+[data-skin="brutal-dark"] .tab-btn.active {
+  background: #fff;
+  color: var(--bg);
+}
+[data-skin="brutal-dark"] .tab-btn.active::before {
+  display: none;
+}
+
+[data-skin="brutal-dark"] .section-title {
+  text-transform: uppercase;
+  font-size: 1.4rem;
+}
+[data-skin="brutal-dark"] .section-title::before {
+  width: 14px;
+  height: 14px;
+  background: var(--red);
+}
+[data-skin="brutal-dark"] .section-title::after {
+  display: none;
+}
+[data-skin="brutal-dark"] .year-divider::before,
+[data-skin="brutal-dark"] .year-divider::after {
+  background: #fff;
+  height: 2px;
+}
+
+[data-skin="brutal-dark"] .review-card {
+  border: 3px solid #fff;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="brutal-dark"] .review-card-wrap:hover .review-card {
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="brutal-dark"] .rv-filters,
+[data-skin="brutal-dark"] .stat-counters,
+[data-skin="brutal-dark"] .tl-row,
+[data-skin="brutal-dark"] .tl-editor-row,
+[data-skin="brutal-dark"] .modal,
+[data-skin="brutal-dark"] .review-modal-panel {
+  border: 3px solid #fff;
+  border-radius: 0;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="brutal-dark"] .stat-counter {
+  border-right: 2px solid #fff;
+}
+[data-skin="brutal-dark"] .tl-label,
+[data-skin="brutal-dark"] .tl-editor-label {
+  border-right: 3px solid #fff;
+}
+
+[data-skin="brutal-dark"] .type-tag,
+[data-skin="brutal-dark"] .watch-badge {
+  top: 0;
+  border-radius: 0;
+  border: none;
+  backdrop-filter: none;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+[data-skin="brutal-dark"] .type-tag {
+  right: 0;
+}
+[data-skin="brutal-dark"] .watch-badge {
+  left: 0;
+}
+
+[data-skin="brutal-dark"] input,
+[data-skin="brutal-dark"] select,
+[data-skin="brutal-dark"] textarea {
+  background: var(--surface);
+  border: 2px solid #fff;
+  border-radius: 0;
+}
+[data-skin="brutal-dark"] .btn,
+[data-skin="brutal-dark"] .btn-new,
+[data-skin="brutal-dark"] .src-add-btn,
+[data-skin="brutal-dark"] .src-type-btn,
+[data-skin="brutal-dark"] .tl-mode-add-btn,
+[data-skin="brutal-dark"] .theme-option,
+[data-skin="brutal-dark"] .icon-btn,
+[data-skin="brutal-dark"] .file-tab,
+[data-skin="brutal-dark"] .list-tab,
+[data-skin="brutal-dark"] .tag-toggle,
+[data-skin="brutal-dark"] .rtag,
+[data-skin="brutal-dark"] .grade-chip,
+[data-skin="brutal-dark"] .review-source-link,
+[data-skin="brutal-dark"] .rv-filter-btn,
+[data-skin="brutal-dark"] .rv-search-input,
+[data-skin="brutal-dark"] .admin-add-btn,
+[data-skin="brutal-dark"] .tl-filter,
+[data-skin="brutal-dark"] .tl-mode-btn,
+[data-skin="brutal-dark"] .tl-list-btn,
+[data-skin="brutal-dark"] .sec-body,
+[data-skin="brutal-dark"] input[type="color"] {
+  border-radius: 0;
+  border-color: #fff;
+}
+[data-skin="brutal-dark"] .rv-filter-btn.active,
+[data-skin="brutal-dark"] .tl-filter.active,
+[data-skin="brutal-dark"] .tl-mode-btn.active,
+[data-skin="brutal-dark"] .tl-list-btn.active,
+[data-skin="brutal-dark"] .theme-option.selected,
+[data-skin="brutal-dark"] .list-tab.active,
+[data-skin="brutal-dark"] .tag-toggle.active {
+  background: #fff;
+  border-color: #fff;
+  color: var(--bg);
+}
+
+[data-skin="brutal-dark"] .btn-save {
+  background: var(--red);
+  color: #fff;
+  border: 3px solid #fff;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+[data-skin="brutal-dark"] .btn-save:hover {
+  background: var(--red);
+  box-shadow: 3px 3px 0 #fff;
+  transform: translate(3px, 3px);
+}
+[data-skin="brutal-dark"] .btn-save::before,
+[data-skin="brutal-dark"] .btn-save::after {
+  display: none;
+}
+
+[data-skin="brutal-dark"] .rtag,
+[data-skin="brutal-dark"] .review-source-link,
+[data-skin="brutal-dark"] .admin-add-btn,
+[data-skin="brutal-dark"] .tag-toggle {
+  border-color: #fff;
+  color: var(--text);
+  background: var(--surface);
+}
+[data-skin="brutal-dark"] .admin-add-btn,
+[data-skin="brutal-dark"] .tl-mode-add-btn {
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+[data-skin="brutal-dark"] .src-add-btn,
+[data-skin="brutal-dark"] .src-type-btn,
+[data-skin="brutal-dark"] .file-btn,
+[data-skin="brutal-dark"] .fav-toggle,
+[data-skin="brutal-dark"] .sec-body,
+[data-skin="brutal-dark"] .btn,
+[data-skin="brutal-dark"] .btn-new,
+[data-skin="brutal-dark"] .icon-btn,
+[data-skin="brutal-dark"] input,
+[data-skin="brutal-dark"] select,
+[data-skin="brutal-dark"] textarea {
+  border-width: 2px;
+  border-style: solid;
+  border-color: #fff;
+}
+[data-skin="brutal-dark"] .fav-toggle.on {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ══ НЕОМОРФИЗМ ══════════════════════════════════
+   Элемент и подложка — один и тот же цвет; объём держится только на
+   двух мягких тенях (светлая сверху-слева, тёмная снизу-справа).
+   Отсюда правило темы: рамок нигде нет вообще, а не «тоньше» или
+   «жирнее», как в остальных темах — линию здесь заменяет тень.
+
+   Активное/нажатое состояние — не заливка и не обводка, а тень
+   внутрь (inset): элемент выглядит вдавленным в подложку. Это и есть
+   единственный язык взаимодействия темы, поэтому там, где в других
+   темах меняется фон или граница (активная вкладка, выбранный фильтр,
+   тег), здесь меняется знак тени.
+
+   --neo-light/--neo-dark ниже — общие цвета обеих теней, вынесены
+   переменными, чтобы не повторять rgba() в каждом правиле. */
+[data-skin="neomorphism"] {
+  color-scheme: light;
+
+  --bg: #e6e7ee;
+  --bg2: #dcdee6;
+  /* Сюрфейс равен фону — в этом весь приём: контраст даёт не цвет,
+     а тень. См. запрет цветного surface в комментарии выше. */
+  --surface: #e6e7ee;
+  --surface2: #dcdee6;
+  /* Не буквальный transparent: настройки палитры кладут это значение
+     в <input type="color">, а он «прозрачное» не понимает и тихо
+     подставляет чёрный — при следующем сохранении палитры это стало бы
+     настоящей чёрной рамкой. Вместо этого — цвет самой подложки: рамка
+     не видна, но остаётся настоящим цветом. */
+  --border: #e6e7ee;
+  --border2: #dcdee6;
+  --text: #4a4d5e;
+  --text-dim: #8b8fa3;
+  --text-hi: #2b2d3d;
+
+  --neo-light: rgba(255, 255, 255, 0.75);
+  --neo-dark: rgba(163, 177, 198, 0.55);
+
+  /* Визуальный язык */
+  --radius-btn: 999px;
+  --card-radius: 24px;
+  --card-border: none;
+  --card-shadow: 8px 8px 16px var(--neo-dark), -8px -8px 16px var(--neo-light);
+  --card-shadow-hover: 11px 11px 22px var(--neo-dark), -11px -11px 22px var(--neo-light);
+  --card-corner-display: none;
+  --card-img-filter: saturate(0.98);
+  --card-img-filter-hover: saturate(1.06);
+
+  /* Бейджи на обложках: своей тени на произвольной картинке не видно,
+     поэтому здесь — не рельеф, а лёгкое затемнённое стекло. */
+  --badge-bg: rgba(43, 45, 61, 0.72);
+  --badge-text: #f4f5f9;
+  --badge-text-dim: #d7d9e3;
+  --badge-border: transparent;
+  --badge-accent-border: transparent;
+
+  --tint: rgba(74, 77, 94, 0.05);
+  --tint-hi: rgba(74, 77, 94, 0.09);
+  --tint-line: rgba(74, 77, 94, 0.14);
+  --tint-line-hi: rgba(74, 77, 94, 0.24);
+
+  --scrim: rgba(43, 45, 61, 0.5);
+  --poster-scrim: rgba(43, 45, 61, 0.55);
+  --nav-bg: rgba(230, 231, 238, 0.92);
+  --shadow: rgba(163, 177, 198, 0.55);
+  --shadow-soft: rgba(163, 177, 198, 0.32);
+
+  --ok: #4a8f6b;
+  --ok-wash: rgba(74, 143, 107, 0.12);
+  --ok-fill: rgba(74, 143, 107, 0.22);
+  --ok-line: rgba(74, 143, 107, 0.4);
+  --err: #c1546a;
+}
+
+/* Заголовки: курсивный засечковый шрифт базовой темы читается как
+   «изящный», а не «мягкая пластиковая панель» — здесь везде гротеск,
+   как в остальном интерфейсе темы. */
+[data-skin="neomorphism"] .logo,
+[data-skin="neomorphism"] .section-title,
+[data-skin="neomorphism"] .modal-title,
+[data-skin="neomorphism"] .tab-btn,
+[data-skin="neomorphism"] .btn-save,
+[data-skin="neomorphism"] .card-title,
+[data-skin="neomorphism"] .review-title {
+  font-family: "DM Sans", sans-serif;
+  font-style: normal;
+}
+
+/* ── Шапка и навигация ── */
+[data-skin="neomorphism"] header {
+  border-bottom: none;
+  box-shadow: 0 6px 16px -8px var(--neo-dark);
+}
+[data-skin="neomorphism"] header::after {
+  display: none;
+}
+[data-skin="neomorphism"] nav {
+  border-bottom: none;
+}
+[data-skin="neomorphism"] .tab-btn {
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-btn);
+  margin: 0.5rem 0.2rem;
+  padding: 0.55rem 1.2rem;
+}
+[data-skin="neomorphism"] .tab-btn.active {
+  color: var(--text-hi);
+  background: var(--surface);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] .tab-btn.active::before {
+  display: none;
+}
+
+/* ── Заголовки разделов ── */
+[data-skin="neomorphism"] .section-title::before,
+[data-skin="neomorphism"] .section-title::after {
+  display: none;
+}
+[data-skin="neomorphism"] .year-divider::before,
+[data-skin="neomorphism"] .year-divider::after {
+  background: linear-gradient(90deg, transparent, var(--bg2));
+}
+
+/* ── Бейджи на обложках ── */
+[data-skin="neomorphism"] .type-tag,
+[data-skin="neomorphism"] .watch-badge {
+  top: 0.5rem;
+  border-radius: var(--radius-btn);
+  border: none;
+  backdrop-filter: blur(6px);
+}
+[data-skin="neomorphism"] .type-tag {
+  right: 0.5rem;
+}
+[data-skin="neomorphism"] .watch-badge {
+  left: 0.5rem;
+}
+
+/* ── Карточки отзывов ── */
+[data-skin="neomorphism"] .review-card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism"] .review-card-wrap:hover .review-card {
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="neomorphism"] .review-card img {
+  border-radius: 16px;
+}
+
+/* ── Панель фильтров и поиск ──
+   Поле поиска — единственное место, где элемент осмысленно «вдавлен»
+   с самого начала, а не только при фокусе: так его сразу видно как
+   ввод, а не как ещё одну кнопку. */
+[data-skin="neomorphism"] .rv-filters {
+  border: none;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism"] .rv-search-input {
+  border: none;
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] .rv-filter-btn,
+[data-skin="neomorphism"] .admin-add-btn,
+[data-skin="neomorphism"] .rtag,
+[data-skin="neomorphism"] .grade-chip,
+[data-skin="neomorphism"] .review-source-link {
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  box-shadow:
+    3px 3px 6px var(--neo-dark),
+    -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] .rv-filter-btn.active {
+  color: var(--text-hi);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+
+/* ── Статистика и тир-лист ── */
+[data-skin="neomorphism"] .stat-counters {
+  border: none;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism"] .stat-counter {
+  border-right-color: var(--bg2);
+}
+[data-skin="neomorphism"] .tl-filter,
+[data-skin="neomorphism"] .tl-mode-btn,
+[data-skin="neomorphism"] .tl-list-btn {
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  box-shadow:
+    3px 3px 6px var(--neo-dark),
+    -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] .tl-filter.active,
+[data-skin="neomorphism"] .tl-mode-btn.active,
+[data-skin="neomorphism"] .tl-list-btn.active {
+  color: var(--text-hi);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] .tl-row,
+[data-skin="neomorphism"] .tl-editor-row {
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism"] .tl-label,
+[data-skin="neomorphism"] .tl-editor-label {
+  border-right-color: var(--bg2);
+}
+[data-skin="neomorphism"] .tl-poster,
+[data-skin="neomorphism"] .tl-char-poster {
+  border-radius: 14px;
+}
+
+/* ── Поля и кнопки в админке ── */
+[data-skin="neomorphism"] input,
+[data-skin="neomorphism"] select,
+[data-skin="neomorphism"] textarea {
+  background: var(--surface);
+  border: none;
+  border-radius: 14px;
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] input[type="color"] {
+  border-radius: 10px;
+  box-shadow: none;
+  border: none;
+}
+[data-skin="neomorphism"] .btn,
+[data-skin="neomorphism"] .btn-new,
+[data-skin="neomorphism"] .src-add-btn,
+[data-skin="neomorphism"] .src-type-btn,
+[data-skin="neomorphism"] .tl-mode-add-btn,
+[data-skin="neomorphism"] .theme-option,
+[data-skin="neomorphism"] .icon-btn,
+[data-skin="neomorphism"] .file-tab,
+[data-skin="neomorphism"] .list-tab,
+[data-skin="neomorphism"] .tag-toggle {
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  box-shadow:
+    4px 4px 8px var(--neo-dark),
+    -4px -4px 8px var(--neo-light);
+}
+[data-skin="neomorphism"] .theme-option.selected,
+[data-skin="neomorphism"] .list-tab.active,
+[data-skin="neomorphism"] .tag-toggle.active {
+  color: var(--text-hi);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] .fav-toggle.on {
+  color: var(--red);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism"] .sec-body,
+[data-skin="neomorphism"] .modal,
+[data-skin="neomorphism"] .review-modal-panel {
+  border: none;
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+}
+
+/* Главная кнопка сохранения — залита акцентом, но остаётся «мягкой»:
+   цветная версия тех же двух теней, а не жёсткая тень брутализма. */
+[data-skin="neomorphism"] .btn-save {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  box-shadow:
+    5px 5px 10px var(--neo-dark),
+    -3px -3px 8px var(--neo-light);
+}
+[data-skin="neomorphism"] .btn-save:hover {
+  background: var(--red-hi);
+}
+[data-skin="neomorphism"] .btn-save:active {
+  box-shadow:
+    inset 3px 3px 6px rgba(0, 0, 0, 0.25),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.2);
+}
+[data-skin="neomorphism"] .btn-save::before,
+[data-skin="neomorphism"] .btn-save::after {
+  display: none;
+}
+
+/* ══ НЕОМОРФИЗМ ТЁМНЫЙ ═════════════════════════════
+   Тот же приём — элемент и подложка одного цвета, объём только на
+   двух тенях, — на тёмном сюрфейсе. Формула теней меняет саму
+   природу: на светлом фоне «светлая» тень была почти белой, здесь
+   она едва светлее подложки (иначе на тёмном получилось бы неоновое
+   свечение), а «тёмная» тень уходит в почти чёрный. Структурные
+   правила ниже не тронуты — вся форма темы уже была выражена через
+   var(--neo-light)/var(--neo-dark), так что достаточно было
+   пересчитать только эти две переменные и палитру. */
+[data-skin="neomorphism-dark"] {
+  color-scheme: dark;
+
+  --bg: #24262f;
+  --bg2: #1c1e26;
+  --surface: #24262f;
+  --surface2: #1c1e26;
+  --border: #24262f;
+  --border2: #1c1e26;
+  --text: #b6b9c9;
+  --text-dim: #6f7386;
+  --text-hi: #eef0f7;
+
+  --neo-light: rgba(255, 255, 255, 0.06);
+  --neo-dark: rgba(0, 0, 0, 0.6);
+
+  --radius-btn: 999px;
+  --card-radius: 24px;
+  --card-border: none;
+  --card-shadow: 8px 8px 16px var(--neo-dark), -8px -8px 16px var(--neo-light);
+  --card-shadow-hover: 11px 11px 22px var(--neo-dark), -11px -11px 22px var(--neo-light);
+  --card-corner-display: none;
+  --card-img-filter: saturate(0.98) brightness(0.9);
+  --card-img-filter-hover: saturate(1.06) brightness(1);
+
+  --badge-bg: rgba(15, 16, 20, 0.75);
+  --badge-text: #f4f5f9;
+  --badge-text-dim: #b6b9c9;
+  --badge-border: transparent;
+  --badge-accent-border: transparent;
+
+  --tint: rgba(255, 255, 255, 0.04);
+  --tint-hi: rgba(255, 255, 255, 0.08);
+  --tint-line: rgba(238, 240, 247, 0.12);
+  --tint-line-hi: rgba(238, 240, 247, 0.22);
+
+  --scrim: rgba(0, 0, 0, 0.7);
+  --poster-scrim: rgba(15, 16, 20, 0.7);
+  --nav-bg: rgba(36, 38, 47, 0.92);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --shadow-soft: rgba(0, 0, 0, 0.35);
+
+  --ok: #59c98a;
+  --ok-wash: rgba(89, 201, 138, 0.12);
+  --ok-fill: rgba(89, 201, 138, 0.22);
+  --ok-line: rgba(89, 201, 138, 0.4);
+  --err: #e2687e;
+}
+
+[data-skin="neomorphism-dark"] .logo,
+[data-skin="neomorphism-dark"] .section-title,
+[data-skin="neomorphism-dark"] .modal-title,
+[data-skin="neomorphism-dark"] .tab-btn,
+[data-skin="neomorphism-dark"] .btn-save,
+[data-skin="neomorphism-dark"] .card-title,
+[data-skin="neomorphism-dark"] .review-title {
+  font-family: "DM Sans", sans-serif;
+  font-style: normal;
+}
+
+[data-skin="neomorphism-dark"] header {
+  border-bottom: none;
+  box-shadow: 0 6px 16px -8px var(--neo-dark);
+}
+[data-skin="neomorphism-dark"] header::after {
+  display: none;
+}
+[data-skin="neomorphism-dark"] nav {
+  border-bottom: none;
+}
+[data-skin="neomorphism-dark"] .tab-btn {
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-btn);
+  margin: 0.5rem 0.2rem;
+  padding: 0.55rem 1.2rem;
+}
+[data-skin="neomorphism-dark"] .tab-btn.active {
+  color: var(--text-hi);
+  background: var(--surface);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .tab-btn.active::before {
+  display: none;
+}
+
+[data-skin="neomorphism-dark"] .section-title::before,
+[data-skin="neomorphism-dark"] .section-title::after {
+  display: none;
+}
+[data-skin="neomorphism-dark"] .year-divider::before,
+[data-skin="neomorphism-dark"] .year-divider::after {
+  background: linear-gradient(90deg, transparent, var(--bg2));
+}
+
+[data-skin="neomorphism-dark"] .type-tag,
+[data-skin="neomorphism-dark"] .watch-badge {
+  top: 0.5rem;
+  border-radius: var(--radius-btn);
+  border: none;
+  backdrop-filter: blur(6px);
+}
+[data-skin="neomorphism-dark"] .type-tag {
+  right: 0.5rem;
+}
+[data-skin="neomorphism-dark"] .watch-badge {
+  left: 0.5rem;
+}
+
+[data-skin="neomorphism-dark"] .review-card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism-dark"] .review-card-wrap:hover .review-card {
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="neomorphism-dark"] .review-card img {
+  border-radius: 16px;
+}
+
+[data-skin="neomorphism-dark"] .rv-filters {
+  border: none;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism-dark"] .rv-search-input {
+  border: none;
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .rv-filter-btn,
+[data-skin="neomorphism-dark"] .admin-add-btn,
+[data-skin="neomorphism-dark"] .rtag,
+[data-skin="neomorphism-dark"] .grade-chip,
+[data-skin="neomorphism-dark"] .review-source-link {
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  box-shadow:
+    3px 3px 6px var(--neo-dark),
+    -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .rv-filter-btn.active {
+  color: var(--text-hi);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+
+[data-skin="neomorphism-dark"] .stat-counters {
+  border: none;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism-dark"] .stat-counter {
+  border-right-color: var(--bg2);
+}
+[data-skin="neomorphism-dark"] .tl-filter,
+[data-skin="neomorphism-dark"] .tl-mode-btn,
+[data-skin="neomorphism-dark"] .tl-list-btn {
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  box-shadow:
+    3px 3px 6px var(--neo-dark),
+    -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .tl-filter.active,
+[data-skin="neomorphism-dark"] .tl-mode-btn.active,
+[data-skin="neomorphism-dark"] .tl-list-btn.active {
+  color: var(--text-hi);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .tl-row,
+[data-skin="neomorphism-dark"] .tl-editor-row {
+  border: none;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="neomorphism-dark"] .tl-label,
+[data-skin="neomorphism-dark"] .tl-editor-label {
+  border-right-color: var(--bg2);
+}
+[data-skin="neomorphism-dark"] .tl-poster,
+[data-skin="neomorphism-dark"] .tl-char-poster {
+  border-radius: 14px;
+}
+
+[data-skin="neomorphism-dark"] input,
+[data-skin="neomorphism-dark"] select,
+[data-skin="neomorphism-dark"] textarea {
+  background: var(--surface);
+  border: none;
+  border-radius: 14px;
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] input[type="color"] {
+  border-radius: 10px;
+  box-shadow: none;
+  border: none;
+}
+[data-skin="neomorphism-dark"] .btn,
+[data-skin="neomorphism-dark"] .btn-new,
+[data-skin="neomorphism-dark"] .src-add-btn,
+[data-skin="neomorphism-dark"] .src-type-btn,
+[data-skin="neomorphism-dark"] .tl-mode-add-btn,
+[data-skin="neomorphism-dark"] .theme-option,
+[data-skin="neomorphism-dark"] .icon-btn,
+[data-skin="neomorphism-dark"] .file-tab,
+[data-skin="neomorphism-dark"] .list-tab,
+[data-skin="neomorphism-dark"] .tag-toggle {
+  border: none;
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  box-shadow:
+    4px 4px 8px var(--neo-dark),
+    -4px -4px 8px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .theme-option.selected,
+[data-skin="neomorphism-dark"] .list-tab.active,
+[data-skin="neomorphism-dark"] .tag-toggle.active {
+  color: var(--text-hi);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .fav-toggle.on {
+  color: var(--red);
+  box-shadow:
+    inset 3px 3px 6px var(--neo-dark),
+    inset -3px -3px 6px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .sec-body,
+[data-skin="neomorphism-dark"] .modal,
+[data-skin="neomorphism-dark"] .review-modal-panel {
+  border: none;
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+}
+
+[data-skin="neomorphism-dark"] .btn-save {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  box-shadow:
+    5px 5px 10px var(--neo-dark),
+    -3px -3px 8px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .btn-save:hover {
+  background: var(--red-hi);
+}
+[data-skin="neomorphism-dark"] .btn-save:active {
+  box-shadow:
+    inset 3px 3px 6px rgba(0, 0, 0, 0.5),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.08);
+}
+[data-skin="neomorphism-dark"] .btn-save::before,
+[data-skin="neomorphism-dark"] .btn-save::after {
+  display: none;
+}
+
+/* ══ РИСОВАННЫЙ ══════════════════════════════════
+   Бумага и чернила: тёплый кремовый лист вместо экрана, рукописные
+   шрифты вместо гарнитур, неровные («нарисованные от руки») углы
+   вместо ровных скруглений, плоская тень со сдвигом вместо размытия —
+   как будто прямоугольник обведён маркером не по линейке.
+
+   Рамка везде — реальная тёмная линия (в отличие от неоморфизма, где
+   её нет вовсе): здесь глубина держится на контуре пером, а не на
+   свете. Двух картинок-иллюстраций тема не тянет — весь «рисованный»
+   эффект держится на форме и шрифте, этого достаточно и не плодит
+   лишних файлов, как в brutal с системными шрифтами.
+
+   --doodle-wobble — общее значение неровного border-radius, вынесено
+   переменной, чтобы не повторять четырёхзначный набор в каждом
+   правиле. Есть в двух калибровках: --doodle-wobble (крупные блоки,
+   в px — так их «зерно» не растёт вместе с блоком) и
+   --doodle-wobble-pill (мелкие — в %, чтобы форма не плющилась на
+   разной ширине). */
+[data-skin="doodle"] {
+  color-scheme: light;
+
+  --bg: #faf6ec;
+  --bg2: #f2ecdc;
+  --surface: #fffdf7;
+  --surface2: #f5efe0;
+  --border: #2e2a26;
+  --border2: #2e2a26;
+  --text: #2e2a26;
+  --text-dim: #7a7266;
+  --text-hi: #1c1915;
+
+  --doodle-wobble: 255px 15px 225px 15px/15px 225px 15px 255px;
+  --doodle-wobble-pill: 40% 60% 55% 45% / 45% 40% 60% 55%;
+  /* Та же идея, но в px: на широкой невысокой полосе (кнопки-аккордеоны,
+     чип оценки во всю ширину карточки) процентная формула выше
+     растягивается в лист/линзу — здесь скругление не зависит от того,
+     насколько элемент широкий. */
+  --doodle-wobble-wide: 22px 9px 20px 11px/11px 20px 9px 22px;
+
+  /* Визуальный язык */
+  --radius-btn: 999px;
+  --card-radius: 20px;
+  --card-border: 2px solid var(--text);
+  --card-shadow: 3px 4px 0 rgba(46, 42, 38, 0.85);
+  --card-shadow-hover: 5px 6px 0 rgba(46, 42, 38, 0.85);
+  --card-corner-display: none;
+  --card-img-filter: sepia(0.06) contrast(1.02);
+  --card-img-filter-hover: sepia(0.02) contrast(1.05);
+
+  --badge-bg: rgba(46, 42, 38, 0.78);
+  --badge-text: #fdf9ee;
+  --badge-text-dim: #e2dccb;
+  --badge-border: rgba(255, 255, 255, 0.5);
+  --badge-accent-border: transparent;
+
+  --tint: rgba(46, 42, 38, 0.05);
+  --tint-hi: rgba(46, 42, 38, 0.09);
+  --tint-line: rgba(46, 42, 38, 0.18);
+  --tint-line-hi: rgba(46, 42, 38, 0.3);
+
+  --scrim: rgba(28, 25, 21, 0.55);
+  --poster-scrim: rgba(46, 42, 38, 0.5);
+  --nav-bg: rgba(250, 246, 236, 0.94);
+  --shadow: rgba(46, 42, 38, 0.85);
+  --shadow-soft: rgba(46, 42, 38, 0.25);
+
+  --ok: #3f8f5f;
+  --ok-wash: rgba(63, 143, 95, 0.12);
+  --ok-fill: rgba(63, 143, 95, 0.22);
+  --ok-line: rgba(63, 143, 95, 0.45);
+  --err: #d1495b;
+}
+
+/* Заголовки — крупный маркер, остальной интерфейс — разборчивый
+   рукописный: Caveat читается только в больших кеглях, для кнопок и
+   тегов нужен более прямой Patrick Hand, иначе мелкий текст плывёт. */
+[data-skin="doodle"] .logo,
+[data-skin="doodle"] .section-title,
+[data-skin="doodle"] .modal-title,
+[data-skin="doodle"] .tab-btn,
+[data-skin="doodle"] .btn-save,
+[data-skin="doodle"] .card-title,
+[data-skin="doodle"] .review-title {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-style: normal;
+}
+[data-skin="doodle"] .type-tag,
+[data-skin="doodle"] .watch-badge,
+[data-skin="doodle"] .rtag,
+[data-skin="doodle"] .grade-chip,
+[data-skin="doodle"] .btn,
+[data-skin="doodle"] .btn-new,
+[data-skin="doodle"] .icon-btn,
+[data-skin="doodle"] .tag-toggle,
+[data-skin="doodle"] .file-tab,
+[data-skin="doodle"] .list-tab,
+[data-skin="doodle"] .theme-option,
+[data-skin="doodle"] .admin-add-btn,
+[data-skin="doodle"] .review-source-link,
+[data-skin="doodle"] .rv-filter-btn,
+[data-skin="doodle"] .tl-filter,
+[data-skin="doodle"] .tl-mode-btn,
+[data-skin="doodle"] .tl-list-btn,
+[data-skin="doodle"] .tl-label-name,
+[data-skin="doodle"] input,
+[data-skin="doodle"] select,
+[data-skin="doodle"] textarea {
+  font-family: "Patrick Hand", cursive;
+}
+
+/* ── Шапка и навигация: прямую линию заменяет волнистая, нарисованная
+   маской по тому же принципу, что лианы мягкой темы — просто вместо
+   отдельного SVG-файла инлайновый data-uri, узор совсем маленький. ── */
+[data-skin="doodle"] header {
+  border-bottom: none;
+}
+[data-skin="doodle"] header::after {
+  height: 6px;
+  background: var(--red);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  mask-repeat: repeat-x;
+  -webkit-mask-repeat: repeat-x;
+  mask-size: 20px 6px;
+  -webkit-mask-size: 20px 6px;
+}
+[data-skin="doodle"] nav {
+  border-bottom: none;
+}
+[data-skin="doodle"] .tab-btn {
+  border: none;
+  background: transparent;
+  border-radius: var(--doodle-wobble-pill);
+  margin: 0.5rem 0.25rem;
+  padding: 0.5rem 1.15rem;
+}
+[data-skin="doodle"] .tab-btn.active {
+  color: var(--text-hi);
+  background: var(--accent-wash);
+  border: 2px solid var(--text);
+  transform: rotate(-1deg);
+}
+[data-skin="doodle"] .tab-btn.active::before {
+  display: none;
+}
+
+/* ── Заголовки разделов и разделители ── */
+[data-skin="doodle"] .section-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  gap: 0.5rem;
+}
+[data-skin="doodle"] .section-title::before,
+[data-skin="doodle"] .section-title::after {
+  display: none;
+}
+[data-skin="doodle"] .year-divider::before,
+[data-skin="doodle"] .year-divider::after {
+  height: 6px;
+  background: var(--text-dim);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  mask-repeat: repeat-x;
+  -webkit-mask-repeat: repeat-x;
+  mask-size: 20px 6px;
+  -webkit-mask-size: 20px 6px;
+}
+
+/* ── Бейджи на обложках ── */
+[data-skin="doodle"] .type-tag,
+[data-skin="doodle"] .watch-badge {
+  top: 0.5rem;
+  border-radius: var(--doodle-wobble-pill);
+  border: 1.5px solid var(--badge-border);
+  backdrop-filter: none;
+}
+[data-skin="doodle"] .type-tag {
+  right: 0.5rem;
+  transform: rotate(2deg);
+}
+[data-skin="doodle"] .watch-badge {
+  left: 0.5rem;
+  transform: rotate(-2deg);
+}
+
+/* ── Карточки отзывов: лёгкий вразнобой поворот по кругу из трёх,
+   чтобы сетка не выглядела наштампованной под линейку. При наведении
+   карточка выпрямляется и «приподнимается» — то же чувство, что при
+   взятии листка со стола. ── */
+[data-skin="doodle"] .review-card {
+  border: var(--card-border);
+  border-radius: var(--doodle-wobble);
+  box-shadow: var(--card-shadow);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+[data-skin="doodle"] .review-card-wrap:nth-child(3n + 1) .review-card {
+  transform: rotate(-0.6deg);
+}
+[data-skin="doodle"] .review-card-wrap:nth-child(3n + 2) .review-card {
+  transform: rotate(0.4deg);
+}
+[data-skin="doodle"] .review-card-wrap:nth-child(3n) .review-card {
+  transform: rotate(-0.3deg);
+}
+[data-skin="doodle"] .review-card-wrap:hover .review-card {
+  transform: rotate(0deg) translate(-2px, -3px);
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="doodle"] .review-card img {
+  border-radius: 245px 10px 215px 10px/10px 215px 10px 245px;
+}
+
+/* ── Панель фильтров и поиск ──
+   Поле поиска — единственный пунктирный элемент темы: пунктир читается
+   как «впиши сюда», сплошная линия — как уже нарисованный контур. */
+[data-skin="doodle"] .rv-filters {
+  border: 2px solid var(--text);
+  border-radius: 30px 10px 30px 10px/10px 30px 10px 30px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="doodle"] .rv-search-input {
+  border: 1.5px dashed var(--border2);
+  background: var(--bg);
+}
+[data-skin="doodle"] .rv-filter-btn,
+[data-skin="doodle"] .rtag,
+[data-skin="doodle"] .review-source-link {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-pill);
+  background: var(--surface);
+}
+[data-skin="doodle"] .admin-add-btn,
+[data-skin="doodle"] .grade-chip {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-wide);
+  background: var(--surface);
+}
+[data-skin="doodle"] .rv-filter-btn.active {
+  background: var(--accent-fill);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+
+/* ── Статистика и тир-лист ── */
+[data-skin="doodle"] .stat-counters {
+  border: 2px solid var(--text);
+  border-radius: 26px 8px 26px 8px/8px 26px 8px 26px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="doodle"] .stat-counter {
+  border-right: 1.5px dashed var(--border2);
+}
+[data-skin="doodle"] .tl-filter,
+[data-skin="doodle"] .tl-mode-btn,
+[data-skin="doodle"] .tl-list-btn {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-pill);
+  background: var(--surface);
+}
+[data-skin="doodle"] .tl-filter.active,
+[data-skin="doodle"] .tl-mode-btn.active,
+[data-skin="doodle"] .tl-list-btn.active {
+  background: var(--accent-fill);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+[data-skin="doodle"] .tl-row,
+[data-skin="doodle"] .tl-editor-row {
+  border: 2px solid var(--text);
+  border-radius: 26px 8px 26px 8px/8px 26px 8px 26px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="doodle"] .tl-label,
+[data-skin="doodle"] .tl-editor-label {
+  border-right: 1.5px dashed var(--border2);
+}
+/* Постеры узкие и высокие — тот же процентный wobble-pill на таком
+   соотношении сторон схлопывается в яйцо и обрезает картинку с
+   подписью. Фиксированный небольшой радиус вместо переменной. */
+[data-skin="doodle"] .tl-poster,
+[data-skin="doodle"] .tl-char-poster {
+  border-radius: 14px 8px 14px 8px/8px 14px 8px 14px;
+}
+
+/* ── Поля и кнопки в админке ── */
+[data-skin="doodle"] input,
+[data-skin="doodle"] select,
+[data-skin="doodle"] textarea {
+  background: var(--surface);
+  border: 1.5px dashed var(--border2);
+  border-radius: 10px;
+}
+[data-skin="doodle"] input:focus,
+[data-skin="doodle"] select:focus,
+[data-skin="doodle"] textarea:focus {
+  border-style: solid;
+  border-color: var(--red);
+}
+[data-skin="doodle"] input[type="color"] {
+  border-radius: 8px;
+  border-style: solid;
+}
+[data-skin="doodle"] .btn,
+[data-skin="doodle"] .btn-new,
+[data-skin="doodle"] .theme-option,
+[data-skin="doodle"] .icon-btn,
+[data-skin="doodle"] .file-tab,
+[data-skin="doodle"] .list-tab,
+[data-skin="doodle"] .tag-toggle {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-pill);
+  background: var(--surface);
+  box-shadow: 2px 3px 0 rgba(46, 42, 38, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+/* Кнопки-аккордеоны на всю ширину строки — тот же приём, но со
+   спокойным скруглением из --doodle-wobble-wide (см. её комментарий
+   выше), иначе широкая плашка съезжает в лист/линзу. */
+[data-skin="doodle"] .src-add-btn,
+[data-skin="doodle"] .src-type-btn,
+[data-skin="doodle"] .tl-mode-add-btn {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-wide);
+  background: var(--surface);
+  box-shadow: 2px 3px 0 rgba(46, 42, 38, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+[data-skin="doodle"] .btn:hover,
+[data-skin="doodle"] .btn-new:hover,
+[data-skin="doodle"] .src-add-btn:hover,
+[data-skin="doodle"] .src-type-btn:hover,
+[data-skin="doodle"] .tl-mode-add-btn:hover,
+[data-skin="doodle"] .theme-option:hover,
+[data-skin="doodle"] .icon-btn:hover,
+[data-skin="doodle"] .file-tab:hover,
+[data-skin="doodle"] .list-tab:hover,
+[data-skin="doodle"] .tag-toggle:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 4px 0 rgba(46, 42, 38, 0.4);
+}
+[data-skin="doodle"] .theme-option.selected,
+[data-skin="doodle"] .list-tab.active,
+[data-skin="doodle"] .tag-toggle.active {
+  background: var(--accent-fill);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+[data-skin="doodle"] .fav-toggle.on {
+  color: var(--red);
+}
+[data-skin="doodle"] .sec-body,
+[data-skin="doodle"] .modal,
+[data-skin="doodle"] .review-modal-panel {
+  border: 2px solid var(--text);
+  border-radius: 26px 8px 26px 8px/8px 26px 8px 26px;
+  box-shadow: var(--card-shadow);
+}
+
+/* Главная кнопка — крупный маркерный ярлык: толстый контур, плоская
+   чернильная тень со сдвигом, лёгкий поворот. При нажатии «вжимается»
+   в собственную тень — то же чувство отклика, что у brutal, но
+   мягче и без острых углов. */
+[data-skin="doodle"] .btn-save {
+  background: var(--red);
+  color: #fff;
+  border: 2.5px solid var(--text-hi);
+  border-radius: 30px 10px 30px 10px/10px 30px 10px 30px;
+  box-shadow: 4px 5px 0 var(--text-hi);
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  transform: rotate(-0.4deg);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+[data-skin="doodle"] .btn-save:hover {
+  background: var(--red-hi);
+  transform: rotate(-0.4deg) translate(-2px, -2px);
+  box-shadow: 6px 7px 0 var(--text-hi);
+}
+[data-skin="doodle"] .btn-save:active {
+  transform: translate(2px, 3px);
+  box-shadow: 1px 1px 0 var(--text-hi);
+}
+[data-skin="doodle"] .btn-save::before,
+[data-skin="doodle"] .btn-save::after {
+  display: none;
+}
+
+/* ══ РИСОВАННЫЙ ТЁМНЫЙ ═════════════════════════════
+   Тот же скетч, но мелом на школьной доске: тёмно-зелёный грифель
+   вместо бумаги, светлые «меловые» линии вместо тёмных чернильных.
+   Форма (неровные углы, поворот карточек, волнистые разделители) не
+   меняется совсем — она уже выражена через var(--doodle-wobble*) и
+   геометрию, а не цвет, так что структурные правила ниже совпадают с
+   светлой версией дословно. Единственное осознанное решение: тень
+   карточек остаётся тёмной (а не светится белым) — офсетная тень
+   читается как «приподнято над доской», только когда она темнее
+   подложки, светлая тень выглядела бы как подсветка, а не глубина. */
+[data-skin="doodle-dark"] {
+  color-scheme: dark;
+
+  --bg: #1c2620;
+  --bg2: #16201b;
+  --surface: #212f27;
+  --surface2: #1a251f;
+  --border: #e8e4d9;
+  --border2: #e8e4d9;
+  --text: #d8d4c5;
+  --text-dim: #8b9187;
+  --text-hi: #f5f2e6;
+
+  --doodle-wobble: 255px 15px 225px 15px/15px 225px 15px 255px;
+  --doodle-wobble-pill: 40% 60% 55% 45% / 45% 40% 60% 55%;
+  --doodle-wobble-wide: 22px 9px 20px 11px/11px 20px 9px 22px;
+
+  --radius-btn: 999px;
+  --card-radius: 20px;
+  --card-border: 2px solid var(--text);
+  --card-shadow: 3px 4px 0 rgba(0, 0, 0, 0.6);
+  --card-shadow-hover: 5px 6px 0 rgba(0, 0, 0, 0.6);
+  --card-corner-display: none;
+  --card-img-filter: contrast(1.05) brightness(0.92);
+  --card-img-filter-hover: contrast(1.1) brightness(1);
+
+  --badge-bg: rgba(20, 28, 23, 0.8);
+  --badge-text: #f5f2e6;
+  --badge-text-dim: #c7c2b0;
+  --badge-border: rgba(255, 255, 255, 0.15);
+  --badge-accent-border: transparent;
+
+  --tint: rgba(255, 255, 255, 0.04);
+  --tint-hi: rgba(255, 255, 255, 0.08);
+  --tint-line: rgba(216, 212, 197, 0.14);
+  --tint-line-hi: rgba(216, 212, 197, 0.24);
+
+  --scrim: rgba(0, 0, 0, 0.7);
+  --poster-scrim: rgba(20, 28, 23, 0.6);
+  --nav-bg: rgba(28, 38, 32, 0.94);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --shadow-soft: rgba(0, 0, 0, 0.3);
+
+  --ok: #6bc98f;
+  --ok-wash: rgba(107, 201, 143, 0.14);
+  --ok-fill: rgba(107, 201, 143, 0.24);
+  --ok-line: rgba(107, 201, 143, 0.45);
+  --err: #e2707f;
+}
+
+[data-skin="doodle-dark"] .logo,
+[data-skin="doodle-dark"] .section-title,
+[data-skin="doodle-dark"] .modal-title,
+[data-skin="doodle-dark"] .tab-btn,
+[data-skin="doodle-dark"] .btn-save,
+[data-skin="doodle-dark"] .card-title,
+[data-skin="doodle-dark"] .review-title {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-style: normal;
+}
+[data-skin="doodle-dark"] .type-tag,
+[data-skin="doodle-dark"] .watch-badge,
+[data-skin="doodle-dark"] .rtag,
+[data-skin="doodle-dark"] .grade-chip,
+[data-skin="doodle-dark"] .btn,
+[data-skin="doodle-dark"] .btn-new,
+[data-skin="doodle-dark"] .icon-btn,
+[data-skin="doodle-dark"] .tag-toggle,
+[data-skin="doodle-dark"] .file-tab,
+[data-skin="doodle-dark"] .list-tab,
+[data-skin="doodle-dark"] .theme-option,
+[data-skin="doodle-dark"] .admin-add-btn,
+[data-skin="doodle-dark"] .review-source-link,
+[data-skin="doodle-dark"] .rv-filter-btn,
+[data-skin="doodle-dark"] .tl-filter,
+[data-skin="doodle-dark"] .tl-mode-btn,
+[data-skin="doodle-dark"] .tl-list-btn,
+[data-skin="doodle-dark"] .tl-label-name,
+[data-skin="doodle-dark"] input,
+[data-skin="doodle-dark"] select,
+[data-skin="doodle-dark"] textarea {
+  font-family: "Patrick Hand", cursive;
+}
+
+[data-skin="doodle-dark"] header {
+  border-bottom: none;
+}
+[data-skin="doodle-dark"] header::after {
+  height: 6px;
+  background: var(--red);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  mask-repeat: repeat-x;
+  -webkit-mask-repeat: repeat-x;
+  mask-size: 20px 6px;
+  -webkit-mask-size: 20px 6px;
+}
+[data-skin="doodle-dark"] nav {
+  border-bottom: none;
+}
+[data-skin="doodle-dark"] .tab-btn {
+  border: none;
+  background: transparent;
+  border-radius: var(--doodle-wobble-pill);
+  margin: 0.5rem 0.25rem;
+  padding: 0.5rem 1.15rem;
+}
+[data-skin="doodle-dark"] .tab-btn.active {
+  color: var(--text-hi);
+  background: var(--accent-wash);
+  border: 2px solid var(--text);
+  transform: rotate(-1deg);
+}
+[data-skin="doodle-dark"] .tab-btn.active::before {
+  display: none;
+}
+
+[data-skin="doodle-dark"] .section-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  gap: 0.5rem;
+}
+[data-skin="doodle-dark"] .section-title::before,
+[data-skin="doodle-dark"] .section-title::after {
+  display: none;
+}
+[data-skin="doodle-dark"] .year-divider::before,
+[data-skin="doodle-dark"] .year-divider::after {
+  height: 6px;
+  background: var(--text-dim);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
+  mask-repeat: repeat-x;
+  -webkit-mask-repeat: repeat-x;
+  mask-size: 20px 6px;
+  -webkit-mask-size: 20px 6px;
+}
+
+[data-skin="doodle-dark"] .type-tag,
+[data-skin="doodle-dark"] .watch-badge {
+  top: 0.5rem;
+  border-radius: var(--doodle-wobble-pill);
+  border: 1.5px solid var(--badge-border);
+  backdrop-filter: none;
+}
+[data-skin="doodle-dark"] .type-tag {
+  right: 0.5rem;
+  transform: rotate(2deg);
+}
+[data-skin="doodle-dark"] .watch-badge {
+  left: 0.5rem;
+  transform: rotate(-2deg);
+}
+
+[data-skin="doodle-dark"] .review-card {
+  border: var(--card-border);
+  border-radius: var(--doodle-wobble);
+  box-shadow: var(--card-shadow);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+[data-skin="doodle-dark"] .review-card-wrap:nth-child(3n + 1) .review-card {
+  transform: rotate(-0.6deg);
+}
+[data-skin="doodle-dark"] .review-card-wrap:nth-child(3n + 2) .review-card {
+  transform: rotate(0.4deg);
+}
+[data-skin="doodle-dark"] .review-card-wrap:nth-child(3n) .review-card {
+  transform: rotate(-0.3deg);
+}
+[data-skin="doodle-dark"] .review-card-wrap:hover .review-card {
+  transform: rotate(0deg) translate(-2px, -3px);
+  box-shadow: var(--card-shadow-hover);
+}
+[data-skin="doodle-dark"] .review-card img {
+  border-radius: 245px 10px 215px 10px/10px 215px 10px 245px;
+}
+
+[data-skin="doodle-dark"] .rv-filters {
+  border: 2px solid var(--text);
+  border-radius: 30px 10px 30px 10px/10px 30px 10px 30px;
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+}
+[data-skin="doodle-dark"] .rv-search-input {
+  border: 1.5px dashed var(--border2);
+  background: var(--bg);
+}
+[data-skin="doodle-dark"] .rv-filter-btn,
+[data-skin="doodle-dark"] .rtag,
+[data-skin="doodle-dark"] .review-source-link {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-pill);
+  background: var(--surface);
+}
+[data-skin="doodle-dark"] .admin-add-btn,
+[data-skin="doodle-dark"] .grade-chip {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-wide);
+  background: var(--surface);
+}
+[data-skin="doodle-dark"] .rv-filter-btn.active {
+  background: var(--accent-fill);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+
+[data-skin="doodle-dark"] .stat-counters {
+  border: 2px solid var(--text);
+  border-radius: 26px 8px 26px 8px/8px 26px 8px 26px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="doodle-dark"] .stat-counter {
+  border-right: 1.5px dashed var(--border2);
+}
+[data-skin="doodle-dark"] .tl-filter,
+[data-skin="doodle-dark"] .tl-mode-btn,
+[data-skin="doodle-dark"] .tl-list-btn {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-pill);
+  background: var(--surface);
+}
+[data-skin="doodle-dark"] .tl-filter.active,
+[data-skin="doodle-dark"] .tl-mode-btn.active,
+[data-skin="doodle-dark"] .tl-list-btn.active {
+  background: var(--accent-fill);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+[data-skin="doodle-dark"] .tl-row,
+[data-skin="doodle-dark"] .tl-editor-row {
+  border: 2px solid var(--text);
+  border-radius: 26px 8px 26px 8px/8px 26px 8px 26px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+[data-skin="doodle-dark"] .tl-label,
+[data-skin="doodle-dark"] .tl-editor-label {
+  border-right: 1.5px dashed var(--border2);
+}
+[data-skin="doodle-dark"] .tl-poster,
+[data-skin="doodle-dark"] .tl-char-poster {
+  border-radius: 14px 8px 14px 8px/8px 14px 8px 14px;
+}
+
+[data-skin="doodle-dark"] input,
+[data-skin="doodle-dark"] select,
+[data-skin="doodle-dark"] textarea {
+  background: var(--surface);
+  border: 1.5px dashed var(--border2);
+  border-radius: 10px;
+}
+[data-skin="doodle-dark"] input:focus,
+[data-skin="doodle-dark"] select:focus,
+[data-skin="doodle-dark"] textarea:focus {
+  border-style: solid;
+  border-color: var(--red);
+}
+[data-skin="doodle-dark"] input[type="color"] {
+  border-radius: 8px;
+  border-style: solid;
+}
+[data-skin="doodle-dark"] .btn,
+[data-skin="doodle-dark"] .btn-new,
+[data-skin="doodle-dark"] .theme-option,
+[data-skin="doodle-dark"] .icon-btn,
+[data-skin="doodle-dark"] .file-tab,
+[data-skin="doodle-dark"] .list-tab,
+[data-skin="doodle-dark"] .tag-toggle {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-pill);
+  background: var(--surface);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+[data-skin="doodle-dark"] .src-add-btn,
+[data-skin="doodle-dark"] .src-type-btn,
+[data-skin="doodle-dark"] .tl-mode-add-btn {
+  border: 1.5px solid var(--text);
+  border-radius: var(--doodle-wobble-wide);
+  background: var(--surface);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+[data-skin="doodle-dark"] .btn:hover,
+[data-skin="doodle-dark"] .btn-new:hover,
+[data-skin="doodle-dark"] .src-add-btn:hover,
+[data-skin="doodle-dark"] .src-type-btn:hover,
+[data-skin="doodle-dark"] .tl-mode-add-btn:hover,
+[data-skin="doodle-dark"] .theme-option:hover,
+[data-skin="doodle-dark"] .icon-btn:hover,
+[data-skin="doodle-dark"] .file-tab:hover,
+[data-skin="doodle-dark"] .list-tab:hover,
+[data-skin="doodle-dark"] .tag-toggle:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.55);
+}
+[data-skin="doodle-dark"] .theme-option.selected,
+[data-skin="doodle-dark"] .list-tab.active,
+[data-skin="doodle-dark"] .tag-toggle.active {
+  background: var(--accent-fill);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+[data-skin="doodle-dark"] .fav-toggle.on {
+  color: var(--red);
+}
+[data-skin="doodle-dark"] .sec-body,
+[data-skin="doodle-dark"] .modal,
+[data-skin="doodle-dark"] .review-modal-panel {
+  border: 2px solid var(--text);
+  border-radius: 26px 8px 26px 8px/8px 26px 8px 26px;
+  box-shadow: var(--card-shadow);
+}
+
+[data-skin="doodle-dark"] .btn-save {
+  background: var(--red);
+  color: #fff;
+  border: 2.5px solid var(--text-hi);
+  border-radius: 30px 10px 30px 10px/10px 30px 10px 30px;
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.7);
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  transform: rotate(-0.4deg);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+[data-skin="doodle-dark"] .btn-save:hover {
+  background: var(--red-hi);
+  transform: rotate(-0.4deg) translate(-2px, -2px);
+  box-shadow: 6px 7px 0 rgba(0, 0, 0, 0.7);
+}
+[data-skin="doodle-dark"] .btn-save:active {
+  transform: translate(2px, 3px);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+}
+[data-skin="doodle-dark"] .btn-save::before,
+[data-skin="doodle-dark"] .btn-save::after {
+  display: none;
+}
+
+/* ══ УКРАШЕНИЯ «МЯГКОГО БОТАНИЧЕСКОГО» ═══════════
+   Лианы по обоим краям экрана: тема ботаническая, а поля на широких
+   мониторах оставались пустыми.
+
+   Рисунок подключён как mask-image, а не background-image, — тогда цвет
+   ему задаёт CSS, и лианы следуют за палитрой темы, а не остаются
+   намертво зелёными, если человек перекрасит её под себя.
+
+   /decor/vine.svg нарисован так, чтобы стыковаться сам с собой по
+   вертикали: на обоих концах отрезка стебель выходит в одной точке и
+   под одним углом, поэтому repeat-y не даёт шва.
+
+   Чистая декорация: pointer-events: none и отдельный слой под
+   контентом. */
+[data-skin="soft"] body::before,
+[data-skin="soft"] body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  z-index: 0;
+  opacity: 0.4;
+  pointer-events: none;
+  background-color: var(--border2);
+  mask-image: url("/decor/vine.svg");
+  -webkit-mask-image: url("/decor/vine.svg");
+  mask-size: 100px 400px;
+  -webkit-mask-size: 100px 400px;
+  mask-repeat: repeat-y;
+  -webkit-mask-repeat: repeat-y;
+}
+[data-skin="soft"] body::before {
+  left: 0;
+}
+[data-skin="soft"] body::after {
+  right: 0;
+  transform: scaleX(-1);
+}
+
+/* Контент должен лежать поверх украшений. Навигации здесь нет
+   намеренно: у неё уже z-index 100 ради position: sticky, и если
+   опустить её до единицы, main начнёт проезжать поверх при скролле. */
+[data-skin="soft"] header,
+[data-skin="soft"] main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Лианы живут в пустых полях. Как только поля кончились — они наезжают
+   на контент, поэтому ниже этой ширины их нет. */
+@media (max-width: 1400px) {
+  [data-skin="soft"] body::before,
+  [data-skin="soft"] body::after {
+    display: none;
+  }
+}

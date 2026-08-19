@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TasteID — История версий</title>
+<link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/admin.css?v=12">
+<link rel="stylesheet" href="/themes.css?v=12">
+<script src="/js/utils.js?v=13"></script>
+<script src="/js/theme.js?v=13"></script>
+<script src="/js/config.js?v=14"></script>
+<style>
+
+header { padding: 3rem 1rem 2rem; }
+.logo { font-size: clamp(2.5rem, 6vw, 4rem); }
+
+main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
+
+#locked a { color: var(--red-hi); }
+.hidden { display: none; }
+
+.hint { font-size: .78rem; margin-bottom: 1.75rem; line-height: 1.6; }
+
+.file-tabs { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+.file-tab {
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; letter-spacing: .03em;
+  padding: .55rem 1.1rem; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text-dim); cursor: pointer; transition: all .2s ease;
+}
+.file-tab:hover { color: var(--text-hi); border-color: var(--border2); }
+.file-tab.active { color: var(--text-hi); border-color: var(--red); background: var(--accent-fill); }
+
+.version-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem 0; border-bottom: 1px solid var(--border);
+}
+.version-row:first-child { padding-top: 0; }
+.version-main { flex: 1; min-width: 0; }
+.version-date { font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text-hi); }
+.version-badge {
+  display: inline-block; margin-left: .5rem; font-size: .62rem; letter-spacing: .04em;
+  color: var(--green-hi); border: 1px solid var(--green-hi); border-radius: 2px;
+  padding: .05rem .4rem; vertical-align: middle;
+}
+.version-msg {
+  font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
+  margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.version-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+.btn-mini {
+  font-family: 'DM Sans', sans-serif; font-size: .72rem;
+  padding: .45rem .85rem; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 3px; color: var(--text); cursor: pointer; transition: all .2s ease;
+}
+.btn-mini:hover { color: var(--text-hi); border-color: var(--red); }
+.btn-mini.danger:hover { color: #f0d0d0; border-color: var(--err); background: rgba(163,51,51,.15); }
+.btn-mini:disabled { opacity: .5; cursor: default; }
+
+.state-box { padding: 4rem 2rem; font-size: 1.05rem; }
+.spinner { width: 24px; height: 24px; margin: 0 auto .75rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  font-family: 'DM Sans', sans-serif; font-size: .8rem;
+  padding: .7rem 1.2rem; border-radius: 4px; z-index: 10000;
+  background: var(--surface2); border: 1px solid var(--border2); color: var(--text-hi);
+}
+.toast.ok  { border-color: var(--green-hi); }
+.toast.err { border-color: var(--err); }
+</style>
+</head>
+<body>
+
+<div id="locked" class="hidden">
+  Нужно войти, чтобы смотреть историю версий — <a href="/login">войти</a>.
+  <br><br>
+  <a href="/" style="color:var(--text-dim);">На главную</a>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="header-sub">Бэкап и восстановление</div>
+    <a href="/" class="logo">TasteID</a>
+  </header>
+
+  <main>
+    <h2 class="section-title" style="font-family:'Playfair Display',serif;font-weight:700;font-style:italic;font-size:1.2rem;color:var(--text-hi);margin-bottom:1rem;">История версий</h2>
+    <p class="hint">
+      Каждое сохранение файла — это отдельная версия, которая навсегда остаётся здесь, даже если
+      текущая версия сайта сломается. Выбери файл, найди нужную дату и либо скачай эту версию как
+      JSON, либо восстанови её — тогда она станет текущей версией на сайте.
+    </p>
+
+    <div class="file-tabs" id="fileTabs"></div>
+    <div id="content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
+  </main>
+</div>
+
+<script>
+const FILES = [
+  { path: "reviews.json",         label: "Отзывы" },
+  { path: "favorites.json",       label: "Любимое" },
+  { path: "characters-tier.json", label: "Тир-лист" },
+  { path: "site-settings.json",   label: "Настройки сайта" },
+];
+
+let currentPath = FILES[0].path;
+let versionsCache = {}; // path -> versions[]
+
+function init() {
+  if (typeof isAdmin !== "function" || !isAdmin()) {
+    document.getElementById("locked").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("app").classList.remove("hidden");
+  renderFileTabs();
+  loadVersions(currentPath);
+}
+
+function renderFileTabs() {
+  const container = document.getElementById("fileTabs");
+  container.innerHTML = FILES.map(f => `
+    <button class="file-tab${f.path === currentPath ? " active" : ""}" onclick="selectFile('${f.path}')">${f.label}</button>
+  `).join("");
+}
+
+function selectFile(path) {
+  currentPath = path;
+  renderFileTabs();
+  loadVersions(path);
+}
+
+async function loadVersions(path) {
+  const content = document.getElementById("content");
+  if (versionsCache[path]) {
+    renderVersions(path, versionsCache[path]);
+    return;
+  }
+  content.innerHTML = `<div class="state-box"><div class="spinner"></div>Загружаем историю…</div>`;
+  try {
+    const res = await fetch(`/api/file-history?path=${encodeURIComponent(path)}`, { credentials: "include" });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    versionsCache[path] = data.versions;
+    if (path === currentPath) renderVersions(path, data.versions);
+  } catch (e) {
+    if (path === currentPath) {
+      content.innerHTML = `<div class="state-box">Ошибка загрузки: ${esc(e.message)}</div>`;
+    }
+  }
+}
+
+function renderVersions(path, versions) {
+  const content = document.getElementById("content");
+  if (!versions.length) {
+    content.innerHTML = `<div class="state-box">Пока нет истории для этого файла.</div>`;
+    return;
+  }
+  content.innerHTML = versions.map((v, i) => {
+    const dt = v.date ? new Date(v.date) : null;
+    const dateStr = dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "дата неизвестна";
+    const msg = firstLine(v.message);
+    return `
+    <div class="version-row">
+      <div class="version-main">
+        <div class="version-date">${esc(dateStr)}${i === 0 ? '<span class="version-badge">текущая</span>' : ""}</div>
+        <div class="version-msg" title="${esc(v.message)}">${esc(msg)}</div>
+      </div>
+      <div class="version-actions">
+        <button class="btn-mini" onclick="downloadVersion('${path}','${v.sha}')">⤓ Скачать</button>
+        ${i === 0 ? "" : `<button class="btn-mini danger" onclick="restoreVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')">↺ Восстановить</button>`}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function firstLine(s) {
+  return String(s || "").split("\n")[0];
+}
+
+async function downloadVersion(path, sha) {
+  try {
+    const res = await fetch(`/api/file-at-commit?path=${encodeURIComponent(path)}&sha=${encodeURIComponent(sha)}`, { credentials: "include" });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${path.replace(".json", "")}-${sha.slice(0, 7)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    showToast("Не удалось скачать: " + e.message, false);
+  }
+}
+
+async function restoreVersion(path, sha, dateStr) {
+  if (!confirm(`Восстановить «${path}» до версии от ${dateStr}?\n\nЭто заменит текущий файл на сайте — все изменения после этой версии в нём будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).`)) {
+    return;
+  }
+  try {
+    const res = await fetch("/api/restore-file-version", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, sha }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    delete versionsCache[path];
+    showToast("Восстановлено ✓ (сайт обновится через ~30 секунд)", true);
+    loadVersions(path);
+  } catch (e) {
+    showToast("Не удалось восстановить: " + e.message, false);
+  }
+}
+
+function showToast(text, ok) {
+  const el = document.createElement("div");
+  el.className = "toast " + (ok ? "ok" : "err");
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+init();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="/js/backup.js?v=12"></script>
+</body>
+</html>

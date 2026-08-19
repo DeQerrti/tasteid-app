@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TasteID — Вход</title>
+<link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/themes.css?v=12">
+<script src="/js/utils.js?v=13"></script>
+<script src="/js/theme.js?v=13"></script>
+<style>
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+/* ══ LOGO AREA ═══════════════════════════════════ */
+.logo-area {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  color: var(--text-hi);
+  letter-spacing: .04em;
+  line-height: 1;
+}
+.logo-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .6rem;
+  letter-spacing: .35em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: .6rem;
+}
+
+/* декоративная линия */
+.deco {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  margin-top: 1rem;
+}
+.deco span {
+  width: 4px; height: 4px;
+  transform: rotate(45deg);
+  background: var(--border2);
+}
+.deco span:nth-child(3) {
+  width: 6px; height: 6px;
+  background: var(--red);
+}
+.deco::before { content: ''; width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--border2)); }
+.deco::after  { content: ''; width: 40px; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
+
+/* ══ BOX ═════════════════════════════════════════ */
+.box {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 2.25rem 2.25rem 2rem;
+  position: relative;
+  margin: 0 1rem;
+}
+
+/* угловые акценты */
+.box::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 14px; height: 14px;
+  border-top: 1px solid var(--red-dim);
+  border-left: 1px solid var(--red-dim);
+  pointer-events: none;
+}
+.box::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 14px; height: 14px;
+  border-bottom: 1px solid var(--red-dim);
+  border-right: 1px solid var(--red-dim);
+  pointer-events: none;
+}
+
+.box-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--text-hi);
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+}
+.box-title::before { content: ''; width: 14px; height: 1px; background: var(--red); flex-shrink: 0; }
+.box-title::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
+
+input[type="password"] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  padding: .7rem .9rem;
+  color: var(--text-hi);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  outline: none;
+  transition: border-color .2s, background .2s;
+  margin-bottom: 1.25rem;
+  letter-spacing: .15em;
+}
+input[type="password"]:focus {
+  border-color: var(--red);
+  background: var(--bg2);
+}
+input[type="password"]::placeholder { letter-spacing: .05em; color: var(--text-dim); }
+
+button {
+  width: 100%;
+  background: var(--accent-fill);
+  border: 1px solid var(--accent-line);
+  border-radius: 2px;
+  color: var(--text-hi);
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: .08em;
+  padding: .75rem;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  position: relative;
+}
+button::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 8px; height: 8px;
+  border-top: 1px solid var(--red-dim);
+  border-left: 1px solid var(--red-dim);
+  transition: border-color .2s;
+}
+button::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 8px; height: 8px;
+  border-bottom: 1px solid var(--red-dim);
+  border-right: 1px solid var(--red-dim);
+  transition: border-color .2s;
+}
+button:hover {
+  background: var(--accent-fill-hi);
+  border-color: var(--red);
+}
+button:hover::before,
+button:hover::after { border-color: var(--red-hi); }
+
+.error {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem;
+  color: var(--err);
+  text-align: center;
+  margin-top: .85rem;
+  min-height: 1rem;
+  letter-spacing: .03em;
+}
+</style>
+</head>
+<body>
+
+<div class="logo-area">
+  <div class="logo">TasteID</div>
+  <div class="logo-sub">Цифровой паспорт интересов</div>
+  <div class="deco">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+</div>
+
+<div class="box">
+  <!-- Именно <form>, а не пара элементов с onclick: так менеджеры паролей
+       понимают, что это вход, и предлагают сохранить/подставить пароль.
+       autocomplete="current-password" — та же причина. -->
+  <form id="login-form" onsubmit="return login(event)">
+    <div class="box-title">Административный вход</div>
+    <label for="pwd">Пароль</label>
+    <input type="password" id="pwd" name="password" placeholder="••••••••"
+           autocomplete="current-password" required>
+    <button type="submit" id="login-btn">Войти</button>
+    <div class="error" id="err" role="alert" aria-live="polite"></div>
+  </form>
+</div>
+
+<script>
+async function login(event) {
+  event.preventDefault();
+
+  const input = document.getElementById("pwd");
+  const btn   = document.getElementById("login-btn");
+  const err   = document.getElementById("err");
+  const pwd   = input.value;
+
+  if (!pwd) { err.textContent = "Введите пароль"; return false; }
+
+  err.textContent = "";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwd })
+    });
+
+    if (res.ok) {
+      window.location.href = "/add";
+      return false;
+    }
+
+    // Раньше любой не-200 показывался как «Неверный пароль». При
+    // срабатывании рейт-лимита (429) человек видел неверную причину и
+    // продолжал подбирать пароль, хотя вход уже был временно закрыт.
+    // Текст ошибки бэкенд присылает сам — показываем его.
+    let message = "Неверный пароль";
+    try {
+      const data = await res.json();
+      if (data?.error) message = data.error;
+    } catch {
+      // тело не разобралось — остаётся сообщение по умолчанию
+    }
+    err.textContent = message;
+    input.value = "";
+    input.focus();
+  } catch {
+    err.textContent = "Сеть недоступна. Попробуйте ещё раз.";
+  } finally {
+    btn.disabled = false;
+  }
+
+  return false;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+/* ══════════════════════════════════════════════
+   ADMIN.CSS — общее для страниц админки
+   (add, chars-edit, favorites-edit, settings-edit,
+    backup-history, reviews-order)
+
+   Публичной странице это не нужно, поэтому файл
+   отдельный от style.css и не грузится на главной.
+   Подключать ПОСЛЕ style.css и ДО собственного
+   <style> страницы: у правил одинаковая
+   специфичность, побеждает то, что ниже.
+   ══════════════════════════════════════════════ */
+
+/* Подзаголовок под логотипом: «Редактор персонажей» и т.п. */
+.header-sub {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.6rem;
+}
+
+/* Поясняющая строка над списком/формой */
+.hint {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+/* Экран «нет доступа» — показывается, пока не проставлена кука админа */
+#locked {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-dim);
+}
+
+/* Нижняя панель с кнопкой сохранения */
+.save-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}

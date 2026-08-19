@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TasteID — Цифровой паспорт интересов</title>
+<meta name="description" content="Личная библиотека вкусов: отзывы на аниме, мангу, фильмы, сериалы, книги и игры, любимые персонажи, статистика и тир-листы.">
+<link rel="canonical" href="https://tasteid.ru/">
+<meta property="og:title" content="TasteID — Цифровой паспорт интересов">
+<meta property="og:description" content="Личная библиотека вкусов: аниме, манга, фильмы, игры и многое другое">
+<meta property="og:url" content="https://tasteid.ru">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://tasteid.ru/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/x-icon" href="/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/themes.css?v=12">
+<script src="/js/utils.js?v=13"></script>
+<script src="/js/theme.js?v=13"></script>
+<style>
+/* ══ NOIR PALETTE ════════════════════════════════ */
+
+/* ══ HEADER ══════════════════════════════════════ */
+
+/* ══ NAV — ИСПРАВЛЕНА ПРОКРУТКА ══════════════════ */
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--nav-bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+nav::-webkit-scrollbar { display: none; }
+
+@media (max-width: 700px) {
+  nav { justify-content: flex-start; }
+}
+
+.tab-btn {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 1.1rem 1.4rem;
+  cursor: pointer;
+  transition: color .25s, border-color .25s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  position: relative;
+  scroll-snap-align: start;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--text-hi); border-bottom-color: var(--red); }
+.tab-btn.active::before {
+  content: '◆';
+  font-size: .3rem;
+  position: absolute;
+  top: .6rem; left: 50%;
+  transform: translateX(-50%);
+  color: var(--red);
+}
+
+/* Видимая рамка фокуса. Карточка отзыва теперь фокусируема
+   (role="button" + tabindex), и без этого правила человек, идущий
+   по странице с клавиатуры, не понимал бы, где находится. */
+.review-card-wrap:focus-visible,
+.tab-btn:focus-visible,
+.review-modal-close:focus-visible {
+  outline: 2px solid var(--red-hi);
+  outline-offset: 2px;
+}
+/* Мышиный клик по карточке рамку не рисует — только :focus-visible */
+.review-card-wrap:focus:not(:focus-visible) { outline: none; }
+
+/* ══ LAYOUT ══════════════════════════════════════ */
+main { max-width: 1800px; margin: 0 auto; padding: 2.5rem 2.5rem 6rem; }
+.tab-content.hidden { display: none; }
+section.group { margin-bottom: 3.5rem; }
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.3rem;
+  color: var(--text-hi);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+
+.year-divider {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 1.6rem;
+  color: var(--border2);
+  margin: 2.5rem 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.year-divider::before { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--border)); }
+.year-divider::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+/* ══ GRIDS ═══════════════════════════════════════ */
+.grid-now { display: grid; gap: .85rem; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 640px)  { .grid-now { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 860px)  { .grid-now { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1060px) { .grid-now { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1280px) { .grid-now { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1520px) { .grid-now { grid-template-columns: repeat(7, 1fr); } }
+
+.grid-chars { display: grid; gap: .85rem; grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 640px)  { .grid-chars { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 860px)  { .grid-chars { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1100px) { .grid-chars { grid-template-columns: repeat(8, 1fr); } }
+
+/* ══ CARDS ═══════════════════════════════════════ */
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: var(--card-border, 1px solid var(--border));
+  border-radius: var(--card-radius, 2px);
+  overflow: hidden;
+  text-decoration: none;
+  transition: border-color .25s, transform .25s, box-shadow .25s;
+  position: relative;
+  box-shadow: var(--card-shadow, none);
+}
+.card::before {
+  content: '';
+  display: var(--card-corner-display, block);
+  position: absolute; top: 0; left: 0;
+  width: 12px; height: 12px;
+  border-top: 1px solid var(--red-dim);
+  border-left: 1px solid var(--red-dim);
+  z-index: 4; pointer-events: none;
+  transition: border-color .25s, width .25s, height .25s;
+}
+.card::after {
+  content: '';
+  display: var(--card-corner-display, block);
+  position: absolute; bottom: 0; right: 0;
+  width: 12px; height: 12px;
+  border-bottom: 1px solid var(--red-dim);
+  border-right: 1px solid var(--red-dim);
+  z-index: 4; pointer-events: none;
+  transition: border-color .25s, width .25s, height .25s;
+}
+.card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover, var(--card-shadow, none));
+}
+.card:hover::before,
+.card:hover::after {
+  border-color: var(--red);
+  width: 16px; height: 16px;
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  display: block;
+  background: var(--surface2);
+  filter: var(--card-img-filter, grayscale(.15) brightness(.9));
+  transition: filter .3s;
+  flex-shrink: 0;
+}
+.card:hover img { filter: var(--card-img-filter-hover, grayscale(0) brightness(.98)); }
+.card-char img  { aspect-ratio: 1/1; }
+
+.card-body {
+  padding: .6rem .7rem .7rem;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text-hi);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+.card-meta {
+  margin-top: auto;
+  padding-top: .3rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .3rem;
+}
+.card-grade-inline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .78rem;
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* ══ TYPE TAGS ═══════════════════════════════════ */
+.type-tag {
+  position: absolute; top: 0; right: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .58rem;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .25rem .55rem;
+  z-index: 3;
+  background: var(--badge-bg, var(--poster-scrim));
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-btn, 0px) 0 0 var(--radius-btn, 0px);
+}
+.tag-anime, .tag-manga, .tag-novel, .tag-movie, .tag-show, .tag-manual, .tag-book {
+  color: var(--badge-text, var(--text-hi));
+  border-bottom: 1px solid var(--badge-border, rgba(240,236,230,.18));
+  border-left:   1px solid var(--badge-border, rgba(240,236,230,.18));
+}
+
+.watch-badge {
+  position: absolute; top: 0; left: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .58rem; font-weight: 500;
+  color: var(--badge-text-dim, rgba(240,236,230,.7));
+  background: var(--badge-bg, var(--poster-scrim));
+  border-bottom: 1px solid var(--badge-accent-border, var(--accent-fill-hi));
+  border-right: 1px solid var(--badge-accent-border, var(--accent-fill-hi));
+  border-radius: 0 var(--radius-btn, 0px) var(--radius-btn, 0px) 0;
+  padding: .25rem .52rem;
+  backdrop-filter: blur(8px);
+  z-index: 3;
+  max-width: calc(100% - 64px);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.progress-line {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem;
+  color: var(--red-hi);
+  font-weight: 500;
+}
+
+/* ══ STATE ═══════════════════════════════════════ */
+/* Оформление тем переехало в themes.css — там же лежат палитры
+   и структурные отличия каждой темы. */
+
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card { animation: fadeUp .3s ease both; }
+
+/* ══ REVIEWS GRID ════════════════════════════════ */
+/* minmax(0, 1fr), а не просто 1fr: колонка по умолчанию не даёт себе стать
+   уже min-content своего содержимого, а карточка отзыва с обложкой в 150px
+   и текстом внутри как раз шире экрана телефона — из-за этого вся страница
+   уезжала вбок примерно на 20px. */
+.reviews-grid { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 700px)  { .reviews-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1050px) { .reviews-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1400px) { .reviews-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ══ REVIEW CARD ═════════════════════════════════ */
+.review-card-wrap { position: relative; height: 100%; }
+
+.review-card {
+  display: flex; flex-direction: column; height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: inherit;
+  position: relative;
+  animation: fadeUp .35s ease both;
+  overflow: visible;
+}
+
+.review-top { display: flex; gap: 1.1rem; padding: 1.2rem; flex: 1; }
+.review-cover-col {
+  width: 150px; flex-shrink: 0;
+  align-self: flex-start;
+  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+}
+.review-cover {
+  width: 100%;
+  border-radius: 1px; overflow: hidden;
+  border: 1px solid var(--border2);
+}
+.review-cover img {
+  width: 100%; aspect-ratio: 2/3;
+  object-fit: cover; display: block;
+  filter: grayscale(.1) brightness(.88);
+}
+.review-rewatch {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: .25rem .6rem;
+  text-align: center;
+}
+.review-body { flex: 1; min-width: 0; }
+.review-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem; font-weight: 700;
+  color: var(--text-hi); line-height: 1.25;
+  margin-bottom: .35rem;
+}
+.review-meta-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; flex-wrap: wrap; }
+.review-format { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--red-hi); text-transform: uppercase; letter-spacing: .1em; }
+.review-dateline { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); margin-bottom: .45rem; }
+.review-dateline span { color: var(--text-dim); }
+.review-waifu { font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: var(--text); margin-bottom: .45rem; }
+.review-waifu-label { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); }
+.review-waifu span { color: var(--text-hi); font-style: normal; font-weight: 600; }
+.review-preview {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; font-weight: 300;
+  color: var(--text); line-height: 1.7;
+  margin-top: .5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.review-card-wrap { cursor: pointer; }
+.review-read-more {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .75rem;
+  color: var(--red-hi);
+  margin-top: .5rem;
+  opacity: .85;
+}
+.review-card-wrap:hover .review-read-more { opacity: 1; text-decoration: underline; }
+
+.review-modal-overlay {
+  position: fixed; inset: 0;
+  background: var(--scrim);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+  padding: 24px;
+}
+.review-modal-overlay.hidden { display: none; }
+.review-modal-panel {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 32px;
+  position: relative;
+  animation: fadeUp .25s ease both;
+}
+.review-modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: .9rem;
+}
+.review-modal-close:hover { border-color: var(--red); color: var(--text-hi); }
+.review-modal-header {
+  display: flex; gap: 1.2rem;
+  margin-bottom: 1.4rem;
+  padding-right: 40px;
+}
+.review-modal-cover {
+  width: 90px; flex-shrink: 0;
+  aspect-ratio: 2/3; object-fit: cover;
+  border: 1px solid var(--border2);
+  filter: grayscale(.1) brightness(.88);
+}
+.review-modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem; font-weight: 600;
+  color: var(--text-hi);
+  margin-bottom: .3rem;
+}
+.review-modal-fulltext {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem; font-weight: 300;
+  color: var(--text); line-height: 1.8;
+  margin-bottom: 1.4rem;
+}
+.review-modal-fulltext p { margin: 0 0 1rem; }
+.review-modal-fulltext p:last-child { margin-bottom: 0; }
+.review-modal-nofull-hint {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: .8rem !important;
+  color: var(--text-dim) !important;
+}
+
+/* ══ TAGS ════════════════════════════════════════ */
+.review-tags {
+  padding: .65rem 1.2rem;
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  border-top: 1px solid var(--border);
+  overflow: visible; position: relative; z-index: 2;
+}
+.rtag {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem;
+  padding: .22rem .55rem;
+  border-radius: 1px;
+  font-weight: 400;
+  letter-spacing: .03em;
+  white-space: nowrap;
+  position: relative;
+  cursor: default;
+}
+.rtag-visual, .rtag-plot, .rtag-chars, .rtag-special {
+  background: var(--tint);
+  color: var(--text);
+  border: 1px solid var(--tint-line);
+}
+.rtag-custom {
+  background: color-mix(in srgb, var(--tag-color, var(--text-hi)) 12%, transparent);
+  color: var(--tag-color, var(--text));
+  border: 1px solid color-mix(in srgb, var(--tag-color, var(--text-hi)) 30%, transparent);
+}
+
+.rtag[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2); color: var(--text);
+  font-size: .68rem; padding: .35rem .7rem;
+  border-radius: 2px; border: 1px solid var(--border2);
+  white-space: nowrap; z-index: 9999;
+  pointer-events: none; box-shadow: 0 6px 24px var(--shadow);
+}
+.rtag[data-tip]:hover::before {
+  content: '';
+  position: absolute; bottom: calc(100% + 1px); left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--border2); z-index: 21;
+}
+
+/* ══ GRADE BAR ═══════════════════════════════════ */
+.review-grade-bar {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .75rem 1.2rem;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.grade-square {
+  width: 10px; height: 10px;
+  border-radius: 1px; flex-shrink: 0;
+  transform: rotate(45deg);
+}
+.grade-chip {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem; font-weight: 700;
+  color: var(--gc); flex: 1;
+  cursor: default; position: relative;
+  min-width: 80px; white-space: nowrap;
+}
+.grade-chip[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 8px); left: 0;
+  background: var(--surface2); color: var(--text);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .95rem; font-style: italic; font-weight: 400;
+  padding: .5rem .9rem; border-radius: 2px;
+  border: 1px solid var(--border2); white-space: nowrap;
+  z-index: 9999; pointer-events: none;
+  box-shadow: 0 6px 24px var(--shadow);
+}
+.grade-chip[data-tip]:hover::before {
+  content: '';
+  position: absolute; bottom: calc(100% + 3px); left: 1rem;
+  border: 5px solid transparent;
+  border-top-color: var(--border2); z-index: 21;
+}
+
+/* ══ SOURCE BUTTONS ══════════════════════════════ */
+.source-buttons { display: flex; gap: .4rem; flex-shrink: 0; }
+.review-source-link {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .7rem; letter-spacing: .05em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .3rem .75rem; border-radius: 1px;
+  flex-shrink: 0; white-space: nowrap;
+  text-decoration: none;
+  transition: background .2s, color .2s, border-color .2s;
+  border: 1px solid;
+}
+.source-teletype { background: var(--tint); border-color: var(--tint-line); color: var(--text-dim); }
+.source-teletype:hover { background: var(--tint-hi); border-color: var(--tint-line-hi); color: var(--text); }
+.source-other    { background: var(--accent-wash);  border-color: var(--accent-fill-hi);  color: var(--red); }
+.source-other:hover    { background: var(--accent-fill-hi);  border-color: var(--red-hi);   color: var(--red-hi); }
+
+.source-dot-teletype { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--text-dim); }
+.source-dot-other    { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; background: var(--red); }
+
+/* ══ EDIT BUTTON ═════════════════════════════════ */
+.review-edit-btn {
+  position: absolute; top: -10px; right: -10px; z-index: 10;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text-dim); font-size: .85rem;
+  display: none; align-items: center; justify-content: center;
+  text-decoration: none; transition: all .18s;
+}
+.review-card-wrap:hover .review-edit-btn { display: flex; }
+.review-edit-btn:hover { background: var(--red-dim); border-color: var(--red); color: var(--text-hi); }
+.review-card-wrap .card { height: 100%; }
+
+/* ══ STATS ═══════════════════════════════════════ */
+.stat-section { margin-bottom: 3.5rem; animation: fadeUp .4s ease both; }
+
+.stat-total { display: flex; align-items: baseline; gap: .75rem; margin-bottom: 2rem; }
+.stat-total-num {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900; font-style: italic;
+  font-size: clamp(3.5rem, 8vw, 6rem);
+  color: var(--text-hi); line-height: 1;
+}
+.stat-total-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+
+.stat-counters { display: flex; flex-wrap: wrap; gap: 1px; border: 1px solid var(--border); }
+.stat-rewatch-top { margin-top: .75rem; font-size: .85rem; color: var(--text-dim); }
+.stat-rewatch-top b { color: var(--text-hi); }
+.stat-counter {
+  flex: 1; min-width: 80px; padding: 1rem 1.2rem;
+  background: var(--surface); text-align: center;
+  border-right: 1px solid var(--border);
+}
+.stat-counter:last-child { border-right: none; }
+.stat-counter-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; font-weight: 900; color: var(--text-hi); line-height: 1;
+}
+.stat-counter-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-dim); margin-top: .35rem;
+}
+
+.stat-donut-wrap { display: flex; align-items: center; gap: 3rem; flex-wrap: wrap; }
+.stat-donut-svg { width: 200px; height: 200px; flex-shrink: 0; }
+.donut-center-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900; fill: var(--text-hi); }
+.donut-center-label { font-family: 'DM Sans', sans-serif; font-size: .6rem; letter-spacing: .15em; text-transform: uppercase; fill: var(--text-dim); }
+.donut-legend { display: flex; flex-direction: column; gap: .65rem; }
+.donut-legend-item { display: flex; align-items: center; gap: .6rem; font-family: 'DM Sans', sans-serif; font-size: .8rem; }
+.donut-dot { width: 8px; height: 8px; border-radius: 1px; transform: rotate(45deg); flex-shrink: 0; }
+.donut-legend-label { color: var(--text); flex: 1; }
+.donut-legend-val   { color: var(--text-hi); font-weight: 500; min-width: 24px; text-align: right; }
+.donut-legend-pct   { color: var(--text-dim); min-width: 36px; text-align: right; }
+
+.year-bars-wrap {
+  display: flex; align-items: flex-end; gap: 6px;
+  overflow-x: auto; padding-bottom: .5rem;
+  scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
+  min-height: 180px;
+}
+.year-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.year-bar-track {
+  width: 32px; height: 140px;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
+}
+.year-bar-stack {
+  width: 100%;
+  border-radius: 1px 1px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  min-height: 2px;
+}
+.year-bar-seg { width: 100%; min-height: 1px; }
+.year-bar-val   { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim); line-height: 1; }
+.year-bar-label { font-family: 'DM Sans', sans-serif; font-size: .6rem; color: var(--text-dim); writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .05em; }
+
+.grade-bars { display: flex; flex-direction: column; gap: .75rem; }
+.grade-row  { display: flex; align-items: center; gap: 1rem; }
+.grade-row-label { font-family: 'Cormorant Garamond', serif; font-size: .95rem; font-weight: 600; font-style: italic; min-width: 140px; text-align: right; flex-shrink: 0; }
+.grade-row-track { flex: 1; height: 6px; background: var(--surface2); border: 1px solid var(--border); overflow: hidden; }
+.grade-row-bar   { height: 100%; width: 0%; }
+.grade-row-val   { font-family: 'DM Sans', sans-serif; font-size: .75rem; color: var(--text-dim); min-width: 20px; text-align: right; }
+
+.stat-tag-cloud { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.stat-tag { transition: opacity .2s, transform .2s; cursor: default; }
+.stat-tag:hover { opacity: .8; transform: translateY(-1px); }
+.stat-tag-cnt { font-size: .65em; opacity: .6; margin-left: .2em; }
+
+/* ── Дайджест года ── */
+.stat-year-filters { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 2.5rem; }
+
+.year-spotlight-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: flex-start; }
+.year-spotlight-item { width: 160px; }
+.year-spotlight-item .card {
+  box-shadow: 0 0 0 1px var(--red-dim), 0 0 28px var(--accent-fill-hi);
+}
+
+.stat-export-row { margin-top: -1.5rem; margin-bottom: 3.5rem; }
+
+
+/* ══ TIERLIST ════════════════════════════════════ */
+.tl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: 1.8rem;
+}
+.tl-year-select-wrap { margin: -1.2rem 0 1.8rem; }
+.tl-year-select {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  letter-spacing: .03em;
+  padding: .4rem .7rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tl-year-select:hover { border-color: var(--red); }
+.tl-filter {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .62rem;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: .4rem .9rem;
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.tl-filter:hover { color: var(--text); border-color: var(--border2); }
+.tl-filter.active { color: var(--text-hi); border-color: var(--red-dim); background: var(--surface2); }
+
+.tl-rows { display: flex; flex-direction: column; gap: .7rem; }
+
+.tl-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: visible;
+  animation: fadeUp .35s ease both;
+  position: relative;
+}
+.tl-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--tl-color, var(--red-dim));
+  opacity: .6;
+}
+
+.tl-label {
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem .7rem;
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--tl-color, #888) 8%, var(--surface));
+  position: relative;
+  overflow: hidden;
+  gap: .3rem;
+
+}
+
+.tl-label-name {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: .92rem;
+  color: var(--tl-color, var(--text-hi));
+  text-align: center;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}
+.tl-label-count {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .58rem;
+  letter-spacing: .1em;
+  color: var(--text-dim);
+}
+
+.tl-cards {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: .7rem;
+  background: var(--surface);
+  min-height: 72px;
+  align-content: flex-start;
+}
+
+.tl-empty {
+  display: flex;
+  align-items: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .9rem;
+  font-style: italic;
+  color: var(--text-dim);
+  padding: .5rem;
+}
+
+/* ── Постер в тир-листе ── */
+.tl-poster {
+  width: 100px;
+  flex-shrink: 0;
+  position: relative;
+  cursor: default;
+  border-radius: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: border-color .2s, transform .2s, z-index 0s;
+  animation: fadeUp .25s ease both;
+}
+.tl-poster::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 9px; height: 9px;
+  border-top: 1px solid var(--tl-color, var(--red-dim));
+  border-left: 1px solid var(--tl-color, var(--red-dim));
+  z-index: 4; pointer-events: none;
+  opacity: .5;
+  transition: opacity .2s, width .2s, height .2s;
+}
+.tl-poster:hover {
+  border-color: var(--tl-color, var(--border2));
+  transform: translateY(-5px) scale(1.05);
+  z-index: 20;
+}
+.tl-poster:hover::before { opacity: 1; width: 13px; height: 13px; }
+
+.tl-poster img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(.2) brightness(.82);
+  transition: filter .25s;
+}
+.tl-poster:hover img { filter: grayscale(0) brightness(.98); }
+
+/* ── Тултип тир-листа — расширен и текст переносится ── */
+.tl-tooltip {
+  position: fixed;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  padding: .85rem 1.05rem;
+  pointer-events: none;
+  z-index: 9999;
+  max-width: 260px;
+  min-width: 160px;
+  width: max-content;
+  box-shadow: 0 12px 40px var(--shadow);
+  opacity: 0;
+  transition: opacity .12s;
+}
+.tl-tooltip.visible { opacity: 1; }
+.tl-tt-title {
+  font-family: 'Playfair Display', serif;
+  font-size: .92rem; font-weight: 700;
+  color: var(--text-hi); line-height: 1.3;
+  margin-bottom: .28rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.tl-tt-grade {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .82rem; font-style: italic; font-weight: 600;
+  margin-bottom: .2rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.tl-tt-desc {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .78rem; color: var(--text-dim);
+  font-style: italic; line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.tl-tt-meta {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .58rem; color: var(--text-dim);
+  margin-top: .28rem; letter-spacing: .04em;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* ══ MOBILE TIERLIST — ИСПРАВЛЕНО ════════════════ */
+@media (max-width: 600px) {
+  .tl-label {
+    width: 68px;
+    padding: .6rem .35rem;
+  }
+  .tl-label-name { font-size: .72rem; }
+  .tl-label-count { font-size: .5rem; }
+
+  .tl-poster { width: 70px; }
+
+  .tl-cards {
+    gap: .35rem;
+    padding: .5rem .45rem;
+    min-height: 60px;
+  }
+
+  .tl-tooltip {
+    max-width: calc(100vw - 24px);
+    min-width: 160px;
+  }
+
+  .tl-filter {
+    font-size: .58rem;
+    padding: .32rem .7rem;
+  }
+
+  /* На телефоне 2.5rem полей с каждой стороны съедали пятую часть экрана,
+     а обложка в 150px оставляла тексту отзыва колонку в два слова. */
+  main { padding-left: 1.1rem; padding-right: 1.1rem; }
+  .review-top { gap: .8rem; padding: .9rem; }
+  .review-cover-col { width: 108px; }
+}
+
+/* ══ REVIEW FILTERS ══════════════════════════════ */
+.rv-filter-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.rv-filter-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  min-width: 70px;
+  flex-shrink: 0;
+}
+.rv-filter-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem;
+  padding: .22rem .65rem;
+  border-radius: 1px;
+  border: 1px solid var(--border2);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .03em;
+}
+.rv-filter-btn:hover { color: var(--text); border-color: var(--border2); }
+.rv-filter-btn.active {
+  background: var(--accent-fill);
+  border-color: var(--red);
+  color: var(--text-hi);
+}
+.rv-search-input {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem;
+  padding: .28rem .75rem;
+  border-radius: 1px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text-hi);
+  outline: none;
+  width: 180px;
+  transition: border-color .2s, background .2s;
+  letter-spacing: .02em;
+}
+.rv-search-input:focus {
+  border-color: var(--red);
+  background: var(--bg2);
+}
+.rv-search-input::placeholder {
+  color: var(--text-dim);
+}
+/* ══ ADMIN ADD BUTTON ════════════════════════════ */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.section-header .section-title {
+  margin-bottom: 0;
+  flex: 1;
+}
+.admin-add-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  padding: .3rem .75rem;
+  text-decoration: none;
+  transition: all .18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.admin-add-btn:hover {
+  border-color: var(--red-dim);
+  color: var(--red-hi);
+}
+
+/* ══ REVIEW TOOLBAR ══════════════════════════════ */
+.rv-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.rv-filters {
+  display: inline-flex;
+  flex-direction: column;
+  gap: .75rem;
+  padding: 1.1rem 1.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+  /* ══ TIERLIST MODE TOGGLE ════════════════════════ */
+.tl-mode-toggle {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.8rem;
+}
+.tl-mode-btn {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: .55rem 1.4rem;
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.tl-mode-btn:hover { color: var(--text); border-color: var(--border2); }
+.tl-mode-btn.active {
+  color: var(--text-hi);
+  border-color: var(--red);
+  background: var(--surface2);
+}
+.tl-mode-add-btn {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: 0 1rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.tl-mode-add-btn:hover { color: var(--red-hi); border-color: var(--red-dim); }
+
+/* ══ МОДАЛКА: новый тир-лист (коллекция) ═════════ */
+.modal-overlay.hidden { display: none; }
+.modal-close:hover { color: var(--text-hi); }
+.modal .field { margin-bottom: 1rem; }
+.modal .field label {
+  font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim);
+  letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: .4rem;
+}
+.modal .field input[type="text"] {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 2px;
+  padding: .65rem .85rem; color: var(--text-hi); font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; outline: none; transition: border-color .2s, background .2s;
+}
+.modal .field input[type="text"]:focus { border-color: var(--red); background: var(--bg2); }
+.modal .btn-save {
+  width: 100%; background: var(--accent-fill); border: 1px solid var(--accent-line);
+  border-radius: 2px; color: var(--text-hi); font-family: 'Playfair Display', serif;
+  font-size: 1rem; font-weight: 700; font-style: italic; letter-spacing: .06em;
+  padding: .8rem; cursor: pointer; transition: background .2s, border-color .2s;
+}
+.modal .btn-save:hover { background: var(--accent-fill-hi); border-color: var(--red); }
+.modal .btn-save:disabled { opacity: .4; cursor: not-allowed; }
+.modal .status-msg {
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; text-align: center;
+  margin-top: .85rem; min-height: 1.2rem; letter-spacing: .03em;
+}
+.modal .status-msg.ok  { color: var(--green-hi); }
+.modal .status-msg.err { color: var(--err); }
+
+/* ── Переключатель тир-листов внутри игры ── */
+.tl-char-lists {
+  display: flex;
+  gap: .4rem;
+  margin-bottom: 1.4rem;
+  flex-wrap: wrap;
+}
+.tl-list-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: 1px;
+  padding: .3rem .85rem;
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.tl-list-btn:hover { color: var(--text); border-color: var(--border2); }
+.tl-list-btn.active {
+  color: var(--text-hi);
+  border-color: var(--red-dim);
+  background: var(--surface2);
+}
+
+/* Постеры персонажей — квадратные (1/1 вместо 2/3) */
+.tl-poster img.char-img {
+  aspect-ratio: 1/1;
+}
+  /* ══ ПОСТЕРЫ ПЕРСОНАЖЕЙ В ТИР-ЛИСТЕ ════════════ */
+.tl-char-poster {
+  width: auto;
+  flex-shrink: 0;
+  position: relative;
+  cursor: default;
+  border-radius: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: border-color .2s, transform .2s;
+  animation: fadeUp .25s ease both;
+  /* Фон совпадает с фоном ряда — убирает "чёрные блоки" вокруг прозрачных PNG */
+  background: var(--surface);
+}
+.tl-char-poster::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 9px; height: 9px;
+  border-top: 1px solid var(--tl-color, var(--red-dim));
+  border-left: 1px solid var(--tl-color, var(--red-dim));
+  z-index: 4; pointer-events: none;
+  opacity: .5;
+  transition: opacity .2s, width .2s, height .2s;
+}
+.tl-char-poster:hover {
+  border-color: var(--tl-color, var(--border2));
+  transform: translateY(-5px) scale(1.05);
+  z-index: 20;
+}
+.tl-char-poster:hover::before { opacity: 1; width: 13px; height: 13px; }
+.tl-char-poster img {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  display: block;
+  filter: grayscale(.15) brightness(.85);
+  transition: filter .25s;
+  background: var(--surface);
+}
+.tl-char-poster:hover img { filter: grayscale(0) brightness(.98); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow" data-label="site.subtitle">Цифровой паспорт интересов</div>
+  <a href="/" class="logo">TasteID</a>
+  <div class="header-deco">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <a href="/settings-edit" id="admin-settings-link" class="hidden" style="position:absolute;top:20px;right:20px;font-size:.75rem;color:var(--text-dim);text-decoration:none;">Настройки</a>
+</header>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (typeof isAdmin === "function" && isAdmin()) {
+      document.getElementById("admin-settings-link").classList.remove("hidden");
+    }
+  });
+</script>
+
+<nav role="tablist" aria-label="Разделы">
+  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-now" data-label="nav.now" onclick="switchTab('tab-now', this)">Статусы</button>
+  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-favorites" data-label="nav.favorites" onclick="switchTab('tab-favorites', this)">Любимое</button>
+  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-reviews" data-label="nav.reviews" onclick="switchTab('tab-reviews', this)">Отзывы</button>
+  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-stats" data-label="nav.stats" onclick="switchTab('tab-stats', this)">Статистика</button>
+  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-tierlist" data-label="nav.tierlist" onclick="switchTab('tab-tierlist', this)">Тир-лист</button>
+</nav>
+
+<main>
+  <div id="tab-now" role="tabpanel" tabindex="0"       class="tab-content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
+  <div id="tab-favorites" role="tabpanel" tabindex="0" class="tab-content hidden"><div class="state-box"><div class="spinner"></div>Загружаем любимчиков…</div></div>
+  <div id="tab-reviews" role="tabpanel" tabindex="0"   class="tab-content hidden"><div class="state-box"><div class="spinner"></div>Загружаем отзывы…</div></div>
+
+  <div id="review-modal-overlay" class="review-modal-overlay hidden">
+    <div class="review-modal-panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+      <button class="review-modal-close" title="Закрыть" aria-label="Закрыть">✕</button>
+      <div id="review-modal-body"></div>
+    </div>
+  </div>
+  <div id="tab-stats" role="tabpanel" tabindex="0"     class="tab-content hidden"><div class="state-box"><div class="spinner"></div>Считаем…</div></div>
+  <div id="tab-tierlist" role="tabpanel" tabindex="0"  class="tab-content hidden"><div class="state-box"><div class="spinner"></div>Загружаем рецензии…</div></div>
+</main>
+
+<!-- Модалка: новый тир-лист (коллекция) — доступна только админу -->
+<div class="modal-overlay hidden" id="collection-modal-overlay" onclick="closeCollectionModalOnOverlay(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCollectionModal()">✕</button>
+    <div class="modal-title">Новый тир-лист</div>
+    <div class="field">
+      <label>Название</label>
+      <input type="text" id="cm-collection-name" placeholder="Например: Опенинги">
+    </div>
+    <button class="btn-save" id="cm-collection-save" onclick="submitNewCollection()">Создать</button>
+    <div class="status-msg" id="collection-modal-status"></div>
+  </div>
+</div>
+
+<script src="/js/config.js?v=14"></script>
+<script src="/js/api.js?v=12"></script>
+<script src="/js/cards.js?v=12"></script>
+<script src="/js/now.js?v=12"></script>
+<script src="/js/favorites.js?v=12"></script>
+<script src="/js/reviews.js?v=12"></script>
+<script src="/js/stats.js?v=13"></script>
+<script src="/js/tierlist.js?v=13"></script>
+
+<script>
+let _navInit = true;
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+  document.querySelectorAll(".tab-btn").forEach(el => {
+    el.classList.remove("active");
+    el.setAttribute("aria-selected", "false");
+  });
+  document.getElementById(tabId).classList.remove("hidden");
+  btn.classList.add("active");
+  btn.setAttribute("aria-selected", "true");
+
+  if (!_navInit) {
+    btn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  }
+
+  if (tabId === "tab-now")       loadNow();
+  if (tabId === "tab-favorites") loadFavorites();
+  if (tabId === "tab-reviews")   loadReviews();
+  if (tabId === "tab-stats")     loadStats();
+  if (tabId === "tab-tierlist")  loadTierlist();
+}
+
+// Первую вкладку открываем только после того, как применились настройки
+// сайта: до этого неизвестны ни стартовая вкладка (mainTab), ни порядок,
+// ни какие вкладки скрыты. Раньше клик стоял здесь же синхронно — вкладка
+// успевала отрисоваться со встроенными настройками и через миг
+// перерисовывалась поверх, а mainTab не работал вовсе.
+// Обёртка Promise.resolve обязательна. window.themeReady приходит из
+// theme.js, и если браузер по какой-то причине отдаст старую копию
+// этого файла (кэш, сбой загрузки), themeReady окажется undefined —
+// без обёртки здесь падал бы весь блок, и страница навсегда осталась
+// бы на надписи «Загружаем…». Теперь в худшем случае просто откроется
+// первая доступная вкладка.
+Promise.resolve(window.themeReady).then(() => {
+  const wanted = window.SITE_INITIAL_TAB;
+  const btn =
+    (wanted && document.querySelector(`[data-label="nav.${wanted}"]`)) ||
+    document.querySelector(".tab-btn:not([hidden])");
+
+  if (btn) btn.click();
+  _navInit = false;
+});
+
+// Service worker: без него установленное из manifest.json приложение
+// при плохой сети показывало пустой экран. Регистрируем после load,
+// чтобы не отнимать канал у первой отрисовки. Не поддерживается или
+// не установился — сайт просто работает как раньше, без офлайна.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .catch((err) => console.warn("[sw] не зарегистрировался:", err));
+  });
+}
+</script>
+
+</body>
+</html>

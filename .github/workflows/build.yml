@@ -1,0 +1,65 @@
+# Сборка приложения под три системы.
+#
+# Проверки гоняются на каждый push и каждый pull request — они быстрые.
+# Сами установщики собираются только по тегу вида v1.2.3: собирать их на
+# каждый коммит значит по полчаса машинного времени впустую, а результат
+# нужен только когда действительно выпускаешь версию.
+name: Проверки и сборка
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  check:
+    name: Проверки
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  build:
+    name: Установщики
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+          - os: macos-latest
+            target: mac
+          - os: ubuntu-latest
+            target: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:${{ matrix.target }}
+        env:
+          # Приложение не подписано, и это осознанно: подпись стоит денег
+          # и всё равно не убирает предупреждение Windows целиком.
+          # Без этой переменной electron-builder попробует подписать сам
+          # и упадёт на отсутствующем сертификате.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+          draft: true
+          fail_on_unmatched_files: false

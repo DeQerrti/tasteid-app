@@ -1,0 +1,534 @@
+/* ══════════════════════════════════════════════
+   STYLE.CSS — общие стили для всех страниц
+   :root палитра, типографика, базовые компоненты.
+   Страницы дополняют это своими <style> блоками
+   с уникальной для себя вёрсткой.
+   ══════════════════════════════════════════════ */
+
+:root {
+  --bg:       #0a0a0c;
+  --bg2:      #0f0f12;
+  --surface:  #111114;
+  --surface2: #1a1a1f;
+  --border:   #222228;
+  --border2:  #333338;
+  --red:      #8b1a1a;
+  --red-hi:   #c0392b;
+  --red-dim:  #5a1010;
+  --text:     #b8b0a8;
+  --text-dim: #4a4540;
+  --text-hi:  #f0ece6;
+  --green:    #4a8c5c;
+  --green-hi: #6ab87a;
+
+  /* ── Производные акцента ──
+     Полупрозрачные заливки и рамки акцентного цвета. Раньше по всему
+     коду были рассыпаны литералы var(--accent-fill) — из-за них смена
+     акцента (и тем более темы) половину кнопок не трогала. Значения
+     ниже запасные: theme.js пересчитывает их от выбранного акцента и
+     дописывает своим <style> в конец <head>. */
+  --accent-wash:    rgba(139, 26, 26, 0.08);
+  --accent-fill:    rgba(139, 26, 26, 0.15);
+  --accent-fill-hi: rgba(139, 26, 26, 0.25);
+  --accent-line:    rgba(139, 26, 26, 0.38);
+
+  /* Успех — то же самое для зелёного */
+  --ok:      #6ab87a;
+  --ok-wash: rgba(106, 184, 122, 0.08);
+  --ok-fill: rgba(106, 184, 122, 0.18);
+  --ok-line: rgba(106, 184, 122, 0.3);
+  --err:     #d88;
+
+  /* ── Нейтральные подсветки ──
+     Едва заметная заливка и рамка «поверх фона». В тёмной теме это
+     осветление, в светлой — наоборот затемнение, поэтому значения
+     задаёт тема, а не акцент. */
+  --tint:         rgba(255, 255, 255, 0.025);
+  --tint-hi:      rgba(255, 255, 255, 0.05);
+  --tint-line:    rgba(240, 236, 230, 0.12);
+  --tint-line-hi: rgba(240, 236, 230, 0.22);
+
+  /* Затемнения: подложка модалок, плашки поверх обложек, тени */
+  --scrim:        rgba(0, 0, 0, 0.85);
+  --poster-scrim: rgba(10, 10, 12, 0.82);
+  --nav-bg:       rgba(10, 10, 12, 0.95);
+  --shadow:       rgba(0, 0, 0, 0.8);
+  --shadow-soft:  rgba(0, 0, 0, 0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Нативные элементы браузера в тёмном виде ──
+   Полосы прокрутки, календарь у <input type="date">, стрелки у
+   <input type="number">, выпадающий список <select> рисует сам браузер,
+   и по умолчанию он делает их светлыми — на тёмном фоне это те самые
+   белые полосы. Одна строка ниже говорит браузеру, что оформление
+   тёмное, и он перерисовывает всё это сам, без хаков.
+   Тема «Мягкий ботанический» светлая, для неё возвращаем light. */
+:root { color-scheme: dark; }
+html[data-skin="soft"] { color-scheme: light; }
+
+/* Дополнительно подгоняем полосы прокрутки под палитру сайта:
+   color-scheme делает их тёмными, но серыми, а хочется в тон. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--red-dim); }
+
+/* Атрибут hidden должен побеждать любые display из компонентных стилей —
+   на нём держится скрытие вкладок из site-settings.json (см. theme.js). */
+[hidden] { display: none !important; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 3.5rem 1rem 2.5rem;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+header::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--red-dim) 20%, var(--red) 50%, var(--red-dim) 80%, transparent 100%);
+}
+
+.header-eyebrow {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .62rem;
+  letter-spacing: .35em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .7rem;
+}
+
+.header-eyebrow::before,
+.header-eyebrow::after { content: '—'; color: var(--border2); }
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  color: var(--text-hi);
+  letter-spacing: .04em;
+  line-height: 1;
+  /* На всех страницах, кроме логина, логотип — ссылка на главную.
+     Раньше подчёркивание снималось то инлайновым style, то копией
+     правила на каждой странице. */
+  text-decoration: none;
+}
+
+.header-deco {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  margin-top: 1.2rem;
+}
+
+.header-deco span {
+  width: 4px; height: 4px;
+  transform: rotate(45deg);
+  background: var(--border2);
+}
+
+.header-deco span:nth-child(3) {
+  width: 6px; height: 6px;
+  background: var(--red);
+}
+
+.header-deco::before { content: ''; width: 50px; height: 1px; background: linear-gradient(90deg, transparent, var(--border2)); }
+
+.header-deco::after  { content: ''; width: 50px; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
+
+.section-title::before { content: ''; display: inline-block; width: 16px; height: 1px; background: var(--red); }
+
+.section-title::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tl-label-dot {
+  width: 5px; height: 5px;
+  border-radius: 1px;
+  transform: rotate(45deg);
+  background: var(--tl-color, var(--red));
+  flex-shrink: 0;
+}
+
+main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3rem 2rem 6rem;
+}
+
+.edit-banner {
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-fill-hi);
+  border-radius: 2px;
+  padding: .75rem 1.1rem;
+  margin-bottom: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  color: var(--red-hi);
+  gap: 1rem;
+}
+
+.edit-banner-title { opacity: .7; font-style: italic; }
+
+.btn-new {
+  background: none;
+  border: 1px solid var(--accent-line);
+  border-radius: 2px;
+  color: var(--red-hi);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem;
+  padding: .3rem .8rem;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-new:hover { background: var(--accent-fill); border-color: var(--red-hi); }
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--text-hi);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+
+/* На телефоне две колонки коротких полей превращаются в две узкие
+   колонки, в которые ничего не влезает — с этой ширины ставим одну. */
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+.field { margin-bottom: 1rem; }
+
+.field.full { grid-column: 1 / -1; }
+
+label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem;
+  color: var(--text-dim);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: .4rem;
+}
+
+select option { background: var(--bg2); }
+
+.select-wrap { position: relative; }
+
+.select-wrap::after {
+  content: '▾';
+  position: absolute; right: .85rem; top: 50%; transform: translateY(-50%);
+  color: var(--text-dim); pointer-events: none; font-size: .75rem;
+}
+
+.select-wrap select { padding-right: 2rem; }
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--border2), transparent);
+  margin: 2rem 0;
+}
+
+.btn-save {
+  width: 100%;
+  background: var(--accent-fill);
+  border: 1px solid var(--accent-line);
+  border-radius: 2px;
+  color: var(--text-hi);
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: .08em;
+  padding: .9rem;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  position: relative;
+}
+
+.btn-save:hover {
+  background: var(--accent-fill-hi);
+  border-color: var(--red);
+}
+
+.btn-save:disabled { opacity: .4; cursor: not-allowed; }
+
+.status-msg {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  text-align: center;
+  margin-top: 1rem;
+  min-height: 1.2rem;
+  letter-spacing: .03em;
+}
+
+.status-msg.ok  { color: var(--green-hi); }
+
+.status-msg.err { color: var(--err); }
+
+/* ══ BUTTONS — общий язык для всех редакторов и настроек ═════════
+   Раньше .btn/.btn-ghost/.btn-primary/.icon-btn были продублированы
+   (или вовсе отсутствовали, как в add.html) в каждом файле по отдельности —
+   теперь один источник правды, чтобы все админ-страницы выглядели
+   одинаково. */
+.btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem;
+  font-weight: 500;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: .5rem 1.1rem;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all .15s;
+  border: 1px solid;
+  background: none;
+}
+.btn-primary { background: var(--accent-fill); border-color: var(--accent-line); color: var(--text-hi); }
+.btn-primary:hover { background: var(--accent-fill-hi); border-color: var(--red); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.btn-ghost { background: none; border-color: var(--border2); color: var(--text-dim); }
+.btn-ghost:hover { border-color: var(--red-dim); color: var(--text); }
+.btn-green { background: var(--ok-wash); border-color: var(--ok-line); color: var(--green-hi); }
+.btn-green:hover { background: var(--ok-fill); border-color: var(--green-hi); }
+.btn-green:disabled { opacity: .4; cursor: not-allowed; }
+.btn-dashed { background: none; border-style: dashed; border-color: var(--border2); color: var(--text-dim); }
+.btn-dashed:hover { border-color: var(--green-hi); color: var(--green-hi); }
+
+.icon-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  width: 30px; height: 30px;
+  padding: 0; margin: 0;
+  border-radius: 2px;
+  font-size: .8rem;
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn:hover { color: var(--text-hi); border-color: var(--red-dim); background: var(--accent-wash); }
+
+/* Без этого при клике мышью браузер показывает свою белую/системную рамку
+   фокуса поверх кнопок — то, что выглядело как "не прокрасившиеся" кнопки
+   на скриншотах, на самом деле было именно ей. :focus-visible оставляем
+   для навигации с клавиатуры. */
+.btn, .btn-save, .btn-new, .icon-btn, button {
+  outline: none;
+}
+.btn:focus-visible, .btn-save:focus-visible, .btn-new:focus-visible,
+.icon-btn:focus-visible, button:focus-visible {
+  outline: 2px solid var(--red-dim);
+  outline-offset: 2px;
+}
+
+/* Нативный <input type="file"> НЕЛЬЗЯ полноценно перекрасить нигде —
+   его подпись "No file chosen" не красится в принципе ни в одном браузере
+   (это системный текст, не CSS-элемент). Поэтому вместо попытки
+   перекрасить нативный виджет — прячем его и рисуем свою кнопку поверх
+   через <label>, с собственной подписью выбранного файла. */
+/* Кнопка выбора файла.
+   Раньше здесь лежала полная копия внешнего вида кнопки — свои цвета,
+   рамка, скругление. Из-за этого она не участвовала в темах: тему знают
+   .btn и .btn-save, а про .file-btn в themes.css сказано было только для
+   брутализма. Рядом с обычной кнопкой она везде выглядела чужой.
+
+   Теперь внешний вид берётся у .btn/.btn-ghost, как у любой другой
+   кнопки, а здесь остаётся только то, чего у кнопки нет: спрятать сам
+   <input type="file"> и заставить <label> раскладываться как кнопка. */
+/* Селектор .btn.file-btn, а не просто .file-btn: кнопка выбора файла —
+   это <label>, а на страницах-редакторах есть правила вида `.field label`
+   для подписей полей. Они специфичнее одного класса и перебивали бы и
+   размер шрифта, и display: block вместо flex. Так и было на chars-edit:
+   кнопка выходила мельче соседней. */
+.btn.file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .7rem;
+  margin-bottom: 0;
+  /* Совпадает с .btn выше — здесь только чтобы перебить подпись поля. */
+  font-size: .72rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.file-btn input[type="file"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.file-btn-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .74rem;
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+/* ══ ВЫПАДАЮЩИЕ СПИСКИ С ИНЛАЙН-ДОБАВЛЕНИЕМ ═══════════════════════
+   Общий компонент: кнопка с текущим значением + выпадающая панель со
+   списком вариантов и формой добавления своего прямо внутри — без
+   похода в отдельные настройки. Используется для источников ссылок,
+   типа тайтла (add.html) и роли персоны (favorites-edit.html). */
+.src-field { margin-bottom: .75rem; }
+
+.src-add-btn {
+  background: var(--surface2); border: 1px solid var(--border2); border-radius: 2px;
+  color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: .78rem;
+  padding: .65rem .9rem; width: 100%; text-align: left; cursor: pointer; transition: all .15s;
+}
+.src-add-btn:hover { color: var(--text-hi); border-color: var(--red-dim); background: var(--accent-wash); }
+.src-add-btn .sub { font-style: italic; margin-left: .3rem; }
+.src-add-btn.hidden { display: none; }
+
+.src-panel.hidden { display: none; }
+.src-panel-row { display: flex; gap: .5rem; align-items: stretch; }
+
+.src-type-wrap { position: relative; flex: 0 0 150px; }
+.src-type-btn {
+  width: 100%; height: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--text-hi); font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; padding: .65rem .85rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: .4rem;
+  transition: border-color .2s;
+}
+.src-type-btn:hover { border-color: var(--red-dim); }
+.src-caret { color: var(--text-dim); font-size: .75rem; flex-shrink: 0; }
+
+.src-url-input { flex: 1; }
+
+.src-type-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; min-width: 210px;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 2px;
+  padding: .4rem; z-index: 50; box-shadow: 0 8px 24px var(--shadow-soft);
+}
+.src-type-dropdown.hidden { display: none; }
+.src-type-list { max-height: 220px; overflow-y: auto; }
+
+.src-type-option {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  padding: .45rem .55rem; border-radius: 2px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text); transition: background .15s;
+}
+.src-type-option:hover { background: var(--tint-hi); }
+.src-type-option.active { color: var(--red-hi); }
+.src-type-option .icon-btn.src-type-remove { width: 22px; height: 22px; font-size: .65rem; }
+
+.src-type-add-row { border-top: 1px solid var(--border); margin-top: .3rem; padding-top: .3rem; }
+.src-type-add-btn { width: 100%; text-align: center; }
+
+.src-type-add-form { border-top: 1px solid var(--border); margin-top: .3rem; padding-top: .5rem; display: flex; gap: .4rem; }
+.src-type-add-form.hidden { display: none; }
+.src-type-add-form input { flex: 1; padding: .5rem .65rem; font-size: .85rem; }
+.src-type-add-form button { flex-shrink: 0; }
+
+.src-type-status { margin-top: .3rem; text-align: left; font-size: .7rem; }
+
+/* ══ ЗАГРУЗКА И ПУСТЫЕ СОСТОЯНИЯ ═════════════════
+   Крутилка и «заглушка вместо контента» нужны и публичной странице,
+   и админке — раньше и то и другое было скопировано в трёх файлах. */
+.spinner {
+  width: 28px; height: 28px;
+  border: 1px solid var(--border2);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.state-box {
+  text-align: center;
+  padding: 5rem 2rem;
+  color: var(--text-dim);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+/* ══ МОДАЛЬНЫЕ ОКНА ══════════════════════════════
+   Одна и та же коробка на главной, в add и в chars-edit.
+   Ширина отличается по страницам — её и переопределяют на месте. */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: var(--scrim);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700; font-style: italic;
+  font-size: 1.1rem;
+  color: var(--text-hi);
+  margin-bottom: 1.25rem;
+}
+
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: none; border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: color .15s;
+}
+.modal-close:hover { color: var(--text-hi); }

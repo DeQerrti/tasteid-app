@@ -1,0 +1,378 @@
+// ══════════════════════════════════════════════
+//  REVIEWS — вкладка Отзывы
+//  Зависит от: config.js, api.js
+// ══════════════════════════════════════════════
+
+// ── Состояние фильтров ─────────────────────────
+const rvState = {
+  type:   "all",
+  grade:  "all",
+  source: "all",
+  search: "",
+};
+
+let rvLastFiltered = [];
+
+document.addEventListener("tags-map-updated", () => {
+  if (cache.reviews && document.getElementById("rv-grid")) applyRvFilters(cache.reviews);
+});
+
+async function loadReviews() {
+  const data = await fetchReviews();
+  const withReview = data.filter(r => r.preview || r.grade);
+  if (withReview.length) {
+    renderReviews(withReview);
+  } else {
+    document.getElementById("tab-reviews").innerHTML =
+      `<div class="state-box">
+        ${esc(siteLabel("empty", "reviews", "Отзывов пока нет."))}
+        ${isAdmin() ? `<div style="margin-top:1.5rem"><a href="/add" class="admin-add-btn">Добавить</a></div>` : ""}
+      </div>`;
+  }
+}
+
+// ── Порядок фильтров ───────────────────────────
+const TYPE_FILTER_ORDER   = ["anime","manga","manhwa","manhua","movie","show","dorama","game","gacha","book","novel"];
+const SOURCE_FILTER_ORDER = ["teletype"];
+
+function sortByOrder(arr, order) {
+  return [...arr].sort((a, b) => {
+    const ai = order.indexOf(a);
+    const bi = order.indexOf(b);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+}
+
+function renderReviews(reviews) {
+  const types   = sortByOrder([...new Set(reviews.map(r => r.type).filter(Boolean))],   TYPE_FILTER_ORDER);
+  const grades  = sortByOrder([...new Set(reviews.map(r => gradeToShelf(r.grade)).filter(Boolean))],  GRADE_ORDER);
+  const sources = sortByOrder([...new Set(
+    reviews.flatMap(r => [r.source, r.source2]).filter(Boolean)
+  )], SOURCE_FILTER_ORDER);
+
+  const adminBtn = isAdmin()
+    ? `<a href="/add" class="admin-add-btn">Добавить</a>`
+    : "";
+
+  const box = document.getElementById("tab-reviews");
+  box.innerHTML = `
+    <div class="rv-toolbar">
+      <div class="rv-filters">
+        <div class="rv-filter-group">
+          <span class="rv-filter-label">${esc(siteLabel("filters", "search", "Поиск"))}</span>
+          <input
+            type="text"
+            id="rv-search"
+            class="rv-search-input"
+            placeholder="Название…"
+            autocomplete="off"
+            value="${esc(rvState.search)}"
+          >
+        </div>
+        ${renderRvFilterGroup("type",   siteLabel("filters", "type", "Тип"),     types,   TYPE_LABELS,   rvState.type)}
+        ${renderRvFilterGroup("grade",  siteLabel("filters", "grade", "Оценка"), grades,  gradeLabels(), rvState.grade)}
+        ${renderRvFilterGroup("source", siteLabel("filters", "source", "Ссылки"), sources, SOURCE_LABELS, rvState.source)}
+      </div>
+      ${adminBtn}
+    </div>
+    <section class="group">
+      <div class="reviews-grid" id="rv-grid"></div>
+    </section>`;
+
+  // Поиск
+  const searchInput = document.getElementById("rv-search");
+  searchInput.addEventListener("input", () => {
+    rvState.search = searchInput.value.trim().toLowerCase();
+    applyRvFilters(reviews);
+  });
+
+  bindRvFilters(reviews);
+  applyRvFilters(reviews);
+}
+
+// Лейблы оценок для фильтра
+function gradeLabels() {
+  const out = {};
+  for (const [key, g] of Object.entries(GRADES)) out[key] = g.name;
+  return out;
+}
+
+// Рендер одной группы кнопок-фильтров
+function renderRvFilterGroup(field, title, values, labelsMap, active) {
+  if (!values.length) return "";
+  const btns = [
+    `<button class="rv-filter-btn${active === "all" ? " active" : ""}" data-field="${field}" data-val="all">${esc(siteLabel("filters", "all", "Все"))}</button>`,
+    ...values.map(v => {
+      const label = labelsMap[v] || v;
+      return `<button class="rv-filter-btn${active === v ? " active" : ""}" data-field="${field}" data-val="${esc(v)}">${esc(label)}</button>`;
+    })
+  ].join("");
+  return `<div class="rv-filter-group">
+    <span class="rv-filter-label">${esc(title)}</span>
+    ${btns}
+  </div>`;
+}
+
+function bindRvFilters(reviews) {
+  document.querySelectorAll(".rv-filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const field = btn.dataset.field;
+      const val   = btn.dataset.val;
+      rvState[field] = val;
+
+      document.querySelectorAll(`.rv-filter-btn[data-field="${field}"]`)
+        .forEach(b => b.classList.toggle("active", b.dataset.val === val));
+
+      applyRvFilters(reviews);
+    });
+  });
+}
+
+function applyRvFilters(reviews) {
+  let filtered = reviews;
+
+  if (rvState.type !== "all") {
+    filtered = filtered.filter(r => r.type === rvState.type);
+  }
+  if (rvState.grade !== "all") {
+    filtered = filtered.filter(r => gradeToShelf(r.grade) === rvState.grade);
+  }
+  if (rvState.source !== "all") {
+    filtered = filtered.filter(r =>
+      r.source === rvState.source || r.source2 === rvState.source
+    );
+  }
+  if (rvState.search) {
+    filtered = filtered.filter(r =>
+      r.title.toLowerCase().includes(rvState.search)
+    );
+  }
+
+  const grid = document.getElementById("rv-grid");
+  if (!grid) return;
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="state-box" style="padding:3rem 1rem;grid-column:1/-1">
+      ${esc(siteLabel("empty", "search", "Ничего не найдено"))}
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((r, i) => reviewCard(r, i)).join("");
+  rvLastFiltered = filtered;
+  rvBindCardClicks();
+}
+
+function rvBindCardClicks() {
+  const grid = document.getElementById("rv-grid");
+  if (!grid || grid.dataset.clickBound) return;
+  grid.dataset.clickBound = "1";
+
+  function openFromEvent(e) {
+    if (e.target.closest(".review-edit-btn") || e.target.closest(".review-source-link")) return;
+    const wrap = e.target.closest(".review-card-wrap");
+    if (!wrap) return;
+    const idx = parseInt(wrap.dataset.reviewIdx, 10);
+    const review = rvLastFiltered[idx];
+    if (review) openReviewModal(review);
+  }
+
+  grid.addEventListener("click", openFromEvent);
+
+  // Enter и пробел — то, чего браузер ждёт от role="button".
+  // preventDefault на пробеле обязателен, иначе страница проскроллится.
+  grid.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    if (!e.target.classList?.contains("review-card-wrap")) return;
+    e.preventDefault();
+    openFromEvent(e);
+  });
+}
+
+// ── Модальное окно с полным текстом отзыва ─────
+function reviewModalBodyHtml(r) {
+  const grade = GRADES[gradeToShelf(r.grade)] || null;
+  const formatYear = [r.format, r.year].filter(Boolean).join(" · ");
+  const dateRaw = r.date_end || r.date_start || r.date || null;
+  const dateStr = dateRaw
+    ? new Date(dateRaw).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  const btn1 = sourceBtnHtml(r.url, r.source);
+  const btn2 = sourceBtnHtml(r.url2, r.source2);
+
+  const hasFullText = r.review_full && r.review_full.trim();
+  const textHtml = hasFullText
+    ? `<div class="review-modal-fulltext">${esc(r.review_full).split("\n").map(p => p ? `<p>${p}</p>` : "").join("")}</div>`
+    : `<div class="review-modal-fulltext">
+        <p>${esc(r.preview || "Пока без текста.")}</p>
+        ${(btn1 || btn2) ? `<p class="review-modal-nofull-hint">Развёрнутый текст пока не перенесён на сайт — полный отзыв можно почитать по ссылке ниже.</p>` : ""}
+      </div>`;
+
+  return `
+    <div class="review-modal-header">
+      <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" class="review-modal-cover" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <div>
+        <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
+        <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
+        ${dateStr ? `<div class="review-dateline">Ознакомился: <span>${esc(dateStr)}</span></div>` : ""}
+        ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="Пересмотров: ${r.rewatch_count}">↻ ×${r.rewatch_count}</div>` : ""}
+        ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(grade.name)}</div>` : ""}
+      </div>
+    </div>
+    ${textHtml}
+    <div class="source-buttons">${btn1}${btn2}</div>
+  `;
+}
+
+// Элемент, с которого модалку открыли: на него надо вернуть фокус при
+// закрытии, иначе после Esc фокус улетает в начало страницы и человеку
+// с клавиатуры приходится заново идти до той же карточки.
+let _reviewModalOpener = null;
+
+function openReviewModal(r) {
+  const overlay = document.getElementById("review-modal-overlay");
+  if (!overlay) return;
+  _reviewModalOpener = document.activeElement;
+  document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
+  overlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  // Фокус внутрь окна — иначе скринридер продолжит читать страницу
+  // под ним, а Tab уведёт за пределы диалога с первого же нажатия.
+  overlay.querySelector(".review-modal-close")?.focus();
+}
+
+function closeReviewModal() {
+  const overlay = document.getElementById("review-modal-overlay");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  document.body.style.overflow = "";
+  _reviewModalOpener?.focus?.();
+  _reviewModalOpener = null;
+}
+
+// Удержание фокуса внутри окна, пока оно открыто: Tab с последнего
+// элемента возвращает на первый, Shift+Tab с первого — на последний.
+function trapReviewModalFocus(e) {
+  const overlay = document.getElementById("review-modal-overlay");
+  if (!overlay || overlay.classList.contains("hidden")) return;
+
+  const focusable = overlay.querySelectorAll(
+    'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  if (!focusable.length) return;
+
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("review-modal-overlay");
+  if (!overlay) return;
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay || e.target.closest(".review-modal-close")) closeReviewModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeReviewModal();
+    if (e.key === "Tab") trapReviewModalFocus(e);
+  });
+});
+function sourceBtnHtml(url, source) {
+  if (!url) return "";
+  const label = SOURCE_LABELS[source] || source || "Подробнее";
+  if (source === "teletype") {
+    return `<a href="${esc(url)}" target="_blank" rel="noopener" class="review-source-link source-teletype">
+      <span class="source-dot-teletype"></span>${esc(label)} →
+    </a>`;
+  }
+  return `<a href="${esc(url)}" target="_blank" rel="noopener" class="review-source-link source-other">
+    <span class="source-dot-other"></span>${esc(label)} →
+  </a>`;
+}
+
+function reviewCard(r, i) {
+  const grade = GRADES[gradeToShelf(r.grade)] || null;
+
+  const tagsHtml = (r.tags || []).length
+    ? `<div class="review-tags">
+        ${r.tags.map(tag => tagHtml(tag)).join("")}
+      </div>`
+    : "";
+
+  const waifuHtml = r.favorites
+    ? `<div class="review-waifu"><span class="review-waifu-label">Фавориты:</span> <span>${esc(r.favorites)}</span></div>`
+    : "";
+
+  const dateRaw = r.date_end || r.date_start || r.date || null;
+  const dateStr = dateRaw
+    ? new Date(dateRaw).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+  const rewatchHtml = r.rewatch_count > 0
+    ? `<div class="review-rewatch" title="Пересмотров: ${r.rewatch_count}">↻ ×${r.rewatch_count}</div>`
+    : "";
+
+  const formatYear = [r.format, r.year].filter(Boolean).join(" · ");
+
+  const btn1 = sourceBtnHtml(r.url,  r.source);
+  const btn2 = sourceBtnHtml(r.url2, r.source2);
+  const sourceButtons = `<div class="source-buttons">${btn1}${btn2}</div>`;
+
+  const gradeHtml = grade
+    ? `<div class="review-grade-bar">
+        <div class="grade-square" style="background:${grade.color}"></div>
+        <div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(grade.name)}</div>
+        ${sourceButtons}
+      </div>`
+    : `<div class="review-grade-bar">
+        <div style="flex:1"></div>
+        ${sourceButtons}
+      </div>`;
+
+  const editId  = r.id ?? encodeURIComponent(r.title);
+  const editBtn = isAdmin()
+    ? `<a href="/add?edit=${editId}" class="review-edit-btn" title="Редактировать">✎</a>`
+    : "";
+
+  // tabindex + role: карточка открывает модалку по клику, но до этой
+  // правки была обычным <div> — то есть с клавиатуры отзыв нельзя было
+  // открыть вообще, и возвращать фокус после закрытия окна тоже было
+  // некуда. Ссылки внутри (править, источник) остаются самостоятельными
+  // точками фокуса и обрабатываются раньше — см. rvBindCardClicks.
+  return `<div class="review-card-wrap" data-review-idx="${i}"
+    role="button" tabindex="0" aria-label="Открыть отзыв: ${esc(r.title)}">
+    ${editBtn}
+    <div class="review-card"
+        style="animation-delay:${Math.min(i * 40, 600)}ms;
+               border-top: 2px solid ${grade ? grade.color + "66" : "var(--border2)"}">
+      <div class="review-top">
+        <div class="review-cover-col">
+          <div class="review-cover">
+            <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+          </div>
+          ${rewatchHtml}
+        </div>
+        <div class="review-body">
+          <div class="review-title">${esc(r.title)}</div>
+          <div class="review-meta-row">
+            ${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}
+          </div>
+          ${dateStr ? `<div class="review-dateline">Ознакомился: <span>${esc(dateStr)}</span></div>` : ""}
+          ${waifuHtml}
+          <div class="review-preview">${esc(r.preview || "")}</div>
+          <div class="review-read-more">Читать полностью →</div>
+        </div>
+      </div>
+      ${tagsHtml}
+      ${gradeHtml}
+    </div>
+  </div>`;
+}
