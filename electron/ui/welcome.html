@@ -26,29 +26,33 @@
 <script src="/js/config.js?v=14"></script>
 <style>
   body { padding-top: 0; }
-  /* Прижато к верху, а не по центру окна: у короткого шага («откуда»)
-     по центру было бы много пустоты сверху и снизу, а у длинного
-     (редактор полок) высота и так занята — центрирование в обоих
-     случаях смотрелось бы как случайность, а не решение. */
+  /* По центру, а не прижато к верху: окно теперь под сам контент —
+     высота уже не выдаёт на «откуда» пустоты, которую раньше приходилось
+     чем-то занимать. Редактор полок при этом не пострадает — его список
+     сам ограничен и прокручивается (.shelves-list ниже), так что даже
+     самый длинный шаг не растягивает окно. */
   #wrap {
     min-height: 100vh;
-    display: flex; align-items: flex-start; justify-content: center;
-    padding: calc(var(--app-titlebar, 0px) + 1.9rem) 1.6rem 2rem;
+    display: flex; align-items: center; justify-content: center;
+    padding: calc(var(--app-titlebar, 0px) + 1.2rem) 1.6rem 1.6rem;
   }
   .card { width: 100%; max-width: 460px; }
 
-  .brand {
-    display: flex; align-items: baseline; gap: .5rem;
-    margin-bottom: 1.4rem;
-  }
+  /* Бренд — крупный и на своей строке: единственное, что видно первым
+     секунду до перехода к делу, и единственное место, где размер уместен —
+     остальной мастер намеренно компактный. */
+  .brand { margin-bottom: 1.7rem; }
   .brand-name {
+    display: block;
     font-family: 'Playfair Display', Georgia, serif;
-    font-size: 1.3rem; font-weight: 700; color: var(--text-hi);
+    font-size: 2.1rem; font-weight: 700; color: var(--text-hi);
+    line-height: 1.1;
   }
   .brand-sub {
+    display: block;
     font-family: 'DM Sans', system-ui, sans-serif;
     font-size: .62rem; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--text-dim);
+    color: var(--text-dim); margin-top: .35rem;
   }
 
   .back-link {
@@ -394,7 +398,9 @@ function renderShelvesList() {
   });
   $("shelvesList").querySelectorAll("[data-remove]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      shelves.splice(Number(btn.dataset.remove), 1);
+      const i = Number(btn.dataset.remove);
+      if (!confirm(`Удалить полку «${shelves[i].name}»?`)) return;
+      shelves.splice(i, 1);
       renderShelvesList();
     });
   });

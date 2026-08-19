@@ -984,6 +984,12 @@ function importStyles() {
       border: 1px solid var(--border); border-radius: 2px;
       overflow: hidden; margin: 1rem 0 1.2rem;
     }
+    /* Нечётное число источников в двухколоночной сетке оставляет пустую
+       ячейку последней строки — фон .imp-sources (он и рисует тонкие линии
+       между карточками) в ней ничем не перекрыт и виден как лишний серый
+       блок. Последняя карточка при нечётном счёте растягивается на всю
+       строку и ячейке взяться неоткуда. */
+    .imp-source:last-child:nth-child(odd) { grid-column: 1 / -1; }
     .imp-source { background: var(--surface); padding: .85rem .95rem; min-width: 0; }
     .imp-source-head {
       display: flex; align-items: baseline; gap: .5rem;

@@ -773,6 +773,8 @@ function deleteChar(titleId, listId, ti, ci) {
   const title = data.find(t => t.id === titleId);
   const list  = title?.tierlists.find(l => l.id === listId);
   if (!list) return;
+  const char = list.tiers[ti].chars[ci];
+  if (!confirm(`Удалить «${char?.name || "персонажа"}» из тир-листа?`)) return;
   list.tiers[ti].chars.splice(ci, 1);
   renderEditor();
 }

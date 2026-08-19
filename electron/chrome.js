@@ -49,14 +49,15 @@ export function titleBarCss() {
     :root { --app-titlebar: ${TITLEBAR_HEIGHT}px; }
 
     /* Полоса, за которую окно таскают. Пустая и поверх всего: кнопки
-       окна рисует система, а нам нужно только место под них. */
+       окна рисует система, а нам нужно только место под них. Без рамки —
+       рамка снизу читалась бы чужой полосой поверх страницы, ровно тем,
+       от чего ушли, отказавшись от системного заголовка. */
     body::before {
       content: "";
       position: fixed;
       top: 0; left: 0; right: 0;
       height: var(--app-titlebar);
       background: var(--bg);
-      border-bottom: 1px solid var(--border);
       -webkit-app-region: drag;
       z-index: 10000;
       pointer-events: auto;

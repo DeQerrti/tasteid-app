@@ -263,7 +263,7 @@
     </div>
 
     <div class="panel" id="panel-tabs">
-      <p class="panel-intro">Галочка — показывать вкладку или нет. Карандаш — переименовать. Перетаскивай за ⠿, чтобы менять порядок. Точка справа — какая вкладка открывается первой (при заходе на сайт и при обновлении страницы).</p>
+      <p class="panel-intro">Глаз — показывать вкладку или нет. Карандаш — переименовать. Перетаскивай за ⠿, чтобы менять порядок. Точка справа — какая вкладка открывается первой (при заходе на сайт и при обновлении страницы).</p>
       <div id="tabsList"></div>
       <button class="btn-save" onclick="saveSettings()">Сохранить</button>
       <div class="status-msg" id="status-tabs"></div>
@@ -424,6 +424,21 @@
     el.style.color = ok ? "var(--green)" : "var(--red-hi)";
   }
 
+  // ── Глаз вместо галочки ──
+  // Открытый — показано, наведи скажет «Скрыть». Перечёркнутый —
+  // спрятано, наведи скажет «Показать». Кнопка, а не чекбокс: заодно
+  // подпись при наведении можно поставить любую, а не то, что браузер
+  // сам придумает для input.
+  function eyeIcon(hidden) {
+    return hidden
+      ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.22 4.5M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+      : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  }
+
+  function eyeButton(hidden, onclickExpr) {
+    return `<button type="button" class="icon-btn" title="${hidden ? "Показать" : "Скрыть"}" onclick="${onclickExpr}">${eyeIcon(hidden)}</button>`;
+  }
+
   // ── Шкала оценок ──
   const SCALE_TYPES = [
     { id: "categorical", label: "Названия" },
@@ -520,6 +535,7 @@
   }
 
   function removeShelfRow(i, containerId, withRange) {
+    if (!confirm(`Удалить полку «${shelves[i].name}»?`)) return;
     shelves.splice(i, 1);
     renderShelvesList(containerId, withRange);
   }
@@ -546,8 +562,7 @@
     const container = document.getElementById("tierModesList");
     container.innerHTML = `
       <div class="tab-row" id="tiermoderow-titles">
-        <input type="checkbox" id="showtiermode-titles" ${hiddenTierModesState.has("titles") ? "" : "checked"}
-          onchange="hiddenTierModesState.has('titles') ? hiddenTierModesState.delete('titles') : hiddenTierModesState.add('titles')">
+        ${eyeButton(hiddenTierModesState.has("titles"), "hiddenTierModesState.has('titles') ? hiddenTierModesState.delete('titles') : hiddenTierModesState.add('titles'); renderTierModesList();")}
         <span class="tab-name" id="tiermodename-titles">${esc(tierTitlesLabel)}</span>
         <input type="text" id="tiermodeinput-titles" value="${esc(tierTitlesLabel)}">
         <button class="icon-btn" title="Переименовать" onclick="toggleTierModeEdit('titles')">✎</button>
@@ -591,8 +606,7 @@
       const label = favSectionLabels[s.key] || s.def;
       return `
       <div class="tab-row" id="favsecrow-${s.key}">
-        <input type="checkbox" id="showfavsec-${s.key}" ${hiddenFavSectionsState.has(s.key) ? "" : "checked"}
-          onchange="hiddenFavSectionsState.has('${s.key}') ? hiddenFavSectionsState.delete('${s.key}') : hiddenFavSectionsState.add('${s.key}')">
+        ${eyeButton(hiddenFavSectionsState.has(s.key), `hiddenFavSectionsState.has('${s.key}') ? hiddenFavSectionsState.delete('${s.key}') : hiddenFavSectionsState.add('${s.key}'); renderFavSectionsList();`)}
         <span class="tab-name" id="favsecname-${s.key}">${esc(label)}</span>
         <input type="text" id="favsecinput-${s.key}" value="${esc(label)}">
         <button class="icon-btn" title="Переименовать" onclick="toggleFavSecEdit('${s.key}')">✎</button>
@@ -649,8 +663,7 @@
     const container = document.getElementById("favCollectionsList");
     container.innerHTML = favCollections.map(c => `
       <div class="tab-row" id="favcollrow-${c.id}">
-        <input type="checkbox" id="showfavcoll-${c.id}" ${hiddenFavSectionsState.has(c.id) ? "" : "checked"}
-          onchange="hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}')">
+        ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavCollectionsList();`)}
         <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
         <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}">
         <button class="icon-btn" title="Переименовать" onclick="toggleFavCollectionEdit('${c.id}')">✎</button>
@@ -702,8 +715,7 @@
     const container = document.getElementById("collectionsList");
     const rows = tierCollections.map(c => `
       <div class="tab-row" id="collrow-${c.id}">
-        <input type="checkbox" id="showcoll-${c.id}" ${hiddenTierModesState.has(c.id) ? "" : "checked"}
-          onchange="hiddenTierModesState.has('${c.id}') ? hiddenTierModesState.delete('${c.id}') : hiddenTierModesState.add('${c.id}')">
+        ${eyeButton(hiddenTierModesState.has(c.id), `hiddenTierModesState.has('${c.id}') ? hiddenTierModesState.delete('${c.id}') : hiddenTierModesState.add('${c.id}'); renderCollectionsList();`)}
         <span class="tab-name" id="collname-${c.id}">${esc(c.label)}</span>
         <input type="text" id="collinput-${c.id}" value="${esc(c.label)}">
         <button class="icon-btn" title="Переименовать" onclick="toggleCollectionEdit('${c.id}')">✎</button>
@@ -1048,8 +1060,7 @@
       return `
       <div class="tab-row" id="tabrow-${id}" data-id="${id}" draggable="true">
         <span class="drag-handle" title="Перетащить">⠿</span>
-        <input type="checkbox" id="showtab-${id}" ${hiddenTabsState.has(id) ? "" : "checked"}
-          onchange="hiddenTabsState.has('${id}') ? hiddenTabsState.delete('${id}') : hiddenTabsState.add('${id}')">
+        ${eyeButton(hiddenTabsState.has(id), `hiddenTabsState.has('${id}') ? hiddenTabsState.delete('${id}') : hiddenTabsState.add('${id}'); renderTabsList();`)}
         <span class="tab-name" id="tabname-${id}">${(tabLabels[id] || def.def)}</span>
         <input type="text" id="tabinput-${id}" value="${(tabLabels[id] || def.def)}">
         <button class="icon-btn" title="Переименовать" onclick="toggleTabEdit('${id}')">✎</button>
@@ -1132,8 +1143,7 @@
     const rows = [...statusBuckets, { key: "archive", label: archiveLabel, removable: false }];
     container.innerHTML = rows.map(b => `
       <div class="tab-row" id="statusrow-${b.key}">
-        <input type="checkbox" id="showstatus-${b.key}" ${hiddenStatusesState.has(b.key) ? "" : "checked"}
-          onchange="hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}')">
+        ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList();`)}
         <span class="tab-name" id="statusname-${b.key}">${b.label}</span>
         <input type="text" id="statusinput-${b.key}" value="${b.label}">
         <button class="icon-btn" title="Переименовать" onclick="toggleStatusEdit('${b.key}')">✎</button>
@@ -1513,7 +1523,7 @@
       if (row && row.classList.contains("editing")) toggleFavCollectionEdit(c.id);
     });
 
-    const hiddenTabs = tabOrderState.filter(id => !document.getElementById(`showtab-${id}`).checked);
+    const hiddenTabs = tabOrderState.filter(id => hiddenTabsState.has(id));
     // Если главная вкладка оказалась скрыта — не даём сохранить такую комбинацию молча,
     // просто подстраховываемся и переключаем на первую видимую.
     if (hiddenTabs.includes(mainTabState)) {
