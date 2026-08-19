@@ -11,6 +11,15 @@ on:
     branches: ["**"]
     tags: ["v*"]
   pull_request:
+  # Ручной запуск с вкладки Actions. Нужен не только для удобства:
+  # выпускать по тегу можно не из любой среды, а собрать установщики
+  # иногда надо здесь и сейчас.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия для релиза (например 0.1.1)"
+        required: true
+        default: "0.1.1"
 
 jobs:
   check:
@@ -28,7 +37,7 @@ jobs:
   build:
     name: Установщики
     needs: check
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     # Без этого шаг с релизом падает на 403: по умолчанию токен рабочего
     # процесса умеет только читать, а ему нужно создать релиз и залить
     # в него установщики.
@@ -62,6 +71,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: softprops/action-gh-release@v2
         with:
+          # По тегу имя релиза берётся из него самого; при ручном запуске
+          # тега нет, поэтому версию спрашиваем во входных данных.
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
           files: |
             dist/*.exe
             dist/*.dmg
