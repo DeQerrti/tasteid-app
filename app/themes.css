@@ -1372,6 +1372,19 @@ html[data-skin="brutal-dark"] h2 {
     4px 4px 8px var(--neo-dark),
     -4px -4px 8px var(--neo-light);
 }
+/* У .btn-ghost:hover в базовых стилях меняется border-color — а тут
+   border:none, так что тот hover ничего не красит и кнопка выглядит
+   мёртвой. Приподнимаем тень вместо этого — тот же язык, что и у
+   остального неоморфизма (см. .theme-option.selected ниже, только
+   в другую сторону: не вдавлено, а ещё выше). */
+[data-skin="neomorphism"] .btn:hover,
+[data-skin="neomorphism"] .icon-btn:hover,
+[data-skin="neomorphism"] .file-tab:hover,
+[data-skin="neomorphism"] .list-tab:hover {
+  box-shadow:
+    6px 6px 12px var(--neo-dark),
+    -6px -6px 12px var(--neo-light);
+}
 [data-skin="neomorphism"] .theme-option.selected,
 [data-skin="neomorphism"] .list-tab.active,
 [data-skin="neomorphism"] .tag-toggle.active {
@@ -1655,6 +1668,14 @@ html[data-skin="brutal-dark"] h2 {
   box-shadow:
     4px 4px 8px var(--neo-dark),
     -4px -4px 8px var(--neo-light);
+}
+[data-skin="neomorphism-dark"] .btn:hover,
+[data-skin="neomorphism-dark"] .icon-btn:hover,
+[data-skin="neomorphism-dark"] .file-tab:hover,
+[data-skin="neomorphism-dark"] .list-tab:hover {
+  box-shadow:
+    6px 6px 12px var(--neo-dark),
+    -6px -6px 12px var(--neo-light);
 }
 [data-skin="neomorphism-dark"] .theme-option.selected,
 [data-skin="neomorphism-dark"] .list-tab.active,

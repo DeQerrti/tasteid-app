@@ -46,14 +46,32 @@
     return btn;
   }
 
-  function injectButtons() {
-    const backupBtn = makeBtn(
-      "backup-btn",
-      "⤓ Бэкап",
-      "Скачать reviews.json + favorites.json + characters-tier.json одним архивом",
-      "20px"
-    );
-    backupBtn.addEventListener("click", () => downloadBackup(backupBtn));
+  // В приложении: своя папка на диске вместо гит-репозитория (бэкап
+  // архивом не нужен — есть выгрузка паспорта и .history в самой
+  // папке) и некому выходить (входить там было некому — см. README,
+  // "Админ без входа"). /api/app/info отвечает только внутри
+  // приложения, на сайте его нет.
+  async function isAppContext() {
+    try {
+      const res = await fetch("/api/app/info");
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async function injectButtons() {
+    const inApp = await isAppContext();
+
+    if (!inApp) {
+      const backupBtn = makeBtn(
+        "backup-btn",
+        "⤓ Бэкап",
+        "Скачать reviews.json + favorites.json + characters-tier.json одним архивом",
+        "20px"
+      );
+      backupBtn.addEventListener("click", () => downloadBackup(backupBtn));
+    }
 
     // Не дублируем ссылку на саму себя, если мы уже на странице истории
     if (!/backup-history/.test(location.pathname)) {
@@ -61,18 +79,20 @@
         "history-btn",
         "История",
         "Посмотреть все сохранённые версии данных и восстановить старую при необходимости",
-        "130px"
+        inApp ? "20px" : "130px"
       );
       historyBtn.addEventListener("click", () => { location.href = "/backup-history"; });
 
-      const logoutBtn = makeBtn(
-        "logout-btn",
-        "⎋ Выйти",
-        "Завершить сессию администратора на этом устройстве",
-        "245px"
-      );
-      logoutBtn.addEventListener("click", () => doLogout(logoutBtn));
-    } else {
+      if (!inApp) {
+        const logoutBtn = makeBtn(
+          "logout-btn",
+          "⎋ Выйти",
+          "Завершить сессию администратора на этом устройстве",
+          "245px"
+        );
+        logoutBtn.addEventListener("click", () => doLogout(logoutBtn));
+      }
+    } else if (!inApp) {
       const logoutBtn = makeBtn(
         "logout-btn",
         "⎋ Выйти",

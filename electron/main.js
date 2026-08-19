@@ -21,6 +21,15 @@ import { titleBarOptions, titleBarCss, overlayColors } from "./chrome.js";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.join(HERE, "..", "app");
 
+// Без замка на один экземпляр двойной клик по .exe при уже открытом
+// окне (в том числе автозапуск после скачивания, за которым человек не
+// уследил и запустил файл сам) заводит второй процесс поверх первого.
+// Видимое окно закрывают — а первый, невидимый, остаётся висеть; отсюда
+// и «TasteID запущено» при попытке удалить, когда с виду всё закрыто.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
 // Путь к хранилищу и настройки самого окна. Живут не в хранилище —
 // иначе их негде было бы прочитать до того, как оно выбрано.
 const configFile = () => path.join(app.getPath("userData"), "config.json");
@@ -126,6 +135,15 @@ function appRoutes() {
       await saveConfig({ zoom: level });
       return { zoom: level };
     },
+
+    // Тему можно сменить и без перезагрузки страницы — предпросмотром
+    // на экране приветствия, палитрой в настройках. did-finish-load
+    // тогда не срабатывает, а рамка иначе так и осталась бы в цветах
+    // темы, с которой открылось окно.
+    "POST /api/app/set-titlebar-colors": async ({ body }) => {
+      applyTitleBarColors(body.bg, body.symbol);
+      return { ok: true };
+    },
   };
 }
 
@@ -133,6 +151,17 @@ function appRoutes() {
 
 function applyZoom(level) {
   win?.webContents.setZoomLevel(level);
+}
+
+const isHexColor = (v) => /^#[0-9a-f]{6}$/i.test(v || "");
+
+// Красит кнопки окна в переданные цвета, если они и правда цвета —
+// вызывается и с посчитанными на did-finish-load, и с тем, что страница
+// сама прислала при живой смене темы (без перезагрузки).
+function applyTitleBarColors(bg, symbol) {
+  if (!win || process.platform === "darwin" || !win.setTitleBarOverlay) return;
+  if (!isHexColor(bg) || !isHexColor(symbol)) return;
+  win.setTitleBarOverlay(titleBarOptions(process.platform, { bg, symbol }).titleBarOverlay);
 }
 
 async function bumpZoom(delta) {
@@ -241,11 +270,8 @@ async function createWindow({ compact = false } = {}) {
         })()
       `);
       if (currentSkin !== config.skin) await saveConfig({ skin: currentSkin });
-      const isHex = (v) => /^#[0-9a-f]{6}$/i.test(v);
-      const liveColors = isHex(bg) && isHex(symbol) ? { bg, symbol } : overlayColors(currentSkin);
-      if (process.platform !== "darwin" && win.setTitleBarOverlay) {
-        win.setTitleBarOverlay(titleBarOptions(process.platform, liveColors).titleBarOverlay);
-      }
+      if (isHexColor(bg) && isHexColor(symbol)) applyTitleBarColors(bg, symbol);
+      else applyTitleBarColors(overlayColors(currentSkin).bg, overlayColors(currentSkin).symbol);
       nativeTheme.themeSource = /light|^soft$|^neomorphism$|^doodle$|^brutal$/.test(currentSkin)
         ? "light"
         : "dark";
@@ -271,6 +297,16 @@ function openWelcome() {
 }
 
 // ── Запуск ─────────────────────────────────────
+
+// Второй запуск при уже открытом окне — не вторая копия, а повод
+// показать первую: тот самый случай, когда человек не заметил, что
+// приложение уже открылось, и запустил .exe ещё раз.
+app.on("second-instance", () => {
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+});
 
 app.whenReady().then(async () => {
   config = await readConfig();

@@ -19,8 +19,8 @@
   через «← Назад», а не крупные карточки с плашками пояснений: это шаг
   перед работой, а не сама работа.
 -->
-<link rel="stylesheet" href="/style.css?v=14">
-<link rel="stylesheet" href="/themes.css?v=13">
+<link rel="stylesheet" href="/style.css?v=15">
+<link rel="stylesheet" href="/themes.css?v=14">
 <script src="/js/utils.js?v=14"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
@@ -267,6 +267,17 @@ function previewTheme(id) {
     document.head.appendChild(style);
   }
   style.textContent = `:root{${Object.entries(vars).map(([k, v]) => `${k}:${v};`).join("")}}`;
+
+  // Рамку окна страница красить не умеет — это дело Electron. Пока
+  // паспорт ещё не создан, страница не перезагружается ни разу, а
+  // did-finish-load, который обычно и красит рамку, срабатывает только
+  // на загрузку — без этого вызова угол так и остался бы в цвете
+  // темы, с которой открылось окно.
+  const cs = getComputedStyle(document.documentElement);
+  api("/api/app/set-titlebar-colors", {
+    bg: cs.getPropertyValue("--bg").trim(),
+    symbol: cs.getPropertyValue("--text-dim").trim(),
+  }).catch(() => {});
 }
 
 // ── Шаг 3: шкала оценок ─────────────────────────
@@ -355,11 +366,15 @@ function renderShelvesEditor() {
     <div class="shelves-list" id="shelvesList"></div>
     <button class="btn btn-ghost add-shelf" id="btn-add-shelf" type="button">Добавить полку</button>`;
 
-  // Меняет только само число сверху — правки диапазонов внизу это не
-  // трогает, точно как в настройках: там смена «Максимума» тоже не
-  // пересевает список полок заново.
+  // Меняет число — и сразу пересевает полки под него: иначе счётчик
+  // наверху говорит одно, а диапазоны внизу показывают прежнее (с
+  // прошлого числа), пока не потрогаешь их руками. Здесь это ещё
+  // черновой выбор формы шкалы, а не тонкая правка — переживать за
+  // ручные правки диапазонов рано, их и нет.
   $("numericMax")?.addEventListener("change", (e) => {
-    chosen.numericMax = Number(e.target.value) || 10;
+    chosen.numericMax = Number(e.target.value) || (chosen.scaleType === "stars" ? 5 : 10);
+    seedShelves(chosen.scaleType);
+    renderShelvesList();
   });
   $("btn-add-shelf").addEventListener("click", () => {
     if (withRange) {
