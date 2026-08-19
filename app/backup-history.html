@@ -95,8 +95,8 @@ main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
     <h2 class="section-title" style="font-family:'Playfair Display',serif;font-weight:700;font-style:italic;font-size:1.2rem;color:var(--text-hi);margin-bottom:1rem;">История версий</h2>
     <p class="hint">
       Каждое сохранение файла — это отдельная версия, которая навсегда остаётся здесь, даже если
-      текущая версия сайта сломается. Выбери файл, найди нужную дату и либо скачай эту версию как
-      JSON, либо восстанови её — тогда она станет текущей версией на сайте.
+      текущая версия сломается. Выбери файл, найди нужную дату и либо скачай эту версию как
+      JSON, либо восстанови её — тогда она станет текущей.
     </p>
 
     <div class="file-tabs" id="fileTabs"></div>
@@ -108,19 +108,42 @@ main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 const FILES = [
   { path: "reviews.json",         label: "Отзывы" },
   { path: "favorites.json",       label: "Любимое" },
-  { path: "characters-tier.json", label: "Тир-лист" },
-  { path: "site-settings.json",   label: "Настройки сайта" },
+  { path: "characters-tier.json", label: "Персонажи" },
+  { path: "site-settings.json",   label: "Настройки" },
 ];
 
 let currentPath = FILES[0].path;
 let versionsCache = {}; // path -> versions[]
+let inApp = false; // приложение публикует правки сразу, сайту нужны ~30с на выкладку
 
-function init() {
+async function init() {
   if (typeof isAdmin !== "function" || !isAdmin()) {
     document.getElementById("locked").classList.remove("hidden");
     return;
   }
   document.getElementById("app").classList.remove("hidden");
+
+  try {
+    inApp = (await fetch("/api/app/info")).ok;
+  } catch {
+    // Обычный браузер — /api/app/* там нет, это и значит «не приложение».
+  }
+
+  // Свои коллекции тир-листа — из настроек, не зашиты списком: список
+  // однажды бы разъехался с тем, что человек сам завёл на вкладке
+  // «Тир-листы». «Персонажи» уже есть выше под своим файлом — не дублируем.
+  try {
+    const res = await fetch("/site-settings.json?_=" + Date.now());
+    const settings = await res.json();
+    const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+    for (const c of collections) {
+      if (c.id === "characters") continue;
+      FILES.push({ path: `tier-${c.id}.json`, label: c.label || c.id });
+    }
+  } catch {
+    // Настройки не прочитались — остаёмся с базовым списком файлов.
+  }
+
   renderFileTabs();
   loadVersions(currentPath);
 }
@@ -204,7 +227,7 @@ async function downloadVersion(path, sha) {
 }
 
 async function restoreVersion(path, sha, dateStr) {
-  if (!(await confirmDialog(`Восстановить «${path}» до версии от ${dateStr}?\n\nЭто заменит текущий файл на сайте — все изменения после этой версии в нём будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).`, "Восстановить"))) {
+  if (!(await confirmDialog(`Восстановить «${path}» до версии от ${dateStr}?\n\nЭто заменит текущий файл — все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).`, "Восстановить"))) {
     return;
   }
   try {
@@ -217,7 +240,7 @@ async function restoreVersion(path, sha, dateStr) {
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
     delete versionsCache[path];
-    showToast("Восстановлено ✓ (сайт обновится через ~30 секунд)", true);
+    showToast(inApp ? "Восстановлено ✓" : "Восстановлено ✓ (сайт обновится через ~30 секунд)", true);
     loadVersions(path);
   } catch (e) {
     showToast("Не удалось восстановить: " + e.message, false);

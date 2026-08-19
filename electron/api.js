@@ -16,6 +16,8 @@
 //    один, и правит его один процесс.
 // ══════════════════════════════════════════════
 
+import { isAllowedFile } from "./vault.js";
+
 // ── Общее ──────────────────────────────────────
 
 class ApiError extends Error {
@@ -397,16 +399,22 @@ async function saveSiteSettings({ vault, body }) {
 // ── История версий ─────────────────────────────
 // На сайте её давал гит. Здесь — папка .history, куда прошлая версия
 // файла уезжает перед каждой перезаписью (см. vault.js).
-
-const TRACKED = ["reviews.json", "favorites.json", "characters-tier.json", "site-settings.json"];
+//
+// Какие файлы отслеживаются — решает isAllowedFile из vault.js, а не
+// свой список: он уже включает и свои коллекции тир-листа (tier-<id>.json),
+// заведённые в настройках. Отдельный список здесь однажды бы разъехался
+// с тем, что реально пишется через vault.writeJson (и уже архивируется
+// в .history), — а история как раз про то, что там накопилось.
 
 async function fileHistory({ vault, query }) {
   const path = query.get("path");
-  if (!TRACKED.includes(path)) throw new ApiError("Этот файл не отслеживается");
+  if (!isAllowedFile(path)) throw new ApiError("Этот файл не отслеживается");
   const versions = await vault.history(path);
-  // Форма ответа та же, что была у гита: фронтенд её уже умеет читать.
+  // Форма ответа та же, что была у гита: фронтенд (backup-history.html)
+  // её уже умеет читать — ok плюс versions с sha/date/message у каждой.
   return {
-    commits: versions.map((v) => ({
+    ok: true,
+    versions: versions.map((v) => ({
       sha: v.id,
       date: v.date,
       message: "сохранение",
@@ -417,13 +425,13 @@ async function fileHistory({ vault, query }) {
 async function fileAtCommit({ vault, query }) {
   const path = query.get("path");
   const sha = query.get("sha");
-  if (!TRACKED.includes(path)) throw new ApiError("Этот файл не отслеживается");
-  return { content: await vault.versionAt(path, sha) };
+  if (!isAllowedFile(path)) throw new ApiError("Этот файл не отслеживается");
+  return { ok: true, data: await vault.versionAt(path, sha) };
 }
 
 async function restoreFileVersion({ vault, body }) {
   const { path, sha } = body;
-  if (!TRACKED.includes(path)) throw new ApiError("Этот файл не отслеживается");
+  if (!isAllowedFile(path)) throw new ApiError("Этот файл не отслеживается");
   const content = await vault.versionAt(path, sha);
   // Пишем как обычное сохранение: прошлая версия при этом сама уедет в
   // историю, то есть откат тоже можно откатить.

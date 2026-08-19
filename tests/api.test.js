@@ -79,13 +79,13 @@ test("прошлая версия уезжает в историю и оттуд
     await api("POST", "/api/save-review", { title: "Третий", type: "anime" });
 
     const { data: history } = await api("GET", "/api/file-history?path=reviews.json");
-    assert.equal(history.commits.length, 2, "три записи — две прошлые версии");
+    assert.equal(history.versions.length, 2, "три записи — две прошлые версии");
 
     // Самая старая версия — состояние после первого сохранения.
-    const oldest = history.commits.at(-1).sha;
+    const oldest = history.versions.at(-1).sha;
     const { data: at } = await api("GET", `/api/file-at-commit?path=reviews.json&sha=${oldest}`);
-    assert.equal(at.content.length, 1);
-    assert.equal(at.content[0].title, "Первый");
+    assert.equal(at.data.length, 1);
+    assert.equal(at.data[0].title, "Первый");
 
     await api("POST", "/api/restore-file-version", { path: "reviews.json", sha: oldest });
     const list = await (await fetch(`${base}/reviews.json`)).json();
@@ -114,8 +114,8 @@ test("запросы внахлёст не теряют правки и не п�
     assert.deepEqual([...new Set(list.map((r) => r.id))].length, 3, "номера не повторяются");
 
     const { data } = await api("GET", "/api/file-history?path=reviews.json");
-    assert.equal(data.commits.length, 2, "три записи — две прошлые версии");
-    assert.equal(new Set(data.commits.map((c) => c.sha)).size, 2, "версии не затёрли друг друга");
+    assert.equal(data.versions.length, 2, "три записи — две прошлые версии");
+    assert.equal(new Set(data.versions.map((c) => c.sha)).size, 2, "версии не затёрли друг друга");
   });
 });
 
