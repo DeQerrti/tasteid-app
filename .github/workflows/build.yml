@@ -29,6 +29,11 @@ jobs:
     name: Установщики
     needs: check
     if: startsWith(github.ref, 'refs/tags/v')
+    # Без этого шаг с релизом падает на 403: по умолчанию токен рабочего
+    # процесса умеет только читать, а ему нужно создать релиз и залить
+    # в него установщики.
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
