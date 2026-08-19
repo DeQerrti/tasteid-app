@@ -266,6 +266,44 @@ test("картинка персонажа сохраняется и находи
 
 // ── Защита путей ───────────────────────────────
 
+// Коллекции тир-листа заводят с русским названием, и slugify() в
+// настройках намеренно сохраняет кириллицу в id. Проверки имён файлов
+// при этом были [a-z0-9-] — такая коллекция не сохранялась вообще, а
+// её картинки уезжали в папку, которую сервер потом не отдавал. На
+// сайте это работало (файл лежал на GitHub), то есть баг завёлся
+// именно при переезде — и молча: интерфейс про отказ не сообщал.
+test("коллекция с русским названием сохраняется и отдаётся", async () => {
+  await withServer(async ({ api, base }) => {
+    const id = "опенинги-ab12"; // ровно то, что делает slugify("Опенинги")
+
+    const { status: saved } = await api("POST", "/api/save-chars-tier", {
+      collection: id,
+      data: [{ id: "t1", title: "Тайтл", tierlists: [] }],
+    });
+    assert.equal(saved, 200, "тир-лист такой коллекции должен сохраняться");
+
+    const file = await (await fetch(`${base}/tier-${encodeURIComponent(id)}.json`)).json();
+    assert.equal(file[0].title, "Тайтл", "и читаться обратно по http");
+
+    // Картинки коллекции лежат в папке, которая называется как id.
+    const { data: up } = await api("POST", "/api/upload-char-image", {
+      basePath: id,
+      folder: "Тайтл",
+      filename: "a.webp",
+      contentBase64: Buffer.from("картинка").toString("base64"),
+    });
+    const img = await fetch(base + up.url.split("/").map(encodeURIComponent).join("/"));
+    assert.equal(img.status, 200, "картинка из такой папки должна отдаваться");
+
+    // История версий тоже должна знать про такой файл.
+    const { status: hist } = await api(
+      "GET",
+      `/api/file-history?path=tier-${encodeURIComponent(id)}.json`
+    );
+    assert.equal(hist, 200);
+  });
+});
+
 test("наружу хранилища выйти нельзя", async () => {
   await withServer(async ({ api, base }) => {
     const { status } = await api("GET", "/api/file-history?path=../../../etc/passwd");

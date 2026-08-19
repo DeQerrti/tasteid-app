@@ -244,9 +244,8 @@ const sharedBrowserGlobals = [
   "unitForms",
   "updateFileBtnName",
   "visibleTierCollections",
-  // подключаются с CDN по требованию
+  // грузится по требованию из app/js/vendor (см. loadHtml2Canvas)
   "html2canvas",
-  "JSZip",
 ];
 
 const commonRules = {
@@ -262,6 +261,13 @@ const commonRules = {
 };
 
 export default [
+  {
+    // Чужая минифицированная библиотека (html2canvas-pro) лежит в
+    // составе приложения, чтобы экспорт в картинку работал без
+    // интернета. Линтовать её незачем и нечем: одна строка на 222 КБ
+    // даёт сотни бессмысленных замечаний и прячет настоящие.
+    ignores: ["app/js/vendor/**"],
+  },
   {
     // Фронтенд: обычные <script>, общая глобальная область
     files: ["app/js/**/*.js"],

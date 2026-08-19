@@ -1,17 +1,23 @@
 // ══════════════════════════════════════════════
-//  BACKUP — кнопка скачивания бэкапа JSON-данных
-//  + LOGOUT — кнопка выхода (зовёт /api/logout)
-//  Подключать на всех админских страницах.
-//  Зависит от: JSZip (CDN, должен быть подключён раньше этого файла)
+//  Плавающая кнопка «История» на админских страницах.
+//
+//  На сайте рядом с ней жили ещё две — «Бэкап» (скачать данные одним
+//  архивом) и «Выйти». В приложении обе лишние, и не только на вид:
+//
+//    Бэкап архивом дублировал то, что здесь и так есть — папка
+//    хранилища лежит на диске целиком, её копирует проводник, а
+//    отдельная выгрузка паспорта есть в настройках. Заодно он тянул
+//    JSZip с CDN на каждую админскую страницу — в офлайне это просто
+//    несостоявшийся запрос.
+//
+//    Выйти было некуда: входа в приложении нет (см. «Админ без входа»
+//    в README), и /api/logout здесь не существует — кнопка гарантированно
+//    отвечала бы ошибкой.
+//
+//  Поэтому здесь остался только переход в «Историю версий».
 // ══════════════════════════════════════════════
 
 (function () {
-  const FILES = [
-    { path: "/reviews.json", name: "reviews.json" },
-    { path: "/favorites.json", name: "favorites.json" },
-    { path: "/characters-tier.json", name: "characters-tier.json" },
-  ];
-
   function makeBtn(id, text, title, right) {
     const btn = document.createElement("button");
     btn.id = id;
@@ -46,120 +52,19 @@
     return btn;
   }
 
-  // В приложении: своя папка на диске вместо гит-репозитория (бэкап
-  // архивом не нужен — есть выгрузка паспорта и .history в самой
-  // папке) и некому выходить (входить там было некому — см. README,
-  // "Админ без входа"). isAppContext() — из utils.js.
-  async function injectButtons() {
-    const inApp = await isAppContext();
+  function injectButtons() {
+    // На самой странице истории ссылка на неё же не нужна.
+    if (/backup-history/.test(location.pathname)) return;
 
-    if (!inApp) {
-      const backupBtn = makeBtn(
-        "backup-btn",
-        "⤓ Бэкап",
-        "Скачать reviews.json + favorites.json + characters-tier.json одним архивом",
-        "20px"
-      );
-      backupBtn.addEventListener("click", () => downloadBackup(backupBtn));
-    }
-
-    // Не дублируем ссылку на саму себя, если мы уже на странице истории
-    if (!/backup-history/.test(location.pathname)) {
-      const historyBtn = makeBtn(
-        "history-btn",
-        "История",
-        "Посмотреть все сохранённые версии данных и восстановить старую при необходимости",
-        inApp ? "20px" : "130px"
-      );
-      historyBtn.addEventListener("click", () => { location.href = "/backup-history"; });
-
-      if (!inApp) {
-        const logoutBtn = makeBtn(
-          "logout-btn",
-          "⎋ Выйти",
-          "Завершить сессию администратора на этом устройстве",
-          "245px"
-        );
-        logoutBtn.addEventListener("click", () => doLogout(logoutBtn));
-      }
-    } else if (!inApp) {
-      const logoutBtn = makeBtn(
-        "logout-btn",
-        "⎋ Выйти",
-        "Завершить сессию администратора на этом устройстве",
-        "130px"
-      );
-      logoutBtn.addEventListener("click", () => doLogout(logoutBtn));
-    }
-  }
-
-  async function doLogout(btn) {
-    if (!(await confirmDialog("Выйти из режима администратора?", "Выйти"))) return;
-    const originalText = btn.textContent;
-    btn.textContent = "⎋ Выходим...";
-    btn.disabled = true;
-    try {
-      const res = await fetch("/api/logout", { method: "POST" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      window.location.href = "/login.html";
-    } catch (err) {
-      console.error("Logout failed:", err);
-      btn.textContent = "✗ Ошибка";
-      alert("Не удалось выйти 😢\n" + err.message);
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }, 2000);
-    }
-  }
-
-  async function downloadBackup(btn) {
-    const originalText = btn.textContent;
-    btn.textContent = "⤓ Собираю...";
-    btn.disabled = true;
-
-    try {
-      if (typeof JSZip === "undefined") {
-        throw new Error("JSZip не загружен");
-      }
-
-      const zip = new JSZip();
-
-      const results = await Promise.all(
-        FILES.map(f =>
-          fetch(f.path + "?_=" + Date.now())
-            .then(r => {
-              if (!r.ok) throw new Error(`${f.name}: HTTP ${r.status}`);
-              return r.text();
-            })
-            .then(text => ({ name: f.name, text }))
-        )
-      );
-
-      results.forEach(({ name, text }) => zip.file(name, text));
-
-      const blob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(blob);
-
-      const date = new Date().toISOString().slice(0, 10);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `tasteid-backup-${date}.zip`;
-      link.click();
-
-      URL.revokeObjectURL(url);
-
-      btn.textContent = "✓ Готово";
-    } catch (err) {
-      console.error("Backup failed:", err);
-      btn.textContent = "✗ Ошибка";
-      alert("Не удалось собрать бэкап 😢\n" + err.message);
-    } finally {
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }, 2000);
-    }
+    const historyBtn = makeBtn(
+      "history-btn",
+      "История",
+      "Посмотреть все сохранённые версии данных и восстановить старую при необходимости",
+      "20px"
+    );
+    historyBtn.addEventListener("click", () => {
+      location.href = "/backup-history";
+    });
   }
 
   if (document.readyState === "loading") {

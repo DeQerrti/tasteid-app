@@ -13,9 +13,15 @@ const cache = {};
 
 // ── Ленивая загрузка html2canvas-pro ───────────
 // Нужна только для двух кнопок экспорта в картинку (тир-лист,
-// годовой дайджест статистики) — обычному посетителю незачем
-// качать эту библиотеку при каждом визите на сайт.
-// Промис кэшируется, так что повторные вызовы не грузят скрипт заново.
+// годовой дайджест статистики) — незачем качать эту библиотеку при
+// каждом открытии страницы. Промис кэшируется, так что повторные
+// вызовы не грузят скрипт заново.
+//
+// Файл лежит в составе приложения, а не тянется с CDN. На сайте CDN
+// был уместен, здесь — нет: приложение работает с папкой на диске и
+// без интернета, а обе кнопки экспорта молча отказывали в офлайне
+// («Не удалось загрузить html2canvas»), хотя ничего сетевого в самой
+// отрисовке картинки нет.
 let _html2canvasPromise = null;
 function loadHtml2Canvas() {
   if (typeof html2canvas !== "undefined") return Promise.resolve();
@@ -23,7 +29,7 @@ function loadHtml2Canvas() {
 
   _html2canvasPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/html2canvas-pro@2.0.4/dist/html2canvas-pro.min.js";
+    script.src = "/js/vendor/html2canvas-pro.min.js";
     script.onload = () => resolve();
     script.onerror = () => {
       _html2canvasPromise = null; // даём шанс повторить попытку при следующем клике
