@@ -13,10 +13,10 @@
     "format:check": "prettier --check .",
     "test": "node --test tests/*.test.js",
     "check": "npm run lint && npm run format:check && npm run check:assets && npm test",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
+    "build": "electron-builder --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
     "check:assets": "node scripts/check-assets.js"
   },
   "devDependencies": {
@@ -45,11 +45,18 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ],
       "icon": "app/icons/icon-512.png",
       "category": "public.app-category.lifestyle"
@@ -60,6 +67,7 @@
       ],
       "icon": "app/icons/icon-512.png",
       "category": "Utility"
-    }
+    },
+    "artifactName": "${productName}-${version}-${arch}.${ext}"
   }
 }
