@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
-<script src="/js/utils.js?v=14"></script>
+<script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <style>
 
@@ -243,7 +243,7 @@ async function saveOrder() {
     const data = await res.json();
     if (res.ok) {
       status.className = "save-status ok";
-      status.textContent = "Порядок сохранён. Сайт обновится через ~30 секунд.";
+      status.textContent = "Порядок сохранён." + ((await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.");
     } else {
       status.className = "save-status err";
       status.textContent = "Ошибка: " + (data.error || "неизвестная");

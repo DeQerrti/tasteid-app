@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
-<script src="/js/utils.js?v=14"></script>
+<script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
 <style>
@@ -728,7 +728,7 @@ async function saveOrder() {
       orderDirty = false;
       btn.classList.remove("visible");
       document.getElementById("order-hint").classList.remove("visible");
-      setStatus("ok", "Порядок сохранён. Сайт обновится через ~30 секунд.");
+      setStatus("ok", "Порядок сохранён." + ((await isAppContext()) ? "" : " Сайт обновится через ~30 секунд."));
     } else {
       setStatus("err", "Ошибка: " + (data.error || "неизвестная"));
     }
@@ -782,9 +782,10 @@ async function saveEntry() {
     });
     const data = await res.json();
     if (res.ok) {
+      const note = (await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.";
       setStatus("ok", editingId !== null
-        ? `«${name}» обновлён. Сайт обновится через ~30 секунд.`
-        : `«${name}» сохранён. Сайт обновится через ~30 секунд.`);
+        ? `«${name}» обновлён.${note}`
+        : `«${name}» сохранён.${note}`);
       if (editingId === null) resetToNew();
       setTimeout(loadList, 2000);
     } else {

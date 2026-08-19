@@ -353,6 +353,14 @@ async function uploadCharImage({ vault, body }) {
 
 // Копия обложки «на всякий случай»: внешние картинки живут ровно
 // столько, сколько живёт чужой сайт. Скачиваем и кладём в хранилище.
+//
+// Папка — covers-backup, а не covers: это не то же самое, что ручная
+// загрузка своей обложки (add.html шлёт её отдельным запросом, с
+// basePath "covers"). На сайте их и держат раздельно — sw.js даже
+// перечисляет обе папки порознь в IMAGE_PREFIXES. Раньше здесь стояло
+// "covers", и бэкап внешней обложки писался в ту же папку, что ручная
+// загрузка — с сайта эти папки переносятся под своими именами, и
+// разъехавшееся имя ломало бы перенос без предупреждения.
 async function backupCover({ vault, body }) {
   const { url, filename } = body;
   if (!url || typeof url !== "string" || !/^https?:\/\//.test(url)) {
@@ -373,7 +381,7 @@ async function backupCover({ vault, body }) {
         : "jpg";
   const buffer = Buffer.from(await res.arrayBuffer());
 
-  const saved = await vault.saveMedia("covers", `${filename}.${ext}`, buffer);
+  const saved = await vault.saveMedia("covers-backup", `${filename}.${ext}`, buffer);
   return { ok: true, url: saved };
 }
 

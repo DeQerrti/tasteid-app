@@ -19,6 +19,22 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+// ── Приложение или обычный браузер ─────────────
+// /api/app/* отвечает только внутри Electron-приложения — на сайте
+// этих адресов нет вообще, оттуда и определяем контекст. Результат не
+// меняется за время жизни страницы, поэтому спрашиваем один раз и
+// дальше отдаём готовый промис — до этого места три файла делали один
+// и тот же запрос каждый по-своему.
+let appContextPromise = null;
+function isAppContext() {
+  if (!appContextPromise) {
+    appContextPromise = fetch("/api/app/info")
+      .then((res) => res.ok)
+      .catch(() => false);
+  }
+  return appContextPromise;
+}
+
 // ── Резервные картинки без inline-обработчиков ─
 //
 // Было: onerror="imgFallback(this, '<url из данных>', '<заглушка>')" —

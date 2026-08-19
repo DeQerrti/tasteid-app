@@ -23,7 +23,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/themes.css?v=14">
-<script src="/js/utils.js?v=14"></script>
+<script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
@@ -1239,8 +1239,15 @@ Promise.resolve(window.themeReady).then(() => {
 // при плохой сети показывало пустой экран. Регистрируем после load,
 // чтобы не отнимать канал у первой отрисовки. Не поддерживается или
 // не установился — сайт просто работает как раньше, без офлайна.
+//
+// В приложении он не просто бесполезен (сервер локальный, «плохой
+// сети» не бывает), а вреден: порт при каждом запуске новый, значит и
+// источник (origin) для service worker'а новый — и на диске копится
+// Cache Storage от происхождений, куда приложение больше никогда не
+// зайдёт и которые никому не почистить.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
+  window.addEventListener("load", async () => {
+    if (await isAppContext()) return;
     navigator.serviceWorker
       .register("/sw.js")
       .catch((err) => console.warn("[sw] не зарегистрировался:", err));

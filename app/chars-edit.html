@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
-<script src="/js/utils.js?v=14"></script>
+<script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
 <style>
@@ -1160,7 +1160,7 @@ async function saveAll() {
     const resp = await res.json();
     if (res.ok) {
       status.className = "status-msg ok";
-      status.textContent = "Сохранено. Сайт обновится через ~30 секунд.";
+      status.textContent = "Сохранено." + ((await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.");
     } else {
       status.className = "status-msg err";
       status.textContent = "Ошибка: " + (resp.error || "неизвестная");

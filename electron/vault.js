@@ -12,6 +12,7 @@
 //    tier-<id>.json         остальные коллекции тир-листа
 //    site-settings.json     всё, что настраивается на экране настроек
 //    covers/                обложки, загруженные с компьютера
+//    covers-backup/         резервные копии внешних обложек
 //    chars/                 картинки персонажей
 //    .history/              прошлые версии файлов (см. ниже)
 //
@@ -69,7 +70,7 @@ export class Vault {
   }
 
   async ensure() {
-    for (const dir of ["", "covers", "chars", ".history"]) {
+    for (const dir of ["", "covers", "covers-backup", "chars", ".history"]) {
       await fs.mkdir(path.join(this.root, dir), { recursive: true });
     }
   }

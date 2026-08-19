@@ -49,17 +49,7 @@
   // В приложении: своя папка на диске вместо гит-репозитория (бэкап
   // архивом не нужен — есть выгрузка паспорта и .history в самой
   // папке) и некому выходить (входить там было некому — см. README,
-  // "Админ без входа"). /api/app/info отвечает только внутри
-  // приложения, на сайте его нет.
-  async function isAppContext() {
-    try {
-      const res = await fetch("/api/app/info");
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }
-
+  // "Админ без входа"). isAppContext() — из utils.js.
   async function injectButtons() {
     const inApp = await isAppContext();
 

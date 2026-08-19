@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Caveat:wght@600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
-<script src="/js/utils.js?v=14"></script>
+<script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/external-ids.js?v=12"></script>
@@ -2087,9 +2087,10 @@ async function saveReview() {
     });
     const data = await res.json();
     if (res.ok) {
+      const note = (await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.";
       setStatus("ok", editingId !== null
-        ? `«${title}» обновлён. Сайт обновится через ~30 секунд.`
-        : `«${title}» сохранён. Сайт обновится через ~30 секунд.`);
+        ? `«${title}» обновлён.${note}`
+        : `«${title}» сохранён.${note}`);
       if (editingId === null) resetToNew();
     } else {
       setStatus("err", "Ошибка: " + (data.error || "неизвестная"));

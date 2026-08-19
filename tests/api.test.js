@@ -32,7 +32,12 @@ async function withServer(run) {
   try {
     await run({ api, base, vault, root });
   } finally {
-    server.close();
+    // Не просто server.close() — сервер теперь слушает один и тот же
+    // предпочитаемый порт (см. server.js), и незакрытый до конца
+    // предыдущий сервер иначе мог отдать следующему тесту порт, который
+    // на самом деле ещё не освободился: тесты делят один процесс и,
+    // значит, один и тот же адрес.
+    await new Promise((resolve) => server.close(resolve));
     await fs.rm(root, { recursive: true, force: true });
   }
 }

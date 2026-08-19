@@ -106,6 +106,7 @@ const sharedBrowserGlobals = [
   "impStat",
   "indexByKeys",
   "isAdmin",
+  "isAppContext",
   "isFavSectionVisible",
   "isHex",
   "isStatVisible",

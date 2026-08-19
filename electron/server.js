@@ -206,10 +206,29 @@ export function createServer({ appDir, getVault, appRoutes = {} }) {
   });
 }
 
-// Порт 0 — «дай любой свободный», настоящий номер узнаём после старта.
+// Сперва пробуем один и тот же порт, и только если он занят — любой
+// свободный (порт 0). Не только ради предсказуемости: страница живёт
+// по адресу http://127.0.0.1:<порт>, и порт — часть происхождения
+// (origin) для localStorage и Service Worker. Со случайным портом на
+// каждый запуск то и другое незаметно обнулялось бы при каждом
+// перезапуске приложения — TMDB-ключ, отложенный чужой паспорт для
+// сравнения, ширина карточек в тир-листе. Заметить это неоткуда:
+// ошибки нет, просто настройка «почему-то» не сохранилась.
+//
+// Число ничем не примечательно — просто редко занятое. Если занято
+// (второй экземпляр приложения к этому моменту исключён замком на
+// один процесс, так что дело в чём-то постороннем) — откатываемся на
+// случайный порт, как раньше, лишь бы приложение открылось.
+const PREFERRED_PORT = 47821;
+
 export function listen(server) {
   return new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => resolve(server.address().port));
+    server.once("error", (err) => {
+      if (err.code !== "EADDRINUSE") return reject(err);
+      server.removeAllListeners("error");
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", () => resolve(server.address().port));
+    });
+    server.listen(PREFERRED_PORT, "127.0.0.1", () => resolve(server.address().port));
   });
 }
