@@ -1,0 +1,76 @@
+// ══════════════════════════════════════════════
+//  РАМКА ОКНА
+//
+//  Системная рамка с заголовком и меню выглядела чужой поверх тёмной
+//  страницы: светлая полоса Windows со своим шрифтом, а под ней наш
+//  сайт. Обсидиан решает это своей рамкой, и мы так же.
+//
+//  Как: titleBarStyle "hidden" убирает системный заголовок, а
+//  titleBarOverlay возвращает кнопки свернуть/развернуть/закрыть, но уже
+//  в наших цветах. На макоси кнопки рисует система сама, там свой
+//  вариант hiddenInset.
+//
+//  Взамен окно нужно чем-то таскать: у безрамочного окна нет полосы, за
+//  которую его двигают. Отсюда стиль ниже — полоса сверху с
+//  -webkit-app-region: drag.
+//
+//  Стиль вставляется отсюда, а не лежит в app/: страницы в app/ — это
+//  копия сайта, и чем меньше они знают о приложении, тем проще держать
+//  их в согласии с ним.
+// ══════════════════════════════════════════════
+
+// Высота полосы. 38 — чтобы кнопки Windows (они 32) не жались вплотную.
+export const TITLEBAR_HEIGHT = 38;
+
+export function titleBarOptions(platform, colors) {
+  if (platform === "darwin") {
+    // На макоси системные «светофоры» уместны — прячем только заголовок.
+    return { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 14, y: 12 } };
+  }
+  return {
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+      color: colors.bg,
+      symbolColor: colors.symbol,
+      height: TITLEBAR_HEIGHT,
+    },
+  };
+}
+
+// Цвета берём из темы, которую выбрал человек: рамка не должна остаться
+// тёмной, когда весь остальной интерфейс светлый.
+export function overlayColors(skin) {
+  const light = /-light$|^soft$|^neomorphism$|^doodle$|^brutal$|^classic-light$/.test(skin || "");
+  return light ? { bg: "#f4f2ec", symbol: "#3a3a38" } : { bg: "#0a0a0c", symbol: "#c8c4bb" };
+}
+
+export function titleBarCss() {
+  return `
+    :root { --app-titlebar: ${TITLEBAR_HEIGHT}px; }
+
+    /* Полоса, за которую окно таскают. Пустая и поверх всего: кнопки
+       окна рисует система, а нам нужно только место под них. */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--app-titlebar);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      -webkit-app-region: drag;
+      z-index: 10000;
+      pointer-events: auto;
+    }
+
+    /* Страница начинается под полосой, иначе шапка уезжает под неё. */
+    body { padding-top: var(--app-titlebar); }
+
+    /* Липкая навигация прилипает не к нулю, а к нижнему краю полосы —
+       иначе при прокрутке она заезжает под неё и обрезается. */
+    nav { top: var(--app-titlebar) !important; }
+
+    /* Модалки и всё, что растянуто на весь экран, полосу не учитывают:
+       они и не должны — им можно поверх. */
+    .modal-overlay, .tl-tooltip { z-index: 10001; }
+  `;
+}

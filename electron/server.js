@@ -18,6 +18,7 @@
 import http from "node:http";
 import { promises as fs, createReadStream } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { ROUTES, ApiError } from "./api.js";
 
 const MIME = {
@@ -122,13 +123,38 @@ function resolveInside(root, urlPath) {
   return full;
 }
 
-export function createServer({ appDir, getVault }) {
+// Признак «я админ» фронтенд читает из куки tasteid_ui — на сайте её
+// ставил вход по паролю. В приложении входить некому и не от кого: папку
+// открыл тот, кому она принадлежит. Поэтому куку ставим сами, на каждый
+// ответ, и все админские кнопки просто есть.
+//
+// Иначе получается то, что и получилось при первом запуске: настройки
+// требуют войти, а войти негде.
+const ADMIN_COOKIE = "tasteid_ui=1; Path=/; SameSite=Lax";
+
+// Экран приветствия и всё, что относится к самому приложению (папка
+// хранилища, масштаб), живёт в electron/ui — отдельно от app/, потому
+// что к сайту не имеет отношения и обратно туда не поедет.
+const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "ui");
+
+export function createServer({ appDir, getVault, appRoutes = {} }) {
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
     const pathname = url.pathname;
+    res.setHeader("Set-Cookie", ADMIN_COOKIE);
 
     try {
-      // ── API ──
+      // ── API самого приложения ──
+      // Идёт первым и не требует хранилища: этими запросами его как раз
+      // и выбирают. Требовать папку до того, как её указали, значило бы
+      // запереть человека на экране приветствия.
+      const appHandler = appRoutes[`${req.method} ${pathname}`];
+      if (appHandler) {
+        const body = req.method === "POST" ? await readBody(req) : {};
+        return sendJson(res, (await appHandler({ body, query: url.searchParams })) || { ok: true });
+      }
+
+      // ── API данных ──
       if (pathname.startsWith("/api/")) {
         const handler = ROUTES[`${req.method} ${pathname}`];
         if (!handler) return sendJson(res, { error: "Not Found" }, 404);
@@ -156,6 +182,11 @@ export function createServer({ appDir, getVault }) {
         if (VAULT_FILES.test(pathname)) {
           return sendJson(res, pathname.includes("site-settings") ? {} : []);
         }
+      }
+
+      // ── Экран приветствия ──
+      if (pathname === "/welcome" || pathname === "/welcome.html") {
+        if (await serveFile(res, path.join(UI_DIR, "welcome.html"), { store: false })) return;
       }
 
       // ── Страницы и скрипты — из состава приложения ──

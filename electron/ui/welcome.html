@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>TasteID</title>
+<!--
+  ОКНО ПРИВЕТСТВИЯ
+
+  Первое, что видит человек. Задача — довести его от «скачал непонятное»
+  до готового к работе паспорта, не заставляя разбираться в настройках.
+
+  Стили и темы берутся у самого приложения (/style.css, /themes.css,
+  /js/theme.js): экран приветствия должен выглядеть как то, во что он
+  ведёт, а не как отдельная программа. Заодно выбор темы сразу
+  применяется ко всему окну — видно, что выбираешь.
+-->
+<link rel="stylesheet" href="/style.css?v=13">
+<link rel="stylesheet" href="/themes.css?v=12">
+<script src="/js/utils.js?v=13"></script>
+<script src="/js/theme.js?v=13"></script>
+<style>
+  body { padding-top: 0; }
+  #wrap {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: calc(var(--app-titlebar, 0px) + 2rem) 2rem 3rem;
+  }
+  .card { width: 100%; max-width: 640px; }
+
+  .brand { text-align: center; margin-bottom: 2.5rem; }
+  .brand-eyebrow {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: .62rem; letter-spacing: .3em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .brand-name {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 3.2rem; font-weight: 700; color: var(--text-hi);
+    line-height: 1.1; margin-top: .3rem;
+  }
+
+  .step-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.6rem; color: var(--text-hi); margin-bottom: .4rem;
+  }
+  .step-sub {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: .82rem; line-height: 1.6; color: var(--text-dim);
+    margin-bottom: 1.6rem;
+  }
+
+  .choices { display: grid; gap: .8rem; }
+  .choice {
+    display: block; width: 100%; text-align: left;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 2px; padding: 1rem 1.2rem; cursor: pointer;
+    font-family: inherit; transition: border-color .15s, background .15s;
+  }
+  .choice:hover { border-color: var(--red-dim); }
+  .choice.active { border-color: var(--accent-line); background: var(--accent-fill); }
+  .choice-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.15rem; color: var(--text-hi);
+  }
+  .choice-note {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: .75rem; color: var(--text-dim); margin-top: .25rem; line-height: 1.5;
+  }
+
+  .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .6rem; }
+
+  .path-row {
+    display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .path-row .path {
+    flex: 1; min-width: 12rem;
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .74rem;
+    color: var(--text-dim); word-break: break-all;
+    border: 1px dashed var(--border2); border-radius: 2px; padding: .55rem .7rem;
+  }
+
+  .foot { display: flex; gap: .8rem; align-items: center; margin-top: 2rem; flex-wrap: wrap; }
+  .foot .spacer { flex: 1; }
+  .dots { display: flex; gap: .4rem; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); }
+  .dot.on { background: var(--red); }
+
+  .status-msg { margin-top: 1rem; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="wrap"><div class="card">
+  <div class="brand">
+    <div class="brand-eyebrow">Цифровой паспорт интересов</div>
+    <div class="brand-name">TasteID</div>
+  </div>
+
+  <div id="step-body"></div>
+
+  <div class="foot">
+    <div class="dots" id="dots"></div>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost hidden" id="btn-back" type="button">Назад</button>
+    <button class="btn-save hidden" id="btn-next" type="button">Дальше</button>
+  </div>
+  <div class="status-msg" id="status"></div>
+</div></div>
+
+<script>
+// ── Состояние мастера ──────────────────────────
+// Шаг «откуда» всегда первый; остальные показываются только новичку —
+// у того, кто открыл готовую папку, тема и шкала уже настроены, и
+// спрашивать заново значит предлагать их сломать.
+let step = 0;
+let steps = ["source"];
+let chosen = { mode: null, path: null, theme: "classic", scale: "categorical" };
+let busy = false;
+
+const $ = (id) => document.getElementById(id);
+const api = async (url, body) => {
+  const res = await fetch(url, {
+    method: body ? "POST" : "GET",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || `Ошибка ${res.status}`);
+  return data;
+};
+
+function setStatus(type, text) {
+  const el = $("status");
+  el.className = "status-msg" + (type ? " " + type : "");
+  el.textContent = text || "";
+}
+
+// ── Шаги ───────────────────────────────────────
+
+function renderSource() {
+  $("step-body").innerHTML = `
+    <div class="step-title">С чего начнём</div>
+    <div class="step-sub">
+      Паспорт живёт обычной папкой на диске — её видно в проводнике, её
+      можно скопировать на флешку или положить в облако.
+    </div>
+    <div class="choices">
+      <button class="choice${chosen.mode === "new" ? " active" : ""}" data-mode="new" type="button">
+        <div class="choice-name">Создать новый паспорт</div>
+        <div class="choice-note">Пустая папка, и дальше пара вопросов про внешний вид и оценки.</div>
+      </button>
+      <button class="choice${chosen.mode === "open" ? " active" : ""}" data-mode="open" type="button">
+        <div class="choice-name">Открыть существующую папку</div>
+        <div class="choice-note">Если паспорт уже есть — свой с прошлого раза или перенесённый с сайта.</div>
+      </button>
+    </div>
+    <div class="path-row${chosen.path ? "" : " hidden"}" id="path-row">
+      <div class="path" id="path-text">${chosen.path || ""}</div>
+      <button class="btn btn-ghost" id="btn-pick2" type="button">Другая папка</button>
+    </div>`;
+
+  for (const btn of document.querySelectorAll(".choice[data-mode]")) {
+    btn.addEventListener("click", () => pickFolder(btn.dataset.mode));
+  }
+  $("btn-pick2")?.addEventListener("click", () => pickFolder(chosen.mode));
+}
+
+async function pickFolder(mode) {
+  if (busy) return;
+  busy = true;
+  setStatus("", "");
+  try {
+    const { path } = await api("/api/app/pick-vault", { mode });
+    if (path) {
+      chosen.mode = mode;
+      chosen.path = path;
+      // Новичку показываем настройку, тому кто открыл готовое — нет.
+      steps = mode === "new" ? ["source", "theme", "scale"] : ["source"];
+    }
+  } catch (e) {
+    setStatus("err", e.message);
+  } finally {
+    busy = false;
+    render();
+  }
+}
+
+function renderTheme() {
+  const options = typeof themeOptions === "function" ? themeOptions() : [];
+  $("step-body").innerHTML = `
+    <div class="step-title">Как это должно выглядеть</div>
+    <div class="step-sub">Тема задаёт не только цвета, но и форму: скругления, рамки, тени. Меняется в любой момент.</div>
+    <div class="theme-grid">
+      ${options.map((t) => `
+        <button class="choice${chosen.theme === t.id ? " active" : ""}" data-theme="${t.id}" type="button">
+          <div class="choice-name" style="font-size:1rem">${t.label}</div>
+        </button>`).join("")}
+    </div>`;
+
+  for (const btn of document.querySelectorAll("[data-theme]")) {
+    btn.addEventListener("click", () => {
+      chosen.theme = btn.dataset.theme;
+      previewTheme(chosen.theme);
+      renderTheme();
+    });
+  }
+}
+
+// Показать тему прямо сейчас. applyTheme() из theme.js для этого не
+// годится: она не принимает тему, а вычитывает её из site-settings.json —
+// то есть показала бы сохранённую, а не выбранную. Выбирать тему вслепую
+// по названию — гадание, поэтому применяем сами.
+function previewTheme(id) {
+  document.documentElement.setAttribute("data-skin", id);
+
+  // У части тем свой акцент по умолчанию; без него «мягкая ботаническая»
+  // осталась бы с тёмно-красным от классической.
+  const accent = resolveAccent({}, id);
+  const vars = accentVariants(accent);
+  let style = document.getElementById("preview-accent");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "preview-accent";
+    document.head.appendChild(style);
+  }
+  style.textContent = `:root{${Object.entries(vars).map(([k, v]) => `${k}:${v};`).join("")}}`;
+}
+
+function renderScale() {
+  const options = [
+    { id: "categorical", name: "Названия", note: "Резонанс, Эталон, Отлично… Семь полок со смыслом, а не с цифрой." },
+    { id: "numeric", name: "Числа", note: "Привычная десятибалльная шкала." },
+    { id: "stars", name: "Звёзды", note: "Пять звёзд, как в магазинах и на кинопоисках." },
+  ];
+  $("step-body").innerHTML = `
+    <div class="step-title">Чем оцениваешь</div>
+    <div class="step-sub">Шкала решает, как выглядит поле оценки и как тайтлы раскладываются по тир-листу. Полки потом переименовываются и перекрашиваются.</div>
+    <div class="choices">
+      ${options.map((o) => `
+        <button class="choice${chosen.scale === o.id ? " active" : ""}" data-scale="${o.id}" type="button">
+          <div class="choice-name">${o.name}</div>
+          <div class="choice-note">${o.note}</div>
+        </button>`).join("")}
+    </div>`;
+
+  for (const btn of document.querySelectorAll("[data-scale]")) {
+    btn.addEventListener("click", () => { chosen.scale = btn.dataset.scale; renderScale(); });
+  }
+}
+
+// Полки для числовой и звёздной шкалы. Для «названий» ничего не пишем:
+// без своей шкалы приложение берёт семь встроенных полок, то есть ровно
+// то, что и нужно, и лишней записи в настройках не появляется.
+function shelvesFor(type) {
+  if (type === "numeric") {
+    const colors = ["#6b6b6b", "#7a5c3a", "#8b1a1a", "#8a7a3a", "#3a6b4a", "#2f6b8b", "#4a3a8b", "#7c3aed", "#b8860b", "#c9a227"];
+    return Array.from({ length: 10 }, (_, i) => ({
+      key: `n${i + 1}`, name: String(i + 1), color: colors[i],
+    }));
+  }
+  if (type === "stars") {
+    const colors = ["#6b6b6b", "#7a5c3a", "#8a7a3a", "#3a6b4a", "#c9a227"];
+    return Array.from({ length: 5 }, (_, i) => ({
+      key: `s${i + 1}`, name: "★".repeat(i + 1), color: colors[i],
+    }));
+  }
+  return null;
+}
+
+// ── Каркас ─────────────────────────────────────
+
+function render() {
+  const name = steps[step];
+  if (name === "source") renderSource();
+  if (name === "theme") renderTheme();
+  if (name === "scale") renderScale();
+
+  $("dots").innerHTML = steps.map((_, i) => `<span class="dot${i === step ? " on" : ""}"></span>`).join("");
+  $("btn-back").classList.toggle("hidden", step === 0);
+
+  const last = step === steps.length - 1;
+  const next = $("btn-next");
+  next.classList.toggle("hidden", !chosen.path);
+  next.textContent = last ? (chosen.mode === "new" ? "Создать паспорт" : "Открыть") : "Дальше";
+}
+
+$("btn-back").addEventListener("click", () => { step = Math.max(0, step - 1); render(); });
+
+$("btn-next").addEventListener("click", async () => {
+  if (busy || !chosen.path) return;
+  if (step < steps.length - 1) { step++; return render(); }
+
+  busy = true;
+  $("btn-next").disabled = true;
+  setStatus("", "Готовим паспорт…");
+  try {
+    await api("/api/app/use-vault", { path: chosen.path, create: chosen.mode === "new" });
+
+    // Настройки пишем только новичку и только те, что он выбрал.
+    if (chosen.mode === "new") {
+      const settings = { theme: chosen.theme };
+      const shelves = shelvesFor(chosen.scale);
+      if (shelves) settings.gradeScale = { type: chosen.scale, shelves };
+      await api("/api/save-site-settings", settings);
+    }
+
+    await api("/api/app/finish-setup", {});
+  } catch (e) {
+    setStatus("err", e.message);
+    busy = false;
+    $("btn-next").disabled = false;
+  }
+});
+
+// domReady возвращает промис и обработчик не принимает — вызывать её
+// как domReady(fn) бесполезно: функция просто игнорируется.
+domReady().then(render);
+</script>
+</body>
+</html>

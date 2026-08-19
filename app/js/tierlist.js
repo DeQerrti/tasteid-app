@@ -310,10 +310,12 @@ function tlCharsHtml(collectionId) {
     return `<div class="state-box"><div class="spinner"></div>Загружаем «${esc(collectionLabel)}»…</div>`;
   }
   if (!state.games.length) {
+    // Кнопка редактора есть не всегда, а тире стояло всегда — у гостя
+    // на пустой коллекции висело «Нет данных —» с висячим прочерком.
     const adminBtn = isAdmin()
-      ? `<a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">Редактор</a>`
+      ? `<div style="margin-top:1.5rem"><a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">Редактор</a></div>`
       : "";
-    return `<div class="state-box">Нет данных — ${adminBtn}</div>`;
+    return `<div class="state-box" style="padding-top:2rem">Ничего не найдено${adminBtn}</div>`;
   }
 
   const games = state.games;
