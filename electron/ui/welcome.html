@@ -10,83 +10,120 @@
   до готового к работе паспорта, не заставляя разбираться в настройках.
 
   Стили и темы берутся у самого приложения (/style.css, /themes.css,
-  /js/theme.js): экран приветствия должен выглядеть как то, во что он
-  ведёт, а не как отдельная программа. Заодно выбор темы сразу
-  применяется ко всему окну — видно, что выбираешь.
+  /js/theme.js, /js/config.js): экран приветствия должен выглядеть как
+  то, во что он ведёт, а не как отдельная программа. config.js подключён
+  ради GRADES_DEF — тех же семи полок по умолчанию, что и в настройках,
+  чтобы шкала «Названия» здесь и там начиналась с одного и того же.
+
+  Внешний вид намеренно скромный — компактные строки со счётчиком шагов
+  через «← Назад», а не крупные карточки с плашками пояснений: это шаг
+  перед работой, а не сама работа.
 -->
 <link rel="stylesheet" href="/style.css?v=13">
 <link rel="stylesheet" href="/themes.css?v=12">
 <script src="/js/utils.js?v=13"></script>
 <script src="/js/theme.js?v=13"></script>
+<script src="/js/config.js?v=14"></script>
 <style>
   body { padding-top: 0; }
+  /* Прижато к верху, а не по центру окна: у короткого шага («откуда»)
+     по центру было бы много пустоты сверху и снизу, а у длинного
+     (редактор полок) высота и так занята — центрирование в обоих
+     случаях смотрелось бы как случайность, а не решение. */
   #wrap {
     min-height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    padding: calc(var(--app-titlebar, 0px) + 2rem) 2rem 3rem;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: calc(var(--app-titlebar, 0px) + 1.9rem) 1.6rem 2rem;
   }
-  .card { width: 100%; max-width: 640px; }
+  .card { width: 100%; max-width: 460px; }
 
-  .brand { text-align: center; margin-bottom: 2.5rem; }
-  .brand-eyebrow {
-    font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: .62rem; letter-spacing: .3em; text-transform: uppercase;
-    color: var(--text-dim);
+  .brand {
+    display: flex; align-items: baseline; gap: .5rem;
+    margin-bottom: 1.4rem;
   }
   .brand-name {
     font-family: 'Playfair Display', Georgia, serif;
-    font-size: 3.2rem; font-weight: 700; color: var(--text-hi);
-    line-height: 1.1; margin-top: .3rem;
+    font-size: 1.3rem; font-weight: 700; color: var(--text-hi);
   }
+  .brand-sub {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: .62rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .back-link {
+    display: inline-flex; align-items: center; gap: .3rem;
+    background: none; border: none; cursor: pointer; padding: 0;
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .74rem;
+    color: var(--text-dim); margin-bottom: .7rem;
+  }
+  .back-link:hover { color: var(--text-hi); }
 
   .step-title {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 1.6rem; color: var(--text-hi); margin-bottom: .4rem;
-  }
-  .step-sub {
-    font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: .82rem; line-height: 1.6; color: var(--text-dim);
-    margin-bottom: 1.6rem;
+    font-size: 1.25rem; color: var(--text-hi); margin-bottom: .8rem;
   }
 
-  .choices { display: grid; gap: .8rem; }
-  .choice {
-    display: block; width: 100%; text-align: left;
-    background: var(--surface); border: 1px solid var(--border2);
-    border-radius: 2px; padding: 1rem 1.2rem; cursor: pointer;
-    font-family: inherit; transition: border-color .15s, background .15s;
+  /* Строки списка — как выбор хранилища у Обсидиана: текст слева,
+     маленькая кнопка справа, разделитель снизу вместо рамки вокруг
+     каждой. Компактнее, чем плашка-карточка на весь блок. */
+  .rows { border-top: 1px solid var(--border); }
+  .setup-row {
+    display: flex; align-items: center; gap: 1rem;
+    padding: .75rem 0; border-bottom: 1px solid var(--border);
   }
-  .choice:hover { border-color: var(--red-dim); }
-  .choice.active { border-color: var(--accent-line); background: var(--accent-fill); }
-  .choice-name {
+  .setup-row-text { flex: 1; min-width: 0; }
+  .setup-row-name {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 1.15rem; color: var(--text-hi);
+    font-size: 1.02rem; color: var(--text-hi);
   }
-  .choice-note {
+  .setup-row-note {
     font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: .75rem; color: var(--text-dim); margin-top: .25rem; line-height: 1.5;
+    font-size: .72rem; color: var(--text-dim); margin-top: .15rem;
   }
+  .setup-row .btn { flex-shrink: 0; padding: .4rem .85rem; font-size: .66rem; }
 
-  .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .6rem; }
+  /* Пилюли — тема и тип шкалы. Компактнее исходных карточек: короче
+     по высоте, текст без описаний. */
+  .pill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: .5rem; }
+  .pill {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 2px; padding: .55rem .7rem; cursor: pointer;
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .8rem;
+    color: var(--text); text-align: left; transition: border-color .15s, color .15s;
+  }
+  .pill:hover { border-color: var(--red-dim); color: var(--text-hi); }
+  .pill.active { border-color: var(--accent-line); background: var(--accent-fill); color: var(--text-hi); }
 
   .path-row {
     display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
-    margin-top: 1rem;
+    margin-top: .9rem;
   }
   .path-row .path {
-    flex: 1; min-width: 12rem;
-    font-family: 'DM Sans', system-ui, sans-serif; font-size: .74rem;
+    flex: 1; min-width: 10rem;
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .7rem;
     color: var(--text-dim); word-break: break-all;
-    border: 1px dashed var(--border2); border-radius: 2px; padding: .55rem .7rem;
+    border: 1px dashed var(--border2); border-radius: 2px; padding: .5rem .65rem;
   }
 
-  .foot { display: flex; gap: .8rem; align-items: center; margin-top: 2rem; flex-wrap: wrap; }
-  .foot .spacer { flex: 1; }
-  .dots { display: flex; gap: .4rem; }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); }
-  .dot.on { background: var(--red); }
+  /* Редактор полок — то же самое, что в настройках, только без
+     подсказок и лишних вводных: тут выбирают форму шкалы, а не изучают
+     интерфейс. */
+  #shelvesEditor { margin-top: 1rem; }
+  .shelf-row { padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .shelf-row-main { display: flex; align-items: center; gap: 8px; }
+  .shelf-row input[type="text"] { flex: 1.4; }
+  .shelf-row input[type="number"] { width: 58px; flex: none; }
+  .shelf-row input[type="color"] { width: 30px; height: 30px; flex: none; padding: 2px; }
+  .shelf-row .rng { color: var(--text-dim); font-size: .74rem; }
+  .shelves-list { max-height: 34vh; overflow-y: auto; margin-top: .6rem; }
+  .numeric-max { display: flex; align-items: center; gap: .6rem; margin-top: .8rem; }
+  .numeric-max label { font-family: 'DM Sans', sans-serif; font-size: .74rem; color: var(--text-dim); }
+  .numeric-max input { width: 5rem; }
+  .add-shelf { margin-top: .6rem; }
 
-  .status-msg { margin-top: 1rem; }
+  .foot { margin-top: 1.6rem; }
+  .status-msg { margin-top: .8rem; }
   .hidden { display: none !important; }
 </style>
 </head>
@@ -94,16 +131,14 @@
 
 <div id="wrap"><div class="card">
   <div class="brand">
-    <div class="brand-eyebrow">Цифровой паспорт интересов</div>
-    <div class="brand-name">TasteID</div>
+    <span class="brand-name">TasteID</span>
+    <span class="brand-sub">Цифровой паспорт интересов</span>
   </div>
 
+  <button class="back-link hidden" id="btn-back" type="button">← Назад</button>
   <div id="step-body"></div>
 
   <div class="foot">
-    <div class="dots" id="dots"></div>
-    <div class="spacer"></div>
-    <button class="btn btn-ghost hidden" id="btn-back" type="button">Назад</button>
     <button class="btn-save hidden" id="btn-next" type="button">Дальше</button>
   </div>
   <div class="status-msg" id="status"></div>
@@ -116,7 +151,8 @@
 // спрашивать заново значит предлагать их сломать.
 let step = 0;
 let steps = ["source"];
-let chosen = { mode: null, path: null, theme: "classic", scale: "categorical" };
+let chosen = { mode: null, path: null, theme: "classic", scaleType: null, numericMax: 10 };
+let shelves = []; // [{key, name, color, min?, max?}] — тот же вид, что и в настройках
 let busy = false;
 
 const $ = (id) => document.getElementById(id);
@@ -137,31 +173,32 @@ function setStatus(type, text) {
   el.textContent = text || "";
 }
 
-// ── Шаги ───────────────────────────────────────
+// ── Шаг 1: откуда ───────────────────────────────
 
 function renderSource() {
   $("step-body").innerHTML = `
-    <div class="step-title">С чего начнём</div>
-    <div class="step-sub">
-      Паспорт живёт обычной папкой на диске — её видно в проводнике, её
-      можно скопировать на флешку или положить в облако.
-    </div>
-    <div class="choices">
-      <button class="choice${chosen.mode === "new" ? " active" : ""}" data-mode="new" type="button">
-        <div class="choice-name">Создать новый паспорт</div>
-        <div class="choice-note">Пустая папка, и дальше пара вопросов про внешний вид и оценки.</div>
-      </button>
-      <button class="choice${chosen.mode === "open" ? " active" : ""}" data-mode="open" type="button">
-        <div class="choice-name">Открыть существующую папку</div>
-        <div class="choice-note">Если паспорт уже есть — свой с прошлого раза или перенесённый с сайта.</div>
-      </button>
+    <div class="rows">
+      <div class="setup-row">
+        <div class="setup-row-text">
+          <div class="setup-row-name">Создать новый TasteID</div>
+          <div class="setup-row-note">Создайте новый TasteID внутри указанной папки</div>
+        </div>
+        <button class="btn btn-ghost" data-mode="new" type="button">Создать</button>
+      </div>
+      <div class="setup-row">
+        <div class="setup-row-text">
+          <div class="setup-row-name">Открыть существующий TasteID</div>
+          <div class="setup-row-note">Если папка с TasteID уже есть</div>
+        </div>
+        <button class="btn btn-ghost" data-mode="open" type="button">Открыть</button>
+      </div>
     </div>
     <div class="path-row${chosen.path ? "" : " hidden"}" id="path-row">
       <div class="path" id="path-text">${chosen.path || ""}</div>
       <button class="btn btn-ghost" id="btn-pick2" type="button">Другая папка</button>
     </div>`;
 
-  for (const btn of document.querySelectorAll(".choice[data-mode]")) {
+  for (const btn of document.querySelectorAll("[data-mode]")) {
     btn.addEventListener("click", () => pickFolder(btn.dataset.mode));
   }
   $("btn-pick2")?.addEventListener("click", () => pickFolder(chosen.mode));
@@ -187,16 +224,16 @@ async function pickFolder(mode) {
   }
 }
 
+// ── Шаг 2: тема ──────────────────────────────────
+
 function renderTheme() {
   const options = typeof themeOptions === "function" ? themeOptions() : [];
   $("step-body").innerHTML = `
-    <div class="step-title">Как это должно выглядеть</div>
-    <div class="step-sub">Тема задаёт не только цвета, но и форму: скругления, рамки, тени. Меняется в любой момент.</div>
-    <div class="theme-grid">
+    <div class="step-title">Выбор темы</div>
+    <div class="pill-grid">
       ${options.map((t) => `
-        <button class="choice${chosen.theme === t.id ? " active" : ""}" data-theme="${t.id}" type="button">
-          <div class="choice-name" style="font-size:1rem">${t.label}</div>
-        </button>`).join("")}
+        <button class="pill${chosen.theme === t.id ? " active" : ""}" data-theme="${t.id}" type="button">${t.label}</button>
+      `).join("")}
     </div>`;
 
   for (const btn of document.querySelectorAll("[data-theme]")) {
@@ -228,45 +265,139 @@ function previewTheme(id) {
   style.textContent = `:root{${Object.entries(vars).map(([k, v]) => `${k}:${v};`).join("")}}`;
 }
 
-function renderScale() {
-  const options = [
-    { id: "categorical", name: "Названия", note: "Резонанс, Эталон, Отлично… Семь полок со смыслом, а не с цифрой." },
-    { id: "numeric", name: "Числа", note: "Привычная десятибалльная шкала." },
-    { id: "stars", name: "Звёзды", note: "Пять звёзд, как в магазинах и на кинопоисках." },
-  ];
-  $("step-body").innerHTML = `
-    <div class="step-title">Чем оцениваешь</div>
-    <div class="step-sub">Шкала решает, как выглядит поле оценки и как тайтлы раскладываются по тир-листу. Полки потом переименовываются и перекрашиваются.</div>
-    <div class="choices">
-      ${options.map((o) => `
-        <button class="choice${chosen.scale === o.id ? " active" : ""}" data-scale="${o.id}" type="button">
-          <div class="choice-name">${o.name}</div>
-          <div class="choice-note">${o.note}</div>
-        </button>`).join("")}
-    </div>`;
+// ── Шаг 3: шкала оценок ─────────────────────────
+// Тот же вид данных, что и в настройках: {key, name, color, min?, max?}.
+// Полки — те же семь встроенных (GRADES_DEF), для чисел и звёзд
+// раскладываются по диапазону. Редактор ниже — уменьшенная копия того,
+// что есть в /settings-edit, специально не общий код: тот завязан на
+// разметку целой страницы настроек, здесь нужна только эта часть.
 
-  for (const btn of document.querySelectorAll("[data-scale]")) {
-    btn.addEventListener("click", () => { chosen.scale = btn.dataset.scale; renderScale(); });
+const SCALE_TYPES = [
+  { id: "categorical", name: "Названия" },
+  { id: "numeric", name: "Числа" },
+  { id: "stars", name: "Звёзды" },
+];
+const DEFAULT_SHELF_COLORS = ["#7c3aed", "#2563a8", "#2d8a4e", "#d4a017", "#6b7280", "#c0392b", "#8B6914"];
+
+function seedShelves(type) {
+  if (type === "categorical") {
+    shelves = (typeof GRADES_DEF !== "undefined" ? GRADES_DEF : []).map((g) => ({
+      key: g.key, name: g.name, color: g.color,
+    }));
+    return;
+  }
+  const max = chosen.numericMax;
+  const names = ["Резонанс", "Эталон", "Отлично", "Аттракцион", "Фоновый шум", "Брак", "Разочарование"];
+  const n = Math.min(names.length, max);
+  const step = max / n;
+  shelves = [];
+  for (let i = 0; i < n; i++) {
+    const hi = Math.round(max - i * step);
+    const lo = i === n - 1 ? 1 : Math.round(max - (i + 1) * step) + 1;
+    shelves.push({ key: "shelf_" + (i + 1), name: names[i], color: DEFAULT_SHELF_COLORS[i], min: lo, max: hi });
   }
 }
 
-// Полки для числовой и звёздной шкалы. Для «названий» ничего не пишем:
-// без своей шкалы приложение берёт семь встроенных полок, то есть ровно
-// то, что и нужно, и лишней записи в настройках не появляется.
-function shelvesFor(type) {
-  if (type === "numeric") {
-    const colors = ["#6b6b6b", "#7a5c3a", "#8b1a1a", "#8a7a3a", "#3a6b4a", "#2f6b8b", "#4a3a8b", "#7c3aed", "#b8860b", "#c9a227"];
-    return Array.from({ length: 10 }, (_, i) => ({
-      key: `n${i + 1}`, name: String(i + 1), color: colors[i],
-    }));
+function renderScale() {
+  $("step-body").innerHTML = `
+    <div class="step-title">Система оценивания</div>
+    <div class="pill-grid">
+      ${SCALE_TYPES.map((t) => `
+        <button class="pill${chosen.scaleType === t.id ? " active" : ""}" data-scaletype="${t.id}" type="button">${t.name}</button>
+      `).join("")}
+    </div>
+    <div id="shelvesEditor"></div>`;
+
+  for (const btn of document.querySelectorAll("[data-scaletype]")) {
+    btn.addEventListener("click", () => selectScaleType(btn.dataset.scaletype));
   }
-  if (type === "stars") {
-    const colors = ["#6b6b6b", "#7a5c3a", "#8a7a3a", "#3a6b4a", "#c9a227"];
-    return Array.from({ length: 5 }, (_, i) => ({
-      key: `s${i + 1}`, name: "★".repeat(i + 1), color: colors[i],
-    }));
+  renderShelvesEditor();
+}
+
+// Полки пересевают только на границе «Названия ↔ диапазон» — так же,
+// как в настройках: там прошлые правки теряются, только когда меняется
+// сам вид шкалы, а не при переключении между «Числа» и «Звёздами». Кто
+// уже подправил диапазоны под числа, не должен потерять их, поставив
+// вместо чисел звёзды — там те же диапазоны, просто с другой подписью.
+function selectScaleType(type) {
+  const prevGroup = chosen.scaleType === null ? null : (chosen.scaleType === "categorical" ? "cat" : "range");
+  const nextGroup = type === "categorical" ? "cat" : "range";
+  if (prevGroup !== nextGroup) {
+    if (type !== "categorical") chosen.numericMax = type === "stars" ? 5 : 10;
+    seedShelves(type);
   }
-  return null;
+  chosen.scaleType = type;
+  // render(), а не renderScale() напрямую: только render() пересчитывает
+  // видимость «Дальше» (она зависит от chosen.scaleType). Без этого
+  // кнопка, спрятанная до выбора типа, так и оставалась спрятанной —
+  // renderScale() перерисовывает содержимое шага, но не кнопку под ним.
+  render();
+}
+
+function renderShelvesEditor() {
+  const box = $("shelvesEditor");
+  if (!box) return;
+  if (!chosen.scaleType) { box.innerHTML = ""; return; }
+
+  const withRange = chosen.scaleType !== "categorical";
+  const maxRow = withRange ? `
+    <div class="numeric-max">
+      <label>${chosen.scaleType === "stars" ? "Сколько звёзд" : "Максимум"}</label>
+      <input type="number" id="numericMax" min="2" max="1000" value="${chosen.numericMax}">
+    </div>` : "";
+
+  box.innerHTML = `
+    ${maxRow}
+    <div class="shelves-list" id="shelvesList"></div>
+    <button class="btn btn-ghost add-shelf" id="btn-add-shelf" type="button">Добавить полку</button>`;
+
+  // Меняет только само число сверху — правки диапазонов внизу это не
+  // трогает, точно как в настройках: там смена «Максимума» тоже не
+  // пересевает список полок заново.
+  $("numericMax")?.addEventListener("change", (e) => {
+    chosen.numericMax = Number(e.target.value) || 10;
+  });
+  $("btn-add-shelf").addEventListener("click", () => {
+    if (withRange) {
+      shelves.push({ key: "shelf_" + Date.now().toString(36).slice(-5), name: "Новая полка", color: "#8b1a1a", min: 1, max: chosen.numericMax });
+    } else {
+      const name = "Новая полка";
+      shelves.push({ key: "custom_" + name.toLowerCase() + "_" + Date.now().toString(36).slice(-5), name, color: "#8b1a1a" });
+    }
+    renderShelvesList();
+  });
+  renderShelvesList();
+}
+
+function renderShelvesList() {
+  const withRange = chosen.scaleType !== "categorical";
+  $("shelvesList").innerHTML = shelves.map((s, i) => `
+    <div class="shelf-row">
+      <div class="shelf-row-main">
+        <input type="color" value="${s.color}" data-i="${i}" data-f="color">
+        <input type="text" value="${s.name}" data-i="${i}" data-f="name" placeholder="Название">
+        ${withRange ? `
+          <span class="rng">от</span>
+          <input type="number" value="${s.min}" data-i="${i}" data-f="min">
+          <span class="rng">до</span>
+          <input type="number" value="${s.max}" data-i="${i}" data-f="max">
+        ` : ""}
+        <button class="icon-btn" data-remove="${i}" type="button">✕</button>
+      </div>
+    </div>`).join("");
+
+  $("shelvesList").querySelectorAll("input").forEach((el) => {
+    el.addEventListener("change", () => {
+      const i = Number(el.dataset.i), f = el.dataset.f;
+      shelves[i][f] = f === "min" || f === "max" ? Number(el.value) : el.value;
+    });
+  });
+  $("shelvesList").querySelectorAll("[data-remove]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      shelves.splice(Number(btn.dataset.remove), 1);
+      renderShelvesList();
+    });
+  });
 }
 
 // ── Каркас ─────────────────────────────────────
@@ -277,12 +408,12 @@ function render() {
   if (name === "theme") renderTheme();
   if (name === "scale") renderScale();
 
-  $("dots").innerHTML = steps.map((_, i) => `<span class="dot${i === step ? " on" : ""}"></span>`).join("");
   $("btn-back").classList.toggle("hidden", step === 0);
 
   const last = step === steps.length - 1;
+  const ready = name !== "scale" || !!chosen.scaleType;
   const next = $("btn-next");
-  next.classList.toggle("hidden", !chosen.path);
+  next.classList.toggle("hidden", !chosen.path || !ready);
   next.textContent = last ? (chosen.mode === "new" ? "Создать паспорт" : "Открыть") : "Дальше";
 }
 
@@ -291,6 +422,7 @@ $("btn-back").addEventListener("click", () => { step = Math.max(0, step - 1); re
 $("btn-next").addEventListener("click", async () => {
   if (busy || !chosen.path) return;
   if (step < steps.length - 1) { step++; return render(); }
+  if (steps[step] === "scale" && !chosen.scaleType) return;
 
   busy = true;
   $("btn-next").disabled = true;
@@ -298,11 +430,13 @@ $("btn-next").addEventListener("click", async () => {
   try {
     await api("/api/app/use-vault", { path: chosen.path, create: chosen.mode === "new" });
 
-    // Настройки пишем только новичку и только те, что он выбрал.
+    // Настройки пишем только новичку и только то, что он выбрал.
     if (chosen.mode === "new") {
       const settings = { theme: chosen.theme };
-      const shelves = shelvesFor(chosen.scale);
-      if (shelves) settings.gradeScale = { type: chosen.scale, shelves };
+      if (chosen.scaleType) {
+        settings.gradeScale = { type: chosen.scaleType, shelves };
+        if (chosen.scaleType !== "categorical") settings.gradeScale.numericMax = chosen.numericMax;
+      }
       await api("/api/save-site-settings", settings);
     }
 
