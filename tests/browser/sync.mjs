@@ -12,7 +12,7 @@
 
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -30,6 +30,24 @@ const ok = (cond, msg) => {
   console.log((cond ? "  ✓ " : "  ✗ ") + msg);
   if (!cond) failures.push(msg);
 };
+
+console.log("sync.js подключён на всех страницах приложения");
+// Автосинхронизация ловит сохранения через fetch — а сохраняют не
+// только на settings-edit.html, но и на add.html, index.html и т.д.
+// Если файл забудут подключить на новой странице, сохранённое там
+// просто не попадёт в синхронизацию, и заметить это будет нечем.
+for (const page of [
+  "index",
+  "add",
+  "favorites-edit",
+  "chars-edit",
+  "reviews-order",
+  "backup-history",
+  "settings-edit",
+]) {
+  const html = readFileSync(new URL(`../../app/${page}.html`, import.meta.url), "utf8");
+  ok(html.includes('src="/js/sync.js'), `app/${page}.html подключает sync.js`);
+}
 
 const vaultDir = process.argv[2] || mkdtempSync(join(tmpdir(), "tasteid-sync-"));
 const port = 8900 + (process.pid % 200);
@@ -136,6 +154,10 @@ await page.route("https://api.github.com/**", handleGithub);
 
 await page.goto(`http://127.0.0.1:${port}/settings-edit.html`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(600);
+ok(
+  await page.evaluate(() => typeof window.__syncBeforeQuit === "function"),
+  "window.__syncBeforeQuit есть — то, что electron/main.js зовёт перед закрытием окна"
+);
 
 const WEBP = "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==";
 await page.evaluate(async (webp) => {
@@ -256,6 +278,29 @@ ok(
 await page.waitForTimeout(1800); // дать перезагрузке случиться, прежде чем отключаться
 await page.waitForLoadState("domcontentloaded");
 await page.waitForTimeout(600);
+
+console.log("Автосинхронизация — сохранение без нажатия кнопки и без открытой вкладки");
+// Ни вкладку «Синхронизация», ни саму кнопку не трогаем — сохранение
+// проходит через тот же fetch, что и на любой другой странице
+// приложения, и должно само дойти до репозитория через паузу.
+await page.evaluate(async () => {
+  await fetch("/api/save-review", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Автосинхронизация без кнопки" }),
+  });
+});
+let autoPushed = false;
+for (let i = 0; i < 20 && !autoPushed; i++) {
+  await page.waitForTimeout(500);
+  const entry = gh.files.get("reviews.json");
+  const title = entry && JSON.parse(Buffer.from(entry.base64, "base64").toString("utf8"))[0]?.title;
+  if (title === "Автосинхронизация без кнопки") autoPushed = true;
+}
+ok(
+  autoPushed,
+  "изменение само дошло до репозитория через паузу после сохранения — без нажатия «Синхронизировать сейчас»"
+);
 
 console.log("Отключение");
 await page.click('.side-tab[data-panel="sync"]');

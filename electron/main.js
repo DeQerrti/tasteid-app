@@ -281,6 +281,31 @@ async function createWindow({ compact = false } = {}) {
 
   win.once("ready-to-show", () => win.show());
 
+  // Синхронизация перед закрытием — если она подключена (app/js/sync.js),
+  // дать ей недолго доработать перед закрытием окна: закрыв TasteID,
+  // человек с большой вероятностью не откроет его снова в ближайшие
+  // минуты, чтобы фоновая автосинхронизация успела сама. Перехватываем
+  // именно закрытие ОКНА, а не app.on("before-quit") — к моменту
+  // before-quit webContents уже уничтожены (window-all-closed срабатывает
+  // после того, как окно закрылось), и звать executeJavaScript было бы
+  // некуда. Закрыться нужно в любом случае — сеть может быть недоступна,
+  // и зависать из-за этого нельзя.
+  const closingWin = win;
+  let closingForReal = false;
+  closingWin.on("close", (e) => {
+    if (closingForReal || closingWin.webContents.isDestroyed()) return;
+    e.preventDefault();
+    const finish = () => {
+      closingForReal = true;
+      closingWin.close();
+    };
+    const timeout = new Promise((resolve) => setTimeout(resolve, 6000));
+    const synced = closingWin.webContents
+      .executeJavaScript("window.__syncBeforeQuit ? window.__syncBeforeQuit() : null")
+      .catch(() => {});
+    Promise.race([synced, timeout]).then(finish);
+  });
+
   // Полосу для перетаскивания вставляем на каждую загрузку: страниц
   // несколько, и каждая приходит со своим document.
   win.webContents.on("did-finish-load", async () => {

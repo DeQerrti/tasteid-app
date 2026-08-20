@@ -11,6 +11,7 @@
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
+<script src="/js/sync.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/touch-drag.js?v=1" defer></script>
@@ -18,7 +19,6 @@
 <script src="/js/api.js?v=12"></script>
 <script src="/js/cards.js?v=12"></script>
 <script src="/js/passports.js?v=13"></script>
-<script src="/js/sync.js?v=1"></script>
 <script src="/js/import-formats.js?v=14"></script>
 <script src="/js/import.js?v=17"></script>
 <style>
@@ -1208,14 +1208,21 @@
   }
 
   // ── Синхронизация ────────────────────────────
-  // Вся логика — в app/js/sync.js, здесь только экран: две панели,
-  // «не подключено» и «подключено», и разбор конфликтов, если они есть.
-  let syncBusy = false;
+  // Вся логика, включая автосинхронизацию в фоне, — в app/js/sync.js,
+  // здесь только экран: две панели, «не подключено» и «подключено», и
+  // разбор конфликтов, если они есть. syncInFlight — общий с
+  // автосинхронизацией флаг (объявлен в sync.js): не дать ручной кнопке
+  // и подоспевшему фоновому запуску столкнуться на одном и том же пути.
 
   function renderSyncPanel() {
     const box = document.getElementById("syncPanel");
     const config = getSyncConfig();
     box.innerHTML = config ? syncConnectedHtml(config) : syncSetupHtml();
+    // Конфликт, найденный автосинхронизацией, мог случиться, пока
+    // человек не смотрел на эту вкладку вовсе — открыв её, сразу
+    // досчитываем ещё раз и показываем, что не так, а не заставляем
+    // сперва самому нажать «Синхронизировать сейчас».
+    if (config && localStorage.getItem(AUTOSYNC_CONFLICTS_KEY) === "1") startSync();
   }
 
   function syncSetupHtml() {
@@ -1226,6 +1233,12 @@
         компьютера, ещё одного компьютера. GitHub здесь единственный
         сервер, а токен и служебные данные синхронизации остаются
         только на этом устройстве.
+      </p>
+      <p class="panel-intro" data-i18n>
+        После подключения синхронизация запускается сама — через
+        какое-то время после того, как что-то сохранено, и при открытии
+        приложения. Кнопка «Синхронизировать сейчас» останется — на
+        случай, если не хочется ждать.
       </p>
       <ol class="panel-intro" style="padding-left:1.2em;display:flex;flex-direction:column;gap:.5em;">
         <li data-i18n>Заведи аккаунт на github.com, если его ещё нет — бесплатно.</li>
@@ -1320,8 +1333,8 @@
   }
 
   async function startSync() {
-    if (syncBusy) return;
-    syncBusy = true;
+    if (syncInFlight) return;
+    syncInFlight = true;
     const btn = document.getElementById("sync-now-btn");
     btn.disabled = true;
     document.getElementById("sync-conflicts").innerHTML = "";
@@ -1378,7 +1391,7 @@
     } catch (e) {
       flashStatus("status-sync", false, e.message);
     } finally {
-      syncBusy = false;
+      syncInFlight = false;
       if (document.getElementById("sync-now-btn")) document.getElementById("sync-now-btn").disabled = false;
     }
   }
@@ -1421,6 +1434,7 @@
         renderConflicts(window.__syncConfig, window.__syncConflicts);
       } else {
         document.getElementById("sync-conflicts").innerHTML = "";
+        localStorage.setItem(AUTOSYNC_CONFLICTS_KEY, "");
         flashStatus("status-sync", true, i18n("Конфликты решены."));
         if (choice === "remote") setTimeout(() => location.reload(), 900);
       }

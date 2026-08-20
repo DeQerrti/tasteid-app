@@ -52,6 +52,7 @@ function saveSyncConfig(config) {
 function clearSyncConfig() {
   localStorage.removeItem(SYNC_CONFIG_KEY);
   localStorage.removeItem(SYNC_STATE_KEY);
+  localStorage.removeItem(AUTOSYNC_CONFLICTS_KEY);
 }
 
 function getSyncState() {
@@ -286,6 +287,9 @@ async function runSync(config, onProgress) {
 
   state.lastSyncAt = new Date().toISOString();
   saveSyncState(state);
+  // Тот же флаг читают и ручная кнопка, и автосинхронизация — не важно,
+  // кто досчитал до конфликта последним, важно, что он есть или его нет.
+  localStorage.setItem(AUTOSYNC_CONFLICTS_KEY, result.conflicts.length ? "1" : "");
 
   return result;
 }
@@ -312,3 +316,115 @@ async function resolveConflict(config, conflict, choice) {
     ? conflict.remote.base64
     : JSON.parse(base64ToText(conflict.remote.base64));
 }
+
+// ══════════════════════════════════════════════
+//  АВТОСИНХРОНИЗАЦИЯ
+//
+//  Кнопку «Синхронизировать сейчас» после каждого отзыва никто не
+//  нажимает — значит, без этого блока второе устройство почти всегда
+//  видело бы протухшие данные. Вместо того чтобы звать sync-функции из
+//  десятка мест по разным страницам (легко забыть одно — и оно тихо
+//  выпадет из синхронизации), подписываемся на сам fetch: он общий,
+//  через него проходит любое сохранение, на любой странице, и на
+//  компьютере, и на телефоне. Файл подключён везде (см. app/*.html),
+//  поэтому перехват стоит один раз здесь, а не на каждой странице.
+//
+//  Синхронизация идёт не на каждое сохранение, а через паузу (debounce)
+//  после последнего — иначе печать отзыва или перетаскивание тир-листа
+//  били бы по GitHub API запросом на каждый шаг.
+//
+//  Тихо — без сообщений об ошибке (сети может не быть, это не повод
+//  прерывать человека) и без принудительной перезагрузки страницы: если
+//  что-то забрали с другого устройства, оно просто ляжет на диск и
+//  подхватится следующей загрузкой страницы, а не сорвёт то, что
+//  человек как раз печатает. Конфликт тем же способом молча оставляем
+//  висеть — до него дойдёт человек сам, через вкладку «Синхронизация»,
+//  туда же, где решает конфликты вручную.
+// ══════════════════════════════════════════════
+
+const AUTOSYNC_CONFLICTS_KEY = "tasteid_sync_has_conflicts";
+const AUTOSYNC_DELAY = 8000;
+const AUTOSYNC_ON_OPEN_DELAY = 3000;
+
+// Общий флаг на кнопку «Синхронизировать сейчас» и на автосинхронизацию:
+// без него ручной клик и подоспевший фоновый запуск могли бы одновременно
+// написать один и тот же путь в состоянии синхронизации.
+let syncInFlight = false;
+
+let autoSyncTimer = null;
+
+function scheduleAutoSync(delayMs = AUTOSYNC_DELAY) {
+  if (!getSyncConfig()) return;
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(runAutoSync, delayMs);
+}
+
+async function runAutoSync() {
+  const config = getSyncConfig();
+  if (!config || syncInFlight) return;
+  syncInFlight = true;
+  try {
+    const result = await runSync(config);
+    if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
+      await fetch("/api/restore-backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          format: "tasteid-backup",
+          files: result.pulledFiles,
+          images: result.pulledImages,
+        }),
+      });
+    }
+  } catch {
+    // Тихая синхронизация: сеть могла быть недоступна, токен — истечь.
+    // Ручная кнопка покажет причину явно, если человек попробует сам.
+  } finally {
+    syncInFlight = false;
+  }
+}
+
+function isAutoSyncTrigger(pathname, method) {
+  if (method !== "POST") return false;
+  if (!pathname.startsWith("/api/")) return false;
+  if (pathname.startsWith("/api/app/")) return false; // настройки самого приложения — не хранилище
+  return pathname !== "/api/restore-backup" && pathname !== "/api/export-backup";
+}
+
+(function installAutoSyncTrigger() {
+  if (typeof window === "undefined" || !window.fetch) return;
+  const original = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    const res = await original(input, init);
+    try {
+      const url = typeof input === "string" ? input : input?.url || "";
+      const method = (
+        init?.method ||
+        (typeof input === "object" && input?.method) ||
+        "GET"
+      ).toUpperCase();
+      const pathname = url.split("?")[0].replace(/^[a-z]+:\/\/[^/]+/i, "");
+      if (res.ok && isAutoSyncTrigger(pathname, method)) scheduleAutoSync();
+    } catch {
+      // Разбор адреса не должен ронять сам запрос.
+    }
+    return res;
+  };
+})();
+
+// Сразу после открытия страницы тоже стоит попробовать: вдруг с
+// другого устройства уже есть что забрать, а на этой странице никто
+// ничего сохранять и не планировал.
+if (typeof window !== "undefined") scheduleAutoSync(AUTOSYNC_ON_OPEN_DELAY);
+
+// Перед закрытием приложения — то самое место, где стоит успеть
+// отправить накопленное: закрыв TasteID, человек с большой вероятностью
+// не откроет его снова в ближайшие минуты, чтобы это сделала обычная
+// отложенная автосинхронизация сама. Зовёт electron/main.js через
+// executeJavaScript перед выходом (см. app.on("before-quit")); на
+// телефоне у Android нет надёжного «перед закрытием», это только для
+// компьютера.
+window.__syncBeforeQuit = async () => {
+  clearTimeout(autoSyncTimer);
+  await runAutoSync();
+};

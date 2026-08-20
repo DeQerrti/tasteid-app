@@ -934,6 +934,8 @@ i18nRegister({
   Синхронизация: "Sync",
   "Свободно и без своего сервера: приватный репозиторий на GitHub как общее хранилище для всех твоих устройств — телефона, компьютера, ещё одного компьютера. GitHub здесь единственный сервер, а токен и служебные данные синхронизации остаются только на этом устройстве.":
     "Free, no server of our own: a private GitHub repository works as shared storage for all your devices — phone, computer, another computer. GitHub is the only server involved, and the token and sync bookkeeping stay only on this device.",
+  "После подключения синхронизация запускается сама — через какое-то время после того, как что-то сохранено, и при открытии приложения. Кнопка «Синхронизировать сейчас» останется — на случай, если не хочется ждать.":
+    "Once connected, sync runs on its own — a while after something is saved, and when the app opens. The “Sync now” button stays too, for when you don't want to wait.",
   "Заведи аккаунт на github.com, если его ещё нет — бесплатно.":
     "Create a github.com account if you don't have one — it's free.",
   "Создай токен доступа —": "Create an access token —",
