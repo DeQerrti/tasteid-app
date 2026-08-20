@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TasteID</string>
+    <string name="title_activity_main">TasteID</string>
+    <string name="package_name">ru.tasteid.app</string>
+    <string name="custom_url_scheme">ru.tasteid.app</string>
+</resources>

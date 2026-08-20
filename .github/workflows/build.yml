@@ -84,3 +84,46 @@ jobs:
             dist/*.AppImage
           draft: true
           fail_on_unmatched_files: false
+
+  android:
+    name: Приложение для телефона
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Android собирается Gradle, а Gradle — это Java. На готовых
+      # машинах GitHub сам Android SDK уже стоит, ставить нужно только её.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      # Мост телефона собирается в один файл и кладётся к страницам —
+      # только после этого их есть смысл копировать в проект Android.
+      - run: npm run build:mobile
+      - run: npx cap sync android
+      - run: chmod +x android/gradlew
+      # Сборка отладочная, и это осознанно: обычную Android отказывается
+      # ставить без подписи, а для подписи нужен ключ, который в
+      # открытом репозитории держать нельзя. Отладочная подписана
+      # общим ключом и ставится с телефона как есть.
+      - run: ./gradlew assembleDebug
+        working-directory: android
+      - name: Назвать файл по-человечески
+        run: |
+          version=${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk "dist/TasteID-${version#v}.apk"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          files: dist/*.apk
+          draft: true
+          fail_on_unmatched_files: false

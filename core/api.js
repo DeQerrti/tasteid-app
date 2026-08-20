@@ -16,7 +16,7 @@
 //    один, и правит его один процесс.
 // ══════════════════════════════════════════════
 
-import { isAllowedFile } from "./vault.js";
+import { isAllowedFile } from "./files.js";
 
 // ── Общее ──────────────────────────────────────
 
@@ -379,15 +379,20 @@ async function backupCover({ vault, body }) {
       : /gif/.test(type)
         ? "gif"
         : "jpg";
-  const buffer = Buffer.from(await res.arrayBuffer());
+  const buffer = new Uint8Array(await res.arrayBuffer());
 
   const saved = await vault.saveMedia("covers-backup", `${filename}.${ext}`, buffer);
   return { ok: true, url: saved };
 }
 
+// Uint8Array, а не Buffer: этот файл делят настольное приложение и
+// телефон, а Buffer есть только в Node.
 function base64ToBuffer(data) {
   const clean = String(data).replace(/^data:[^;]+;base64,/, "");
-  return Buffer.from(clean, "base64");
+  const bin = atob(clean);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 // ── Настройки ──────────────────────────────────

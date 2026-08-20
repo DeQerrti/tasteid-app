@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Заставка на время запуска.
+     Раньше здесь лежала картинка Capacitor (синий значок на белом) —
+     её показывал каждый запуск. Рисуем то же, что видно дальше: фон
+     приложения и его логотип. Не картинкой, а разметкой — тогда одна
+     запись годится на любую плотность экрана. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background" />
+    <item android:gravity="center">
+        <bitmap
+            android:src="@mipmap/ic_launcher_foreground"
+            android:gravity="center" />
+    </item>
+</layer-list>

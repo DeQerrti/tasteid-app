@@ -11,10 +11,12 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
+<script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
+<script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
 <style>
 .logo { display: block; }
@@ -139,6 +141,11 @@ input::placeholder { color: var(--text-dim); }
   font-weight: 600;
   color: var(--text-hi);
   flex: 1;
+  /* min-width: 0 — без него колонка с именем не даёт себе стать уже
+     самого имени, и на телефоне длинное имя выпихивало кнопку
+     «Изменить» за край экрана вместе со всей страницей. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .entry-type {
   font-family: 'DM Sans', sans-serif;

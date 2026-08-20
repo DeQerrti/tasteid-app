@@ -276,8 +276,11 @@ export default [
     // Чужая минифицированная библиотека (html2canvas-pro) лежит в
     // составе приложения, чтобы экспорт в картинку работал без
     // интернета. Линтовать её незачем и нечем: одна строка на 222 КБ
-    // даёт сотни бессмысленных замечаний и прячет настоящие.
-    ignores: ["app/js/vendor/**"],
+    // даёт сотни бессмысленных замечаний и прячет настоящие. Рядом по
+    // той же причине собранный мобильный мост (его исходник — в
+    // mobile/src, он и проверяется) и проект Android, где кода на
+    // JavaScript нет вовсе.
+    ignores: ["app/js/vendor/**", "app/js/mobile.bundle.js", "android/**"],
   },
   {
     // Фронтенд: обычные <script>, общая глобальная область
@@ -301,12 +304,39 @@ export default [
     },
   },
   {
-    // Приложение: Electron и локальный сервер — обычный Node
-    files: ["electron/**/*.js", "scripts/**/*.js", "tests/**/*.js"],
+    // Приложение: Electron, общий слой и вспомогательные скрипты —
+    // обычный Node. core/ попал сюда же: там нет ничего от Node, но и
+    // от браузера тоже, а правила одни и те же.
+    files: ["electron/**/*.js", "core/**/*.js", "scripts/**/*.{js,mjs}", "tests/**/*.{js,mjs}"],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: "module",
       globals: { ...globals.node },
+    },
+    rules: commonRules,
+  },
+  {
+    // Проверки в браузере: сам файл — обычный Node, но куски внутри
+    // page.evaluate выполняются на странице, и document с window там
+    // настоящие. Разделять их по файлам ради линтера не стоит — тест
+    // читается целиком.
+    // Сюда же скрипт иконок: он тоже рисует в браузере.
+    files: ["tests/browser/**", "tests/fixtures/**", "scripts/android-icons.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: commonRules,
+  },
+  {
+    // Мобильный мост: собирается для браузера телефона, но пишется
+    // модулями — их складывает esbuild.
+    files: ["mobile/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: { ...globals.browser },
     },
     rules: commonRules,
   },

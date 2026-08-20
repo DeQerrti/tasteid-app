@@ -19,7 +19,7 @@ import http from "node:http";
 import { promises as fs, createReadStream } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ROUTES, ApiError } from "./api.js";
+import { ROUTES, ApiError } from "../core/api.js";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
