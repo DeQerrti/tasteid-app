@@ -928,3 +928,61 @@ i18nRegister({
   "Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл — все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).":
     "Restore “{file}” to the version from {date}?\n\nThis replaces the current file — everything changed after that version is lost (though it stays in the history and can be restored back).",
 });
+
+// ── Синхронизация ──────────────────────────────
+i18nRegister({
+  Синхронизация: "Sync",
+  "Свободно и без своего сервера: приватный репозиторий на GitHub как общее хранилище для всех твоих устройств — телефона, компьютера, ещё одного компьютера. GitHub здесь единственный сервер, а токен и служебные данные синхронизации остаются только на этом устройстве.":
+    "Free, no server of our own: a private GitHub repository works as shared storage for all your devices — phone, computer, another computer. GitHub is the only server involved, and the token and sync bookkeeping stay only on this device.",
+  "Заведи аккаунт на github.com, если его ещё нет — бесплатно.":
+    "Create a github.com account if you don't have one — it's free.",
+  "Создай токен доступа —": "Create an access token —",
+  "по этой ссылке": "using this link",
+  ", галочка «repo» уже отмечена. Внизу страницы — «Generate token».":
+    ", the “repo” checkbox is already ticked. At the bottom of the page — “Generate token”.",
+  "Скопируй токен (он показывается один раз) и вставь сюда.":
+    "Copy the token (it's shown only once) and paste it here.",
+  "Токен доступа": "Access token",
+  "Название репозитория": "Repository name",
+  "Если такого репозитория ещё нет на твоём GitHub — создадим сами, приватным. Если уже есть (например, второе устройство его уже завело) — подключимся к нему.":
+    "If you don't have this repository on GitHub yet, we'll create it, as private. If it already exists (say, another device already set it up), we'll connect to it.",
+  Подключить: "Connect",
+  "Заполни токен и название репозитория.": "Fill in the token and repository name.",
+  "Проверяем токен…": "Checking the token…",
+  "Проверяем репозиторий…": "Checking the repository…",
+  "Репозитория ещё нет — создаём…": "The repository doesn't exist yet — creating it…",
+  "Подключено к": "Connected to",
+  "Последняя синхронизация: {when}.": "Last synced: {when}.",
+  "ещё не было": "never",
+  "Синхронизировать сейчас": "Sync now",
+  Отключить: "Disconnect",
+  "Приложение забудет токен и репозиторий на этом устройстве. Сами данные — здесь и в репозитории — никуда не денутся, подключиться заново можно в любой момент.":
+    "The app forgets the token and repository on this device. The data itself — here and in the repository — stays put; you can reconnect any time.",
+  "Синхронизируем…": "Syncing…",
+  "Готово, но {n} файл(ов) изменились и здесь, и в репозитории — выбери, что оставить.":
+    "Done, but {n} file(s) changed both here and in the repository — pick what to keep.",
+  "Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.":
+    "Done: sent {pushed}, pulled {pulled}, unchanged {skipped}.",
+  "Оставить моё": "Keep mine",
+  "Взять оттуда": "Take theirs",
+  "Конфликты решены.": "Conflicts resolved.",
+});
+
+// Тексты ошибок из app/js/sync.js — тоже через i18n(), поэтому словарь
+// им нужен здесь же.
+i18nRegister({
+  "Не получилось достучаться до GitHub — проверь соединение с интернетом.":
+    "Couldn't reach GitHub — check your internet connection.",
+  "GitHub не принял токен — проверь, что он не истёк и не отозван.":
+    "GitHub rejected the token — check that it hasn't expired or been revoked.",
+  "GitHub временно ограничил число запросов — попробуй через несколько минут.":
+    "GitHub temporarily rate-limited requests — try again in a few minutes.",
+  "У токена не хватает прав на этот репозиторий.": "The token doesn't have enough rights for this repository.",
+  "Не получилось проверить токен.": "Couldn't verify the token.",
+  "Не получилось проверить репозиторий.": "Couldn't check the repository.",
+  "Хранилище TasteID для синхронизации между устройствами": "TasteID storage for syncing between devices",
+  "Не получилось создать репозиторий.": "Couldn't create the repository.",
+  "Не получилось прочитать файл из репозитория: {path}": "Couldn't read the file from the repository: {path}",
+  "Синхронизация TasteID": "TasteID sync",
+  "Не получилось отправить файл: {path}": "Couldn't send the file: {path}",
+});

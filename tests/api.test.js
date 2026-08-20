@@ -270,7 +270,7 @@ test("картинка персонажа сохраняется и находи
 // превращалось в одни подчёркивания. Два разных файла с разными
 // кириллическими именами в одной папке при этом затирали друг друга.
 test("картинки с кириллическими именами не затирают друг друга", async () => {
-  await withServer(async ({ api, base }) => {
+  await withServer(async ({ api }) => {
     const webp = Buffer.from("UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==", "base64").toString("base64");
 
     await api("POST", "/api/upload-char-image", {

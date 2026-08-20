@@ -18,6 +18,7 @@
 <script src="/js/api.js?v=12"></script>
 <script src="/js/cards.js?v=12"></script>
 <script src="/js/passports.js?v=13"></script>
+<script src="/js/sync.js?v=1"></script>
 <script src="/js/import-formats.js?v=14"></script>
 <script src="/js/import.js?v=17"></script>
 <style>
@@ -250,6 +251,7 @@
     <button class="side-tab" data-panel="collections" data-i18n>Тир-листы</button>
     <button class="side-tab" data-panel="labels" data-i18n>Подписи</button>
     <button class="side-tab" data-panel="passports" data-i18n>Паспорта</button>
+    <button class="side-tab hidden" data-panel="sync" id="tab-sync" data-i18n>Синхронизация</button>
     <button class="side-tab" data-panel="import" data-i18n>Импорт</button>
     <button class="side-tab hidden" data-panel="app" id="tab-app" data-i18n>Приложение</button>
     <a href="/backup-history.html" class="back" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;" data-i18n>История версий</a>
@@ -357,6 +359,16 @@
       <div id="passportsPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
     </div>
 
+    <!-- Синхронизация между своими устройствами (телефон, компьютер,
+         ещё один компьютер) через приватный репозиторий на GitHub —
+         бесплатно, без своего сервера. Не путать с «Паспортом»: тот
+         про показ себя чужим, этот — про то, чтобы твои же данные были
+         одинаковыми на всех твоих устройствах. Подробности решения —
+         в app/js/sync.js. -->
+    <div class="panel" id="panel-sync">
+      <div id="syncPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
+    </div>
+
     <!-- Настройки самого приложения. На сайте этой панели нет и быть не
          может: там нет ни папки на диске, ни окна, ни масштаба. Она
          показывается только когда /api/app/info отвечает, то есть когда
@@ -452,6 +464,7 @@
       // Паспорта грузятся при первом открытии панели, а не вместе со
       // страницей: они тянут reviews.json целиком, а заходят сюда редко.
       if (btn.dataset.panel === "passports") loadPassports();
+      if (btn.dataset.panel === "sync") renderSyncPanel();
       if (btn.dataset.panel === "import") loadImport();
       if (btn.dataset.panel === "app") loadAppPanel();
     });
@@ -1061,8 +1074,11 @@
     try {
       appInfo = await appApi("/api/app/info");
       document.getElementById("tab-app").classList.remove("hidden");
+      // Синхронизация ходит в /api/export-backup и /api/restore-backup —
+      // они есть у приложения (core/api.js), но не у голого сайта.
+      document.getElementById("tab-sync").classList.remove("hidden");
     } catch {
-      // Обычный браузер — панели просто нет.
+      // Обычный браузер — панелей приложения просто нет.
     }
   }
 
@@ -1188,6 +1204,228 @@
       setTimeout(() => location.reload(), 900);
     } catch (e) {
       flashStatus("status-backup", false, e.message);
+    }
+  }
+
+  // ── Синхронизация ────────────────────────────
+  // Вся логика — в app/js/sync.js, здесь только экран: две панели,
+  // «не подключено» и «подключено», и разбор конфликтов, если они есть.
+  let syncBusy = false;
+
+  function renderSyncPanel() {
+    const box = document.getElementById("syncPanel");
+    const config = getSyncConfig();
+    box.innerHTML = config ? syncConnectedHtml(config) : syncSetupHtml();
+  }
+
+  function syncSetupHtml() {
+    return `
+      <p class="panel-intro" data-i18n>
+        Свободно и без своего сервера: приватный репозиторий на GitHub
+        как общее хранилище для всех твоих устройств — телефона,
+        компьютера, ещё одного компьютера. GitHub здесь единственный
+        сервер, а токен и служебные данные синхронизации остаются
+        только на этом устройстве.
+      </p>
+      <ol class="panel-intro" style="padding-left:1.2em;display:flex;flex-direction:column;gap:.5em;">
+        <li data-i18n>Заведи аккаунт на github.com, если его ещё нет — бесплатно.</li>
+        <li>
+          <span data-i18n>Создай токен доступа —</span>
+          <a href="https://github.com/settings/tokens/new?scopes=repo&description=TasteID" target="_blank" rel="noopener" data-i18n>по этой ссылке</a><span data-i18n>, галочка «repo» уже отмечена. Внизу страницы — «Generate token».</span>
+        </li>
+        <li data-i18n>Скопируй токен (он показывается один раз) и вставь сюда.</li>
+      </ol>
+      <div class="field">
+        <label data-i18n>Токен доступа</label>
+        <input type="password" id="sync-token" placeholder="ghp_…" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n>Название репозитория</label>
+        <input type="text" id="sync-repo" value="tasteid-vault">
+        <p class="panel-intro" data-i18n>
+          Если такого репозитория ещё нет на твоём GitHub — создадим
+          сами, приватным. Если уже есть (например, второе устройство
+          его уже завело) — подключимся к нему.
+        </p>
+      </div>
+      <button class="btn btn-primary" onclick="connectSync()" id="sync-connect-btn" data-i18n>Подключить</button>
+      <div class="status-msg" id="status-sync"></div>
+    `;
+  }
+
+  function syncConnectedHtml(config) {
+    const state = getSyncState();
+    const last = state.lastSyncAt
+      ? new Date(state.lastSyncAt).toLocaleString("ru-RU")
+      : i18n("ещё не было");
+    return `
+      <p class="panel-intro">
+        ${i18n("Подключено к")}
+        <a href="https://github.com/${esc(config.owner)}/${esc(config.repo)}" target="_blank" rel="noopener">${esc(config.owner)}/${esc(config.repo)}</a>.
+        ${i18n("Последняя синхронизация: {when}.", { when: last })}
+      </p>
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="startSync()" id="sync-now-btn" data-i18n>Синхронизировать сейчас</button>
+        <button class="btn btn-ghost" onclick="disconnectSync()" data-i18n>Отключить</button>
+      </div>
+      <div class="status-msg" id="status-sync"></div>
+      <div id="sync-progress"></div>
+      <div id="sync-conflicts"></div>
+    `;
+  }
+
+  async function connectSync() {
+    const btn = document.getElementById("sync-connect-btn");
+    const token = document.getElementById("sync-token").value.trim();
+    const repo = document.getElementById("sync-repo").value.trim();
+    if (!token || !repo) {
+      flashStatus("status-sync", false, i18n("Заполни токен и название репозитория."));
+      return;
+    }
+
+    btn.disabled = true;
+    flashStatus("status-sync", true, i18n("Проверяем токен…"));
+    try {
+      const user = await checkGithubUser(token);
+      const config = { token, owner: user.login, repo };
+
+      flashStatus("status-sync", true, i18n("Проверяем репозиторий…"));
+      if (!(await repoExists(config))) {
+        flashStatus("status-sync", true, i18n("Репозитория ещё нет — создаём…"));
+        await createRepo(config);
+      }
+
+      saveSyncConfig(config);
+      renderSyncPanel();
+    } catch (e) {
+      flashStatus("status-sync", false, e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function disconnectSync() {
+    if (
+      !(await confirmDialog(
+        i18n(
+          "Приложение забудет токен и репозиторий на этом устройстве. Сами данные — здесь и в репозитории — никуда не денутся, подключиться заново можно в любой момент."
+        ),
+        i18n("Отключить")
+      ))
+    ) {
+      return;
+    }
+    clearSyncConfig();
+    renderSyncPanel();
+  }
+
+  async function startSync() {
+    if (syncBusy) return;
+    syncBusy = true;
+    const btn = document.getElementById("sync-now-btn");
+    btn.disabled = true;
+    document.getElementById("sync-conflicts").innerHTML = "";
+    flashStatus("status-sync", true, i18n("Синхронизируем…"));
+
+    try {
+      const config = getSyncConfig();
+      const result = await runSync(config, (done, total, path) => {
+        document.getElementById("sync-progress").textContent = `${done} / ${total}: ${path}`;
+      });
+      document.getElementById("sync-progress").textContent = "";
+
+      // Забранные файлы и картинки записываем тем же путём, что и
+      // резервную копию, — restoreBackup трогает только то, что
+      // передано, остальные файлы хранилища не затронет.
+      if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
+        await fetch("/api/restore-backup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            format: "tasteid-backup",
+            files: result.pulledFiles,
+            images: result.pulledImages,
+          }),
+        });
+      }
+
+      if (result.conflicts.length) {
+        flashStatus(
+          "status-sync",
+          false,
+          i18n(
+            "Готово, но {n} файл(ов) изменились и здесь, и в репозитории — выбери, что оставить.",
+            { n: result.conflicts.length }
+          )
+        );
+        renderConflicts(config, result.conflicts);
+      } else {
+        // Сперва перерисовать («последняя синхронизация» обновится),
+        // потом показать статус — иначе renderSyncPanel() тут же стирает
+        // status-sync вместе со всей панелью, и человек не успевает
+        // увидеть «Готово» ни на миг.
+        renderSyncPanel();
+        flashStatus(
+          "status-sync",
+          true,
+          i18n("Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.", result)
+        );
+      }
+
+      if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
+        setTimeout(() => location.reload(), 1200);
+      }
+    } catch (e) {
+      flashStatus("status-sync", false, e.message);
+    } finally {
+      syncBusy = false;
+      if (document.getElementById("sync-now-btn")) document.getElementById("sync-now-btn").disabled = false;
+    }
+  }
+
+  function renderConflicts(config, conflicts) {
+    const box = document.getElementById("sync-conflicts");
+    box.innerHTML = conflicts
+      .map(
+        (c, i) => `
+        <div class="edit-banner" style="flex-direction:column;align-items:stretch;gap:.6rem;">
+          <div class="edit-banner-title">${esc(c.path)}</div>
+          <div class="row" style="gap:10px;">
+            <button class="btn btn-ghost" onclick="pickConflict(${i}, 'local')" data-i18n>Оставить моё</button>
+            <button class="btn btn-ghost" onclick="pickConflict(${i}, 'remote')" data-i18n>Взять оттуда</button>
+          </div>
+        </div>`
+      )
+      .join("");
+    window.__syncConflicts = conflicts;
+    window.__syncConfig = config;
+  }
+
+  async function pickConflict(index, choice) {
+    const conflict = window.__syncConflicts[index];
+    try {
+      const remoteValue = await resolveConflict(window.__syncConfig, conflict, choice);
+      if (choice === "remote") {
+        const payload =
+          conflict.kind === "images"
+            ? { images: { [conflict.path]: remoteValue } }
+            : { files: { [conflict.path]: remoteValue } };
+        await fetch("/api/restore-backup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ format: "tasteid-backup", ...payload }),
+        });
+      }
+      window.__syncConflicts.splice(index, 1);
+      if (window.__syncConflicts.length) {
+        renderConflicts(window.__syncConfig, window.__syncConflicts);
+      } else {
+        document.getElementById("sync-conflicts").innerHTML = "";
+        flashStatus("status-sync", true, i18n("Конфликты решены."));
+        if (choice === "remote") setTimeout(() => location.reload(), 900);
+      }
+    } catch (e) {
+      flashStatus("status-sync", false, e.message);
     }
   }
 
