@@ -8,6 +8,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/fonts.css?v=1">
+<script src="/js/i18n.js?v=1"></script>
+<script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
@@ -339,7 +341,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 <body>
 
 <header>
-  <div class="header-eyebrow" id="page-subtitle">Добавить отзыв</div>
+  <div class="header-eyebrow" id="page-subtitle" data-i18n>Добавить отзыв</div>
   <a href="/" class="logo">TasteID</a>
   <div class="header-deco">
     <span></span><span></span><span></span><span></span><span></span>
@@ -351,50 +353,50 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
   <!-- Баннер редактирования -->
   <div class="edit-banner" id="edit-banner" style="display:none">
     <div>Режим редактирования — <span class="edit-banner-title" id="edit-title-hint"></span></div>
-    <button class="btn-new" onclick="resetToNew()">Новый отзыв</button>
+    <button class="btn-new" onclick="resetToNew()" data-i18n>Новый отзыв</button>
   </div>
 
   <!-- Основное -->
-  <h2 class="section-title">Основное</h2>
+  <h2 class="section-title" data-i18n>Основное</h2>
   <div class="grid">
     <div class="field">
-      <label>Название *</label>
-      <input type="text" id="f-title" placeholder="Название">
+      <label data-i18n>Название *</label>
+      <input type="text" id="f-title" placeholder="Название" data-i18n-placeholder="Название">
     </div>
     <div class="field">
-      <label>Год</label>
-      <input type="text" id="f-year" placeholder="Год выхода">
+      <label data-i18n>Год</label>
+      <input type="text" id="f-year" placeholder="Год выхода" data-i18n-placeholder="Год выхода">
     </div>
     <div class="field">
-      <label>Тип</label>
+      <label data-i18n>Тип</label>
       <div class="src-type-wrap" style="width:100%;">
         <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleTypePickerDropdown()">
-          <span id="type-picker-label">Аниме</span><span class="src-caret">▾</span>
+          <span id="type-picker-label" data-i18n>Аниме</span><span class="src-caret">▾</span>
         </button>
         <div class="src-type-dropdown hidden" id="type-picker-dropdown"></div>
       </div>
       <input type="hidden" id="f-type" value="anime">
     </div>
     <div class="field">
-      <label>Статус</label>
+      <label data-i18n>Статус</label>
       <div class="src-type-wrap" style="width:100%;">
         <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleStatusPickerDropdown()">
-          <span id="status-picker-label">Завершено</span><span class="src-caret">▾</span>
+          <span id="status-picker-label" data-i18n>Завершено</span><span class="src-caret">▾</span>
         </button>
         <div class="src-type-dropdown hidden" id="status-picker-dropdown"></div>
       </div>
       <input type="hidden" id="f-status" value="completed">
     </div>
     <div class="field">
-      <label>Формат (доп.)</label>
-      <input type="text" id="f-format" placeholder="Например: 12 серий">
+      <label data-i18n>Формат (доп.)</label>
+      <input type="text" id="f-format" placeholder="Например: 12 серий" data-i18n-placeholder="Например: 12 серий">
     </div>
     <div class="field">
       <label>&nbsp;</label>
       <input type="checkbox" id="f-favorite" hidden>
       <button type="button" class="btn btn-ghost fav-toggle" id="fav-toggle"
               aria-pressed="false" onclick="toggleFavorite()">
-        <span id="fav-toggle-label">Добавить в Любимое</span>
+        <span id="fav-toggle-label" data-i18n>Добавить в Любимое</span>
       </button>
     </div>
   </div>
@@ -403,25 +405,25 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
        Отдельного заголовка нет: кнопка «Добавить обложку» и так
        называет раздел, а лишняя строка только удлиняла форму. -->
   <div class="src-field" id="cover-field">
-    <button type="button" class="src-add-btn" id="cover-add-btn" onclick="openCoverPanel()">Добавить обложку</button>
+    <button type="button" class="src-add-btn" id="cover-add-btn" onclick="openCoverPanel()" data-i18n>Добавить обложку</button>
     <div class="cover-block hidden" id="cover-panel">
       <img id="cover-img" class="cover-preview">
       <div class="cover-controls">
         <div class="cover-controls-head">
           <div class="field" style="margin-bottom:0;flex:1;">
-            <label>Ссылка на обложку</label>
+            <label data-i18n>Ссылка на обложку</label>
             <input type="text" id="f-cover" placeholder="https://..." oninput="previewCover(this.value); scheduleBackupCover();">
           </div>
           <button type="button" class="icon-btn" title="Убрать обложку" onclick="closeCoverPanel()">✕</button>
         </div>
-        <div class="hint">Или загрузи файл — сожмётся и сконвертируется в WebP автоматически.</div>
+        <div class="hint" data-i18n>Или загрузи файл — сожмётся и сконвертируется в WebP автоматически.</div>
         <div class="cover-upload-row">
           <label class="btn btn-ghost file-btn">
             <input type="file" id="f-cover-upload" accept="image/*" onchange="updateFileBtnName(this)">
-            <span>Выбрать файл</span>
+            <span data-i18n>Выбрать файл</span>
           </label>
           <span class="file-btn-name" id="f-cover-upload-name"></span>
-          <button type="button" class="btn btn-ghost" onclick="uploadCoverFile()">Загрузить как обложку</button>
+          <button type="button" class="btn btn-ghost" onclick="uploadCoverFile()" data-i18n>Загрузить как обложку</button>
         </div>
         <div id="cover-upload-status" class="status-msg" style="margin:.4rem 0 0;text-align:left;min-height:0;"></div>
       </div>
@@ -431,15 +433,15 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 
   <!-- Даты — состав полей зависит от статуса (см. updateDateFields) -->
   <div class="sec collapsed" id="sec-dates">
-    <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('dates')">Добавить дату</button>
+    <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('dates')" data-i18n>Добавить дату</button>
     <div class="sec-body">
       <div class="sec-head">
-        <span class="sec-title">Даты</span>
+        <span class="sec-title" data-i18n>Даты</span>
         <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('dates', false)">✕</button>
       </div>
       <div id="dates-section"></div>
       <div class="field" style="max-width:220px;margin-bottom:0;">
-        <label>Пересмотров (не считая первого раза)</label>
+        <label data-i18n>Пересмотров (не считая первого раза)</label>
         <input type="number" id="rewatch-count" min="0" value="0" step="1">
       </div>
     </div>
@@ -449,7 +451,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
   <!-- Источники. Второе поле спрятано до тех пор, пока не понадобится:
        показывать сразу два предложения «добавить источник» смысла нет. -->
   <div class="src-field" id="src-field-1">
-    <button type="button" class="src-add-btn" id="src-add-btn-1" onclick="openSourcePanel(1)">Добавить источник</button>
+    <button type="button" class="src-add-btn" id="src-add-btn-1" onclick="openSourcePanel(1)" data-i18n>Добавить источник</button>
     <div class="src-panel hidden" id="src-panel-1">
       <div class="src-panel-row">
         <div class="src-type-wrap">
@@ -461,8 +463,8 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
         <input type="text" id="f-url" class="src-url-input" placeholder="https://" oninput="onSourceUrlChange(1)">
         <button type="button" class="icon-btn" title="Убрать источник" onclick="closeSourcePanel(1)">✕</button>
       </div>
-      <div class="hint" style="margin:.6rem 0 0;">Ссылка на публикацию отзыва на стороне — например, на Teletype.</div>
-      <button type="button" class="btn-new" id="add-second-source" style="margin-top:.6rem;" onclick="showSecondSource()">Добавить ещё один источник</button>
+      <div class="hint" style="margin:.6rem 0 0;" data-i18n>Ссылка на публикацию отзыва на стороне — например, на Teletype.</div>
+      <button type="button" class="btn-new" id="add-second-source" style="margin-top:.6rem;" onclick="showSecondSource()" data-i18n>Добавить ещё один источник</button>
     </div>
     <input type="hidden" id="f-source" value="teletype">
   </div>
@@ -486,36 +488,36 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
   <!-- Текст отзыва: превью и полный текст — один раздел. Это две части
        одного и того же, разносить их по двум кнопкам было незачем. -->
   <div class="sec collapsed" id="sec-text">
-    <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('text')">Добавить текст отзыва</button>
+    <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('text')" data-i18n>Добавить текст отзыва</button>
     <div class="sec-body">
       <div class="sec-head">
-        <span class="sec-title">Текст отзыва</span>
+        <span class="sec-title" data-i18n>Текст отзыва</span>
         <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('text', false)">✕</button>
       </div>
       <div class="field">
-        <label>Превью — показывается на карточке</label>
-        <textarea id="f-preview" placeholder="Пара предложений — что это и о чём…" oninput="updatePreview()"></textarea>
-        <div class="preview-box" id="preview-out">Здесь появится превью…</div>
+        <label data-i18n>Превью — показывается на карточке</label>
+        <textarea id="f-preview" placeholder="Пара предложений — что это и о чём…" data-i18n-placeholder="Пара предложений — что это и о чём…" oninput="updatePreview()"></textarea>
+        <div class="preview-box" id="preview-out" data-i18n>Здесь появится превью…</div>
       </div>
       <div class="field" style="margin-bottom:0;">
-        <label>Полный текст — необязательно</label>
-        <textarea id="f-review-full" placeholder="Развёрнутый отзыв — откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник." style="min-height:220px;"></textarea>
+        <label data-i18n>Полный текст — необязательно</label>
+        <textarea id="f-review-full" placeholder="Развёрнутый отзыв — откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник." data-i18n-placeholder="Развёрнутый отзыв — откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник." style="min-height:220px;"></textarea>
       </div>
     </div>
   </div>
 
   <!-- Оценка и теги — тоже один раздел: и то и другое про «как оценил» -->
   <div class="sec collapsed" id="sec-gradetags">
-    <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('gradetags')">Добавить оценку и теги</button>
+    <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('gradetags')" data-i18n>Добавить оценку и теги</button>
     <div class="sec-body">
       <div class="sec-head">
-        <span class="sec-title">Оценка и теги</span>
+        <span class="sec-title" data-i18n>Оценка и теги</span>
         <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('gradetags', false)">✕</button>
       </div>
       <div class="grades-grid" id="grades-grid"></div>
       <div class="field" style="margin:1.25rem 0 .75rem;">
-        <label>Теги</label>
-        <button type="button" class="btn-new" onclick="openTagModal()">Новый тег</button>
+        <label data-i18n>Теги</label>
+        <button type="button" class="btn-new" onclick="openTagModal()" data-i18n>Новый тег</button>
       </div>
       <div class="tags-grid" id="tags-grid"></div>
     </div>
@@ -523,14 +525,14 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 
   <!-- Сохранить -->
   <div class="divider"></div>
-  <button class="btn-save" id="btn-save" onclick="saveReview()">Сохранить отзыв</button>
+  <button class="btn-save" id="btn-save" onclick="saveReview()" data-i18n>Сохранить отзыв</button>
   <div class="status-msg" id="status"></div>
 
   <!-- Удаление: только в режиме правки. Ссылкой, а не кнопкой, и внизу —
        чтобы не оказаться под пальцем рядом с «Сохранить». -->
   <div class="danger-zone" id="danger-zone" hidden>
-    <button type="button" class="tm-link tm-danger" onclick="deleteReview()">Удалить этот отзыв</button>
-    <span class="danger-hint">Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».</span>
+    <button type="button" class="tm-link tm-danger" onclick="deleteReview()" data-i18n>Удалить этот отзыв</button>
+    <span class="danger-hint" data-i18n>Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».</span>
   </div>
 
 </main>
@@ -539,59 +541,59 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 <div class="modal-overlay hidden" id="tag-modal-overlay" onclick="closeTagModalOnOverlay(event)">
   <div class="modal">
     <button class="modal-close" onclick="closeTagModal()">✕</button>
-    <div class="modal-title" id="tag-modal-title">Новый тег</div>
+    <div class="modal-title" id="tag-modal-title" data-i18n>Новый тег</div>
 
     <div class="tag-modal-tabs">
-      <button type="button" class="tag-modal-tab active" data-tab="tag" onclick="switchTagModalTab('tag')">Тег</button>
-      <button type="button" class="tag-modal-tab" data-tab="cat" onclick="switchTagModalTab('cat')">Категория</button>
+      <button type="button" class="tag-modal-tab active" data-tab="tag" onclick="switchTagModalTab('tag')" data-i18n>Тег</button>
+      <button type="button" class="tag-modal-tab" data-tab="cat" onclick="switchTagModalTab('cat')" data-i18n>Категория</button>
     </div>
 
     <div class="tag-modal-tab-panel" id="tag-modal-tag-panel">
       <div class="field">
-        <label>Название тега</label>
-        <input type="text" id="tm-tag-name" placeholder="Например: Крутой саундтрек">
+        <label data-i18n>Название тега</label>
+        <input type="text" id="tm-tag-name" placeholder="Например: Крутой саундтрек" data-i18n-placeholder="Например: Крутой саундтрек">
       </div>
       <div class="field">
-        <label>Категория</label>
+        <label data-i18n>Категория</label>
         <div class="select-wrap"><select id="tm-tag-cat"></select></div>
       </div>
       <div class="field">
-        <label>Подсказка (необязательно)</label>
-        <input type="text" id="tm-tag-tip" placeholder="Короткое пояснение, что значит тег">
+        <label data-i18n>Подсказка (необязательно)</label>
+        <input type="text" id="tm-tag-tip" placeholder="Короткое пояснение, что значит тег" data-i18n-placeholder="Короткое пояснение, что значит тег">
       </div>
       <div class="tm-actions">
-        <button class="btn-save" id="tm-tag-save" onclick="submitTag()">Добавить тег</button>
-        <button type="button" class="tm-link" id="tm-tag-cancel" onclick="resetTagForm()" hidden>Отмена</button>
-        <button type="button" class="tm-link tm-danger" id="tm-tag-del" onclick="deleteTag()" hidden>Удалить</button>
+        <button class="btn-save" id="tm-tag-save" onclick="submitTag()" data-i18n>Добавить тег</button>
+        <button type="button" class="tm-link" id="tm-tag-cancel" onclick="resetTagForm()" hidden data-i18n>Отмена</button>
+        <button type="button" class="tm-link tm-danger" id="tm-tag-del" onclick="deleteTag()" hidden data-i18n>Удалить</button>
       </div>
 
       <div class="tm-list-head">
-        <span>Существующие теги</span>
-        <input type="search" id="tm-tag-search" placeholder="Поиск" oninput="renderTmTagList()">
+        <span data-i18n>Существующие теги</span>
+        <input type="search" id="tm-tag-search" placeholder="Поиск" data-i18n-placeholder="Поиск" oninput="renderTmTagList()">
       </div>
       <div class="tm-list" id="tm-tag-list"></div>
     </div>
 
     <div class="tag-modal-tab-panel" id="tag-modal-cat-panel" style="display:none;">
       <div class="field">
-        <label>Название категории</label>
-        <input type="text" id="tm-cat-name" placeholder="Например: Технические детали">
+        <label data-i18n>Название категории</label>
+        <input type="text" id="tm-cat-name" placeholder="Например: Технические детали" data-i18n-placeholder="Например: Технические детали">
       </div>
       <div class="field">
-        <label>Цвет</label>
+        <label data-i18n>Цвет</label>
         <div class="tm-color-row">
           <input type="color" id="tm-cat-color" value="#8b1a1a" oninput="markCatColorSet()">
-          <button type="button" class="tm-link" id="tm-cat-nocolor" onclick="clearCatColor()" hidden>Без цвета</button>
-          <span class="tm-note" id="tm-cat-colornote" hidden>Цвет не задан — теги будут нейтральными</span>
+          <button type="button" class="tm-link" id="tm-cat-nocolor" onclick="clearCatColor()" hidden data-i18n>Без цвета</button>
+          <span class="tm-note" id="tm-cat-colornote" hidden data-i18n>Цвет не задан — теги будут нейтральными</span>
         </div>
       </div>
       <div class="tm-actions">
-        <button class="btn-save" id="tm-cat-save" onclick="submitCategory()">Добавить категорию</button>
-        <button type="button" class="tm-link" id="tm-cat-cancel" onclick="resetCatForm()" hidden>Отмена</button>
-        <button type="button" class="tm-link tm-danger" id="tm-cat-del" onclick="deleteCategory()" hidden>Удалить</button>
+        <button class="btn-save" id="tm-cat-save" onclick="submitCategory()" data-i18n>Добавить категорию</button>
+        <button type="button" class="tm-link" id="tm-cat-cancel" onclick="resetCatForm()" hidden data-i18n>Отмена</button>
+        <button type="button" class="tm-link tm-danger" id="tm-cat-del" onclick="deleteCategory()" hidden data-i18n>Удалить</button>
       </div>
 
-      <div class="tm-list-head"><span>Категории</span></div>
+      <div class="tm-list-head"><span data-i18n>Категории</span></div>
       <div class="tm-list" id="tm-cat-list"></div>
     </div>
 
@@ -626,7 +628,7 @@ function syncFavToggle() {
   btn.classList.toggle("on", on);
   btn.setAttribute("aria-pressed", String(on));
   document.getElementById("fav-toggle-label").textContent =
-    on ? "В Любимом" : "Добавить в Любимое";
+    on ? "В Любимом" : i18n("Добавить в Любимое");
 }
 
 // ── Второй источник ────────────────────────────
@@ -693,14 +695,14 @@ function updateDateFields() {
 
   if (status === "completed") {
     section.innerHTML = `
-      <div class="hint">Если смотрел один день — заполни только «Завершил» или укажи одинаковые даты, на карточке покажется одна дата.</div>
+      <div class="hint">${i18n("Если смотрел один день — заполни только «Завершил» или укажи одинаковые даты, на карточке покажется одна дата.")}</div>
       <div class="grid">
         <div class="field">
-          <label>Начал <span style="font-size:.6rem;opacity:.5">(необязательно)</span></label>
+          <label>${i18n("Начал")} <span style="font-size:.6rem;opacity:.5">${i18n("(необязательно)")}</span></label>
           <input type="date" id="f-date-start" value="${prevStart}">
         </div>
         <div class="field">
-          <label>Завершил</label>
+          <label>${i18n("Завершил")}</label>
           <input type="date" id="f-date-end" value="${prevEnd}">
         </div>
       </div>`;
@@ -711,7 +713,7 @@ function updateDateFields() {
   section.innerHTML = `
     <div class="grid">
       <div class="field">
-        <label>Начал</label>
+        <label>${i18n("Начал")}</label>
         <input type="date" id="f-date-start" value="${prevStart}">
       </div>
     </div>`;
@@ -859,8 +861,8 @@ function switchTagModalTab(tab) {
 function tmSyncTitle() {
   const tab = document.getElementById("tag-modal-overlay").dataset.tab || "tag";
   const title = tab === "tag"
-    ? (tmTagEdit ? "Правка тега" : "Новый тег")
-    : (tmCatEdit ? "Правка категории" : "Новая категория");
+    ? (tmTagEdit ? "Правка тега" : i18n("Новый тег"))
+    : (tmCatEdit ? "Правка категории" : i18n("Новая категория"));
   document.getElementById("tag-modal-title").textContent = title;
 }
 function populateTagModalCatSelect() {
@@ -902,7 +904,7 @@ function renderTmTagList() {
   Object.keys(byCat).forEach(key => { if (!order.includes(key)) order.push(key); });
 
   if (!order.length) {
-    box.innerHTML = `<div class="tm-empty">${q ? "Ничего не найдено" : "Тегов пока нет"}</div>`;
+    box.innerHTML = `<div class="tm-empty">${q ? "Ничего не найдено" : i18n("Тегов пока нет")}</div>`;
     return;
   }
 
@@ -945,7 +947,7 @@ function tmSafeColor(value) {
 // ── Теги: форма ────────────────────────────────
 function tmSyncTagForm() {
   const editing = tmTagEdit !== null;
-  document.getElementById("tm-tag-save").textContent = editing ? "Сохранить тег" : "Добавить тег";
+  document.getElementById("tm-tag-save").textContent = editing ? "Сохранить тег" : i18n("Добавить тег");
   document.getElementById("tm-tag-cancel").hidden = !editing;
   document.getElementById("tm-tag-del").hidden = !editing;
   tmSyncTitle();
@@ -981,7 +983,7 @@ async function applyTagToReviews(from, to) {
     body: JSON.stringify({ _rename_tag: { from, to } }),
   });
   if (!res.ok) {
-    let message = "Справочник обновлён, но старые отзывы поправить не удалось";
+    let message = i18n("Справочник обновлён, но старые отзывы поправить не удалось");
     try { message = (await res.json()).error || message; } catch {}
     throw new Error(message);
   }
@@ -993,12 +995,12 @@ async function submitTag() {
   const tip  = document.getElementById("tm-tag-tip").value.trim();
   const from = tmTagEdit;
 
-  if (!name) { tmStatus("Введи название тега", "err"); return; }
-  if (name !== from && TAGS_MAP[name]) { tmStatus("Такой тег уже есть", "err"); return; }
+  if (!name) { tmStatus(i18n("Введи название тега"), "err"); return; }
+  if (name !== from && TAGS_MAP[name]) { tmStatus(i18n("Такой тег уже есть"), "err"); return; }
 
   const btn = document.getElementById("tm-tag-save");
   btn.disabled = true;
-  tmStatus("Сохраняем…");
+  tmStatus(i18n("Сохраняем…"));
   try {
     await patchSiteSettings((settings) => {
       settings.customTags = settings.customTags || {};
@@ -1029,7 +1031,7 @@ async function submitTag() {
       closeTagModal();
     }
   } catch (err) {
-    tmStatus(err.message || "Ошибка сохранения", "err");
+    tmStatus(err.message || i18n("Ошибка сохранения"), "err");
   } finally {
     btn.disabled = false;
   }
@@ -1038,11 +1040,11 @@ async function submitTag() {
 async function deleteTag() {
   const name = tmTagEdit;
   if (!name) return;
-  if (!(await confirmDialog(`Удалить тег «${name}»?\n\nОн пропадёт и из уже сохранённых отзывов.`))) return;
+  if (!(await confirmDialog(i18n("Удалить тег «{name}»?\n\nОн пропадёт и из уже сохранённых отзывов.", { name })))) return;
 
   const btn = document.getElementById("tm-tag-del");
   btn.disabled = true;
-  tmStatus("Удаляем…");
+  tmStatus(i18n("Удаляем…"));
   try {
     await patchSiteSettings((settings) => {
       settings.customTags = settings.customTags || {};
@@ -1057,9 +1059,9 @@ async function deleteTag() {
     selectedTags.delete(name);
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     resetTagForm();
-    tmStatus("Тег удалён", "ok");
+    tmStatus(i18n("Тег удалён"), "ok");
   } catch (err) {
-    tmStatus(err.message || "Ошибка удаления", "err");
+    tmStatus(err.message || i18n("Ошибка удаления"), "err");
   } finally {
     btn.disabled = false;
   }
@@ -1076,7 +1078,7 @@ function clearCatColor() {
 }
 function tmSyncCatForm() {
   const editing = tmCatEdit !== null;
-  document.getElementById("tm-cat-save").textContent = editing ? "Сохранить категорию" : "Добавить категорию";
+  document.getElementById("tm-cat-save").textContent = editing ? "Сохранить категорию" : i18n("Добавить категорию");
   document.getElementById("tm-cat-cancel").hidden = !editing;
   // Встроенную категорию удалить нельзя: на ней висят встроенные теги
   // из config.js, и после удаления они остались бы без категории.
@@ -1110,7 +1112,7 @@ async function submitCategory() {
   const color = document.getElementById("tm-cat-color").value;
   const editKey = tmCatEdit;
 
-  if (!name) { tmStatus("Введи название категории", "err"); return; }
+  if (!name) { tmStatus(i18n("Введи название категории"), "err"); return; }
 
   const key = editKey || (
     "custom_" + name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 30) +
@@ -1120,7 +1122,7 @@ async function submitCategory() {
 
   const btn = document.getElementById("tm-cat-save");
   btn.disabled = true;
-  tmStatus("Сохраняем…");
+  tmStatus(i18n("Сохраняем…"));
   try {
     await patchSiteSettings((settings) => {
       settings.customCategories = settings.customCategories || {};
@@ -1146,16 +1148,16 @@ async function submitCategory() {
 
     if (editKey) {
       resetCatForm();
-      tmStatus("Категория обновлена", "ok");
+      tmStatus(i18n("Категория обновлена"), "ok");
     } else {
       resetCatForm();
       switchTagModalTab("tag");
       populateTagModalCatSelect();
       document.getElementById("tm-tag-cat").value = key;
-      tmStatus("Категория добавлена — можно выбрать её выше", "ok");
+      tmStatus(i18n("Категория добавлена — можно выбрать её выше"), "ok");
     }
   } catch (err) {
-    tmStatus(err.message || "Ошибка сохранения", "err");
+    tmStatus(err.message || i18n("Ошибка сохранения"), "err");
   } finally {
     btn.disabled = false;
   }
@@ -1170,16 +1172,16 @@ async function deleteCategory() {
 
   const used = Object.values(TAGS_MAP).filter(info => info.cat === key).length;
   if (used) {
-    const word = used % 10 === 1 && used % 100 !== 11 ? "тег"
-      : (used % 10 >= 2 && used % 10 <= 4 && (used % 100 < 12 || used % 100 > 14) ? "тега" : "тегов");
+    const word = used % 10 === 1 && used % 100 !== 11 ? i18n("тег")
+      : (used % 10 >= 2 && used % 10 <= 4 && (used % 100 < 12 || used % 100 > 14) ? "тега" : i18n("тегов"));
     tmStatus(`В категории ещё ${used} ${word} — сначала перенеси их в другую`, "err");
     return;
   }
-  if (!(await confirmDialog(`Удалить категорию «${CAT_LABELS[key]}»?`))) return;
+  if (!(await confirmDialog(i18n("Удалить категорию «{name}»?", { name: CAT_LABELS[key] })))) return;
 
   const btn = document.getElementById("tm-cat-del");
   btn.disabled = true;
-  tmStatus("Удаляем…");
+  tmStatus(i18n("Удаляем…"));
   try {
     await patchSiteSettings((settings) => {
       if (settings.customCategories) delete settings.customCategories[key];
@@ -1198,9 +1200,9 @@ async function deleteCategory() {
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     populateTagModalCatSelect();
     resetCatForm();
-    tmStatus("Категория удалена", "ok");
+    tmStatus(i18n("Категория удалена"), "ok");
   } catch (err) {
-    tmStatus(err.message || "Ошибка удаления", "err");
+    tmStatus(err.message || i18n("Ошибка удаления"), "err");
   } finally {
     btn.disabled = false;
   }
@@ -1283,16 +1285,16 @@ function renderTypeDropdown(n) {
   const options = Object.entries(SOURCE_LABELS).map(([key, label]) => `
     <div class="src-type-option${key === current ? " active" : ""}" onclick="selectSourceType(${n}, '${key}')">
       <span>${esc(label)}</span>
-      ${!SOURCE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="Удалить" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>` : ""}
+      ${!SOURCE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>` : ""}
     </div>`).join("");
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
     <div class="src-type-add-row">
-      <button type="button" class="btn-new src-type-add-btn" onclick="showAddTypeForm(${n})">Добавить</button>
+      <button type="button" class="btn-new src-type-add-btn" onclick="showAddTypeForm(${n})">${i18n("Добавить")}</button>
     </div>
     <div class="src-type-add-form hidden" id="src-type-add-form-${n}">
-      <input type="text" id="src-type-new-name-${n}" placeholder="Например: Дзен">
-      <button type="button" class="btn-new" onclick="confirmAddType(${n})">Ок</button>
+      <input type="text" id="src-type-new-name-${n}" placeholder="${i18n("Например: Дзен")}" data-i18n-placeholder="${i18n("Например: Дзен")}">
+      <button type="button" class="btn-new" onclick="confirmAddType(${n})">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="src-type-status-${n}"></div>`;
 }
@@ -1339,12 +1341,12 @@ async function confirmAddType(n) {
   const statusEl = document.getElementById(`src-type-status-${n}`);
   const name = input.value.trim();
 
-  if (!name) { statusEl.textContent = "Введи название источника"; statusEl.className = "status-msg src-type-status err"; return; }
+  if (!name) { statusEl.textContent = i18n("Введи название источника"); statusEl.className = "status-msg src-type-status err"; return; }
   const exists = Object.values(SOURCE_LABELS).some(l => l.toLowerCase() === name.toLowerCase());
-  if (exists) { statusEl.textContent = "Такой источник уже есть"; statusEl.className = "status-msg src-type-status err"; return; }
+  if (exists) { statusEl.textContent = i18n("Такой источник уже есть"); statusEl.className = "status-msg src-type-status err"; return; }
 
   const key = "custom_" + name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 30) + "_" + Date.now().toString(36).slice(-4);
-  statusEl.textContent = "Сохраняем…";
+  statusEl.textContent = i18n("Сохраняем…");
   statusEl.className = "status-msg src-type-status";
   try {
     await patchSiteSettings((settings) => {
@@ -1355,13 +1357,13 @@ async function confirmAddType(n) {
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     selectSourceType(n, key);
   } catch (err) {
-    statusEl.textContent = err.message || "Ошибка сохранения";
+    statusEl.textContent = err.message || i18n("Ошибка сохранения");
     statusEl.className = "status-msg src-type-status err";
   }
 }
 
 async function removeSourceType(key) {
-  if (!(await confirmDialog(`Удалить источник «${SOURCE_LABELS[key]}»?`))) return;
+  if (!(await confirmDialog(i18n("Удалить источник «{name}»?", { name: SOURCE_LABELS[key] })))) return;
   try {
     await patchSiteSettings((settings) => {
       settings.customSources = settings.customSources || {};
@@ -1376,7 +1378,7 @@ async function removeSourceType(key) {
       if (el.value === key) { el.value = "teletype"; syncSourcePanel(n); }
     });
   } catch (err) {
-    alert(err.message || "Ошибка удаления");
+    alert(err.message || i18n("Ошибка удаления"));
   }
 }
 
@@ -1412,22 +1414,22 @@ function renderTypePickerDropdown() {
   const options = Object.entries(TYPE_LABELS).map(([key, label]) => `
     <div class="src-type-option${key === current ? " active" : ""}" onclick="selectTypePicker('${key}')">
       <span>${esc(label)}</span>
-      ${!TYPE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="Удалить" onclick="event.stopPropagation(); removeTypePicker('${key}')">✕</span>` : ""}
+      ${!TYPE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeTypePicker('${key}')">✕</span>` : ""}
     </div>`).join("");
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
     <div class="src-type-add-row">
-      <button type="button" class="btn-new src-type-add-btn" onclick="showAddTypeForm()">Добавить тип</button>
+      <button type="button" class="btn-new src-type-add-btn" onclick="showAddTypeForm()">${i18n("Добавить тип")}</button>
     </div>
     <div class="src-type-add-form hidden" id="type-picker-add-form" style="flex-direction:column;align-items:stretch;">
-      <input type="text" id="type-picker-new-name" placeholder="Например: Артбук" oninput="prefillTypePlural()">
+      <input type="text" id="type-picker-new-name" placeholder="${i18n("Например: Артбук")}" data-i18n-placeholder="${i18n("Например: Артбук")}" oninput="prefillTypePlural()">
       <div style="display:flex;gap:.4rem;margin-top:.4rem;">
-        <input type="text" id="type-picker-plural-one" placeholder="1 штука" style="font-size:.78rem;">
+        <input type="text" id="type-picker-plural-one" placeholder="${i18n("1 штука")}" data-i18n-placeholder="${i18n("1 штука")}" style="font-size:.78rem;">
         <input type="text" id="type-picker-plural-few" placeholder="2–4" style="font-size:.78rem;">
         <input type="text" id="type-picker-plural-many" placeholder="5+" style="font-size:.78rem;">
       </div>
-      <div class="hint" style="margin-top:.3rem;font-size:.68rem;">Склонение подставилось автоматически (чёрн­овик) — поправь, если неточно.</div>
-      <button type="button" class="btn-new" style="margin-top:.4rem;" onclick="confirmAddType()">Добавить</button>
+      <div class="hint" style="margin-top:.3rem;font-size:.68rem;">${i18n("Склонение подставилось автоматически (чёрн­овик) — поправь, если неточно.")}</div>
+      <button type="button" class="btn-new" style="margin-top:.4rem;" onclick="confirmAddType()">${i18n("Добавить")}</button>
     </div>
     <div class="status-msg src-type-status" id="type-picker-status"></div>`;
 }
@@ -1483,16 +1485,16 @@ async function confirmAddType() {
   const statusEl = document.getElementById("type-picker-status");
   const name = nameInput.value.trim();
 
-  if (!name) { statusEl.textContent = "Введи название типа"; statusEl.className = "status-msg src-type-status err"; return; }
+  if (!name) { statusEl.textContent = i18n("Введи название типа"); statusEl.className = "status-msg src-type-status err"; return; }
   const exists = Object.values(TYPE_LABELS).some(l => l.toLowerCase() === name.toLowerCase());
-  if (exists) { statusEl.textContent = "Такой тип уже есть"; statusEl.className = "status-msg src-type-status err"; return; }
+  if (exists) { statusEl.textContent = i18n("Такой тип уже есть"); statusEl.className = "status-msg src-type-status err"; return; }
 
   const one  = document.getElementById("type-picker-plural-one").value.trim() || name;
   const few  = document.getElementById("type-picker-plural-few").value.trim() || name;
   const many = document.getElementById("type-picker-plural-many").value.trim() || name;
 
   const key = "custom_" + name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 30) + "_" + Date.now().toString(36).slice(-4);
-  statusEl.textContent = "Сохраняем…";
+  statusEl.textContent = i18n("Сохраняем…");
   statusEl.className = "status-msg src-type-status";
   try {
     await patchSiteSettings((settings) => {
@@ -1506,13 +1508,13 @@ async function confirmAddType() {
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     selectTypePicker(key);
   } catch (err) {
-    statusEl.textContent = err.message || "Ошибка сохранения";
+    statusEl.textContent = err.message || i18n("Ошибка сохранения");
     statusEl.className = "status-msg src-type-status err";
   }
 }
 
 async function removeTypePicker(key) {
-  if (!(await confirmDialog(`Удалить тип «${TYPE_LABELS[key]}»?`))) return;
+  if (!(await confirmDialog(i18n("Удалить тип «{name}»?", { name: TYPE_LABELS[key] })))) return;
   try {
     await patchSiteSettings((settings) => {
       settings.customTypes = settings.customTypes || {};
@@ -1526,7 +1528,7 @@ async function removeTypePicker(key) {
     if (typePickerOpen) renderTypePickerDropdown();
     if (document.getElementById("f-type").value === key) selectTypePicker("anime");
   } catch (err) {
-    alert(err.message || "Ошибка удаления");
+    alert(err.message || i18n("Ошибка удаления"));
   }
 }
 
@@ -1550,7 +1552,7 @@ function statusOptions() {
   );
   return [
     ...buckets.map((b) => ({ key: b.key, label: b.label, removable: b.removable !== false })),
-    { key: "completed", label: siteLabel("statuses", "archive", "Завершено"), removable: false },
+    { key: "completed", label: siteLabel("statuses", "archive", i18n("Завершено")), removable: false },
   ];
 }
 
@@ -1568,7 +1570,7 @@ function renderStatusPickerDropdown() {
       (o) => `
     <div class="src-type-option${o.key === current ? " active" : ""}" onclick="selectStatusPicker('${esc(o.key)}')">
       <span>${esc(o.label)}</span>
-      ${o.removable ? `<span class="icon-btn src-type-remove" title="Удалить" onclick="event.stopPropagation(); removeStatusPicker('${esc(o.key)}')">✕</span>` : ""}
+      ${o.removable ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeStatusPicker('${esc(o.key)}')">✕</span>` : ""}
     </div>`
     )
     .join("");
@@ -1576,11 +1578,11 @@ function renderStatusPickerDropdown() {
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
     <div class="src-type-add-row">
-      <button type="button" class="btn-new src-type-add-btn" onclick="showAddStatusForm()">Добавить статус</button>
+      <button type="button" class="btn-new src-type-add-btn" onclick="showAddStatusForm()">${i18n("Добавить статус")}</button>
     </div>
     <div class="src-type-add-form hidden" id="status-picker-add-form">
-      <input type="text" id="status-picker-new-name" placeholder="Например: Перечитываю">
-      <button type="button" class="btn-new" onclick="confirmAddStatus()">Ок</button>
+      <input type="text" id="status-picker-new-name" placeholder="${i18n("Например: Перечитываю")}" data-i18n-placeholder="${i18n("Например: Перечитываю")}">
+      <button type="button" class="btn-new" onclick="confirmAddStatus()">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="status-picker-status"></div>`;
 }
@@ -1641,12 +1643,12 @@ async function confirmAddStatus() {
   const name = input.value.trim();
 
   if (!name) {
-    statusEl.textContent = "Введи название статуса";
+    statusEl.textContent = i18n("Введи название статуса");
     statusEl.className = "status-msg src-type-status err";
     return;
   }
   if (statusOptions().some((o) => o.label.toLowerCase() === name.toLowerCase())) {
-    statusEl.textContent = "Такой статус уже есть";
+    statusEl.textContent = i18n("Такой статус уже есть");
     statusEl.className = "status-msg src-type-status err";
     return;
   }
@@ -1657,7 +1659,7 @@ async function confirmAddStatus() {
     "_" +
     Date.now().toString(36).slice(-4);
 
-  statusEl.textContent = "Сохраняем…";
+  statusEl.textContent = i18n("Сохраняем…");
   statusEl.className = "status-msg src-type-status";
   try {
     await patchSiteSettings((settings) => {
@@ -1674,13 +1676,13 @@ async function confirmAddStatus() {
     ).concat({ key, label: name, removable: true });
     selectStatusPicker(key);
   } catch (err) {
-    statusEl.textContent = err.message || "Ошибка сохранения";
+    statusEl.textContent = err.message || i18n("Ошибка сохранения");
     statusEl.className = "status-msg src-type-status err";
   }
 }
 
 async function removeStatusPicker(key) {
-  if (!(await confirmDialog(`Удалить статус «${statusLabel(key)}»?`))) return;
+  if (!(await confirmDialog(i18n("Удалить статус «{name}»?", { name: statusLabel(key) })))) return;
   try {
     await patchSiteSettings((settings) => {
       if (!settings.statusBuckets) return;
@@ -1693,7 +1695,7 @@ async function removeStatusPicker(key) {
       renderStatusPickerDropdown();
     }
   } catch (err) {
-    alert(err.message || "Ошибка удаления");
+    alert(err.message || i18n("Ошибка удаления"));
   }
 }
 
@@ -1759,8 +1761,8 @@ function resetToNew() {
   editingIds = {};
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("danger-zone").hidden = true;
-  document.getElementById("page-subtitle").textContent = "Добавить отзыв";
-  document.getElementById("btn-save").textContent = "Сохранить отзыв";
+  document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
+  document.getElementById("btn-save").textContent = i18n("Сохранить отзыв");
   history.replaceState(null, "", "add.html");
 
   ["f-title","f-year","f-format","f-cover","f-url","f-preview","f-url2","f-review-full","f-cover-backup"]
@@ -1786,7 +1788,7 @@ function resetToNew() {
   // Новый отзыв начинается с компактной формы
   collapseAllSections();
 
-  document.getElementById("preview-out").textContent = "Здесь появится превью…";
+  document.getElementById("preview-out").textContent = i18n("Здесь появится превью…");
   document.getElementById("cover-img").style.display = "none";
   selectedGrade = null;
   selectedTags.clear();
@@ -1811,21 +1813,21 @@ async function initPage() {
       String(r.id) === editId || encodeURIComponent(r.title) === editId
     );
     if (!review) {
-      setStatus("err", "Отзыв с таким ID не найден");
+      setStatus("err", i18n("Отзыв с таким ID не найден"));
       return;
     }
     editingId = review.id ?? review.title;
     fillForm(review);
     document.getElementById("edit-banner").style.display = "flex";
     document.getElementById("edit-title-hint").textContent = review.title;
-    document.getElementById("page-subtitle").textContent = "Редактировать отзыв";
-    document.getElementById("btn-save").textContent = "Сохранить изменения";
+    document.getElementById("page-subtitle").textContent = i18n("Редактировать отзыв");
+    document.getElementById("btn-save").textContent = i18n("Сохранить изменения");
     // Удаляем строго по номеру записи. У совсем старых записей номера
     // может не оказаться — тогда кнопки просто нет: удалять по названию
     // нельзя, под одним названием лежат разные записи.
     document.getElementById("danger-zone").hidden = typeof review.id !== "number";
   } catch (e) {
-    setStatus("err", "Не удалось загрузить отзыв: " + e.message);
+    setStatus("err", i18n("Не удалось загрузить отзыв: ") + e.message);
   }
 }
 
@@ -1836,10 +1838,10 @@ async function initPage() {
 async function deleteReview() {
   if (typeof editingId !== "number") return;
 
-  const title = document.getElementById("f-title").value.trim() || "эту запись";
-  if (!(await confirmDialog(`Удалить «${title}»?\n\nЗапись пропадёт из отзывов, «Любимого» и тир-листа.\nВернуть её можно будет только откатом в «Истории версий».`))) return;
+  const title = document.getElementById("f-title").value.trim() || i18n("эту запись");
+  if (!(await confirmDialog(i18n("Удалить «{name}»?\n\nЗапись пропадёт из отзывов, «Любимого» и тир-листа.\nВернуть её можно будет только откатом в «Истории версий».", { name: title })))) return;
 
-  setStatus("", "Удаляем…");
+  setStatus("", i18n("Удаляем…"));
   try {
     const res = await fetch("/api/delete-review", {
       method: "POST",
@@ -1856,13 +1858,13 @@ async function deleteReview() {
     document.getElementById("btn-save").disabled = true;
     setTimeout(() => { location.href = "/"; }, 1800);
   } catch (e) {
-    setStatus("err", "Не удалось удалить: " + e.message);
+    setStatus("err", i18n("Не удалось удалить: ") + e.message);
   }
 }
 
 function updatePreview() {
   const val = document.getElementById("f-preview").value;
-  document.getElementById("preview-out").textContent = val || "Здесь появится превью…";
+  document.getElementById("preview-out").textContent = val || i18n("Здесь появится превью…");
 }
 
 function previewCover(url) {
@@ -1917,7 +1919,7 @@ function convertCoverToWebp(file) {
       canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
       canvas.toBlob((blob) => {
-        if (!blob) return reject(new Error("Не удалось сконвертировать"));
+        if (!blob) return reject(new Error(i18n("Не удалось сконвертировать")));
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result.split(",")[1]);
         reader.onerror = reject;
@@ -1933,14 +1935,14 @@ async function uploadCoverFile() {
   const fileInput = document.getElementById("f-cover-upload");
   const status = document.getElementById("cover-upload-status");
   if (!fileInput.files.length) {
-    status.textContent = "Выбери файл";
+    status.textContent = i18n("Выбери файл");
     status.style.color = "var(--red-hi, #c0392b)";
     return;
   }
   const title = document.getElementById("f-title").value.trim() || "cover";
   const slug = title.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
 
-  status.textContent = "Обрабатываю...";
+  status.textContent = i18n("Обрабатываю...");
   status.style.color = "";
   try {
     const base64 = await convertCoverToWebp(fileInput.files[0]);
@@ -1951,16 +1953,16 @@ async function uploadCoverFile() {
       body: JSON.stringify({ basePath: "covers", filename: slug + ".webp", contentBase64: base64 }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Ошибка загрузки");
+    if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
     // Обложка загружена напрямую — своя резервная копия ей не нужна.
     document.getElementById("f-cover").value = "";
     document.getElementById("f-cover-backup").value = "/" + data.path;
     previewCover("/" + data.path);
-    status.textContent = "Загружено ✓";
+    status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
-    status.textContent = "Ошибка: " + e.message;
+    status.textContent = i18n("Ошибка: ") + e.message;
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
@@ -1983,7 +1985,7 @@ async function backupCoverNow() {
   const title = document.getElementById("f-title").value.trim() || "cover";
   const slug = title.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
 
-  status.textContent = "Делаю резервную копию обложки...";
+  status.textContent = i18n("Делаю резервную копию обложки...");
   status.style.color = "";
   try {
     const res = await fetch("/api/backup-cover", {
@@ -1993,12 +1995,12 @@ async function backupCoverNow() {
       body: JSON.stringify({ url, filename: slug }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Не удалось сохранить копию");
+    if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
     document.getElementById("f-cover-backup").value = data.url || ("/" + data.path);
-    status.textContent = "Резервная копия сохранена ✓";
+    status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
-    status.textContent = "Резервную копию сделать не удалось: " + e.message;
+    status.textContent = i18n("Резервную копию сделать не удалось: ") + e.message;
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
@@ -2019,7 +2021,7 @@ async function saveReview() {
   const reviewFull = document.getElementById("f-review-full").value.trim();
   const status  = document.getElementById("f-status").value;
 
-  if (!title) { setStatus("err", "Заполни название"); return; }
+  if (!title) { setStatus("err", i18n("Заполни название")); return; }
 
   // Подстраховка: если ссылку на обложку вписали и сразу сохранили, не
   // дожидаясь паузы в 1.2с — бэкап мог не успеть запуститься. Досылаем
@@ -2027,7 +2029,7 @@ async function saveReview() {
   const coverUrl = document.getElementById("f-cover").value.trim();
   if (coverUrl && coverUrl.startsWith("http") && !document.getElementById("f-cover-backup").value) {
     clearTimeout(backupCoverTimer);
-    setStatus("", "Делаю резервную копию обложки перед сохранением...");
+    setStatus("", i18n("Делаю резервную копию обложки перед сохранением..."));
     await backupCoverNow();
   }
 
@@ -2073,7 +2075,7 @@ async function saveReview() {
   if (editingId !== null) review._editId = editingId;
 
   btn.disabled = true;
-  btn.textContent = "Сохраняем…";
+  btn.textContent = i18n("Сохраняем…");
   setStatus("", "");
 
   try {
@@ -2085,20 +2087,20 @@ async function saveReview() {
     });
     const data = await res.json();
     if (res.ok) {
-      const note = (await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.";
+      const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
       setStatus("ok", editingId !== null
         ? `«${title}» обновлён.${note}`
         : `«${title}» сохранён.${note}`);
       if (editingId === null) resetToNew();
     } else {
-      setStatus("err", "Ошибка: " + (data.error || "неизвестная"));
+      setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
   } catch (e) {
-    setStatus("err", "Ошибка сети: " + e.message);
+    setStatus("err", i18n("Ошибка сети: ") + e.message);
   }
 
   btn.disabled = false;
-  btn.textContent = editingId !== null ? "Сохранить изменения" : "Сохранить отзыв";
+  btn.textContent = editingId !== null ? "Сохранить изменения" : i18n("Сохранить отзыв");
 }
 
 initPage();

@@ -46,39 +46,39 @@ function renderFavorites({ titles, characters, persons, favData }) {
   // ── Тайтлы ──────────────────────────────────
   if (isFavSectionVisible("favTitles")) html += `<section class="group">
     <div class="section-header">
-      <h2 class="section-title">${esc(siteLabel("sections", "favTitles", "Тайтлы"))}</h2>
+      <h2 class="section-title">${esc(siteLabel("sections", "favTitles", i18n("Тайтлы")))}</h2>
       ${admin ? `<a href="/reviews-order" class="admin-add-btn">Порядок</a>` : ""}
     </div>
     <div class="grid-now">
       ${titles.length
         ? titles.map((r, i) => favTitleCard(r, i)).join("")
-        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", "Пока пусто"))}</div>`}
+        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
     </div>
   </section>`;
 
   // ── Персонажи ────────────────────────────────
   if (isFavSectionVisible("favCharacters")) html += `<section class="group">
     <div class="section-header">
-      <h2 class="section-title">${esc(siteLabel("sections", "favCharacters", "Персонажи"))}</h2>
+      <h2 class="section-title">${esc(siteLabel("sections", "favCharacters", i18n("Персонажи")))}</h2>
       ${admin ? `<a href="/favorites-edit" class="admin-add-btn">Добавить</a>` : ""}
     </div>
     <div class="grid-chars">
       ${characters.length
         ? characters.map((r, i) => favPersonCard(r, i)).join("")
-        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", "Пока пусто"))}</div>`}
+        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
     </div>
   </section>`;
 
   // ── Персоны ──────────────────────────────────
   if (isFavSectionVisible("favPersons")) html += `<section class="group">
     <div class="section-header">
-      <h2 class="section-title">${esc(siteLabel("sections", "favPersons", "Персоны"))}</h2>
+      <h2 class="section-title">${esc(siteLabel("sections", "favPersons", i18n("Персоны")))}</h2>
       ${admin ? `<a href="/favorites-edit" class="admin-add-btn">Добавить</a>` : ""}
     </div>
     <div class="grid-chars">
       ${persons.length
         ? persons.map((r, i) => favPersonCard(r, i)).join("")
-        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", "Пока пусто"))}</div>`}
+        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
     </div>
   </section>`;
 
@@ -96,12 +96,12 @@ function renderFavorites({ titles, characters, persons, favData }) {
       <div class="grid-chars">
         ${entries.length
           ? entries.map((r, i) => favPersonCard(r, i)).join("")
-          : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", "Пока пусто"))}</div>`}
+          : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
       </div>
     </section>`;
   });
 
-  box.innerHTML = html || `<div class="state-box">${esc(siteLabel("empty", "generic", "Пока пусто"))}</div>`;
+  box.innerHTML = html || `<div class="state-box">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`;
 }
 
 // Карточка тайтла (из reviews.json с favorite: true)
@@ -113,7 +113,7 @@ function favTitleCard(r, index) {
 
   const editId  = r.id ?? encodeURIComponent(r.title);
   const editBtn = isAdmin()
-    ? `<a href="/add?edit=${editId}" class="review-edit-btn" title="Редактировать">✎</a>`
+    ? `<a href="/add?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
   return `<div class="review-card-wrap" style="animation-delay:${Math.min(index * 25, 600)}ms">
@@ -140,7 +140,7 @@ function favPersonCard(r, index) {
   const img = r.image || r.image_backup || PH_SQ;
 
   const subLine = r.type === "person"
-    ? (SUBTYPE_LABELS[r.subtype] || "Персона")
+    ? (SUBTYPE_LABELS[r.subtype] || i18n("Персона"))
     : (r.from || "");
 
   const sub = subLine

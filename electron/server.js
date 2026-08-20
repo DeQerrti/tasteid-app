@@ -141,11 +141,15 @@ const ADMIN_COOKIE = "tasteid_ui=1; Path=/; SameSite=Lax";
 // что к сайту не имеет отношения и обратно туда не поедет.
 const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "ui");
 
-export function createServer({ appDir, getVault, appRoutes = {} }) {
+export function createServer({ appDir, getVault, appRoutes = {}, getLang }) {
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
     const pathname = url.pathname;
-    res.setHeader("Set-Cookie", ADMIN_COOKIE);
+    // Язык — тоже кукой, и по той же причине, что и признак админа:
+    // страница должна знать его в момент разбора, а не после
+    // асинхронного запроса, иначе интерфейс моргнёт русским.
+    const lang = (getLang && getLang()) || "ru";
+    res.setHeader("Set-Cookie", [ADMIN_COOKIE, `tasteid_lang=${lang}; Path=/; SameSite=Lax`]);
 
     try {
       // ── API самого приложения ──

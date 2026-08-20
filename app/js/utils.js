@@ -94,13 +94,10 @@ function imgFallbackAttrs(primarySrc, backupSrc, placeholder) {
 // Лежит здесь, а не в stats.js, где появился впервые: русское «1 записей»
 // вылезает всюду, где есть счётчик, а stats.js подключают только те
 // страницы, которым нужна статистика.
-function plural(n, [one, few, many]) {
-  const abs = Math.abs(n) % 100;
-  const rem = abs % 10;
-  if (abs >= 11 && abs <= 19) return many;
-  if (rem === 1)               return one;
-  if (rem >= 2 && rem <= 4)   return few;
-  return many;
+function plural(n, forms) {
+  // Правило выбора формы зависит от языка (в русском три, в английском
+  // две), поэтому живёт в i18n.js — здесь только вызов.
+  return i18nPlural(n, forms);
 }
 
 // ── Подтверждение — в теме сайта, а не окном ОС ────────────────────
@@ -114,7 +111,7 @@ function plural(n, [one, few, many]) {
 // Использование: if (!(await confirmDialog("Удалить «Тег»?"))) return;
 let confirmDialogEl = null;
 
-function confirmDialog(message, okLabel = "Удалить") {
+function confirmDialog(message, okLabel = i18n("Удалить")) {
   if (!confirmDialogEl) {
     confirmDialogEl = document.createElement("div");
     confirmDialogEl.id = "confirm-dialog-overlay";
@@ -123,7 +120,7 @@ function confirmDialog(message, okLabel = "Удалить") {
       <div class="modal confirm-dialog">
         <div class="confirm-dialog-text"></div>
         <div class="confirm-dialog-actions">
-          <button type="button" class="btn btn-ghost" data-act="cancel">Отмена</button>
+          <button type="button" class="btn btn-ghost" data-act="cancel">${i18n("Отмена")}</button>
           <button type="button" class="btn btn-primary" data-act="ok"></button>
         </div>
       </div>`;

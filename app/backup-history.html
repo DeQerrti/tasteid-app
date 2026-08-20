@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
+<script src="/js/i18n.js?v=1"></script>
+<script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
@@ -80,18 +82,18 @@ main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 <div id="locked" class="hidden">
   История версий открывается только из самого приложения.
   <br><br>
-  <a href="/" style="color:var(--text-dim);">На главную</a>
+  <a href="/" style="color:var(--text-dim);" data-i18n>На главную</a>
 </div>
 
 <div id="app" class="hidden">
   <header>
-    <div class="header-sub">Бэкап и восстановление</div>
+    <div class="header-sub" data-i18n>Бэкап и восстановление</div>
     <a href="/" class="logo">TasteID</a>
   </header>
 
   <main>
-    <h2 class="section-title" style="font-family:'Playfair Display',serif;font-weight:700;font-style:italic;font-size:1.2rem;color:var(--text-hi);margin-bottom:1rem;">История версий</h2>
-    <p class="hint">
+    <h2 class="section-title" style="font-family:'Playfair Display',serif;font-weight:700;font-style:italic;font-size:1.2rem;color:var(--text-hi);margin-bottom:1rem;" data-i18n>История версий</h2>
+    <p class="hint" data-i18n>
       Каждое сохранение файла — это отдельная версия, которая навсегда остаётся здесь, даже если
       текущая версия сломается. Выбери файл, найди нужную дату и либо скачай эту версию как
       JSON, либо восстанови её — тогда она станет текущей.
@@ -104,10 +106,10 @@ main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 
 <script>
 const FILES = [
-  { path: "reviews.json",         label: "Отзывы" },
-  { path: "favorites.json",       label: "Любимое" },
-  { path: "characters-tier.json", label: "Персонажи" },
-  { path: "site-settings.json",   label: "Настройки" },
+  { path: "reviews.json",         label: i18n("Отзывы") },
+  { path: "favorites.json",       label: i18n("Любимое") },
+  { path: "characters-tier.json", label: i18n("Персонажи") },
+  { path: "site-settings.json",   label: i18n("Настройки") },
 ];
 
 let currentPath = FILES[0].path;
@@ -161,7 +163,7 @@ async function loadVersions(path) {
     renderVersions(path, versionsCache[path]);
     return;
   }
-  content.innerHTML = `<div class="state-box"><div class="spinner"></div>Загружаем историю…</div>`;
+  content.innerHTML = `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем историю…")}</div>`;
   try {
     const res = await fetch(`/api/file-history?path=${encodeURIComponent(path)}`, { credentials: "include" });
     const data = await res.json();
@@ -178,22 +180,22 @@ async function loadVersions(path) {
 function renderVersions(path, versions) {
   const content = document.getElementById("content");
   if (!versions.length) {
-    content.innerHTML = `<div class="state-box">Пока нет истории для этого файла.</div>`;
+    content.innerHTML = `<div class="state-box">${i18n("Пока нет истории для этого файла.")}</div>`;
     return;
   }
   content.innerHTML = versions.map((v, i) => {
     const dt = v.date ? new Date(v.date) : null;
-    const dateStr = dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "дата неизвестна";
+    const dateStr = dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
     const msg = firstLine(v.message);
     return `
     <div class="version-row">
       <div class="version-main">
-        <div class="version-date">${esc(dateStr)}${i === 0 ? '<span class="version-badge">текущая</span>' : ""}</div>
+        <div class="version-date">${esc(dateStr)}${i === 0 ? '<span class="version-badge">${i18n("текущая")}</span>' : ""}</div>
         <div class="version-msg" title="${esc(v.message)}">${esc(msg)}</div>
       </div>
       <div class="version-actions">
-        <button class="btn-mini" onclick="downloadVersion('${path}','${v.sha}')">⤓ Скачать</button>
-        ${i === 0 ? "" : `<button class="btn-mini danger" onclick="restoreVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')">↺ Восстановить</button>`}
+        <button class="btn-mini" onclick="downloadVersion('${path}','${v.sha}')">${i18n("⤓ Скачать")}</button>
+        ${i === 0 ? "" : `<button class="btn-mini danger" onclick="restoreVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')" data-i18n>↺ Восстановить</button>`}
       </div>
     </div>`;
   }).join("");
@@ -221,7 +223,7 @@ async function downloadVersion(path, sha) {
 }
 
 async function restoreVersion(path, sha, dateStr) {
-  if (!(await confirmDialog(`Восстановить «${path}» до версии от ${dateStr}?\n\nЭто заменит текущий файл — все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).`, "Восстановить"))) {
+  if (!(await confirmDialog(i18n("Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл — все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).", { file: path, date: dateStr }), i18n("Восстановить")))) {
     return;
   }
   try {
@@ -234,7 +236,7 @@ async function restoreVersion(path, sha, dateStr) {
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
     delete versionsCache[path];
-    showToast(inApp ? "Восстановлено ✓" : "Восстановлено ✓ (сайт обновится через ~30 секунд)", true);
+    showToast(inApp ? "Восстановлено ✓" : i18n("Восстановлено ✓ (сайт обновится через ~30 секунд)"), true);
     loadVersions(path);
   } catch (e) {
     showToast("Не удалось восстановить: " + e.message, false);

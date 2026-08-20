@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
+<script src="/js/i18n.js?v=1"></script>
+<script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <style>
@@ -87,7 +89,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 <body>
 
 <header>
-  <div class="header-sub">Редактор порядка</div>
+  <div class="header-sub" data-i18n>Редактор порядка</div>
   <a href="/" class="logo">TasteID</a>
 </header>
 
@@ -99,9 +101,9 @@ main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 
 <script>
 const TYPE_LABELS = {
-  anime:"Аниме", manga:"Манга", manhwa:"Манхва", manhua:"Маньхуа",
-  novel:"Ранобэ", movie:"Фильм", show:"Сериал", dorama:"Дорама",
-  book:"Книга", game:"Игра", gacha:"Гача",
+  anime:i18n("Аниме"), manga:i18n("Манга"), manhwa:i18n("Манхва"), manhua:i18n("Маньхуа"),
+  novel:i18n("Ранобэ"), movie:i18n("Фильм"), show:i18n("Сериал"), dorama:i18n("Дорама"),
+  book:i18n("Книга"), game:i18n("Игра"), gacha:i18n("Гача"),
 };
 
 const PH = "https://placehold.co/120x180/111114/4a4540?text=?";
@@ -128,8 +130,8 @@ async function init() {
 function render() {
   if (!titles.length) {
     document.getElementById("content").innerHTML =
-      `<div class="state-box">Нет тайтлов с флагом «Любимое».<br>
-       <span style="font-size:.85rem">Отметь тайтлы в редакторе отзыва.</span></div>`;
+      `<div class="state-box">${i18n("Нет тайтлов с флагом «Любимое».")}<br>
+       <span style="font-size:.85rem">${i18n("Отметь тайтлы в редакторе отзыва.")}</span></div>`;
     return;
   }
 
@@ -148,11 +150,11 @@ function render() {
   }).join("");
 
   document.getElementById("content").innerHTML = `
-    <h2 class="section-title">Тайтлы</h2>
-    <p class="hint">Перетащи карточки чтобы изменить порядок. Нажми «Сохранить» когда готово.</p>
+    <h2 class="section-title">${i18n("Тайтлы")}</h2>
+    <p class="hint">${i18n("Перетащи карточки чтобы изменить порядок. Нажми «Сохранить» когда готово.")}</p>
     <div class="dnd-grid" id="dnd-grid">${items}</div>
     <div class="save-bar">
-      <button class="btn-save" id="btn-save" onclick="saveOrder()">Сохранить порядок</button>
+      <button class="btn-save" id="btn-save" onclick="saveOrder()">${i18n("Сохранить порядок")}</button>
       <span class="save-status" id="save-status"></span>
     </div>`;
 
@@ -227,7 +229,7 @@ async function saveOrder() {
     .map(el => parseInt(el.dataset.id));
 
   btn.disabled = true;
-  btn.textContent = "Сохраняем…";
+  btn.textContent = i18n("Сохраняем…");
   status.className = "save-status";
   status.textContent = "";
 
@@ -241,18 +243,18 @@ async function saveOrder() {
     const data = await res.json();
     if (res.ok) {
       status.className = "save-status ok";
-      status.textContent = "Порядок сохранён." + ((await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.");
+      status.textContent = i18n("Порядок сохранён.") + ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд."));
     } else {
       status.className = "save-status err";
-      status.textContent = "Ошибка: " + (data.error || "неизвестная");
+      status.textContent = i18n("Ошибка: ") + (data.error || i18n("неизвестная"));
     }
   } catch (e) {
     status.className = "save-status err";
-    status.textContent = "Ошибка сети: " + e.message;
+    status.textContent = i18n("Ошибка сети: ") + e.message;
   }
 
   btn.disabled = false;
-  btn.textContent = "Сохранить порядок";
+  btn.textContent = i18n("Сохранить порядок");
 }
 
 init();

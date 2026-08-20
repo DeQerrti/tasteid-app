@@ -86,20 +86,20 @@ function parsePassport(text) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("Это не похоже на файл паспорта — внутри не JSON.");
+    throw new Error(i18n("Это не похоже на файл паспорта — внутри не JSON."));
   }
   if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new Error("Внутри файла должен быть объект паспорта.");
+    throw new Error(i18n("Внутри файла должен быть объект паспорта."));
   }
   if (data.format !== PASSPORT_FORMAT) {
-    throw new Error("Файл не от TasteID — не тот формат.");
+    throw new Error(i18n("Файл не от TasteID — не тот формат."));
   }
   if (!Array.isArray(data.items)) {
-    throw new Error("В паспорте нет списка тайтлов.");
+    throw new Error(i18n("В паспорте нет списка тайтлов."));
   }
   const shelves = data.gradeScale?.shelves;
   if (!Array.isArray(shelves) || !shelves.length) {
-    throw new Error("В паспорте нет шкалы оценок — показывать будет нечего.");
+    throw new Error(i18n("В паспорте нет шкалы оценок — показывать будет нечего."));
   }
   return {
     ...data,
@@ -237,29 +237,27 @@ function passportIntroHtml() {
              ? ` · выгружен ${esc(new Date(guestPassport.exportedAt).toLocaleDateString("ru-RU"))}`
              : ""
          }
-         <button class="pp-link" id="pp-forget" type="button">забыть</button>
+         <button class="pp-link" id="pp-forget" type="button">${i18n("забыть")}</button>
        </div>`
     : "";
 
   const modes = guestPassport
     ? `<div class="pp-modes">
-         <button class="pp-mode${passportMode === "view" ? " active" : ""}" data-mode="view" type="button">Просмотр</button>
-         <button class="pp-mode${passportMode === "compare" ? " active" : ""}" data-mode="compare" type="button">Сравнение со своим</button>
+         <button class="pp-mode${passportMode === "view" ? " active" : ""}" data-mode="view" type="button">${i18n("Просмотр")}</button>
+         <button class="pp-mode${passportMode === "compare" ? " active" : ""}" data-mode="compare" type="button">${i18n("Сравнение со своим")}</button>
        </div>`
     : "";
 
   return `
     <p class="panel-intro">
-      Чужой паспорт — файл: пусть человек выгрузит свой такой же кнопкой ниже
-      и пришлёт. Дальше его можно просто посмотреть или сравнить со своим.
-      Всё считается прямо в браузере, никуда не отправляется.
+      ${i18n("Чужой паспорт — файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо в браузере, никуда не отправляется.")}
     </p>
     <div class="pp-actions">
       <label class="btn btn-ghost file-btn">
         <input type="file" id="pp-file" accept="application/json,.json">
-        <span>Загрузить чужой паспорт</span>
+        <span>${i18n("Загрузить чужой паспорт")}</span>
       </label>
-      <button class="btn btn-ghost" id="pp-export" type="button">Выгрузить свой</button>
+      <button class="btn btn-ghost" id="pp-export" type="button">${i18n("Выгрузить свой")}</button>
     </div>
     <div class="status-msg" id="pp-status"></div>
     ${loaded}
@@ -287,10 +285,10 @@ function guestViewHtml() {
     .join(" · ");
 
   const summary = `<div class="pp-summary">
-    ${ppStat(items.length, "тайтлов")}
-    ${ppStat(graded.length, "с оценкой")}
-    ${ppStat(items.filter((i) => i.favorite).length, "в любимом")}
-    ${ppStat(info.shelves.length, "полок в шкале")}
+    ${ppStat(items.length, i18n("тайтлов"))}
+    ${ppStat(graded.length, i18n("с оценкой"))}
+    ${ppStat(items.filter((i) => i.favorite).length, i18n("в любимом"))}
+    ${ppStat(info.shelves.length, i18n("полок в шкале"))}
   </div>
   ${topTypes ? `<p class="pp-types">${esc(topTypes)}</p>` : ""}`;
 
@@ -395,15 +393,15 @@ function compareResultHtml() {
 
   return `<div class="pp-result">
     <div class="pp-summary">
-      ${ppStat(both.length, "смотрели оба")}
-      ${ppStat(accord === null ? "—" : accord + "%", "совпадение вкусов")}
-      ${ppStat(argued.length, "заметных споров")}
-      ${ppStat(onlyTheirs.length, "можно забрать себе")}
+      ${ppStat(both.length, i18n("смотрели оба"))}
+      ${ppStat(accord === null ? "—" : accord + "%", i18n("совпадение вкусов"))}
+      ${ppStat(argued.length, i18n("заметных споров"))}
+      ${ppStat(onlyTheirs.length, i18n("можно забрать себе"))}
     </div>
-    ${comparePairsHtml("Где разошлись", "Чем выше, тем сильнее спор.", argued, mine, theirs, "Полное согласие — спорить не о чем.")}
-    ${comparePairsHtml("Где сошлись", "Одна и та же полка или соседние.", agreed, mine, theirs, "Общих оценок не нашлось.")}
-    ${compareOneSidedHtml("Стоит забрать себе", "Он оценил, а у тебя этого нет.", onlyTheirs, theirs)}
-    ${compareOneSidedHtml("Только у тебя", "Ты оценил, а у него этого нет.", onlyMine, mine)}
+    ${comparePairsHtml(i18n("Где разошлись"), i18n("Чем выше, тем сильнее спор."), argued, mine, theirs, i18n("Полное согласие — спорить не о чем."))}
+    ${comparePairsHtml(i18n("Где сошлись"), i18n("Одна и та же полка или соседние."), agreed, mine, theirs, i18n("Общих оценок не нашлось."))}
+    ${compareOneSidedHtml(i18n("Стоит забрать себе"), i18n("Он оценил, а у тебя этого нет."), onlyTheirs, theirs)}
+    ${compareOneSidedHtml(i18n("Только у тебя"), i18n("Ты оценил, а у него этого нет."), onlyMine, mine)}
   </div>`;
 }
 
@@ -416,9 +414,9 @@ function comparePairsHtml(title, sub, pairs, mine, theirs, emptyText) {
         ${ppMeta(pair.mine)}
       </div>
       <div class="pp-grades">
-        <div class="pp-side"><div class="pp-who">ты</div>${ppChip(mine, pair.mine.grade)}</div>
+        <div class="pp-side"><div class="pp-who">${i18n("ты")}</div>${ppChip(mine, pair.mine.grade)}</div>
         <div class="pp-vs">${pair.gap > DISAGREE_THRESHOLD ? (pair.iRatedHigher ? "&gt;" : "&lt;") : "="}</div>
-        <div class="pp-side"><div class="pp-who">он</div>${ppChip(theirs, pair.theirs.grade)}</div>
+        <div class="pp-side"><div class="pp-who">${i18n("он")}</div>${ppChip(theirs, pair.theirs.grade)}</div>
       </div>
     </div>`).join("");
 
@@ -444,7 +442,7 @@ function compareOneSidedHtml(title, sub, items, info) {
       <div class="pp-grades">${item.grade ? ppChip(info, item.grade) : ""}</div>
     </div>`).join("");
 
-  return ppSection(title, sub, rows, "Пусто");
+  return ppSection(title, sub, rows, i18n("Пусто"));
 }
 
 function ppSection(title, sub, rows, emptyText) {
@@ -479,7 +477,7 @@ function bindPassports() {
     if (!file) return;
     const status = document.getElementById("pp-status");
     status.className = "status-msg";
-    status.textContent = "Читаем файл…";
+    status.textContent = i18n("Читаем файл…");
     try {
       const text = await file.text();
       guestPassport = parsePassport(text);

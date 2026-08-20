@@ -41,7 +41,7 @@ function activeTierCollections() {
   // Именно Array.isArray, а не проверка длины: пустой список означает,
   // что все коллекции удалили, и подставлять взамен встроенную нельзя —
   // она бы возвращалась сама после каждого удаления.
-  return Array.isArray(configured) ? configured : [{ id: "characters", label: "Персонажи" }];
+  return Array.isArray(configured) ? configured : [{ id: "characters", label: i18n("Персонажи") }];
 }
 
 // Коллекции, у которых снята галочка в настройках, в переключатель не
@@ -80,18 +80,18 @@ function closeCollectionModalOnOverlay(e) {
 async function submitNewCollection() {
   const name = document.getElementById("cm-collection-name").value.trim();
   const statusEl = document.getElementById("collection-modal-status");
-  if (!name) { statusEl.textContent = "Введи название"; statusEl.className = "status-msg err"; return; }
+  if (!name) { statusEl.textContent = i18n("Введи название"); statusEl.className = "status-msg err"; return; }
 
   const newCollection = { id: tlSlugify(name), label: name };
   const btn = document.getElementById("cm-collection-save");
   btn.disabled = true;
-  statusEl.textContent = "Сохраняем…";
+  statusEl.textContent = i18n("Сохраняем…");
   statusEl.className = "status-msg";
   try {
     await patchSiteSettings((settings) => {
       settings.tierCollections = Array.isArray(settings.tierCollections)
         ? settings.tierCollections
-        : activeTierCollections(); // сохраняем встроенную "Персонажи", если настроек ещё не было
+        : activeTierCollections(); // сохраняем встроенную i18n("Персонажи"), если настроек ещё не было
       settings.tierCollections.push(newCollection);
     });
     window.SITE_TIER_COLLECTIONS = (Array.isArray(window.SITE_TIER_COLLECTIONS)
@@ -107,7 +107,7 @@ async function submitNewCollection() {
     await loadCharGames(newCollection.id);
     tlRender();
   } catch (err) {
-    statusEl.textContent = err.message || "Ошибка сохранения";
+    statusEl.textContent = err.message || i18n("Ошибка сохранения");
     statusEl.className = "status-msg err";
   } finally {
     btn.disabled = false;
@@ -120,7 +120,7 @@ async function loadTierlist() {
   const box = document.getElementById("tab-tierlist");
   try {
     if (!tlState.loaded) {
-      box.innerHTML = `<div class="state-box"><div class="spinner"></div>Загружаем…</div>`;
+      box.innerHTML = `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем…")}</div>`;
       await fetchReviews();
       const reviews  = (cache.reviews || []).filter(r => r.grade);
       tlState.items  = reviews.map(r => ({ review: r, poster: r.cover || null, posterBackup: r.cover_backup || null }));
@@ -168,10 +168,10 @@ function tlModeToggleHtml() {
     `<button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label)}</button>`
   ).join("");
   const addBtn = isAdmin()
-    ? `<button class="tl-mode-add-btn" id="tl-add-collection-btn" type="button" title="Новый тир-лист">Создать</button>`
+    ? `<button class="tl-mode-add-btn" id="tl-add-collection-btn" type="button" title="${i18n("Новый тир-лист")}">${i18n("Создать")}</button>`
     : "";
   const titlesBtn = isTierModeVisible("titles")
-    ? `<button class="tl-mode-btn${tlState.mode === "titles" ? " active" : ""}" data-mode="titles">${esc(siteLabel("sections", "tierTitles", "Тайтлы"))}</button>`
+    ? `<button class="tl-mode-btn${tlState.mode === "titles" ? " active" : ""}" data-mode="titles">${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}</button>`
     : "";
   return `<div class="tl-mode-toggle">
     ${titlesBtn}
@@ -212,7 +212,7 @@ function tlTitlesHtml() {
   let html = tlFiltersHtml() + tlYearFiltersHtml(byType);
 
   if (!hasAny) {
-    return html + `<div class="state-box" style="padding-top:2rem">Ничего не найдено</div>`;
+    return html + `<div class="state-box" style="padding-top:2rem">${i18n("Ничего не найдено")}</div>`;
   }
 
   html += `<div class="tl-rows" id="tl-titles-rows">`;
@@ -273,7 +273,7 @@ function tlFiltersHtml() {
   // Один-единственный тип — выбирать не из чего, панель только мешает
   if (types.length < 2) return "";
 
-  const all = siteLabel("filters", "all", "Всё");
+  const all = siteLabel("filters", "all", i18n("Всё"));
   const btns = [["all", all], ...types.map((t) => [t, tlTypeLabel(t)])]
     .map(
       ([val, label]) =>
@@ -290,7 +290,7 @@ function tlYearFiltersHtml(itemsForYearScope) {
 
   if (!years.length) return "";
 
-  const options = [`<option value="all">Все года</option>`]
+  const options = [`<option value="all">${i18n("Все года")}</option>`]
     .concat(years.map(y =>
       `<option value="${y}"${String(tlState.yearFilter) === String(y) ? " selected" : ""}>${y}</option>`
     )).join("");
@@ -313,7 +313,7 @@ function tlCharsHtml(collectionId) {
     // Кнопка редактора есть не всегда, а тире стояло всегда — у гостя
     // на пустой коллекции висело «Нет данных —» с висячим прочерком.
     const adminBtn = isAdmin()
-      ? `<div style="margin-top:1.5rem"><a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">Редактор</a></div>`
+      ? `<div style="margin-top:1.5rem"><a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a></div>`
       : "";
     return `<div class="state-box" style="padding-top:2rem">Ничего не найдено${adminBtn}</div>`;
   }
@@ -370,14 +370,14 @@ function tlCharsHtml(collectionId) {
   tiersHtml += `</div>`;
 
   const adminBtn = isAdmin()
-    ? `<a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">Редактор</a>`
+    ? `<a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a>`
     : "";
 
-  const exportBtn = `<button class="admin-add-btn" id="tl-export-btn" onclick="tlExport('tl-chars-rows', '${esc(game.title)}')">Сохранить как картинку</button>`;
+  const exportBtn = `<button class="admin-add-btn" id="tl-export-btn" onclick="tlExport('tl-chars-rows', '${esc(game.title)}')">${i18n("Сохранить как картинку")}</button>`;
 
   // Ползунок размера — теперь до 1000px
   const slider = `<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem">
-    <span style="font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">Размер</span>
+    <span style="font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">${i18n("Размер")}</span>
     <input type="range" min="80" max="1000" value="${tlCharHeight}" step="10"
       id="tl-char-size-slider"
       style="flex:1;max-width:200px;accent-color:var(--red);cursor:pointer">
@@ -539,7 +539,7 @@ function tlMoveTip(e, tip) {
 
 async function tlExport(rowsId, label) {
   const btn = document.getElementById("tl-export-btn");
-  if (btn) { btn.textContent = "⏳ Создаём…"; btn.disabled = true; }
+  if (btn) { btn.textContent = i18n("⏳ Создаём…"); btn.disabled = true; }
 
   const tip = document.getElementById("tl-tooltip");
   if (tip) tip.style.visibility = "hidden";
@@ -550,12 +550,12 @@ async function tlExport(rowsId, label) {
 
   try {
     const rows = document.getElementById(rowsId);
-    if (!rows) throw new Error("Тир-лист не найден");
+    if (!rows) throw new Error(i18n("Тир-лист не найден"));
 
     if (typeof html2canvas === "undefined") {
-      if (btn) btn.textContent = "⏳ Загружаем библиотеку…";
+      if (btn) btn.textContent = i18n("⏳ Загружаем библиотеку…");
       await loadHtml2Canvas();
-      if (btn) btn.textContent = "⏳ Создаём…";
+      if (btn) btn.textContent = i18n("⏳ Создаём…");
     }
 
     const imgs = Array.from(rows.querySelectorAll("img"));
@@ -592,6 +592,6 @@ async function tlExport(rowsId, label) {
     restoreImages();
     animated.forEach((el, i) => { el.style.animation = prevAnimation[i]; });
     if (tip) tip.style.visibility = "";
-    if (btn) { btn.textContent = "Сохранить как картинку"; btn.disabled = false; }
+    if (btn) { btn.textContent = i18n("Сохранить как картинку"); btn.disabled = false; }
   }
 }

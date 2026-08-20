@@ -67,15 +67,45 @@ async function exists(p) {
   }
 }
 
+// ── Язык ───────────────────────────────────────
+// Выбранный язык живёт в конфиге приложения, а не в хранилище: его надо
+// знать на экране приветствия, когда папки ещё нет. Пока человек не
+// выбрал сам — берём из локали системы, чтобы английский интерфейс
+// достался тому, у кого английская ОС, без единого клика.
+function appLanguage() {
+  if (config.lang === "ru" || config.lang === "en") return config.lang;
+  return /^ru/i.test(app.getLocale() || "") ? "ru" : "en";
+}
+
+// Здесь строк наперечёт (меню и один диалог), поэтому словарь свой, а не
+// общий с фронтендом: тащить app/js/i18n.js в процесс Electron ради
+// десятка подписей значило бы связать две несвязанные части.
+const NATIVE_EN = {
+  "Где лежит паспорт": "Where the passport is",
+  "Где хранить паспорт": "Where to keep the passport",
+  "Выбрать папку": "Choose folder",
+  Файл: "File",
+  Выход: "Quit",
+  Обновить: "Reload",
+  "Инструменты разработчика": "Developer tools",
+  Вид: "View",
+  Крупнее: "Zoom in",
+  Мельче: "Zoom out",
+  "Обычный размер": "Actual size",
+  "Во весь экран": "Toggle full screen",
+  "Не указана папка": "No folder given",
+};
+const tr = (ru) => (appLanguage() === "en" ? NATIVE_EN[ru] || ru : ru);
+
 // ── Хранилище ──────────────────────────────────
 
 async function askForVault({ mode, previous } = {}) {
   const suggested = previous || path.join(app.getPath("documents"), "TasteID");
   const { canceled, filePaths } = await dialog.showOpenDialog(win ?? undefined, {
-    title: mode === "open" ? "Где лежит паспорт" : "Где хранить паспорт",
+    title: mode === "open" ? tr("Где лежит паспорт") : tr("Где хранить паспорт"),
     defaultPath: suggested,
     properties: ["openDirectory", "createDirectory"],
-    buttonLabel: "Выбрать папку",
+    buttonLabel: tr("Выбрать папку"),
   });
   return canceled ? null : filePaths[0];
 }
@@ -97,6 +127,7 @@ function appRoutes() {
     "GET /api/app/info": async () => ({
       vaultPath: vault?.root || null,
       zoom: config.zoom ?? 0,
+      lang: appLanguage(),
       platform: process.platform,
       version: app.getVersion(),
     }),
@@ -106,7 +137,7 @@ function appRoutes() {
     }),
 
     "POST /api/app/use-vault": async ({ body }) => {
-      if (!body.path) throw new Error("Не указана папка");
+      if (!body.path) throw new Error(tr("Не указана папка"));
       await useVault(body.path);
       return { ok: true };
     },
@@ -134,6 +165,15 @@ function appRoutes() {
       applyZoom(level);
       await saveConfig({ zoom: level });
       return { zoom: level };
+    },
+
+    "POST /api/app/language": async ({ body }) => {
+      const lang = body.lang === "en" ? "en" : "ru";
+      await saveConfig({ lang });
+      // Меню строится на текущем языке — пересобираем, иначе горячие
+      // клавиши остались бы под старыми подписями.
+      buildMenu();
+      return { lang };
     },
 
     // Тему можно сменить и без перезагрузки страницы — предпросмотром
@@ -177,32 +217,32 @@ function buildMenu() {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
-        label: "Файл",
+        label: tr("Файл"),
         submenu: [
-          { role: "quit", label: "Выход" },
+          { role: "quit", label: tr("Выход") },
           {
-            label: "Обновить",
+            label: tr("Обновить"),
             accelerator: "F5",
             click: () => win?.reload(),
           },
           {
-            label: "Инструменты разработчика",
+            label: tr("Инструменты разработчика"),
             accelerator: "F12",
             click: () => win?.webContents.toggleDevTools(),
           },
         ],
       },
       {
-        label: "Вид",
+        label: tr("Вид"),
         submenu: [
-          { label: "Крупнее", accelerator: "CommandOrControl+=", click: () => bumpZoom(1) },
-          { label: "Мельче", accelerator: "CommandOrControl+-", click: () => bumpZoom(-1) },
+          { label: tr("Крупнее"), accelerator: "CommandOrControl+=", click: () => bumpZoom(1) },
+          { label: tr("Мельче"), accelerator: "CommandOrControl+-", click: () => bumpZoom(-1) },
           {
-            label: "Обычный размер",
+            label: tr("Обычный размер"),
             accelerator: "CommandOrControl+0",
             click: () => bumpZoom(-(config.zoom ?? 0)),
           },
-          { role: "togglefullscreen", label: "Во весь экран" },
+          { role: "togglefullscreen", label: tr("Во весь экран") },
         ],
       },
     ])
@@ -322,6 +362,7 @@ app.whenReady().then(async () => {
     appDir: APP_DIR,
     getVault: () => vault,
     appRoutes: appRoutes(),
+    getLang: appLanguage,
   });
   port = await listen(server);
 

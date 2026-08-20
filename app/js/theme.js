@@ -20,16 +20,16 @@
 // defaultAccent подставляется, только если человек не выбрал свой
 // акцент вручную.
 const THEME_PRESETS = {
-  classic: { label: "Классический" },
-  "classic-light": { label: "Классический светлый" },
-  soft: { label: "Мягкий ботанический", defaultAccent: "#6b7f4a" },
-  "soft-dark": { label: "Мягкий ботанический тёмный", defaultAccent: "#7fae5a" },
-  brutal: { label: "Брутализм", defaultAccent: "#ff4d00" },
-  "brutal-dark": { label: "Брутализм тёмный", defaultAccent: "#ff4d00" },
-  neomorphism: { label: "Неоморфизм", defaultAccent: "#7c6fe0" },
-  "neomorphism-dark": { label: "Неоморфизм тёмный", defaultAccent: "#8a7bf0" },
-  doodle: { label: "Рисованный", defaultAccent: "#ef6a52" },
-  "doodle-dark": { label: "Рисованный тёмный", defaultAccent: "#ff8a5c" },
+  classic: { label: i18n("Классический") },
+  "classic-light": { label: i18n("Классический светлый") },
+  soft: { label: i18n("Мягкий ботанический"), defaultAccent: "#6b7f4a" },
+  "soft-dark": { label: i18n("Мягкий ботанический тёмный"), defaultAccent: "#7fae5a" },
+  brutal: { label: i18n("Брутализм"), defaultAccent: "#ff4d00" },
+  "brutal-dark": { label: i18n("Брутализм тёмный"), defaultAccent: "#ff4d00" },
+  neomorphism: { label: i18n("Неоморфизм"), defaultAccent: "#7c6fe0" },
+  "neomorphism-dark": { label: i18n("Неоморфизм тёмный"), defaultAccent: "#8a7bf0" },
+  doodle: { label: i18n("Рисованный"), defaultAccent: "#ef6a52" },
+  "doodle-dark": { label: i18n("Рисованный тёмный"), defaultAccent: "#ff8a5c" },
 };
 
 // Для выпадающих списков и сеток выбора: [{ id, label }]
@@ -48,15 +48,15 @@ const DEFAULT_ACCENT = "#8b1a1a"; // текущий --red по умолчани�
 // Список читает экран настроек: добавить сюда строку достаточно, чтобы
 // в настройках появился ещё один цвет.
 const PALETTE_TOKENS = [
-  { key: "--bg", label: "Фон страницы", hint: "Самый нижний слой" },
-  { key: "--bg2", label: "Фон второго уровня", hint: "Поля ввода, вложенные подложки" },
-  { key: "--surface", label: "Блоки и карточки", hint: "Карточки, панели, модалки" },
-  { key: "--surface2", label: "Блоки второго уровня", hint: "Вкладки, чипы, поле поиска" },
-  { key: "--border", label: "Границы", hint: "Тонкие разделители" },
-  { key: "--border2", label: "Границы заметные", hint: "Рамки кнопок и полей" },
-  { key: "--text", label: "Основной текст", hint: "Тело отзывов и подписи" },
-  { key: "--text-dim", label: "Приглушённый текст", hint: "Даты, вторичные пометки" },
-  { key: "--text-hi", label: "Заголовки", hint: "Названия, яркий текст" },
+  { key: "--bg", label: i18n("Фон страницы"), hint: i18n("Самый нижний слой") },
+  { key: "--bg2", label: i18n("Фон второго уровня"), hint: i18n("Поля ввода, вложенные подложки") },
+  { key: "--surface", label: i18n("Блоки и карточки"), hint: i18n("Карточки, панели, модалки") },
+  { key: "--surface2", label: i18n("Блоки второго уровня"), hint: i18n("Вкладки, чипы, поле поиска") },
+  { key: "--border", label: i18n("Границы"), hint: i18n("Тонкие разделители") },
+  { key: "--border2", label: i18n("Границы заметные"), hint: i18n("Рамки кнопок и полей") },
+  { key: "--text", label: i18n("Основной текст"), hint: i18n("Тело отзывов и подписи") },
+  { key: "--text-dim", label: i18n("Приглушённый текст"), hint: i18n("Даты, вторичные пометки") },
+  { key: "--text-hi", label: i18n("Заголовки"), hint: i18n("Названия, яркий текст") },
 ];
 
 // Строим hi/dim-варианты акцентного цвета через регулировку светлоты (HSL),
@@ -269,54 +269,54 @@ function applyTabPreferences(settings) {
 // Читать через siteLabel(группа, ключ, запасное значение) — если ключа
 // в настройках нет, вернётся значение отсюда.
 const DEFAULT_LABELS = {
-  nav: { now: "Статусы", favorites: "Любимое", reviews: "Отзывы", stats: "Статистика", tierlist: "Тир-лист" },
-  statuses: { current: "В процессе", onhold: "Отложено", planning: "Планирую", archive: "Архив" },
+  nav: { now: i18n("Статусы"), favorites: i18n("Любимое"), reviews: i18n("Отзывы"), stats: i18n("Статистика"), tierlist: i18n("Тир-лист") },
+  statuses: { current: i18n("В процессе"), onhold: i18n("Отложено"), planning: i18n("Планирую"), archive: i18n("Архив") },
 
   // Шапка сайта. Само название — бренд и здесь не настраивается.
-  site: { subtitle: "Цифровой паспорт интересов" },
+  site: { subtitle: i18n("Цифровой паспорт интересов") },
 
   // Заголовки блоков на вкладке «Любимое»
   sections: {
-    favTitles: "Тайтлы",
-    favCharacters: "Персонажи",
-    favPersons: "Персоны",
-    tierTitles: "Тайтлы",
+    favTitles: i18n("Тайтлы"),
+    favCharacters: i18n("Персонажи"),
+    favPersons: i18n("Персоны"),
+    tierTitles: i18n("Тайтлы"),
   },
 
   // Панель фильтров на вкладке «Отзывы»
-  filters: { search: "Поиск", type: "Тип", grade: "Оценка", source: "Ссылки", all: "Все" },
+  filters: { search: i18n("Поиск"), type: i18n("Тип"), grade: i18n("Оценка"), source: i18n("Ссылки"), all: i18n("Все") },
 
   // Заголовки блоков статистики
   stats: {
-    total: "Всего",
-    completed: "завершено",
-    types: "Разбивка по типам",
-    grades: "Шкала послевкусия",
-    rewatch: "Пересмотры",
-    tags: "Частые теги в отзывах",
-    watchYears: "По годам просмотра",
-    releaseYears: "По годам выхода",
+    total: i18n("Всего"),
+    completed: i18n("завершено"),
+    types: i18n("Разбивка по типам"),
+    grades: i18n("Шкала послевкусия"),
+    rewatch: i18n("Пересмотры"),
+    tags: i18n("Частые теги в отзывах"),
+    watchYears: i18n("По годам просмотра"),
+    releaseYears: i18n("По годам выхода"),
     // Подпись под числом пересмотров, три формы под склонение
-    rewatchOne: "тайтл пересмотрен",
-    rewatchFew: "тайтла пересмотрено",
-    rewatchMany: "тайтлов пересмотрено",
+    rewatchOne: i18n("тайтл пересмотрен"),
+    rewatchFew: i18n("тайтла пересмотрено"),
+    rewatchMany: i18n("тайтлов пересмотрено"),
     // Блок «лучшее за год», {year} подставляется
-    spotlightOne: "Тайтл {year} года",
-    spotlightMany: "Тайтлы {year} года",
+    spotlightOne: i18n("Тайтл {year} года"),
+    spotlightMany: i18n("Тайтлы {year} года"),
     // Когда за выбранный год ничего не завершено
-    emptyYear: "За {year} год пока нет завершённых с оценкой",
+    emptyYear: i18n("За {year} год пока нет завершённых с оценкой"),
   },
 
   // Общее слово для единицы коллекции — в трёх формах для склонения.
   // Используется там, где тип не важен: «233 тайтла», «12 тайтлов».
-  units: { one: "тайтл", few: "тайтла", many: "тайтлов" },
+  units: { one: i18n("тайтл"), few: i18n("тайтла"), many: i18n("тайтлов") },
 
   // Тексты, когда показывать нечего
   empty: {
-    generic: "Пока пусто",
-    list: "Список пуст",
-    reviews: "Отзывов пока нет.",
-    search: "Ничего не найдено",
+    generic: i18n("Пока пусто"),
+    list: i18n("Список пуст"),
+    reviews: i18n("Отзывов пока нет."),
+    search: i18n("Ничего не найдено"),
   },
 };
 

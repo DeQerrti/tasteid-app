@@ -126,41 +126,34 @@ function renderImport() {
 // а не ошибкой разбора.
 const IMPORT_SOURCES = [
   {
-    what: "Аниме и манга",
+    what: i18n("Аниме и манга"),
     who: "MyAnimeList",
     file: "XML",
-    how: "myanimelist.net → значок профиля → Export → Anime List или Manga List → Export My List. " +
-         "Скачается архив .xml.gz — распакуй его, нужен файл .xml изнутри.",
+    how: i18n("myanimelist.net → значок профиля → Export → Anime List или Manga List → Export My List. Скачается архив .xml.gz — распакуй его, нужен файл .xml изнутри."),
   },
   {
-    what: "Аниме и манга",
-    who: "Шикимори",
+    what: i18n("Аниме и манга"),
+    who: i18n("Шикимори"),
     file: "XML",
-    how: "shikimori.one → Настройки → Списки → Экспорт → формат MyAnimeList. " +
-         "Аниме и манга выгружаются двумя отдельными файлами — загрузи их по очереди.",
+    how: i18n("shikimori.one → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами — загрузи их по очереди."),
   },
   {
-    what: "Аниме и манга",
+    what: i18n("Аниме и манга"),
     who: "AniList",
-    file: "по нику",
-    how: "Файл не нужен и выгружать ничего не надо: открытый список AniList " +
-         "отдаёт кому угодно, и мы просто спросим его по нику. Поле для ника " +
-         "ниже. Обложки приезжают сразу вместе со списком.",
+    file: i18n("по нику"),
+    how: i18n("Файл не нужен и выгружать ничего не надо: открытый список AniList отдаёт кому угодно, и мы просто спросим его по нику. Поле для ника ниже. Обложки приезжают сразу вместе со списком."),
   },
   {
-    what: "Книги",
+    what: i18n("Книги"),
     who: "Goodreads",
     file: "CSV",
-    how: "goodreads.com/review/import → кнопка Export Library, " +
-         "через минуту там же появится ссылка на goodreads_library_export.csv.",
+    how: i18n("goodreads.com/review/import → кнопка Export Library, через минуту там же появится ссылка на goodreads_library_export.csv."),
   },
   {
-    what: "Фильмы",
+    what: i18n("Фильмы"),
     who: "Letterboxd",
     file: "CSV",
-    how: "letterboxd.com/settings/data → Export Your Data. Скачается архив; внутри " +
-         "нужны ratings.csv (что оценено), watched.csv (что просмотрено) и " +
-         "watchlist.csv (что в планах) — по одному за раз.",
+    how: i18n("letterboxd.com/settings/data → Export Your Data. Скачается архив; внутри нужны ratings.csv (что оценено), watched.csv (что просмотрено) и watchlist.csv (что в планах) — по одному за раз."),
   },
 ];
 
@@ -181,36 +174,30 @@ function importSourcesHtml() {
 function importFileHtml() {
   return `
     <p class="panel-intro">
-      Перенос списка из другого сервиса. Формат узнаётся сам, выбирать его не
-      нужно. Файл разбирается прямо здесь, в браузере, и никуда не
-      отправляется, а в паспорт попадает только после того, как ты
-      подтвердишь.
+      ${i18n("Перенос списка из другого сервиса. Формат узнаётся сам, выбирать его не нужно. Файл разбирается прямо здесь, в браузере, и никуда не отправляется, а в паспорт попадает только после того, как ты подтвердишь.")}
     </p>
-    <h2 class="section-h">Что и откуда принимаем</h2>
+    <h2 class="section-h">${i18n("Что и откуда принимаем")}</h2>
     ${importSourcesHtml()}
     <p class="imp-note">
-      Игры пока не принимаем: у сервисов, где их ведут, нет общего формата
-      выгрузки. Появится образец файла — разберём и его.
+      ${i18n("Игры пока не принимаем: у сервисов, где их ведут, нет общего формата выгрузки. Появится образец файла — разберём и его.")}
     </p>
     ${importKeysHtml()}
     <div class="imp-actions">
       <label class="btn btn-ghost file-btn">
         <input type="file" id="imp-file" accept=".xml,.csv,application/xml,text/xml,text/csv">
-        <span>Выбрать файл выгрузки</span>
+        <span>${i18n("Выбрать файл выгрузки")}</span>
       </label>
     </div>
     <div class="status-msg" id="imp-status"></div>
 
-    <h2 class="section-h">Или по нику с AniList</h2>
+    <h2 class="section-h">${i18n("Или по нику с AniList")}</h2>
     <p class="imp-note">
-      Ник тот же, что в адресе профиля: anilist.co/user/<strong>ник</strong>.
-      Список должен быть открыт — если в настройках профиля он закрыт, снаружи
-      его не видно.
+      ${i18n("Ник тот же, что в адресе профиля: anilist.co/user/")}<strong>${i18n("ник")}</strong>${i18n(". Список должен быть открыт — если в настройках профиля он закрыт, снаружи его не видно.")}
     </p>
     <div class="imp-actions">
-      <input type="text" id="imp-anilist-user" placeholder="ник на AniList"
+      <input type="text" id="imp-anilist-user" placeholder="${i18n("ник на AniList")}"
              autocomplete="off" spellcheck="false">
-      <button class="btn btn-ghost" id="imp-anilist-go" type="button">Забрать список</button>
+      <button class="btn btn-ghost" id="imp-anilist-go" type="button">${i18n("Забрать список")}</button>
     </div>
     <div class="status-msg" id="imp-anilist-status"></div>`;
 }
@@ -240,7 +227,7 @@ function saveTmdbKey(value) {
 // двести запросов и список без обложек — худший из возможных вариантов.
 async function checkTmdbKey(key) {
   const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/configuration?api_key=${encodeURIComponent(key)}`);
-  if (res.status === 401) throw new Error("TMDB не узнал этот ключ. Проверь, что скопирован он целиком.");
+  if (res.status === 401) throw new Error(i18n("TMDB не узнал этот ключ. Проверь, что скопирован он целиком."));
   if (!res.ok) throw new Error(`TMDB ответил ${res.status}. Попробуй ещё раз через минуту.`);
   return true;
 }
@@ -255,40 +242,31 @@ function importKeysHtml() {
       </summary>
       <div class="imp-keys-body">
         <p class="imp-note">
-          Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList)
-          и обложки книг (у Open Library) — там их отдают всем. Ключ нужен
-          только для фильмов: единственная открытая база с постерами, TMDB,
-          пускает по ключу. Ключ бесплатный и выдаётся сразу.
+          ${i18n("Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) — там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.")}
         </p>
 
         <div class="imp-key">
           <div class="imp-key-head">
             <span class="imp-key-name">TMDB</span>
-            <span class="imp-key-what">постеры, год выхода и номер фильма</span>
+            <span class="imp-key-what">${i18n("постеры, год выхода и номер фильма")}</span>
           </div>
           <ol class="imp-key-steps">
-            <li>Заведи аккаунт на themoviedb.org и подтверди почту.</li>
-            <li>Настройки профиля → раздел API → Request an API Key.</li>
-            <li>Выбери тип Developer, прими условия и заполни короткую анкету
-                (в поле о цели использования достаточно написать, что ведёшь
-                личный список просмотренного).</li>
-            <li>Ключ появится тут же, в строке API Key (v3 auth) — скопируй
-                его сюда целиком.</li>
+            <li>${i18n("Заведи аккаунт на themoviedb.org и подтверди почту.")}</li>
+            <li>${i18n("Настройки профиля → раздел API → Request an API Key.")}</li>
+            <li>${i18n("Выбери тип Developer, прими условия и заполни короткую анкету (в поле о цели использования достаточно написать, что ведёшь личный список просмотренного).")}</li>
+            <li>${i18n("Ключ появится тут же, в строке API Key (v3 auth) — скопируй его сюда целиком.")}</li>
           </ol>
           <div class="imp-key-row">
             <input type="password" id="imp-tmdb-key" value="${esc(key)}"
-                   placeholder="ключ v3, 32 знака" autocomplete="off" spellcheck="false">
-            <button class="btn btn-ghost" id="imp-tmdb-save" type="button">Проверить и сохранить</button>
+                   placeholder="${i18n("ключ v3, 32 знака")}" autocomplete="off" spellcheck="false">
+            <button class="btn btn-ghost" id="imp-tmdb-save" type="button">${i18n("Проверить и сохранить")}</button>
             ${key ? `<button class="btn btn-ghost" id="imp-tmdb-clear" type="button">Убрать</button>` : ""}
           </div>
           <div class="status-msg" id="imp-key-status"></div>
         </div>
 
         <p class="imp-note imp-key-warn">
-          Ключ хранится только в этом браузере и никуда не уходит: ни на сервер
-          сайта, ни в его файлы. Причина простая — репозиторий сайта открытый,
-          и всё, что сохраняется в настройках, видно любому. Обратная сторона:
-          на другом устройстве ключ придётся ввести заново.
+          ${i18n("Ключ хранится только в этом браузере и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая — репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.")}
         </p>
       </div>
     </details>`;
@@ -349,18 +327,18 @@ function importMapHtml() {
         <div class="imp-from">${esc(IMPORT_STATUS_KEYS[key])} <span class="imp-count">${byStatus[key]}</span></div>
         <div class="imp-arrow">→</div>
         <select class="imp-select" data-status="${key}">
-          <option value="">не импортировать</option>
-          <option value="completed"${importStatusMap[key] === "completed" ? " selected" : ""}>${esc(siteLabel("statuses", "archive", "Архив"))}</option>
+          <option value="">${i18n("не импортировать")}</option>
+          <option value="completed"${importStatusMap[key] === "completed" ? " selected" : ""}>${esc(siteLabel("statuses", "archive", i18n("Архив")))}</option>
           ${activeStatusBuckets().map((b) =>
             `<option value="${esc(b.key)}"${importStatusMap[key] === b.key ? " selected" : ""}>${esc(b.label)}</option>`
           ).join("")}
-          <option value="${NEW_STATUS_VALUE}">+ завести свой статус…</option>
+          <option value="${NEW_STATUS_VALUE}">${i18n("+ завести свой статус…")}</option>
         </select>
       </div>
       <div class="imp-newstatus hidden" id="imp-newstatus-${key}">
-        <input type="text" id="imp-newstatus-name-${key}" placeholder="Например: Брошено" maxlength="40">
-        <button class="btn btn-ghost" data-create-status="${key}" type="button">Завести</button>
-        <button class="btn btn-ghost" data-cancel-status="${key}" type="button">Отмена</button>
+        <input type="text" id="imp-newstatus-name-${key}" placeholder="${i18n("Например: Брошено")}" maxlength="40">
+        <button class="btn btn-ghost" data-create-status="${key}" type="button">${i18n("Завести")}</button>
+        <button class="btn btn-ghost" data-cancel-status="${key}" type="button">${i18n("Отмена")}</button>
       </div>`).join("");
 
   const scoreRows = scoresInFile().map((score) => {
@@ -370,7 +348,7 @@ function importMapHtml() {
         <div class="imp-from">${esc(String(score))} <span class="imp-count">${n}</span></div>
         <div class="imp-arrow">→</div>
         <select class="imp-select" data-score="${esc(String(score))}">
-          <option value="">без оценки</option>
+          <option value="">${i18n("без оценки")}</option>
           ${GRADE_ORDER.map((key) =>
             `<option value="${esc(key)}"${importScoreMap[score] === key ? " selected" : ""}>${esc(GRADES[key]?.name || key)}</option>`
           ).join("")}
@@ -382,12 +360,12 @@ function importMapHtml() {
   const hasKey = !!tmdbKey();
 
   return `
-    <p class="imp-source-line">${importData.byName ? "Список" : "Узнан формат"}: <strong>${esc(importData.source)}</strong></p>
+    <p class="imp-source-line">${importData.byName ? "Список" : i18n("Узнан формат")}: <strong>${esc(importData.source)}</strong></p>
     <div class="imp-summary">
-      ${impStat(importData.items.length, importData.byName ? "в списке" : "в выгрузке")}
-      ${impStat(fresh.length, "новых")}
-      ${impStat(existing.length, "уже есть")}
-      ${impStat(scored, "с оценкой")}
+      ${impStat(importData.items.length, importData.byName ? "в списке" : i18n("в выгрузке"))}
+      ${impStat(fresh.length, i18n("новых"))}
+      ${impStat(existing.length, i18n("уже есть"))}
+      ${impStat(scored, i18n("с оценкой"))}
     </div>
     ${importData.skipped ? `<p class="imp-note">${importData.skipped} записей пропущено — у них нет названия.</p>` : ""}
     ${hasMovies && hasKey ? `<p class="imp-note">Постеры к фильмам возьмём у TMDB по названию и году — ключ подключён.</p>` : ""}
@@ -400,11 +378,11 @@ function importMapHtml() {
       </p>
       ${importKeysHtml()}` : ""}
 
-    <h2 class="section-h">Статусы</h2>
-    <p class="panel-intro">Слева то, что стоит ${importData.byName ? "в списке" : "в выгрузке"}, справа — куда это ляжет у тебя.</p>
+    <h2 class="section-h">${i18n("Статусы")}</h2>
+    <p class="panel-intro">Слева то, что стоит ${importData.byName ? "в списке" : i18n("в выгрузке")}, справа — куда это ляжет у тебя.</p>
     ${statusRows}
 
-    <h2 class="section-h">Оценки</h2>
+    <h2 class="section-h">${i18n("Оценки")}</h2>
     <p class="panel-intro">
       Шкала сервиса (от ${esc(String(importData.scaleMin ?? 1))} до
       ${esc(String(importData.scaleMax ?? 10))}) разложена на твои полки поровну.
@@ -412,32 +390,31 @@ function importMapHtml() {
     </p>
     ${scoreRows.join("") || `<p class="imp-note">В выгрузке нет ни одной оценки.</p>`}
 
-    <h2 class="section-h">Что уже есть в паспорте</h2>
+    <h2 class="section-h">${i18n("Что уже есть в паспорте")}</h2>
     <div class="imp-row imp-row-plain">
-      <label><input type="checkbox" id="imp-skip" ${importSkipExisting ? "checked" : ""}> Не трогать ${existing.length} ${plural(existing.length, ["запись", "записи", "записей"])}, которые уже заведены</label>
+      <label><input type="checkbox" id="imp-skip" ${importSkipExisting ? "checked" : ""}> Не трогать ${existing.length} ${plural(existing.length, [i18n("запись"), i18n("записи"), i18n("записей")])}, которые уже заведены</label>
     </div>
     <p class="panel-intro">
-      Снятая галочка перезапишет у них статус и оценку значениями из выгрузки.
-      Тексты отзывов не пострадают в любом случае.
+      ${i18n("Снятая галочка перезапишет у них статус и оценку значениями из выгрузки. Тексты отзывов не пострадают в любом случае.")}
     </p>
 
     <div class="imp-actions">
-      <button class="btn-save" id="imp-run" type="button">Перенести в паспорт</button>
-      <button class="btn btn-ghost" id="imp-cancel" type="button">Отмена</button>
+      <button class="btn-save" id="imp-run" type="button">${i18n("Перенести в паспорт")}</button>
+      <button class="btn btn-ghost" id="imp-cancel" type="button">${i18n("Отмена")}</button>
     </div>
     <div class="status-msg" id="imp-status"></div>`;
 }
 
 function importDoneHtml() {
   return `
-    <p class="panel-intro">Готово. Сайт обновится в течение минуты.</p>
+    <p class="panel-intro">${i18n("Готово. Сайт обновится в течение минуты.")}</p>
     <div class="imp-summary">
-      ${impStat(importData.added, "добавлено")}
-      ${impStat(importData.updated, "обновлено")}
-      ${impStat(importData.untouched, "не тронуто")}
+      ${impStat(importData.added, i18n("добавлено"))}
+      ${impStat(importData.updated, i18n("обновлено"))}
+      ${impStat(importData.untouched, i18n("не тронуто"))}
     </div>
     <div class="imp-actions">
-      <button class="btn btn-ghost" id="imp-again" type="button">Импортировать ещё файл</button>
+      <button class="btn btn-ghost" id="imp-again" type="button">${i18n("Импортировать ещё файл")}</button>
     </div>`;
 }
 
@@ -645,11 +622,11 @@ async function fetchAnilistUserList(userName, onProgress) {
         body: JSON.stringify({ query: ANILIST_LIST_QUERY, variables: { userName, type } }),
       });
     } catch {
-      throw new Error("Не получилось достучаться до AniList. Проверь интернет и попробуй ещё раз.");
+      throw new Error(i18n("Не получилось достучаться до AniList. Проверь интернет и попробуй ещё раз."));
     }
 
     if (res.status === 429) {
-      throw new Error("AniList просит подождать — слишком много запросов подряд. Попробуй через минуту.");
+      throw new Error(i18n("AniList просит подождать — слишком много запросов подряд. Попробуй через минуту."));
     }
 
     const body = await res.json().catch(() => null);
@@ -684,7 +661,7 @@ async function runImport() {
   const selected = toWrite.filter((i) => i.status && importStatusMap[i.status]);
   if (!selected.length) {
     status.className = "status-msg err";
-    status.textContent = "Нечего переносить: у всех записей статус помечен как «не импортировать».";
+    status.textContent = i18n("Нечего переносить: у всех записей статус помечен как «не импортировать».");
     btn.disabled = false;
     return;
   }
@@ -775,7 +752,7 @@ function bindImport() {
     if (!file) return;
     const status = document.getElementById("imp-status");
     status.className = "status-msg";
-    status.textContent = "Читаем файл…";
+    status.textContent = i18n("Читаем файл…");
     try {
       await startMapping(parseImportFile(await file.text(), file.name));
     } catch (err) {
@@ -861,10 +838,10 @@ function bindAnilistUser() {
     importBusy = true;
     btn.disabled = true;
     status.className = "status-msg";
-    status.textContent = "Спрашиваем AniList…";
+    status.textContent = i18n("Спрашиваем AniList…");
     try {
       const collections = await fetchAnilistUserList(userName, (type) => {
-        status.textContent = type === "ANIME" ? "Забираем аниме…" : "Забираем мангу…";
+        status.textContent = type === "ANIME" ? "Забираем аниме…" : i18n("Забираем мангу…");
       });
       const parsed = parseAnilistLists(collections);
       parsed.source = `AniList — ${userName}`;
@@ -905,14 +882,14 @@ function bindImportKeys() {
     const key = input.value.trim();
     if (!key) { input.focus(); return; }
     status.className = "status-msg";
-    status.textContent = "Спрашиваем TMDB, знает ли он такой ключ…";
+    status.textContent = i18n("Спрашиваем TMDB, знает ли он такой ключ…");
     try {
       await checkTmdbKey(key);
       saveTmdbKey(key);
       importKeysOpen = true;
       renderImport();
       const fresh = document.getElementById("imp-key-status");
-      if (fresh) fresh.textContent = "Ключ принят. Постеры к фильмам теперь приедут вместе со списком.";
+      if (fresh) fresh.textContent = i18n("Ключ принят. Постеры к фильмам теперь приедут вместе со списком.");
     } catch (err) {
       status.className = "status-msg err";
       status.textContent = err.message;

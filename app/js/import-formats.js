@@ -85,11 +85,11 @@ function csvToObjects(text) {
 // score — как в исходнике; какая там шкала, никто не решает заранее.
 
 const IMPORT_STATUS_KEYS = {
-  watching: "Смотрю / читаю / играю",
-  completed: "Пройдено / просмотрено / прочитано",
-  onhold: "Отложено",
-  dropped: "Брошено",
-  plantowatch: "В планах",
+  watching: i18n("Смотрю / читаю / играю"),
+  completed: i18n("Пройдено / просмотрено / прочитано"),
+  onhold: i18n("Отложено"),
+  dropped: i18n("Брошено"),
+  plantowatch: i18n("В планах"),
 };
 
 // ── MyAnimeList и Шикимори (XML) ───────────────
@@ -123,7 +123,7 @@ function cleanDate(value) {
 function parseMalXml(text) {
   const doc = new DOMParser().parseFromString(text, "application/xml");
   if (doc.querySelector("parsererror")) {
-    throw new Error("Файл не читается как XML. Выгрузка иногда приходит в архиве — распакуй его сначала.");
+    throw new Error(i18n("Файл не читается как XML. Выгрузка иногда приходит в архиве — распакуй его сначала."));
   }
   const entries = [...doc.querySelectorAll("anime, manga")];
   if (!entries.length) return null; // не наш формат — пусть попробуют другие
@@ -152,7 +152,7 @@ function parseMalXml(text) {
       ids: { mal: malId },
     });
   }
-  return { source: "MyAnimeList / Шикимори", scaleMin: 1, scaleMax: 10, items, skipped };
+  return { source: i18n("MyAnimeList / Шикимори"), scaleMin: 1, scaleMax: 10, items, skipped };
 }
 
 // ── Goodreads (CSV) ────────────────────────────
@@ -341,12 +341,12 @@ function parseImportFile(text, filename = "") {
   if (looksXml) {
     const parsed = parseMalXml(text);
     if (parsed && parsed.items.length) return parsed;
-    throw new Error("Это XML, но списка аниме или манги внутри нет.");
+    throw new Error(i18n("Это XML, но списка аниме или манги внутри нет."));
   }
 
   const rows = csvToObjects(text);
   if (!rows.length) {
-    throw new Error("Файл пустой или это не CSV и не XML. Нужна выгрузка списка из сервиса.");
+    throw new Error(i18n("Файл пустой или это не CSV и не XML. Нужна выгрузка списка из сервиса."));
   }
 
   const format = detectCsvFormat(Object.keys(rows[0]));
@@ -360,8 +360,8 @@ function parseImportFile(text, filename = "") {
   }
 
   throw new Error(
-    "Не удалось узнать формат файла. Понимаем выгрузки: MyAnimeList и Шикимори (XML), " +
-    "Goodreads и Letterboxd (CSV). Колонки в файле: " +
+    i18n("Не удалось узнать формат файла. Понимаем выгрузки: MyAnimeList и Шикимори (XML), ") +
+    i18n("Goodreads и Letterboxd (CSV). Колонки в файле: ") +
     Object.keys(rows[0]).slice(0, 6).join(", ") + "…"
   );
 }

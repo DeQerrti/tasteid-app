@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
+<script src="/js/i18n.js?v=1"></script>
+<script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
@@ -182,7 +184,7 @@ input::placeholder { color: var(--text-dim); }
 <body>
 
 <header>
-  <div class="header-eyebrow" id="page-subtitle">Персонажи и персоны</div>
+  <div class="header-eyebrow" id="page-subtitle" data-i18n>Персонажи и персоны</div>
   <a href="/" class="logo">TasteID</a>
   <div class="header-deco">
     <span></span><span></span><span></span><span></span><span></span>
@@ -193,73 +195,73 @@ input::placeholder { color: var(--text-dim); }
 
   <div class="edit-banner" id="edit-banner" style="display:none">
     <div>Режим редактирования — <span class="edit-banner-title" id="edit-name-hint"></span></div>
-    <button class="btn-new" onclick="resetToNew()">Новая запись</button>
+    <button class="btn-new" onclick="resetToNew()" data-i18n>Новая запись</button>
   </div>
 
-  <h2 class="section-title">Основное</h2>
+  <h2 class="section-title" data-i18n>Основное</h2>
   <div class="grid">
     <div class="field">
-      <label>Имя *</label>
-      <input type="text" id="f-name" placeholder="Имя">
+      <label data-i18n>Имя *</label>
+      <input type="text" id="f-name" placeholder="Имя" data-i18n-placeholder="Имя">
     </div>
     <div class="field">
-      <label>Тип</label>
+      <label data-i18n>Тип</label>
       <div class="select-wrap">
         <select id="f-type" onchange="onTypeChange()">
-          <option value="character">Персонаж</option>
-          <option value="person">Персона</option>
+          <option value="character" data-i18n>Персонаж</option>
+          <option value="person" data-i18n>Персона</option>
         </select>
       </div>
     </div>
     <div class="field full field-subtype" id="field-subtype">
-      <label>Роль персоны</label>
+      <label data-i18n>Роль персоны</label>
       <div class="src-type-wrap" style="width:100%;">
         <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleSubtypePickerDropdown()">
-          <span id="subtype-picker-label">Актёр</span><span class="src-caret">▾</span>
+          <span id="subtype-picker-label" data-i18n>Актёр</span><span class="src-caret">▾</span>
         </button>
         <div class="src-type-dropdown hidden" id="subtype-picker-dropdown"></div>
       </div>
       <input type="hidden" id="f-subtype" value="actor">
     </div>
     <div class="field full">
-      <label>Ссылка на изображение</label>
+      <label data-i18n>Ссылка на изображение</label>
       <input type="text" id="f-image" placeholder="https://..." oninput="previewAvatar(this.value); scheduleBackupImage();">
       <input type="hidden" id="f-image-backup">
       <img id="avatar-img" class="avatar-preview">
       <div id="image-backup-status" style="font-size:.8rem;margin-top:.4rem;"></div>
     </div>
     <div class="field full">
-      <label>Или загрузить с компьютера</label>
+      <label data-i18n>Или загрузить с компьютера</label>
       <label class="btn btn-ghost file-btn">
         <input type="file" id="f-image-upload" accept="image/*" onchange="updateFileBtnName(this)">
-        <span>Выбрать файл</span>
+        <span data-i18n>Выбрать файл</span>
       </label>
       <span class="file-btn-name" id="f-image-upload-name"></span>
-      <button type="button" class="btn-new" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadFavImage()">Загрузить и использовать</button>
+      <button type="button" class="btn-new" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadFavImage()" data-i18n>Загрузить и использовать</button>
       <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
     </div>
     <div class="field full" id="field-from">
-      <label>Откуда (необязательно)</label>
-      <input type="text" id="f-from" placeholder="Из какого произведения">
+      <label data-i18n>Откуда (необязательно)</label>
+      <input type="text" id="f-from" placeholder="Из какого произведения" data-i18n-placeholder="Из какого произведения">
     </div>
   </div>
 
   <div class="divider"></div>
-  <button class="btn-save" id="btn-save" onclick="saveEntry()">Сохранить</button>
+  <button class="btn-save" id="btn-save" onclick="saveEntry()" data-i18n>Сохранить</button>
   <div class="status-msg" id="status"></div>
 
   <div class="list-header" id="list-header" style="display:none">
-    <div class="divider-title">Персонажи</div>
-    <button class="btn-save-order" id="btn-save-order" onclick="saveOrder()">Сохранить порядок</button>
+    <div class="divider-title" data-i18n>Персонажи</div>
+    <button class="btn-save-order" id="btn-save-order" onclick="saveOrder()" data-i18n>Сохранить порядок</button>
   </div>
   <div class="entries-list" id="entries-list-character"></div>
 
-  <div class="divider-title" id="persons-title" style="display:none">Персоны</div>
+  <div class="divider-title" id="persons-title" style="display:none" data-i18n>Персоны</div>
   <div class="entries-list" id="entries-list-person"></div>
 
   <div id="entries-groups-custom"></div>
 
-  <div class="order-hint" id="order-hint">Перетащи за ⠿, чтобы изменить порядок, затем нажми «Сохранить порядок»</div>
+  <div class="order-hint" id="order-hint" data-i18n>Перетащи за ⠿, чтобы изменить порядок, затем нажми «Сохранить порядок»</div>
 
 </main>
 
@@ -294,16 +296,16 @@ function renderSubtypePickerDropdown() {
   const options = Object.entries(SUBTYPE_LABELS).map(([key, label]) => `
     <div class="src-type-option${key === current ? " active" : ""}" onclick="selectSubtypePicker('${key}')">
       <span>${esc(label)}</span>
-      ${!SUBTYPE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="Удалить" onclick="event.stopPropagation(); removeSubtypePicker('${key}')">✕</span>` : ""}
+      ${!SUBTYPE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSubtypePicker('${key}')">✕</span>` : ""}
     </div>`).join("");
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
     <div class="src-type-add-row">
-      <button type="button" class="btn-new src-type-add-btn" onclick="showAddSubtypeForm()">Добавить роль</button>
+      <button type="button" class="btn-new src-type-add-btn" onclick="showAddSubtypeForm()">${i18n("Добавить роль")}</button>
     </div>
     <div class="src-type-add-form hidden" id="subtype-picker-add-form">
-      <input type="text" id="subtype-picker-new-name" placeholder="Например: Продюсер">
-      <button type="button" class="btn-new" onclick="confirmAddSubtype()">Ок</button>
+      <input type="text" id="subtype-picker-new-name" placeholder="${i18n("Например: Продюсер")}" data-i18n-placeholder="${i18n("Например: Продюсер")}">
+      <button type="button" class="btn-new" onclick="confirmAddSubtype()">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="subtype-picker-status"></div>`;
 }
@@ -350,12 +352,12 @@ async function confirmAddSubtype() {
   const statusEl = document.getElementById("subtype-picker-status");
   const name = input.value.trim();
 
-  if (!name) { statusEl.textContent = "Введи название роли"; statusEl.className = "status-msg src-type-status err"; return; }
+  if (!name) { statusEl.textContent = i18n("Введи название роли"); statusEl.className = "status-msg src-type-status err"; return; }
   const exists = Object.values(SUBTYPE_LABELS).some(l => l.toLowerCase() === name.toLowerCase());
-  if (exists) { statusEl.textContent = "Такая роль уже есть"; statusEl.className = "status-msg src-type-status err"; return; }
+  if (exists) { statusEl.textContent = i18n("Такая роль уже есть"); statusEl.className = "status-msg src-type-status err"; return; }
 
   const key = "custom_" + name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "_").slice(0, 30) + "_" + Date.now().toString(36).slice(-4);
-  statusEl.textContent = "Сохраняем…";
+  statusEl.textContent = i18n("Сохраняем…");
   statusEl.className = "status-msg src-type-status";
   try {
     await patchSiteSettings((settings) => {
@@ -366,13 +368,13 @@ async function confirmAddSubtype() {
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     selectSubtypePicker(key);
   } catch (err) {
-    statusEl.textContent = err.message || "Ошибка сохранения";
+    statusEl.textContent = err.message || i18n("Ошибка сохранения");
     statusEl.className = "status-msg src-type-status err";
   }
 }
 
 async function removeSubtypePicker(key) {
-  if (!(await confirmDialog(`Удалить роль «${SUBTYPE_LABELS[key]}»?`))) return;
+  if (!(await confirmDialog(i18n("Удалить роль «{name}»?", { name: SUBTYPE_LABELS[key] })))) return;
   try {
     await patchSiteSettings((settings) => {
       settings.customSubtypes = settings.customSubtypes || {};
@@ -383,7 +385,7 @@ async function removeSubtypePicker(key) {
     if (subtypePickerOpen) renderSubtypePickerDropdown();
     if (document.getElementById("f-subtype").value === key) selectSubtypePicker("actor");
   } catch (err) {
-    alert(err.message || "Ошибка удаления");
+    alert(err.message || i18n("Ошибка удаления"));
   }
 }
 
@@ -448,7 +450,7 @@ function convertImageToWebp(file) {
       canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
       canvas.toBlob((blob) => {
-        if (!blob) return reject(new Error("Не удалось сконвертировать"));
+        if (!blob) return reject(new Error(i18n("Не удалось сконвертировать")));
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result.split(",")[1]);
         reader.onerror = reject;
@@ -464,14 +466,14 @@ async function uploadFavImage() {
   const fileInput = document.getElementById("f-image-upload");
   const status = document.getElementById("image-upload-status");
   if (!fileInput.files.length) {
-    status.textContent = "Выбери файл";
+    status.textContent = i18n("Выбери файл");
     status.style.color = "var(--red-hi, #c0392b)";
     return;
   }
   const name = document.getElementById("f-name").value.trim() || "favorite";
   const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
 
-  status.textContent = "Обрабатываю...";
+  status.textContent = i18n("Обрабатываю...");
   status.style.color = "";
   try {
     const base64 = await convertImageToWebp(fileInput.files[0]);
@@ -482,16 +484,16 @@ async function uploadFavImage() {
       body: JSON.stringify({ basePath: "favorites", filename: slug + ".webp", contentBase64: base64 }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Ошибка загрузки");
+    if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
     // Картинка загружена напрямую в репозиторий — своя резервная копия ей не нужна.
     document.getElementById("f-image").value = "";
     document.getElementById("f-image-backup").value = "/" + data.path;
     previewAvatar("/" + data.path);
-    status.textContent = "Загружено ✓";
+    status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
-    status.textContent = "Ошибка: " + e.message;
+    status.textContent = i18n("Ошибка: ") + e.message;
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
@@ -513,7 +515,7 @@ async function backupImageNow() {
   const name = document.getElementById("f-name").value.trim() || "favorite";
   const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
 
-  status.textContent = "Делаю резервную копию картинки...";
+  status.textContent = i18n("Делаю резервную копию картинки...");
   status.style.color = "";
   try {
     const res = await fetch("/api/backup-cover", {
@@ -523,12 +525,12 @@ async function backupImageNow() {
       body: JSON.stringify({ url, filename: slug }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Не удалось сохранить копию");
+    if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
     document.getElementById("f-image-backup").value = data.url || ("/" + data.path);
-    status.textContent = "Резервная копия сохранена ✓";
+    status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
-    status.textContent = "Резервную копию сделать не удалось: " + e.message;
+    status.textContent = i18n("Резервную копию сделать не удалось: ") + e.message;
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
@@ -542,8 +544,8 @@ function setStatus(type, text) {
 function resetToNew() {
   editingId = null;
   document.getElementById("edit-banner").style.display = "none";
-  document.getElementById("page-subtitle").textContent = "Персонажи и персоны";
-  document.getElementById("btn-save").textContent = "Сохранить";
+  document.getElementById("page-subtitle").textContent = i18n("Персонажи и персоны");
+  document.getElementById("btn-save").textContent = i18n("Сохранить");
   history.replaceState(null, "", "favorites-edit.html");
   ["f-name","f-image","f-from","f-image-backup"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("f-type").value = "character";
@@ -577,8 +579,8 @@ function fillForm(r) {
 
 // ── Рендер одного из двух списков (персонажи / персоны) ──
 function favTypeLabel(type, subtype) {
-  if (type === "person") return SUBTYPE_LABELS[subtype] || "Персона";
-  if (type === "character") return "Персонаж";
+  if (type === "person") return SUBTYPE_LABELS[subtype] || i18n("Персона");
+  if (type === "character") return i18n("Персонаж");
   return (favCustomCollections().find(c => c.id === type) || {}).label || type;
 }
 
@@ -586,19 +588,19 @@ function renderGroup(type, list) {
   const container = document.getElementById(`entries-list-${type}`);
   if (!container) return;
   if (!list.length) {
-    container.innerHTML = `<div class="entries-empty">Пока пусто</div>`;
+    container.innerHTML = `<div class="entries-empty">${i18n("Пока пусто")}</div>`;
     return;
   }
   container.innerHTML = list.map((r) => {
     const typeLabel = favTypeLabel(r.type, r.subtype);
     return `
     <div class="entry-row" data-id="${r.id}" data-group="${type}" draggable="true">
-      <span class="entry-drag-handle" title="Перетащить">⠿</span>
+      <span class="entry-drag-handle" title="${i18n("Перетащить")}">⠿</span>
       <img class="entry-avatar" src="${esc(r.image || r.image_backup || "")}" data-hide-on-error alt="">
       <div class="entry-name">${esc(r.name)}</div>
       ${r.from ? `<div class="entry-type">${esc(r.from)}</div>` : ""}
       <div class="entry-type">${esc(typeLabel)}</div>
-      <button class="entry-edit" onclick="startEdit(${r.id})">✎ Изменить</button>
+      <button class="entry-edit" onclick="startEdit(${r.id})">${i18n("✎ Изменить")}</button>
     </div>`;
   }).join("");
   bindDnd(container);
@@ -701,8 +703,8 @@ async function startEdit(id) {
   fillForm(entry);
   document.getElementById("edit-banner").style.display = "flex";
   document.getElementById("edit-name-hint").textContent = entry.name;
-  document.getElementById("page-subtitle").textContent = "Редактировать запись";
-  document.getElementById("btn-save").textContent = "Сохранить изменения";
+  document.getElementById("page-subtitle").textContent = i18n("Редактировать запись");
+  document.getElementById("btn-save").textContent = i18n("Сохранить изменения");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -710,7 +712,7 @@ async function startEdit(id) {
 async function saveOrder() {
   const btn = document.getElementById("btn-save-order");
   btn.disabled = true;
-  btn.textContent = "Сохраняем…";
+  btn.textContent = i18n("Сохраняем…");
 
   const newOrder = Object.values(groupLists).flat().map(r => r.id);
 
@@ -726,22 +728,22 @@ async function saveOrder() {
       orderDirty = false;
       btn.classList.remove("visible");
       document.getElementById("order-hint").classList.remove("visible");
-      setStatus("ok", "Порядок сохранён." + ((await isAppContext()) ? "" : " Сайт обновится через ~30 секунд."));
+      setStatus("ok", i18n("Порядок сохранён.") + ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.")));
     } else {
-      setStatus("err", "Ошибка: " + (data.error || "неизвестная"));
+      setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
   } catch (e) {
-    setStatus("err", "Ошибка сети: " + e.message);
+    setStatus("err", i18n("Ошибка сети: ") + e.message);
   }
 
   btn.disabled = false;
-  btn.textContent = "Сохранить порядок";
+  btn.textContent = i18n("Сохранить порядок");
 }
 
 async function saveEntry() {
   const btn  = document.getElementById("btn-save");
   const name = document.getElementById("f-name").value.trim();
-  if (!name) { setStatus("err", "Заполни имя"); return; }
+  if (!name) { setStatus("err", i18n("Заполни имя")); return; }
 
   const type = document.getElementById("f-type").value;
 
@@ -751,7 +753,7 @@ async function saveEntry() {
   const imageUrl = document.getElementById("f-image").value.trim();
   if (imageUrl && imageUrl.startsWith("http") && !document.getElementById("f-image-backup").value) {
     clearTimeout(backupImageTimer);
-    setStatus("", "Делаю резервную копию картинки перед сохранением...");
+    setStatus("", i18n("Делаю резервную копию картинки перед сохранением..."));
     await backupImageNow();
   }
 
@@ -768,7 +770,7 @@ async function saveEntry() {
   if (editingId !== null) entry._editId = editingId;
 
   btn.disabled = true;
-  btn.textContent = "Сохраняем…";
+  btn.textContent = i18n("Сохраняем…");
   setStatus("", "");
 
   try {
@@ -780,21 +782,21 @@ async function saveEntry() {
     });
     const data = await res.json();
     if (res.ok) {
-      const note = (await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.";
+      const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
       setStatus("ok", editingId !== null
         ? `«${name}» обновлён.${note}`
         : `«${name}» сохранён.${note}`);
       if (editingId === null) resetToNew();
       setTimeout(loadList, 2000);
     } else {
-      setStatus("err", "Ошибка: " + (data.error || "неизвестная"));
+      setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
   } catch (e) {
-    setStatus("err", "Ошибка сети: " + e.message);
+    setStatus("err", i18n("Ошибка сети: ") + e.message);
   }
 
   btn.disabled = false;
-  btn.textContent = editingId !== null ? "Сохранить изменения" : "Сохранить";
+  btn.textContent = editingId !== null ? "Сохранить изменения" : i18n("Сохранить");
 }
 
 </script>

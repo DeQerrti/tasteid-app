@@ -26,7 +26,7 @@
 const EXTERNAL_ID_LABELS = {
   anilist: "AniList",
   mal: "MyAnimeList",
-  hardcover_edition: "Hardcover (издание)",
+  hardcover_edition: i18n("Hardcover (издание)"),
   tmdb: "TMDB",
   igdb: "IGDB",
 };

@@ -22,6 +22,8 @@
 <link rel="stylesheet" href="/fonts.css?v=1">
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/themes.css?v=14">
+<script src="/js/i18n.js?v=1"></script>
+<script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
@@ -127,6 +129,21 @@
   .numeric-max input { width: 5rem; }
   .add-shelf { margin-top: .6rem; }
 
+  /* Язык — в углу окна, как у Обсидиана в мастере хранилища: виден
+     сразу, но не притворяется шагом мастера. Абсолютом, чтобы не
+     сдвигать бренд по центру. */
+  #lang-row {
+    position: absolute; top: calc(var(--app-titlebar, 0px) + .6rem); right: .9rem;
+    display: flex; align-items: center; gap: .4rem;
+  }
+  #lang-select {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 2px; color: var(--text-dim); cursor: pointer;
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .72rem;
+    padding: .25rem 1.4rem .25rem .5rem; width: auto;
+  }
+  #lang-select:hover { color: var(--text-hi); border-color: var(--red-dim); }
+
   .foot { margin-top: 1.6rem; }
   .status-msg { margin-top: .8rem; }
   .hidden { display: none !important; }
@@ -134,17 +151,21 @@
 </head>
 <body>
 
-<div id="wrap"><div class="card">
+<div id="wrap">
+  <div id="lang-row">
+    <select id="lang-select" aria-label="Language" data-i18n-aria-label="Язык интерфейса"></select>
+  </div>
+  <div class="card">
   <div class="brand">
     <span class="brand-name">TasteID</span>
-    <span class="brand-sub">Цифровой паспорт интересов</span>
+    <span class="brand-sub" data-i18n>Цифровой паспорт интересов</span>
   </div>
 
-  <button class="back-link hidden" id="btn-back" type="button">← Назад</button>
+  <button class="back-link hidden" id="btn-back" type="button" data-i18n>← Назад</button>
   <div id="step-body"></div>
 
   <div class="foot">
-    <button class="btn-save hidden" id="btn-next" type="button">Дальше</button>
+    <button class="btn-save hidden" id="btn-next" type="button" data-i18n>Дальше</button>
   </div>
   <div class="status-msg" id="status"></div>
 </div></div>
@@ -172,6 +193,17 @@ const api = async (url, body) => {
   return data;
 };
 
+// Язык виден до всего остального и переключается здесь же: у того, кто
+// открыл приложение впервые, ещё нет ни настроек, ни хранилища, где
+// этот выбор мог бы лежать.
+function renderLangSelect() {
+  const sel = $("lang-select");
+  sel.innerHTML = Object.entries(I18N_LANGS)
+    .map(([code, name]) => `<option value="${code}"${code === I18N_CURRENT ? " selected" : ""}>${name}</option>`)
+    .join("");
+  sel.addEventListener("change", () => setAppLanguage(sel.value));
+}
+
 function setStatus(type, text) {
   const el = $("status");
   el.className = "status-msg" + (type ? " " + type : "");
@@ -185,22 +217,22 @@ function renderSource() {
     <div class="rows">
       <div class="setup-row">
         <div class="setup-row-text">
-          <div class="setup-row-name">Создать новый TasteID</div>
-          <div class="setup-row-note">Создайте новый TasteID внутри указанной папки</div>
+          <div class="setup-row-name">${i18n("Создать новый TasteID")}</div>
+          <div class="setup-row-note">${i18n("Создайте новый TasteID внутри указанной папки")}</div>
         </div>
-        <button class="btn btn-ghost" data-mode="new" type="button">Создать</button>
+        <button class="btn btn-ghost" data-mode="new" type="button">${i18n("Создать")}</button>
       </div>
       <div class="setup-row">
         <div class="setup-row-text">
-          <div class="setup-row-name">Открыть существующий TasteID</div>
-          <div class="setup-row-note">Если папка с TasteID уже есть</div>
+          <div class="setup-row-name">${i18n("Открыть существующий TasteID")}</div>
+          <div class="setup-row-note">${i18n("Если папка с TasteID уже есть")}</div>
         </div>
-        <button class="btn btn-ghost" data-mode="open" type="button">Открыть</button>
+        <button class="btn btn-ghost" data-mode="open" type="button">${i18n("Открыть")}</button>
       </div>
     </div>
     <div class="path-row${chosen.path ? "" : " hidden"}" id="path-row">
       <div class="path" id="path-text">${chosen.path || ""}</div>
-      <button class="btn btn-ghost" id="btn-pick2" type="button">Другая папка</button>
+      <button class="btn btn-ghost" id="btn-pick2" type="button">${i18n("Другая папка")}</button>
     </div>`;
 
   for (const btn of document.querySelectorAll("[data-mode]")) {
@@ -234,7 +266,7 @@ async function pickFolder(mode) {
 function renderTheme() {
   const options = typeof themeOptions === "function" ? themeOptions() : [];
   $("step-body").innerHTML = `
-    <div class="step-title">Выбор темы</div>
+    <div class="step-title">${i18n("Выбор темы")}</div>
     <div class="pill-grid">
       ${options.map((t) => `
         <button class="pill${chosen.theme === t.id ? " active" : ""}" data-theme="${t.id}" type="button">${t.label}</button>
@@ -289,9 +321,9 @@ function previewTheme(id) {
 // разметку целой страницы настроек, здесь нужна только эта часть.
 
 const SCALE_TYPES = [
-  { id: "categorical", name: "Названия" },
-  { id: "numeric", name: "Числа" },
-  { id: "stars", name: "Звёзды" },
+  { id: "categorical", name: i18n("Названия") },
+  { id: "numeric", name: i18n("Числа") },
+  { id: "stars", name: i18n("Звёзды") },
 ];
 const DEFAULT_SHELF_COLORS = ["#7c3aed", "#2563a8", "#2d8a4e", "#d4a017", "#6b7280", "#c0392b", "#8B6914"];
 
@@ -303,7 +335,7 @@ function seedShelves(type) {
     return;
   }
   const max = chosen.numericMax;
-  const names = ["Резонанс", "Эталон", "Отлично", "Аттракцион", "Фоновый шум", "Брак", "Разочарование"];
+  const names = [i18n("Резонанс"), i18n("Эталон"), i18n("Отлично"), i18n("Аттракцион"), i18n("Фоновый шум"), i18n("Брак"), i18n("Разочарование")].map(t);
   const n = Math.min(names.length, max);
   const step = max / n;
   shelves = [];
@@ -316,7 +348,7 @@ function seedShelves(type) {
 
 function renderScale() {
   $("step-body").innerHTML = `
-    <div class="step-title">Система оценивания</div>
+    <div class="step-title">${i18n("Система оценивания")}</div>
     <div class="pill-grid">
       ${SCALE_TYPES.map((t) => `
         <button class="pill${chosen.scaleType === t.id ? " active" : ""}" data-scaletype="${t.id}" type="button">${t.name}</button>
@@ -358,14 +390,14 @@ function renderShelvesEditor() {
   const withRange = chosen.scaleType !== "categorical";
   const maxRow = withRange ? `
     <div class="numeric-max">
-      <label>${chosen.scaleType === "stars" ? "Сколько звёзд" : "Максимум"}</label>
+      <label>${chosen.scaleType === "stars" ? i18n("Сколько звёзд") : i18n("Максимум")}</label>
       <input type="number" id="numericMax" min="2" max="1000" value="${chosen.numericMax}">
     </div>` : "";
 
   box.innerHTML = `
     ${maxRow}
     <div class="shelves-list" id="shelvesList"></div>
-    <button class="btn btn-ghost add-shelf" id="btn-add-shelf" type="button">Добавить полку</button>`;
+    <button class="btn btn-ghost add-shelf" id="btn-add-shelf" type="button">${i18n("Добавить полку")}</button>`;
 
   // Меняет число — и сразу пересевает полки под него: иначе счётчик
   // наверху говорит одно, а диапазоны внизу показывают прежнее (с
@@ -379,9 +411,9 @@ function renderShelvesEditor() {
   });
   $("btn-add-shelf").addEventListener("click", () => {
     if (withRange) {
-      shelves.push({ key: "shelf_" + Date.now().toString(36).slice(-5), name: "Новая полка", color: "#8b1a1a", min: 1, max: chosen.numericMax });
+      shelves.push({ key: "shelf_" + Date.now().toString(36).slice(-5), name: i18n("Новая полка"), color: "#8b1a1a", min: 1, max: chosen.numericMax });
     } else {
-      const name = "Новая полка";
+      const name = i18n("Новая полка");
       shelves.push({ key: "custom_" + name.toLowerCase() + "_" + Date.now().toString(36).slice(-5), name, color: "#8b1a1a" });
     }
     renderShelvesList();
@@ -395,11 +427,11 @@ function renderShelvesList() {
     <div class="shelf-row">
       <div class="shelf-row-main">
         <input type="color" value="${s.color}" data-i="${i}" data-f="color">
-        <input type="text" value="${s.name}" data-i="${i}" data-f="name" placeholder="Название">
+        <input type="text" value="${s.name}" data-i="${i}" data-f="name" placeholder="${i18n("Название")}">
         ${withRange ? `
-          <span class="rng">от</span>
+          <span class="rng">${i18n("от")}</span>
           <input type="number" value="${s.min}" data-i="${i}" data-f="min">
-          <span class="rng">до</span>
+          <span class="rng">${i18n("до")}</span>
           <input type="number" value="${s.max}" data-i="${i}" data-f="max">
         ` : ""}
         <button class="icon-btn" data-remove="${i}" type="button">✕</button>
@@ -415,7 +447,7 @@ function renderShelvesList() {
   $("shelvesList").querySelectorAll("[data-remove]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const i = Number(btn.dataset.remove);
-      if (!(await confirmDialog(`Удалить полку «${shelves[i].name}»?`))) return;
+      if (!(await confirmDialog(i18n("Удалить полку «{name}»?", { name: shelves[i].name })))) return;
       shelves.splice(i, 1);
       renderShelvesList();
     });
@@ -436,7 +468,7 @@ function render() {
   const ready = name !== "scale" || !!chosen.scaleType;
   const next = $("btn-next");
   next.classList.toggle("hidden", !chosen.path || !ready);
-  next.textContent = last ? (chosen.mode === "new" ? "Создать паспорт" : "Открыть") : "Дальше";
+  next.textContent = last ? (chosen.mode === "new" ? i18n("Создать паспорт") : i18n("Открыть")) : i18n("Дальше");
 }
 
 $("btn-back").addEventListener("click", () => { step = Math.max(0, step - 1); render(); });
@@ -448,7 +480,7 @@ $("btn-next").addEventListener("click", async () => {
 
   busy = true;
   $("btn-next").disabled = true;
-  setStatus("", "Готовим паспорт…");
+  setStatus("", i18n("Готовим паспорт…"));
   try {
     await api("/api/app/use-vault", { path: chosen.path, create: chosen.mode === "new" });
 
@@ -472,7 +504,10 @@ $("btn-next").addEventListener("click", async () => {
 
 // domReady возвращает промис и обработчик не принимает — вызывать её
 // как domReady(fn) бесполезно: функция просто игнорируется.
-domReady().then(render);
+domReady().then(() => {
+  renderLangSelect();
+  render();
+});
 </script>
 </body>
 </html>

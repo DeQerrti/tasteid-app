@@ -89,7 +89,7 @@ function manualCard(r, index) {
 
   const editId = r.id ?? encodeURIComponent(r.title);
   const pencil = isAdmin()
-    ? `<a href="add.html?edit=${editId}" class="review-edit-btn" title="Редактировать">✎</a>`
+    ? `<a href="add.html?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
   return `<div class="review-card-wrap" style="animation-delay:${Math.min(index * 25, 600)}ms">

@@ -25,7 +25,7 @@ async function loadReviews() {
   } else {
     document.getElementById("tab-reviews").innerHTML =
       `<div class="state-box">
-        ${esc(siteLabel("empty", "reviews", "Отзывов пока нет."))}
+        ${esc(siteLabel("empty", "reviews", i18n("Отзывов пока нет.")))}
         ${isAdmin() ? `<div style="margin-top:1.5rem"><a href="/add" class="admin-add-btn">Добавить</a></div>` : ""}
       </div>`;
   }
@@ -51,7 +51,7 @@ function renderReviews(reviews) {
   )], SOURCE_FILTER_ORDER);
 
   const adminBtn = isAdmin()
-    ? `<a href="/add" class="admin-add-btn">Добавить</a>`
+    ? `<a href="/add" class="admin-add-btn">${i18n("Добавить")}</a>`
     : "";
 
   const box = document.getElementById("tab-reviews");
@@ -59,19 +59,19 @@ function renderReviews(reviews) {
     <div class="rv-toolbar">
       <div class="rv-filters">
         <div class="rv-filter-group">
-          <span class="rv-filter-label">${esc(siteLabel("filters", "search", "Поиск"))}</span>
+          <span class="rv-filter-label">${esc(siteLabel("filters", "search", i18n("Поиск")))}</span>
           <input
             type="text"
             id="rv-search"
             class="rv-search-input"
-            placeholder="Название…"
+            placeholder="${i18n("Название…")}"
             autocomplete="off"
             value="${esc(rvState.search)}"
           >
         </div>
-        ${renderRvFilterGroup("type",   siteLabel("filters", "type", "Тип"),     types,   TYPE_LABELS,   rvState.type)}
-        ${renderRvFilterGroup("grade",  siteLabel("filters", "grade", "Оценка"), grades,  gradeLabels(), rvState.grade)}
-        ${renderRvFilterGroup("source", siteLabel("filters", "source", "Ссылки"), sources, SOURCE_LABELS, rvState.source)}
+        ${renderRvFilterGroup("type",   siteLabel("filters", "type", i18n("Тип")),     types,   TYPE_LABELS,   rvState.type)}
+        ${renderRvFilterGroup("grade",  siteLabel("filters", "grade", i18n("Оценка")), grades,  gradeLabels(), rvState.grade)}
+        ${renderRvFilterGroup("source", siteLabel("filters", "source", i18n("Ссылки")), sources, SOURCE_LABELS, rvState.source)}
       </div>
       ${adminBtn}
     </div>
@@ -101,7 +101,7 @@ function gradeLabels() {
 function renderRvFilterGroup(field, title, values, labelsMap, active) {
   if (!values.length) return "";
   const btns = [
-    `<button class="rv-filter-btn${active === "all" ? " active" : ""}" data-field="${field}" data-val="all">${esc(siteLabel("filters", "all", "Все"))}</button>`,
+    `<button class="rv-filter-btn${active === "all" ? " active" : ""}" data-field="${field}" data-val="all">${esc(siteLabel("filters", "all", i18n("Все")))}</button>`,
     ...values.map(v => {
       const label = labelsMap[v] || v;
       return `<button class="rv-filter-btn${active === v ? " active" : ""}" data-field="${field}" data-val="${esc(v)}">${esc(label)}</button>`;
@@ -153,7 +153,7 @@ function applyRvFilters(reviews) {
 
   if (!filtered.length) {
     grid.innerHTML = `<div class="state-box" style="padding:3rem 1rem;grid-column:1/-1">
-      ${esc(siteLabel("empty", "search", "Ничего не найдено"))}
+      ${esc(siteLabel("empty", "search", i18n("Ничего не найдено")))}
     </div>`;
     return;
   }
@@ -205,7 +205,7 @@ function reviewModalBodyHtml(r) {
   const textHtml = hasFullText
     ? `<div class="review-modal-fulltext">${esc(r.review_full).split("\n").map(p => p ? `<p>${p}</p>` : "").join("")}</div>`
     : `<div class="review-modal-fulltext">
-        <p>${esc(r.preview || "Пока без текста.")}</p>
+        <p>${esc(r.preview || i18n("Пока без текста."))}</p>
         ${(btn1 || btn2) ? `<p class="review-modal-nofull-hint">Развёрнутый текст пока не перенесён на сайт — полный отзыв можно почитать по ссылке ниже.</p>` : ""}
       </div>`;
 
@@ -216,7 +216,7 @@ function reviewModalBodyHtml(r) {
         <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
         <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
         ${dateStr ? `<div class="review-dateline">Ознакомился: <span>${esc(dateStr)}</span></div>` : ""}
-        ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="Пересмотров: ${r.rewatch_count}">↻ ×${r.rewatch_count}</div>` : ""}
+        ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
         ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(grade.name)}</div>` : ""}
       </div>
     </div>
@@ -287,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 function sourceBtnHtml(url, source) {
   if (!url) return "";
-  const label = SOURCE_LABELS[source] || source || "Подробнее";
+  const label = SOURCE_LABELS[source] || source || i18n("Подробнее");
   if (source === "teletype") {
     return `<a href="${esc(url)}" target="_blank" rel="noopener" class="review-source-link source-teletype">
       <span class="source-dot-teletype"></span>${esc(label)} →
@@ -308,7 +308,7 @@ function reviewCard(r, i) {
     : "";
 
   const waifuHtml = r.favorites
-    ? `<div class="review-waifu"><span class="review-waifu-label">Фавориты:</span> <span>${esc(r.favorites)}</span></div>`
+    ? `<div class="review-waifu"><span class="review-waifu-label">${i18n("Фавориты:")}</span> <span>${esc(r.favorites)}</span></div>`
     : "";
 
   const dateRaw = r.date_end || r.date_start || r.date || null;
@@ -317,7 +317,7 @@ function reviewCard(r, i) {
     : "";
 
   const rewatchHtml = r.rewatch_count > 0
-    ? `<div class="review-rewatch" title="Пересмотров: ${r.rewatch_count}">↻ ×${r.rewatch_count}</div>`
+    ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>`
     : "";
 
   const formatYear = [r.format, r.year].filter(Boolean).join(" · ");
@@ -339,7 +339,7 @@ function reviewCard(r, i) {
 
   const editId  = r.id ?? encodeURIComponent(r.title);
   const editBtn = isAdmin()
-    ? `<a href="/add?edit=${editId}" class="review-edit-btn" title="Редактировать">✎</a>`
+    ? `<a href="/add?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
   // tabindex + role: карточка открывает модалку по клику, но до этой
@@ -348,7 +348,7 @@ function reviewCard(r, i) {
   // некуда. Ссылки внутри (править, источник) остаются самостоятельными
   // точками фокуса и обрабатываются раньше — см. rvBindCardClicks.
   return `<div class="review-card-wrap" data-review-idx="${i}"
-    role="button" tabindex="0" aria-label="Открыть отзыв: ${esc(r.title)}">
+    role="button" tabindex="0" aria-label="${i18n("Открыть отзыв: {v0}", { v0: esc(r.title) })}">
     ${editBtn}
     <div class="review-card"
         style="animation-delay:${Math.min(i * 40, 600)}ms;
@@ -368,7 +368,7 @@ function reviewCard(r, i) {
           ${dateStr ? `<div class="review-dateline">Ознакомился: <span>${esc(dateStr)}</span></div>` : ""}
           ${waifuHtml}
           <div class="review-preview">${esc(r.preview || "")}</div>
-          <div class="review-read-more">Читать полностью →</div>
+          <div class="review-read-more">${i18n("Читать полностью →")}</div>
         </div>
       </div>
       ${tagsHtml}

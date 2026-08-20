@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="/style.css?v=15">
 <link rel="stylesheet" href="/admin.css?v=12">
 <link rel="stylesheet" href="/themes.css?v=14">
+<script src="/js/i18n.js?v=1"></script>
+<script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=15"></script>
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/config.js?v=14"></script>
@@ -186,58 +188,58 @@ main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: gr
 <body>
 
 <header>
-  <div class="header-sub" id="header-sub">Редактор тир-листов персонажей</div>
+  <div class="header-sub" id="header-sub" data-i18n>Редактор тир-листов персонажей</div>
   <a href="/" class="logo">TasteID</a>
 </header>
 
 <main>
   <aside class="sidebar">
     <div>
-      <div class="section-label">Тайтлы</div>
+      <div class="section-label" data-i18n>Тайтлы</div>
       <div class="title-list" id="title-list"></div>
     </div>
     <div class="new-title-form hidden" id="new-title-form">
       <div class="field">
-        <label>Название тайтла *</label>
-        <input type="text" id="nt-name" placeholder="Название">
+        <label data-i18n>Название тайтла *</label>
+        <input type="text" id="nt-name" placeholder="Название" data-i18n-placeholder="Название">
       </div>
       <div class="field">
-  <label>ID (латиница, без пробелов) *</label>
+  <label data-i18n>ID (латиница, без пробелов) *</label>
   <input type="text" id="nt-id" placeholder="korotkij-id">
-  <div id="nt-id-hint" style="font-family:'DM Sans',sans-serif;font-size:.6rem;color:var(--text-dim);margin-top:.3rem;display:none">
+  <div id="nt-id-hint" style="font-family:'DM Sans',sans-serif;font-size:.6rem;color:var(--text-dim);margin-top:.3rem;display:none" data-i18n>
     ID нельзя менять у существующего тайтла — на него уже могут ссылаться сохранённые данные.
   </div>
 </div>
       <div class="field">
-        <label>Папка по умолчанию в chars/ *</label>
-        <input type="text" id="nt-folder" placeholder="имя-папки">
+        <label data-i18n>Папка по умолчанию в chars/ *</label>
+        <input type="text" id="nt-folder" placeholder="имя-папки" data-i18n-placeholder="имя-папки">
       </div>
       <div class="field">
-        <label>Обложка (URL)</label>
+        <label data-i18n>Обложка (URL)</label>
         <input type="text" id="nt-cover" placeholder="https://..." oninput="scheduleBackupTitleCover()">
         <input type="hidden" id="nt-cover-backup">
         <div id="nt-cover-backup-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
       </div>
       <div class="field">
-        <label>Или загрузить с компьютера</label>
+        <label data-i18n>Или загрузить с компьютера</label>
         <label class="btn btn-ghost file-btn">
           <input type="file" id="nt-cover-upload" accept="image/*" onchange="updateFileBtnName(this)">
-          <span>Выбрать файл</span>
+          <span data-i18n>Выбрать файл</span>
         </label>
         <span class="file-btn-name" id="nt-cover-upload-name"></span>
-        <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadTitleCoverFile()">Загрузить и использовать</button>
+        <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadTitleCoverFile()" data-i18n>Загрузить и использовать</button>
         <div id="nt-cover-upload-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
       </div>
       <div style="display:flex;gap:.5rem">
-  <button class="btn btn-primary" id="nt-submit-btn" onclick="submitTitleForm()">Добавить</button>
-  <button class="btn btn-ghost" onclick="toggleNewTitleForm(false)">Отмена</button>
+  <button class="btn btn-primary" id="nt-submit-btn" onclick="submitTitleForm()" data-i18n>Добавить</button>
+  <button class="btn btn-ghost" onclick="toggleNewTitleForm(false)" data-i18n>Отмена</button>
 </div>
     </div>
-    <button class="btn btn-dashed" id="btn-add-title" onclick="toggleNewTitleForm(true)">Новый тайтл</button>
+    <button class="btn btn-dashed" id="btn-add-title" onclick="toggleNewTitleForm(true)" data-i18n>Новый тайтл</button>
   </aside>
 
   <div class="editor" id="editor">
-    <div class="editor-empty">Выбери тайтл слева или создай новый</div>
+    <div class="editor-empty" data-i18n>Выбери тайтл слева или создай новый</div>
   </div>
 </main>
 
@@ -245,13 +247,13 @@ main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: gr
 <div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOnOverlay(event)">
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title" id="modal-title-label">Добавить персонажа</div>
+    <div class="modal-title" id="modal-title-label" data-i18n>Добавить персонажа</div>
 
     <div id="folder-field">
-      <span class="folder-select-label">Папка (источник)</span>
+      <span class="folder-select-label" data-i18n>Папка (источник)</span>
       <div class="folder-select-wrap">
         <select id="m-folder" onchange="onFolderChange()">
-          <option value="">Загружаем…</option>
+          <option value="" data-i18n>Загружаем…</option>
         </select>
       </div>
     </div>
@@ -260,14 +262,14 @@ main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: gr
     <div class="gallery-grid" id="gallery-grid"></div>
 
     <div class="field">
-      <label>Имя персонажа *</label>
-      <input type="text" id="m-name" placeholder="Имя персонажа">
+      <label data-i18n>Имя персонажа *</label>
+      <input type="text" id="m-name" placeholder="Имя персонажа" data-i18n-placeholder="Имя персонажа">
     </div>
 
-    <span class="manual-toggle" onclick="toggleManual()">Ввести URL вручную</span>
+    <span class="manual-toggle" onclick="toggleManual()" data-i18n>Ввести URL вручную</span>
     <div class="manual-section" id="manual-section">
       <div class="field">
-        <label>URL картинки</label>
+        <label data-i18n>URL картинки</label>
         <input type="text" id="m-img" placeholder="https://..." oninput="previewModalImg(this.value); scheduleBackupModalImg();">
         <input type="hidden" id="m-img-backup">
         <img id="m-img-preview" class="img-preview">
@@ -275,22 +277,22 @@ main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: gr
       </div>
     </div>
 
-    <span class="manual-toggle" onclick="toggleUpload()">⬆ Загрузить с компьютера</span>
+    <span class="manual-toggle" onclick="toggleUpload()" data-i18n>⬆ Загрузить с компьютера</span>
     <div class="manual-section" id="upload-section">
       <div class="field">
         <label class="btn btn-ghost file-btn">
           <input type="file" id="m-upload-file" accept="image/*" onchange="updateFileBtnName(this)">
-          <span>Выбрать файл</span>
+          <span data-i18n>Выбрать файл</span>
         </label>
         <span class="file-btn-name" id="m-upload-file-name"></span>
-        <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadCharImage()">Загрузить и использовать</button>
+        <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadCharImage()" data-i18n>Загрузить и использовать</button>
         <div id="upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
       </div>
     </div>
 
     <div style="display:flex;gap:.5rem;margin-top:.75rem">
-      <button class="btn btn-primary" id="m-btn-add" onclick="confirmAddChar()">Добавить</button>
-      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="m-btn-add" onclick="confirmAddChar()" data-i18n>Добавить</button>
+      <button class="btn btn-ghost" onclick="closeModal()" data-i18n>Отмена</button>
     </div>
   </div>
 </div>
@@ -373,8 +375,8 @@ function renderSidebar() {
     <div class="title-item${t.id === activeId ? " active" : ""}" draggable="true" data-title-id="${esc(t.id)}" onclick="selectTitle('${esc(t.id)}')">
       <img class="title-item-cover" src="${esc(t.cover || t.cover_backup || "")}" alt="" data-hide-on-error>
       <div class="title-item-name">${esc(t.title)}</div>
-      <button class="title-item-edit" onclick="openEditTitleForm(event,'${esc(t.id)}')" title="Редактировать">✎</button>
-      <button class="title-item-del" onclick="deleteTitle(event,'${esc(t.id)}')" title="Удалить">✕</button>
+      <button class="title-item-edit" onclick="openEditTitleForm(event,'${esc(t.id)}')" title="${i18n("Редактировать")}">✎</button>
+      <button class="title-item-del" onclick="deleteTitle(event,'${esc(t.id)}')" title="${i18n("Удалить")}">✕</button>
     </div>
   `).join("");
   bindTitleDrag();
@@ -458,7 +460,7 @@ function resetTitleForm() {
   document.getElementById("nt-cover-upload").value = "";
   document.getElementById("nt-id").disabled  = false;
   document.getElementById("nt-id-hint").style.display = "none";
-  document.getElementById("nt-submit-btn").textContent = "Добавить";
+  document.getElementById("nt-submit-btn").textContent = i18n("Добавить");
 }
 
 // ── Резервная копия обложки тайтла по ссылке (качается на сервере) ──
@@ -477,7 +479,7 @@ async function backupTitleCoverNow() {
   const name = document.getElementById("nt-name").value.trim() || "title";
   const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
 
-  status.textContent = "Делаю резервную копию обложки...";
+  status.textContent = i18n("Делаю резервную копию обложки...");
   status.style.color = "";
   try {
     const res = await fetch("/api/backup-cover", {
@@ -487,12 +489,12 @@ async function backupTitleCoverNow() {
       body: JSON.stringify({ url, filename: slug }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Не удалось сохранить копию");
+    if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
     document.getElementById("nt-cover-backup").value = data.url || ("/" + data.path);
-    status.textContent = "Резервная копия сохранена ✓";
+    status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
-    status.textContent = "Резервную копию сделать не удалось: " + e.message;
+    status.textContent = i18n("Резервную копию сделать не удалось: ") + e.message;
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
@@ -501,14 +503,14 @@ async function uploadTitleCoverFile() {
   const fileInput = document.getElementById("nt-cover-upload");
   const status = document.getElementById("nt-cover-upload-status");
   if (!fileInput.files.length) {
-    status.textContent = "Выбери файл";
+    status.textContent = i18n("Выбери файл");
     status.style.color = "var(--red-hi)";
     return;
   }
   const name = document.getElementById("nt-name").value.trim() || "title";
   const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
 
-  status.textContent = "Обрабатываю...";
+  status.textContent = i18n("Обрабатываю...");
   status.style.color = "";
   try {
     const base64 = await convertToWebpForChar(fileInput.files[0]);
@@ -519,15 +521,15 @@ async function uploadTitleCoverFile() {
       body: JSON.stringify({ basePath: "title-covers", filename: slug + ".webp", contentBase64: base64 }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Ошибка загрузки");
+    if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
     // Обложка загружена напрямую — своя резервная копия ей не нужна.
     document.getElementById("nt-cover").value = "";
     document.getElementById("nt-cover-backup").value = "/" + data.path;
-    status.textContent = "Загружено ✓";
+    status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
-    status.textContent = "Ошибка: " + e.message;
+    status.textContent = i18n("Ошибка: ") + e.message;
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
@@ -548,7 +550,7 @@ function openEditTitleForm(e, id) {
   document.getElementById("nt-cover-upload").value = "";
   document.getElementById("nt-id").disabled  = true;
   document.getElementById("nt-id-hint").style.display = "block";
-  document.getElementById("nt-submit-btn").textContent = "Сохранить изменения";
+  document.getElementById("nt-submit-btn").textContent = i18n("Сохранить изменения");
 
   document.getElementById("new-title-form").classList.remove("hidden");
   document.getElementById("btn-add-title").style.display = "none";
@@ -606,7 +608,7 @@ async function addTitle() {
     id, title: name, cover: cover || "", cover_backup: coverBackup || "", folder,
     tierlists: [{
       id: id + "-design",
-      label: "Дизайн & Впечатление",
+      label: i18n("Дизайн & Впечатление"),
       tiers: defaultTiers()
     }]
   });
@@ -617,7 +619,7 @@ async function addTitle() {
 
 async function deleteTitle(e, id) {
   e.stopPropagation();
-  if (!(await confirmDialog("Удалить тайтл и все его тир-листы?"))) return;
+  if (!(await confirmDialog(i18n("Удалить тайтл и все его тир-листы?")))) return;
   data = data.filter(t => t.id !== id);
   if (activeId === id) { activeId = data[0]?.id || null; activeListId = null; }
   renderSidebar();
@@ -626,18 +628,18 @@ async function deleteTitle(e, id) {
 
 function defaultTiers() {
   return [
-    { name: "Резонанс", color: "#7c3aed", chars: [] },
-    { name: "Топ",      color: "#2563a8", chars: [] },
-    { name: "Хорошо",   color: "#2d8a4e", chars: [] },
-    { name: "Средне",   color: "#d4a017", chars: [] },
-    { name: "Слабо",    color: "#6b7280", chars: [] },
+    { name: i18n("Резонанс"), color: "#7c3aed", chars: [] },
+    { name: i18n("Топ"),      color: "#2563a8", chars: [] },
+    { name: i18n("Хорошо"),   color: "#2d8a4e", chars: [] },
+    { name: i18n("Средне"),   color: "#d4a017", chars: [] },
+    { name: i18n("Слабо"),    color: "#6b7280", chars: [] },
   ];
 }
 
 // ══ РЕДАКТОР ═══════════════════════════════════
 function renderEditor() {
   const box = document.getElementById("editor");
-  if (!activeId) { box.innerHTML = `<div class="editor-empty">Выбери тайтл слева или создай новый</div>`; return; }
+  if (!activeId) { box.innerHTML = `<div class="editor-empty">${i18n("Выбери тайтл слева или создай новый")}</div>`; return; }
 
   const title = data.find(t => t.id === activeId);
   if (!title) return;
@@ -646,7 +648,7 @@ function renderEditor() {
 
   const tabs = title.tierlists.map(l =>
     `<button class="list-tab${l.id === (list?.id) ? " active" : ""}" onclick="selectList('${esc(l.id)}')">${esc(l.label)}</button>`
-  ).join("") + `<button class="list-tab list-tab-add" onclick="addList()">Создать список</button>`;
+  ).join("") + `<button class="list-tab list-tab-add" onclick="addList()">${i18n("Создать список")}</button>`;
 
   const rows = (list?.tiers || []).map((tier, ti) => renderTierRow(title, list, tier, ti)).join("");
 
@@ -654,18 +656,18 @@ function renderEditor() {
     <div class="editor-top">
       <div class="editor-title">${esc(title.title)}</div>
       <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-        ${list ? `<button class="btn btn-ghost" onclick="deleteList('${esc(list.id)}')">Удалить список</button>` : ""}
+        ${list ? `<button class="btn btn-ghost" onclick="deleteList('${esc(list.id)}')" data-i18n>Удалить список</button>` : ""}
       </div>
     </div>
     <div class="list-tabs">${tabs}</div>
     <div class="tl-editor-rows" id="tl-editor-rows">${rows}</div>
     <div class="add-tier-row">
-      <input type="text" id="new-tier-name" placeholder="Название нового тира">
+      <input type="text" id="new-tier-name" placeholder="${i18n("Название нового тира")}" data-i18n-placeholder="${i18n("Название нового тира")}">
       <input type="color" id="new-tier-color" value="#888888" style="width:32px;height:32px;border:1px solid var(--border2);border-radius:2px;padding:2px;cursor:pointer;background:none;">
-      <button class="btn btn-dashed" onclick="addTier()">Добавить тир</button>
+      <button class="btn btn-dashed" onclick="addTier()">${i18n("Добавить тир")}</button>
     </div>
     <div class="save-bar">
-      <button class="btn btn-green" id="btn-save" onclick="saveAll()">Сохранить всё</button>
+      <button class="btn btn-green" id="btn-save" onclick="saveAll()">${i18n("Сохранить всё")}</button>
       <span class="status-msg" id="status-msg"></span>
     </div>`;
 
@@ -698,7 +700,7 @@ function renderTierRow(title, list, tier, ti) {
       </div>
       <div class="tl-editor-cards" data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}">
         ${chars}
-        <button class="add-char-btn" onclick="openModal('${esc(title.id)}','${esc(list.id)}',${ti})">Добавить</button>
+        <button class="add-char-btn" onclick="openModal('${esc(title.id)}','${esc(list.id)}',${ti})">${i18n("Добавить")}</button>
       </div>
     </div>`;
 }
@@ -717,7 +719,7 @@ function addList() {
 }
 
 async function deleteList(listId) {
-  if (!(await confirmDialog("Удалить этот тир-лист?"))) return;
+  if (!(await confirmDialog(i18n("Удалить этот тир-лист?")))) return;
   const title = data.find(t => t.id === activeId);
   title.tierlists = title.tierlists.filter(l => l.id !== listId);
   activeListId = title.tierlists[0]?.id || null;
@@ -744,7 +746,7 @@ function addTier() {
 }
 
 async function deleteTier(listId, ti) {
-  if (!(await confirmDialog("Удалить тир? Персонажи в нём тоже удалятся."))) return;
+  if (!(await confirmDialog(i18n("Удалить тир? Персонажи в нём тоже удалятся.")))) return;
   const title = data.find(t => t.id === activeId);
   const list  = title?.tierlists.find(l => l.id === listId);
   if (!list) return;
@@ -772,7 +774,7 @@ async function deleteChar(titleId, listId, ti, ci) {
   const list  = title?.tierlists.find(l => l.id === listId);
   if (!list) return;
   const char = list.tiers[ti].chars[ci];
-  if (!(await confirmDialog(`Удалить «${char?.name || "персонажа"}» из тир-листа?`))) return;
+  if (!(await confirmDialog(i18n("Удалить «{name}» из тир-листа?", { name: char?.name || i18n("персонажа") })))) return;
   list.tiers[ti].chars.splice(ci, 1);
   renderEditor();
 }
@@ -806,12 +808,12 @@ async function loadGallery(folder, title) {
   const gridEl   = document.getElementById("gallery-grid");
 
   if (!folder) {
-    statusEl.textContent = "Выбери папку выше.";
+    statusEl.textContent = i18n("Выбери папку выше.");
     gridEl.innerHTML = "";
     return;
   }
 
-  statusEl.textContent = "Загружаем…";
+  statusEl.textContent = i18n("Загружаем…");
   gridEl.innerHTML = "";
   document.getElementById("manual-section").classList.remove("visible");
 
@@ -864,7 +866,7 @@ async function openModal(titleId, listId, ti) {
   document.getElementById("m-img-backup-status").textContent = "";
   document.getElementById("m-img-preview").style.display = "none";
   document.getElementById("manual-section").classList.remove("visible");
-  document.getElementById("gallery-status").textContent = "Загружаем папки…";
+  document.getElementById("gallery-status").textContent = i18n("Загружаем папки…");
   document.getElementById("gallery-grid").innerHTML = "";
   document.getElementById("modal-overlay").classList.remove("hidden");
 
@@ -873,8 +875,8 @@ async function openModal(titleId, listId, ti) {
   const sel     = document.getElementById("m-folder");
 
   if (!folders.length) {
-    sel.innerHTML = '<option value="">Папки не найдены</option>';
-    document.getElementById("gallery-status").textContent = "Папки не найдены в chars/. Введи URL вручную.";
+    sel.innerHTML = `<option value="">${i18n("Папки не найдены")}</option>`;
+    document.getElementById("gallery-status").textContent = i18n("Папки не найдены в chars/. Введи URL вручную.");
     document.getElementById("manual-section").classList.add("visible");
     return;
   }
@@ -928,7 +930,7 @@ function convertToWebpForChar(file) {
       canvas.height = height;
       canvas.getContext("2d").drawImage(img, 0, 0, width, height);
       canvas.toBlob((blob) => {
-        if (!blob) return reject(new Error("Не удалось сконвертировать"));
+        if (!blob) return reject(new Error(i18n("Не удалось сконвертировать")));
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result.split(",")[1]);
         reader.onerror = reject;
@@ -946,12 +948,12 @@ async function uploadCharImage() {
   const status = document.getElementById("upload-status");
 
   if (!folder) {
-    status.textContent = "Сначала выбери папку выше";
+    status.textContent = i18n("Сначала выбери папку выше");
     status.style.color = "var(--red-hi)";
     return;
   }
   if (!fileInput.files.length) {
-    status.textContent = "Выбери файл";
+    status.textContent = i18n("Выбери файл");
     status.style.color = "var(--red-hi)";
     return;
   }
@@ -959,7 +961,7 @@ async function uploadCharImage() {
   const file = fileInput.files[0];
   const filename = file.name.replace(/\.[^.]+$/, "") + ".webp";
 
-  status.textContent = "Обрабатываю...";
+  status.textContent = i18n("Обрабатываю...");
   status.style.color = "var(--text-dim)";
 
   try {
@@ -971,9 +973,9 @@ async function uploadCharImage() {
       body: JSON.stringify({ folder, filename, contentBase64: base64, basePath: COLLECTION === "characters" ? undefined : COLLECTION }),
     });
     const result = await res.json();
-    if (!result.ok) throw new Error(result.error || "Ошибка загрузки");
+    if (!result.ok) throw new Error(result.error || i18n("Ошибка загрузки"));
 
-    status.textContent = "Загружено ✓ Обновляю список...";
+    status.textContent = i18n("Загружено ✓ Обновляю список...");
     status.style.color = "var(--green)";
 
     delete galleryCache[folder]; // заставляем перечитать папку заново
@@ -989,7 +991,7 @@ async function uploadCharImage() {
     }
     fileInput.value = "";
   } catch (e) {
-    status.textContent = "Ошибка: " + e.message;
+    status.textContent = i18n("Ошибка: ") + e.message;
     status.style.color = "var(--red-hi)";
   }
 }
@@ -1026,7 +1028,7 @@ async function backupModalImgNow() {
   const name = document.getElementById("m-name").value.trim() || "char";
   const slug = name.toLowerCase().replace(/[^a-zа-я0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 60) + "-" + Date.now().toString(36).slice(-5);
 
-  status.textContent = "Делаю резервную копию...";
+  status.textContent = i18n("Делаю резервную копию...");
   status.style.color = "";
   try {
     const res = await fetch("/api/backup-cover", {
@@ -1036,12 +1038,12 @@ async function backupModalImgNow() {
       body: JSON.stringify({ url, filename: slug }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Не удалось сохранить копию");
+    if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
     document.getElementById("m-img-backup").value = data.url || ("/" + data.path);
-    status.textContent = "Резервная копия сохранена ✓";
+    status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
-    status.textContent = "Резервную копию сделать не удалось: " + e.message;
+    status.textContent = i18n("Резервную копию сделать не удалось: ") + e.message;
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
@@ -1058,10 +1060,10 @@ async function confirmAddChar() {
     clearTimeout(backupModalImgTimer);
     const btn = document.getElementById("m-btn-add");
     btn.disabled = true;
-    btn.textContent = "Делаю резервную копию...";
+    btn.textContent = i18n("Делаю резервную копию...");
     await backupModalImgNow();
     btn.disabled = false;
-    btn.textContent = "Добавить";
+    btn.textContent = i18n("Добавить");
   }
   const manualImgBackup = document.getElementById("m-img-backup").value.trim();
 
@@ -1145,7 +1147,7 @@ async function saveAll() {
   const btn    = document.getElementById("btn-save");
   const status = document.getElementById("status-msg");
   btn.disabled = true;
-  btn.textContent = "Сохраняем…";
+  btn.textContent = i18n("Сохраняем…");
   status.className = "status-msg";
   status.textContent = "";
   try {
@@ -1158,17 +1160,17 @@ async function saveAll() {
     const resp = await res.json();
     if (res.ok) {
       status.className = "status-msg ok";
-      status.textContent = "Сохранено." + ((await isAppContext()) ? "" : " Сайт обновится через ~30 секунд.");
+      status.textContent = i18n("Сохранено.") + ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд."));
     } else {
       status.className = "status-msg err";
-      status.textContent = "Ошибка: " + (resp.error || "неизвестная");
+      status.textContent = i18n("Ошибка: ") + (resp.error || i18n("неизвестная"));
     }
   } catch (e) {
     status.className = "status-msg err";
-    status.textContent = "Ошибка сети: " + e.message;
+    status.textContent = i18n("Ошибка сети: ") + e.message;
   }
   btn.disabled = false;
-  btn.textContent = "Сохранить всё";
+  btn.textContent = i18n("Сохранить всё");
 }
 
 document.addEventListener("keydown", e => {

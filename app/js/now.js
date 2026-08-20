@@ -163,7 +163,7 @@ function renderNow({ buckets, completed }) {
       <section class="group now-section" data-section="archive">
         <div class="now-section-header" onclick="toggleSection('archive')">
           <h2 class="section-title" style="margin-bottom:0;cursor:pointer;user-select:none">
-            ${siteLabel("statuses", "archive", "Архив")}
+            ${siteLabel("statuses", "archive", i18n("Архив"))}
             <span class="section-count">${completed.length}</span>
           </h2>
           <span class="section-chevron${isCollapsed ? " collapsed" : ""}">▾</span>
@@ -175,5 +175,5 @@ function renderNow({ buckets, completed }) {
   }
 
   box.innerHTML = html +
-    (sections || `<div class="state-box">${esc(siteLabel("empty", "list", "Список пуст"))}</div>`);
+    (sections || `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`);
 }
