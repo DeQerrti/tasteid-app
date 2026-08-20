@@ -24,7 +24,28 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Отладочный ключ — свой, а не тот, что Gradle создаёт сам при
+    // первом запуске. На GitHub Actions каждая сборка идёт на новой,
+    // одноразовой машине: без своего файла Gradle генерировал бы
+    // СЛУЧАЙНЫЙ ключ заново при каждой сборке, и телефон отказывался бы
+    // ставить новую версию поверх старой («сертификаты не совпадают») —
+    // помогало только сначала вручную удалить приложение. Ключ в
+    // репозитории — обычная практика для отладочных сборок: его пароль
+    // и алиас всегда одни и те же ("android" / androiddebugkey), он не
+    // защищает ничего секретного, а только даёт всем сборкам один и тот
+    // же отпечаток.
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

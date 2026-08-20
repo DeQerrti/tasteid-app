@@ -449,6 +449,9 @@ i18nRegister({
   "Папка с данными": "Data folder",
   "Открыть в проводнике": "Show in file manager",
   "Сменить папку…": "Change folder…",
+  "Хранится во внутренней области приложения — её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести паспорт на компьютер или другой телефон, открой вкладку":
+    "Stored inside the app's private storage — other apps can't see it, and it's deleted along with TasteID. To move the passport to a computer or another phone, open the",
+  "— там есть экспорт и импорт.": "— it has export and import.",
   Мельче: "Smaller",
   Крупнее: "Larger",
   Сбросить: "Reset",

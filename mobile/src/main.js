@@ -24,6 +24,7 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 import { Share } from "@capacitor/share";
 import { ROUTES, ApiError } from "../../core/api.js";
 import { MobileVault } from "./vault.js";
+import { version as APP_VERSION } from "../../package.json";
 
 const NATIVE = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.();
 
@@ -47,6 +48,7 @@ function appRoutes(pathname, body) {
       vaultPath: vault.root,
       lang: currentLang(),
       platform: window.Capacitor?.getPlatform?.() || "mobile",
+      version: APP_VERSION,
       mobile: true,
     };
   }

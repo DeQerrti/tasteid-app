@@ -87,6 +87,8 @@
   .panel { display: none; }
   .panel.active { display: block; }
   .panel-intro { color: var(--text-dim); font-size: .85rem; margin-bottom: 20px; }
+  .panel-intro a { color: var(--red-hi); text-decoration: none; }
+  .panel-intro a:hover { text-decoration: underline; }
 
   .theme-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
   .theme-option {
@@ -364,10 +366,26 @@
       <div class="row">
         <div class="app-path" id="app-vault-path">—</div>
       </div>
-      <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <!-- «Открыть в проводнике» и «Сменить папку» — только для компьютера:
+           там это настоящая папка на диске. На телефоне хранилище лежит
+           во внутренней области приложения — там нет ни проводника, чтобы
+           её открыть, ни смысла её менять (она одна). Раньше эти кнопки
+           просто ничего не делали на телефоне — appInfo.mobile в
+           renderAppPanel() решает, какой из двух блоков показать. -->
+      <div class="row" id="app-vault-actions" style="gap:10px;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="openVaultFolder()" data-i18n>Открыть в проводнике</button>
         <button class="btn btn-ghost" onclick="changeVault()" data-i18n>Сменить папку…</button>
       </div>
+      <p class="panel-intro hidden" id="app-vault-mobile-note">
+        <span data-i18n
+          >Хранится во внутренней области приложения — её не видят другие
+          приложения, и она исчезнет вместе с удалением TasteID. Чтобы
+          перенести паспорт на компьютер или другой телефон, открой
+          вкладку</span
+        >
+        <a href="#" onclick="goToPanel('passports');return false;" data-i18n>Паспорта</a>
+        <span data-i18n>— там есть экспорт и импорт.</span>
+      </p>
 
       <h2 class="section-h" data-i18n>Язык</h2>
       <div class="row">
@@ -376,12 +394,18 @@
         </div>
       </div>
 
-      <h2 class="section-h" data-i18n>Масштаб</h2>
-      <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;">
-        <button class="btn btn-ghost" onclick="stepZoom(-1)" data-i18n>Мельче</button>
-        <span class="app-zoom" id="app-zoom-value">100%</span>
-        <button class="btn btn-ghost" onclick="stepZoom(1)" data-i18n>Крупнее</button>
-        <button class="btn btn-ghost" onclick="stepZoom(0)" data-i18n>Сбросить</button>
+      <!-- Масштаб — тоже только компьютер: там это webContents.setZoomLevel
+           у Electron. На телефоне такого понятия нет (страница уже
+           подогнана под экран самой системой), кнопки были декорацией,
+           которая ничего не меняла. -->
+      <div id="app-zoom-section">
+        <h2 class="section-h" data-i18n>Масштаб</h2>
+        <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="stepZoom(-1)" data-i18n>Мельче</button>
+          <span class="app-zoom" id="app-zoom-value">100%</span>
+          <button class="btn btn-ghost" onclick="stepZoom(1)" data-i18n>Крупнее</button>
+          <button class="btn btn-ghost" onclick="stepZoom(0)" data-i18n>Сбросить</button>
+        </div>
       </div>
 
       <h2 class="section-h" data-i18n>О программе</h2>
@@ -1043,6 +1067,19 @@
     document.getElementById("app-zoom-value").textContent = zoomPercent(appInfo.zoom || 0);
     document.getElementById("app-version").textContent =
       `TasteID ${appInfo.version || ""} · ${appInfo.platform || ""}`;
+
+    // На телефоне нет ни проводника, ни понятия масштаба окна — вместо
+    // неработающих кнопок показываем то, что там правда можно сделать.
+    document.getElementById("app-vault-actions").classList.toggle("hidden", !!appInfo.mobile);
+    document.getElementById("app-vault-mobile-note").classList.toggle("hidden", !appInfo.mobile);
+    document.getElementById("app-zoom-section").classList.toggle("hidden", !!appInfo.mobile);
+  }
+
+  // Ссылка «Паспорта» в подсказке про хранилище на телефоне — та же
+  // вкладка слева, просто кликаем по ней программно, чтобы не дублировать
+  // логику переключения панелей.
+  function goToPanel(name) {
+    document.querySelector(`.side-tab[data-panel="${name}"]`)?.click();
   }
 
   async function loadAppPanel() {

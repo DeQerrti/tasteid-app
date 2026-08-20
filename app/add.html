@@ -1291,11 +1291,11 @@ function renderTypeDropdown(n) {
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
     <div class="src-type-add-row">
-      <button type="button" class="btn-new src-type-add-btn" onclick="showAddTypeForm(${n})">${i18n("Добавить")}</button>
+      <button type="button" class="btn-new src-type-add-btn" onclick="showAddSourceTypeForm(${n})">${i18n("Добавить")}</button>
     </div>
     <div class="src-type-add-form hidden" id="src-type-add-form-${n}">
       <input type="text" id="src-type-new-name-${n}" placeholder="${i18n("Например: Дзен")}" data-i18n-placeholder="${i18n("Например: Дзен")}">
-      <button type="button" class="btn-new" onclick="confirmAddType(${n})">${i18n("Ок")}</button>
+      <button type="button" class="btn-new" onclick="confirmAddSourceType(${n})">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="src-type-status-${n}"></div>`;
 }
@@ -1329,7 +1329,7 @@ function selectSourceType(n, key) {
   closeTypeDropdown();
 }
 
-function showAddTypeForm(n) {
+function showAddSourceTypeForm(n) {
   const dd = document.getElementById(`src-type-dropdown-${n}`);
   dd.querySelector(".src-type-list").style.display = "none";
   dd.querySelector(".src-type-add-row").style.display = "none";
@@ -1337,7 +1337,7 @@ function showAddTypeForm(n) {
   document.getElementById(`src-type-new-name-${n}`).focus();
 }
 
-async function confirmAddType(n) {
+async function confirmAddSourceType(n) {
   const input = document.getElementById(`src-type-new-name-${n}`);
   const statusEl = document.getElementById(`src-type-status-${n}`);
   const name = input.value.trim();
