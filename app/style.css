@@ -253,10 +253,18 @@ select option { background: var(--bg2); }
 
 .select-wrap { position: relative; }
 
+/* Треугольник рисуется рамкой, а не символом '▾' из шрифта: ни один из
+   самохостящихся шрифтов его не содержит (проверено по cmap), и
+   браузер тихо подставлял системный запасной — на разных платформах
+   он выходит разного размера и толщины при одном и том же коде (та же
+   причина, что была у ромба над активной вкладкой на главной). */
 .select-wrap::after {
-  content: '▾';
-  position: absolute; right: .85rem; top: 50%; transform: translateY(-50%);
-  color: var(--text-dim); pointer-events: none; font-size: .75rem;
+  content: '';
+  position: absolute; right: .85rem; top: 50%; margin-top: -2px;
+  width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-dim);
+  pointer-events: none;
 }
 
 .select-wrap select { padding-right: 2rem; }
@@ -452,7 +460,17 @@ select option { background: var(--bg2); }
   transition: border-color .2s;
 }
 .src-type-btn:hover { border-color: var(--red-dim); }
-.src-caret { color: var(--text-dim); font-size: .75rem; flex-shrink: 0; }
+/* Треугольник рамкой, не символом из шрифта — см. .select-wrap::after
+   выше, там та же причина расписана подробно. Раньше здесь лежал
+   текст '▾' внутри самого <span> в разметке; теперь span пустой, а
+   треугольник рисует ::after. */
+.src-caret {
+  display: inline-block;
+  width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-dim);
+  flex-shrink: 0;
+}
 
 .src-url-input { flex: 1; }
 

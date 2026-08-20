@@ -74,13 +74,23 @@ nav::-webkit-scrollbar { display: none; }
 }
 .tab-btn:hover { color: var(--text); }
 .tab-btn.active { color: var(--text-hi); border-bottom-color: var(--red); }
+/* Ромб над активной вкладкой рисуется, а не берётся символом '◆' из
+   шрифта: ни один из самохостящихся файлов Cormorant Garamond не
+   содержит этот знак (проверено по cmap), и браузер молча подставлял
+   системный запасной шрифт — на Android его ромб рисуется заметно
+   крупнее и грубее, чем на компьютере, хотя код был один и тот же.
+   Тот же приём — цветной квадрат, повёрнутый на 45° — уже используется
+   в .header-deco и .tl-label-dot чуть выше и ниже по файлам: здесь он
+   просто переиспользован, чтобы отпечаток не зависел от того, какой
+   шрифт есть у конкретного устройства. */
 .tab-btn.active::before {
-  content: '◆';
-  font-size: .3rem;
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 1px;
   position: absolute;
   top: .6rem; left: 50%;
-  transform: translateX(-50%);
-  color: var(--red);
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--red);
 }
 
 /* Видимая рамка фокуса. Карточка отзыва теперь фокусируема

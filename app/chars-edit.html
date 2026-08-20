@@ -127,8 +127,12 @@ main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 6rem; display: gr
 
 /* ── Дропдаун папки в модалке ── */
 .folder-select-wrap { position: relative; margin-bottom: 1rem; }
-.folder-select-wrap::after { content: '▾'; position: absolute; right: .75rem; top: 50%;
-  transform: translateY(-50%); color: var(--text-dim); pointer-events: none; font-size: .75rem; }
+/* Треугольник рамкой, не символом из шрифта — см. .select-wrap::after
+   в style.css, там та же причина расписана подробно. */
+.folder-select-wrap::after { content: ''; position: absolute; right: .75rem; top: 50%;
+  margin-top: -2px; width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-dim); pointer-events: none; }
 .folder-select-wrap select { width: 100%; background: var(--surface2); border: 1px solid var(--border2);
   border-radius: 2px; padding: .6rem .8rem; padding-right: 2rem; color: var(--text-hi);
   font-family: 'DM Sans', sans-serif; font-size: .85rem; outline: none; transition: border-color .2s;

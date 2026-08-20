@@ -83,14 +83,20 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
   letter-spacing: .05em;
   user-select: none;
 }
-.fav-toggle::before { content: '♡'; font-size: .95rem; line-height: 1; }
+/* Сердце — svg, а не символ '♡'/'♥' из шрифта: ни один из
+   самохостящихся шрифтов их не содержит (проверено по cmap), и браузер
+   тихо подставлял системный запасной — на разных платформах он выходит
+   разного размера и формы при одном и том же коде (та же причина, что
+   была у ромба над активной вкладкой на главной). svg с обводкой
+   currentColor вместо этого — как у глаза в настройках статистики. */
+.fav-toggle-icon { flex-shrink: 0; }
+.fav-toggle.on .fav-toggle-icon { fill: currentColor; }
 
 .btn.fav-toggle.on {
   border-color: var(--accent-line);
   background: var(--accent-fill);
   color: var(--red-hi);
 }
-.fav-toggle.on::before { content: '♥'; }
 .fav-toggle.on:hover { background: var(--accent-fill-hi); color: var(--red-hi); }
 
 /* ══ СВОРАЧИВАЕМЫЕ РАЗДЕЛЫ ═══════════════════════
@@ -372,7 +378,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
       <label data-i18n>Тип</label>
       <div class="src-type-wrap" style="width:100%;">
         <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleTypePickerDropdown()">
-          <span id="type-picker-label" data-i18n>Аниме</span><span class="src-caret">▾</span>
+          <span id="type-picker-label" data-i18n>Аниме</span><span class="src-caret"></span>
         </button>
         <div class="src-type-dropdown hidden" id="type-picker-dropdown"></div>
       </div>
@@ -382,7 +388,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
       <label data-i18n>Статус</label>
       <div class="src-type-wrap" style="width:100%;">
         <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleStatusPickerDropdown()">
-          <span id="status-picker-label" data-i18n>Завершено</span><span class="src-caret">▾</span>
+          <span id="status-picker-label" data-i18n>Завершено</span><span class="src-caret"></span>
         </button>
         <div class="src-type-dropdown hidden" id="status-picker-dropdown"></div>
       </div>
@@ -397,6 +403,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
       <input type="checkbox" id="f-favorite" hidden>
       <button type="button" class="btn btn-ghost fav-toggle" id="fav-toggle"
               aria-pressed="false" onclick="toggleFavorite()">
+        <svg class="fav-toggle-icon" width="15" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"></path></svg>
         <span id="fav-toggle-label" data-i18n>Добавить в Любимое</span>
       </button>
     </div>
@@ -457,7 +464,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
       <div class="src-panel-row">
         <div class="src-type-wrap">
           <button type="button" class="src-type-btn" id="src-type-btn-1" onclick="toggleTypeDropdown(1)">
-            <span id="src-type-label-1">Teletype</span><span class="src-caret">▾</span>
+            <span id="src-type-label-1">Teletype</span><span class="src-caret"></span>
           </button>
           <div class="src-type-dropdown hidden" id="src-type-dropdown-1"></div>
         </div>
@@ -475,7 +482,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
       <div class="src-panel-row">
         <div class="src-type-wrap">
           <button type="button" class="src-type-btn" id="src-type-btn-2" onclick="toggleTypeDropdown(2)">
-            <span id="src-type-label-2">Teletype</span><span class="src-caret">▾</span>
+            <span id="src-type-label-2">Teletype</span><span class="src-caret"></span>
           </button>
           <div class="src-type-dropdown hidden" id="src-type-dropdown-2"></div>
         </div>
