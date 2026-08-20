@@ -313,7 +313,7 @@ function tlCharsHtml(collectionId) {
     // Кнопка редактора есть не всегда, а тире стояло всегда — у гостя
     // на пустой коллекции висело «Нет данных —» с висячим прочерком.
     const adminBtn = isAdmin()
-      ? `<div style="margin-top:1.5rem"><a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a></div>`
+      ? `<div style="margin-top:1.5rem"><a href="/chars-edit.html?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a></div>`
       : "";
     return `<div class="state-box" style="padding-top:2rem">Ничего не найдено${adminBtn}</div>`;
   }
@@ -370,7 +370,7 @@ function tlCharsHtml(collectionId) {
   tiersHtml += `</div>`;
 
   const adminBtn = isAdmin()
-    ? `<a href="/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a>`
+    ? `<a href="/chars-edit.html?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a>`
     : "";
 
   const exportBtn = `<button class="admin-add-btn" id="tl-export-btn" onclick="tlExport('tl-chars-rows', '${esc(game.title)}')">${i18n("Сохранить как картинку")}</button>`;

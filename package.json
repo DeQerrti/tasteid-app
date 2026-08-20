@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "node --test tests/*.test.js",
-    "check": "npm run lint && npm run format:check && npm run check:assets && npm run check:android && npm run check:i18n && npm run build:mobile && npm test",
+    "check": "npm run lint && npm run format:check && npm run check:assets && npm run check:android && npm run check:mobile-links && npm run check:i18n && npm run build:mobile && npm test",
     "check:i18n": "node scripts/check-i18n.js",
     "build": "electron-builder --publish never",
     "build:win": "electron-builder --win --publish never",
@@ -22,7 +22,8 @@
     "build:mobile": "esbuild mobile/src/main.js --bundle --format=iife --outfile=app/js/mobile.bundle.js --minify --legal-comments=none",
     "mobile:sync": "npm run build:mobile && cap sync android",
     "mobile:apk": "npm run mobile:sync && cd android && ./gradlew assembleDebug",
-    "check:android": "node scripts/check-android.js"
+    "check:android": "node scripts/check-android.js",
+    "check:mobile-links": "node scripts/check-mobile-links.js"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.0",

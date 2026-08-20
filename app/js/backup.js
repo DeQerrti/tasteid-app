@@ -63,7 +63,7 @@
       "20px"
     );
     historyBtn.addEventListener("click", () => {
-      location.href = "/backup-history";
+      location.href = "/backup-history.html";
     });
   }
 
