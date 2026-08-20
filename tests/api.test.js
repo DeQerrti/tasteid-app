@@ -321,6 +321,89 @@ test("наружу хранилища выйти нельзя", async () => {
   });
 });
 
+// ── Резервная копия ─────────────────────────────
+// Не путать с «паспортом» — тот урезанный и никогда не пишется обратно.
+// Здесь — обратное: всё целиком, для себя, и с записью поверх текущих
+// данных.
+
+test("резервная копия увозит с собой отзывы, любимое и свои коллекции тир-листа", async () => {
+  await withServer(async ({ api }) => {
+    await api("POST", "/api/save-review", { title: "Evangelion", type: "anime" });
+    await api("POST", "/api/save-favorite", { name: "Shinji", type: "character" });
+    await api("POST", "/api/save-site-settings", {
+      tierCollections: [{ id: "openings", label: "Опенинги" }],
+    });
+    await api("POST", "/api/save-chars-tier", {
+      collection: "openings",
+      data: [{ title: "Cruel Angel's Thesis" }],
+    });
+
+    const { status, data } = await api("GET", "/api/export-backup");
+    assert.equal(status, 200);
+    assert.equal(data.format, "tasteid-backup");
+    assert.equal(data.files["reviews.json"][0].title, "Evangelion");
+    assert.equal(data.files["favorites.json"][0].name, "Shinji");
+    assert.equal(data.files["tier-openings.json"][0].title, "Cruel Angel's Thesis");
+    assert.deepEqual(data.files["site-settings.json"].tierCollections, [
+      { id: "openings", label: "Опенинги" },
+    ]);
+  });
+});
+
+test("восстановление из копии заменяет текущие данные, а не дополняет их", async () => {
+  await withServer(async ({ api }) => {
+    await api("POST", "/api/save-review", { title: "Старый отзыв", type: "anime" });
+    const { data: backup } = await api("GET", "/api/export-backup");
+
+    await api("POST", "/api/save-review", { title: "Новый, которого не было в копии" });
+
+    const { status } = await api("POST", "/api/restore-backup", backup);
+    assert.equal(status, 200);
+
+    const reviews = await api("GET", "/reviews.json");
+    assert.equal(
+      reviews.data.length,
+      1,
+      "после восстановления должен остаться только тот, что был в копии"
+    );
+    assert.equal(reviews.data[0].title, "Старый отзыв");
+  });
+});
+
+test("восстановление отказывает чужому и порченому файлу", async () => {
+  await withServer(async ({ api }) => {
+    const { status: wrongFormat } = await api("POST", "/api/restore-backup", {
+      format: "что-то другое",
+      files: { "reviews.json": [] },
+    });
+    assert.equal(wrongFormat, 400);
+
+    const { status: noFiles } = await api("POST", "/api/restore-backup", {
+      format: "tasteid-backup",
+    });
+    assert.equal(noFiles, 400);
+
+    // Имя не из белого списка — например, попытка перезаписать что-то
+    // за пределами хранилища — тихо отбрасывается, а не пишется как есть.
+    const { status: sneaky, data } = await api("POST", "/api/restore-backup", {
+      format: "tasteid-backup",
+      files: { "../../../etc/passwd": "зло", "reviews.json": [] },
+    });
+    assert.equal(sneaky, 200);
+    assert.deepEqual(data.restored, ["reviews.json"]);
+
+    // reviews.json должен остаться списком, а не превратиться в строку —
+    // иначе файл прекрасно распарсится, а вся страница после
+    // перезагрузки упадёт на первом же .filter() по нему.
+    const { status: wrongShape, data: shapeData } = await api("POST", "/api/restore-backup", {
+      format: "tasteid-backup",
+      files: { "reviews.json": "не список", "favorites.json": [] },
+    });
+    assert.equal(wrongShape, 200);
+    assert.deepEqual(shapeData.restored, ["favorites.json"]);
+  });
+});
+
 test("страницы приложения отдаются, красивые адреса тоже", async () => {
   await withServer(async ({ base }) => {
     for (const [url, expect] of [

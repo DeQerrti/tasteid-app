@@ -449,9 +449,18 @@ i18nRegister({
   "Папка с данными": "Data folder",
   "Открыть в проводнике": "Show in file manager",
   "Сменить папку…": "Change folder…",
-  "Хранится во внутренней области приложения — её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести паспорт на компьютер или другой телефон, открой вкладку":
-    "Stored inside the app's private storage — other apps can't see it, and it's deleted along with TasteID. To move the passport to a computer or another phone, open the",
-  "— там есть экспорт и импорт.": "— it has export and import.",
+  "Хранится во внутренней области приложения — её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести данные на другое устройство — резервная копия ниже.":
+    "Stored inside the app's private storage — other apps can't see it, and it's deleted along with TasteID. To move your data to another device, use the backup below.",
+  "Резервная копия": "Backup",
+  "Отзывы, любимое, тир-листы и настройки — одним файлом, для себя. Загруженные вручную картинки (не по ссылке) в копию не входят.":
+    "Reviews, favorites, tier lists and settings — in one file, for yourself. Manually uploaded pictures (not linked ones) aren't included.",
+  "Скачать резервную копию": "Download backup",
+  "Восстановить из файла…": "Restore from file…",
+  "Текущие отзывы, любимое, тир-листы и настройки будут заменены содержимым файла. Отменить это можно только другой резервной копией. Продолжить?":
+    "Current reviews, favorites, tier lists and settings will be replaced with the file's contents. The only way to undo this is another backup. Continue?",
+  "Это не похоже на файл резервной копии — внутри не JSON.":
+    "This doesn't look like a backup file — there's no JSON inside.",
+  "Восстановлено. Обновляем страницу…": "Restored. Reloading the page…",
   Мельче: "Smaller",
   Крупнее: "Larger",
   Сбросить: "Reset",
@@ -765,6 +774,8 @@ i18nRegister({
   "Что уже есть в паспорте": "What the passport already has",
   "Чужой паспорт — файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо в браузере, никуда не отправляется.":
     "Someone else’s passport is a file: have them export theirs with the button below and send it over. Then you can view it or compare it with yours. Everything is computed right here and sent nowhere.",
+  "Это не резервная копия: файл легче, чем твои настоящие данные (без текста отзывов, без избранного, без тир-листов), и загрузка сюда чужого паспорта ничего своего не трогает и не заменяет.":
+    "This isn't a backup: the file is lighter than your real data (no review text, no favorites, no tier lists), and loading someone else's passport here doesn't touch or replace anything of yours.",
   Шикимори: "Shikimori",
   "Это не похоже на файл паспорта — внутри не JSON.":
     "This doesn’t look like a passport file — it isn’t JSON inside.",

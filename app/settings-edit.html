@@ -376,16 +376,33 @@
         <button class="btn btn-ghost" onclick="openVaultFolder()" data-i18n>Открыть в проводнике</button>
         <button class="btn btn-ghost" onclick="changeVault()" data-i18n>Сменить папку…</button>
       </div>
-      <p class="panel-intro hidden" id="app-vault-mobile-note">
-        <span data-i18n
-          >Хранится во внутренней области приложения — её не видят другие
-          приложения, и она исчезнет вместе с удалением TasteID. Чтобы
-          перенести паспорт на компьютер или другой телефон, открой
-          вкладку</span
-        >
-        <a href="#" onclick="goToPanel('passports');return false;" data-i18n>Паспорта</a>
-        <span data-i18n>— там есть экспорт и импорт.</span>
+      <p class="panel-intro hidden" id="app-vault-mobile-note" data-i18n>
+        Хранится во внутренней области приложения — её не видят другие
+        приложения, и она исчезнет вместе с удалением TasteID. Чтобы
+        перенести данные на другое устройство — резервная копия ниже.
       </p>
+
+      <!-- Не путать с «Паспортом» на соседней вкладке: тот — урезанный
+           слепок для показа чужим (без текста отзывов, без избранного,
+           без тир-листов) и никогда не пишется обратно в своё же
+           хранилище — только смотреть и сравнивать. Здесь наоборот:
+           всё целиком и для себя. На компьютере то же самое даёт
+           обычное копирование папки хранилища; на телефоне такой папки
+           не видно, и без этой кнопки перенести свои же данные было бы
+           нечем — сравнить с чужими можно, а увезти свои с собой нет. -->
+      <h2 class="section-h" data-i18n>Резервная копия</h2>
+      <p class="panel-intro" data-i18n>
+        Отзывы, любимое, тир-листы и настройки — одним файлом, для себя.
+        Загруженные вручную картинки (не по ссылке) в копию не входят.
+      </p>
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" onclick="exportBackup()" data-i18n>Скачать резервную копию</button>
+        <label class="btn btn-ghost file-btn">
+          <input type="file" id="backup-file" accept="application/json,.json" onchange="restoreBackup(this)">
+          <span data-i18n>Восстановить из файла…</span>
+        </label>
+      </div>
+      <div class="status-msg" id="status-backup"></div>
 
       <h2 class="section-h" data-i18n>Язык</h2>
       <div class="row">
@@ -1075,13 +1092,6 @@
     document.getElementById("app-zoom-section").classList.toggle("hidden", !!appInfo.mobile);
   }
 
-  // Ссылка «Паспорта» в подсказке про хранилище на телефоне — та же
-  // вкладка слева, просто кликаем по ней программно, чтобы не дублировать
-  // логику переключения панелей.
-  function goToPanel(name) {
-    document.querySelector(`.side-tab[data-panel="${name}"]`)?.click();
-  }
-
   async function loadAppPanel() {
     try {
       appInfo = await appApi("/api/app/info");
@@ -1115,6 +1125,69 @@
       location.reload();
     } catch (e) {
       flashStatus("status-app", false, e.message);
+    }
+  }
+
+  // ── Резервная копия ─────────────────────────────
+  // Не путать с «Паспортом»: тот — урезанный слепок для показа чужим,
+  // этот — всё целиком и только для себя (core/api.js: exportBackup /
+  // restoreBackup, там же расписано подробнее).
+  async function exportBackup() {
+    try {
+      const res = await fetch("/api/export-backup");
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || `Ошибка ${res.status}`);
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tasteid-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      flashStatus("status-backup", false, e.message);
+    }
+  }
+
+  async function restoreBackup(input) {
+    const file = input.files?.[0];
+    input.value = ""; // тот же файл ещё раз выбрать иначе не получится — onchange не сработает
+    if (!file) return;
+
+    if (
+      !(await confirmDialog(
+        i18n(
+          "Текущие отзывы, любимое, тир-листы и настройки будут заменены содержимым файла. Отменить это можно только другой резервной копией. Продолжить?"
+        ),
+        i18n("Восстановить")
+      ))
+    ) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(i18n("Это не похоже на файл резервной копии — внутри не JSON."));
+      }
+      const res = await fetch("/api/restore-backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || `Ошибка ${res.status}`);
+
+      flashStatus("status-backup", true, i18n("Восстановлено. Обновляем страницу…"));
+      setTimeout(() => location.reload(), 900);
+    } catch (e) {
+      flashStatus("status-backup", false, e.message);
     }
   }
 

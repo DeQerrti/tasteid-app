@@ -409,6 +409,82 @@ async function saveSiteSettings({ vault, body }) {
   return { ok: true };
 }
 
+// ── Резервная копия ─────────────────────────────
+// Не путать с «Паспортом» (см. фронтенд, passports.js): паспорт —
+// урезанный слепок для показа чужим (без текста отзывов, без
+// избранного, без тир-листов), никогда не пишется обратно в своё же
+// хранилище. Здесь — противоположная задача: перенести СВОИ данные
+// на другое устройство или откатиться после ошибки, то есть нужно
+// всё и без потерь.
+//
+// На компьютере для этого хватало «скопируй папку»: хранилище — обычные
+// файлы на диске. На телефоне такой папки не видно (см. mobile/src/
+// vault.js), и без этого своё же приложение не давало перенести
+// собственные данные никаким способом — только сравнить их с чужими.
+//
+// Картинки, загруженные вручную (обложка не по ссылке, фото персонажа
+// с компьютера), в копию не входят — только сами данные. Обложки по
+// ссылке (AniList, TMDB) не страдают: ссылка и так лежит в reviews.json.
+const BACKUP_FORMAT = "tasteid-backup";
+const BACKUP_VERSION = 1;
+
+async function exportBackup({ vault }) {
+  const settings = await vault.readJson("site-settings.json", {});
+  const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+
+  const files = {
+    "reviews.json": await vault.readJson("reviews.json", []),
+    "favorites.json": await vault.readJson("favorites.json", []),
+    "characters-tier.json": await vault.readJson("characters-tier.json", []),
+    "site-settings.json": settings,
+  };
+  for (const { id } of collections) {
+    if (!isSafeName(id)) continue; // испорченная запись в настройках — не наша забота здесь
+    const name = collectionFile(id);
+    files[name] = await vault.readJson(name, []);
+  }
+
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    files,
+  };
+}
+
+async function restoreBackup({ vault, body }) {
+  if (body?.format !== BACKUP_FORMAT) {
+    throw new ApiError("Это не файл резервной копии TasteID");
+  }
+  const files = body.files;
+  if (!files || typeof files !== "object" || Array.isArray(files)) {
+    throw new ApiError("В файле нет данных для восстановления");
+  }
+
+  // isAllowedFile — тот же список, что защищает vault.writeJson: имя не
+  // из него значит, что файл в копии либо чужой, либо порченый, и
+  // писать его на диск нельзя, каким бы ни было содержимое.
+  //
+  // Форма значения — тоже: site-settings.json везде читается как объект
+  // (vault.readJson(..., {})), остальное — как список (vault.readJson(...,
+  // [])). Запись значения не той формы не сломает сам файл — он
+  // прекрасно распарсится обратно, — но сломает код, который его читает,
+  // уже после того, как страница перезагрузится и ничего не заподозрит.
+  const names = Object.keys(files).filter((name) => {
+    if (!isAllowedFile(name)) return false;
+    const value = files[name];
+    return name === "site-settings.json"
+      ? value !== null && typeof value === "object" && !Array.isArray(value)
+      : Array.isArray(value);
+  });
+  if (!names.length) throw new ApiError("В файле нет ни одного известного файла хранилища");
+
+  for (const name of names) {
+    await vault.writeJson(name, files[name]);
+  }
+  return { ok: true, restored: names };
+}
+
 // ── История версий ─────────────────────────────
 // На сайте её давал гит. Здесь — папка .history, куда прошлая версия
 // файла уезжает перед каждой перезаписью (см. vault.js).
@@ -465,6 +541,8 @@ export const ROUTES = {
   "POST /api/save-favorite": saveFavorite,
   "POST /api/save-chars-tier": saveCharsTier,
   "POST /api/save-site-settings": saveSiteSettings,
+  "GET /api/export-backup": exportBackup,
+  "POST /api/restore-backup": restoreBackup,
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/backup-cover": backupCover,
   "POST /api/restore-file-version": restoreFileVersion,
