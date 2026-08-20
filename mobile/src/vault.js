@@ -220,7 +220,13 @@ export class MobileVault {
   }
 
   async saveMedia(base, filename, bytes, sub) {
-    const safeName = filename.replace(/[^\w.-]/g, "_").slice(-80);
+    // [^\w.-] запрещал ВСЁ не-ASCII разом — кириллическое имя файла
+    // превращалось в одни подчёркивания, и два разных файла в одной
+    // папке могли затереть друг друга одним и тем же "______.webp".
+    // Правильный список — не что разрешено, а что правда небезопасно
+    // в имени файла: разделители пути и управляющие символы. Тот же
+    // фикс — в electron/vault.js.
+    const safeName = filename.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_").slice(-80);
     const dir = this.mediaDir(base, sub);
     await mkdirp(dir);
     await Filesystem.writeFile({
@@ -271,9 +277,9 @@ export class MobileVault {
     return { files };
   }
 
-  // Картинку из хранилища страница просит обычным <img src="/chars/…">.
-  // Настоящего сервера здесь нет, поэтому такой запрос перехватывается
-  // (см. mobile/src/main.js) и приходит сюда за содержимым.
+  // Содержимое одной картинки — для резервной копии (core/api.js:
+  // exportBackup). Capacitor сам отдаёт файл в base64 — тем же видом,
+  // которым его ждёт обратно writeMedia ниже.
   async readMedia(urlPath) {
     const parts = decodeURIComponent(urlPath)
       .replace(/^\/+/, "")
@@ -284,5 +290,52 @@ export class MobileVault {
 
     const res = await Filesystem.readFile({ path: path(...parts), directory: DIR });
     return res.data; // base64
+  }
+
+  // Обратная сторона readMedia — восстановление картинки из резервной
+  // копии на тот же относительный путь, с которого она была снята.
+  async writeMedia(relPath, base64) {
+    const parts = decodeURIComponent(relPath)
+      .replace(/^\/+/, "")
+      .split("/")
+      .filter(Boolean)
+      .map((p) => this.#safeSegment(p));
+    if (!parts.length) throw new Error("Пустой путь");
+    const dir = parts.slice(0, -1).join("/");
+    if (dir) await mkdirp(path(dir));
+    await Filesystem.writeFile({
+      path: path(...parts),
+      directory: DIR,
+      data: base64,
+      recursive: true,
+    });
+  }
+
+  // Все картинки хранилища одним списком, для резервной копии. Не
+  // listImages — та отвечает под конкретную нужду интерфейса (список
+  // папок ИЛИ список файлов в одной папке, порознь), а здесь нужно
+  // найти вообще всё, не зная заранее, какие папки есть.
+  async listAllMedia() {
+    const IMG = /\.(png|jpe?g|webp|gif)$/i;
+    const out = [];
+
+    const walk = async (dir, rel) => {
+      let entries;
+      try {
+        entries = (await Filesystem.readdir({ path: dir, directory: DIR })).files;
+      } catch {
+        return; // папки нет — и не надо, картинок в ней тоже нет
+      }
+      for (const raw of entries) {
+        const entry = typeof raw === "string" ? { name: raw, type: "file" } : raw;
+        if (entry.name === ".history") continue;
+        const childRel = rel ? `${rel}/${entry.name}` : entry.name;
+        if (entry.type === "directory") await walk(`${dir}/${entry.name}`, childRel);
+        else if (IMG.test(entry.name)) out.push(childRel);
+      }
+    };
+
+    await walk(ROOT, "");
+    return out.sort();
   }
 }

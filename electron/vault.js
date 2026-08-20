@@ -192,7 +192,13 @@ export class Vault {
   }
 
   async saveMedia(base, filename, buffer, sub) {
-    const safeName = filename.replace(/[^\w.-]/g, "_").slice(-80);
+    // [^\w.-] запрещал ВСЁ не-ASCII разом — кириллическое имя файла
+    // (обложка/фото с кириллическим названием тайтла или персонажа)
+    // превращалось в одни подчёркивания, и два разных файла в одной
+    // папке могли затереть друг друга одним и тем же "______.webp".
+    // Правильный список — не что разрешено, а что правда небезопасно
+    // в имени файла: разделители пути и управляющие символы.
+    const safeName = filename.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_").slice(-80);
     const dir = this.mediaDir(base, sub);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, safeName), buffer);
@@ -238,5 +244,60 @@ export class Vault {
         };
       });
     return { files };
+  }
+
+  // Все картинки хранилища одним списком, для резервной копии. Не
+  // listImages — та отвечает под конкретную нужду интерфейса (список
+  // папок ИЛИ список файлов в одной папке, порознь), а здесь нужно
+  // найти вообще всё: covers/, chars/<тайтл>/, свои коллекции
+  // тир-листа, — не зная заранее, какие из этих папок вообще есть.
+  async listAllMedia() {
+    const IMG = /\.(png|jpe?g|webp|gif)$/i;
+    const out = [];
+
+    const walk = async (dir, rel) => {
+      let entries;
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch (e) {
+        if (e.code === "ENOENT") return;
+        throw e;
+      }
+      for (const entry of entries) {
+        if (entry.name === ".history") continue; // прошлые версии — не картинки
+        const childRel = rel ? `${rel}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) await walk(path.join(dir, entry.name), childRel);
+        else if (IMG.test(entry.name)) out.push(childRel);
+      }
+    };
+
+    await walk(this.root, "");
+    return out.sort();
+  }
+
+  // base64, а не Buffer — тот же вид, в котором отдаёт файл MobileVault
+  // (Capacitor сам возвращает base64), так что exportBackup в
+  // core/api.js не должен знать, на какой платформе он работает.
+  async readMedia(relPath) {
+    const parts = String(relPath)
+      .split("/")
+      .filter(Boolean)
+      .map((p) => this.#safeSegment(p));
+    if (!parts.length) throw new Error("Пустой путь");
+    const buffer = await fs.readFile(path.join(this.root, ...parts));
+    return buffer.toString("base64");
+  }
+
+  // Обратная сторона readMedia — восстановление картинки из резервной
+  // копии на тот же относительный путь, с которого она была снята.
+  async writeMedia(relPath, base64) {
+    const parts = String(relPath)
+      .split("/")
+      .filter(Boolean)
+      .map((p) => this.#safeSegment(p));
+    if (!parts.length) throw new Error("Пустой путь");
+    const target = path.join(this.root, ...parts);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, Buffer.from(base64, "base64"));
   }
 }

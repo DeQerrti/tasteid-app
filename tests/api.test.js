@@ -264,6 +264,37 @@ test("картинка персонажа сохраняется и находи
   });
 });
 
+// Имя файла проверялось шаблоном [^\w.-] — \w matches только ASCII,
+// и кириллическое имя (обложка/фото с кириллическим названием тайтла
+// или персонажа — обычное дело для русскоязычного приложения)
+// превращалось в одни подчёркивания. Два разных файла с разными
+// кириллическими именами в одной папке при этом затирали друг друга.
+test("картинки с кириллическими именами не затирают друг друга", async () => {
+  await withServer(async ({ api, base }) => {
+    const webp = Buffer.from("UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==", "base64").toString("base64");
+
+    await api("POST", "/api/upload-char-image", {
+      folder: "Евангелион",
+      filename: "синдзи.webp",
+      contentBase64: webp,
+    });
+    await api("POST", "/api/upload-char-image", {
+      folder: "Евангелион",
+      filename: "рей.webp",
+      contentBase64: webp,
+    });
+
+    const { data: files } = await api(
+      "GET",
+      `/api/list-chars?folder=${encodeURIComponent("Евангелион")}&collection=characters`
+    );
+    assert.equal(files.files.length, 2, "оба файла должны остаться, а не слиться в один");
+
+    const names = files.files.map((f) => f.name).sort();
+    assert.deepEqual(names, ["синдзи", "рей"].sort());
+  });
+});
+
 // ── Защита путей ───────────────────────────────
 
 // Коллекции тир-листа заводят с русским названием, и slugify() в
@@ -326,7 +357,7 @@ test("наружу хранилища выйти нельзя", async () => {
 // Здесь — обратное: всё целиком, для себя, и с записью поверх текущих
 // данных.
 
-test("резервная копия увозит с собой отзывы, любимое и свои коллекции тир-листа", async () => {
+test("резервная копия увозит с собой отзывы, любимое, свои коллекции тир-листа и картинки", async () => {
   await withServer(async ({ api }) => {
     await api("POST", "/api/save-review", { title: "Evangelion", type: "anime" });
     await api("POST", "/api/save-favorite", { name: "Shinji", type: "character" });
@@ -336,6 +367,12 @@ test("резервная копия увозит с собой отзывы, л�
     await api("POST", "/api/save-chars-tier", {
       collection: "openings",
       data: [{ title: "Cruel Angel's Thesis" }],
+    });
+    const webp = Buffer.from("UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==", "base64");
+    await api("POST", "/api/upload-char-image", {
+      folder: "Evangelion",
+      filename: "shinji.webp",
+      contentBase64: webp.toString("base64"),
     });
 
     const { status, data } = await api("GET", "/api/export-backup");
@@ -347,6 +384,27 @@ test("резервная копия увозит с собой отзывы, л�
     assert.deepEqual(data.files["site-settings.json"].tierCollections, [
       { id: "openings", label: "Опенинги" },
     ]);
+    assert.equal(data.images["chars/Evangelion/shinji.webp"], webp.toString("base64"));
+  });
+});
+
+test("восстановление возвращает картинки на то же место", async () => {
+  await withServer(async ({ api, base }) => {
+    const webp = Buffer.from("UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==", "base64");
+    await api("POST", "/api/upload-char-image", {
+      folder: "Death Note",
+      filename: "light.webp",
+      contentBase64: webp.toString("base64"),
+    });
+    const { data: backup } = await api("GET", "/api/export-backup");
+
+    const { status, data: restored } = await api("POST", "/api/restore-backup", backup);
+    assert.equal(status, 200);
+    assert.equal(restored.images, 1);
+
+    const img = await fetch(`${base}/chars/${encodeURIComponent("Death Note")}/light.webp`);
+    assert.equal(img.status, 200, "картинка должна снова отдаваться после восстановления");
+    assert.equal(Buffer.from(await img.arrayBuffer()).toString("base64"), webp.toString("base64"));
   });
 });
 

@@ -423,8 +423,10 @@ async function saveSiteSettings({ vault, body }) {
 // собственные данные никаким способом — только сравнить их с чужими.
 //
 // Картинки, загруженные вручную (обложка не по ссылке, фото персонажа
-// с компьютера), в копию не входят — только сами данные. Обложки по
-// ссылке (AniList, TMDB) не страдают: ссылка и так лежит в reviews.json.
+// с компьютера), тоже входят — читаются как есть, base64, под тем же
+// относительным путём, каким лежат в хранилище (vault.listAllMedia /
+// readMedia). Обложки по ссылке (AniList, TMDB) отдельно копировать не
+// нужно: ссылка и так лежит в reviews.json.
 const BACKUP_FORMAT = "tasteid-backup";
 const BACKUP_VERSION = 1;
 
@@ -444,11 +446,17 @@ async function exportBackup({ vault }) {
     files[name] = await vault.readJson(name, []);
   }
 
+  const images = {};
+  for (const relPath of await vault.listAllMedia()) {
+    images[relPath] = await vault.readMedia(relPath);
+  }
+
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     files,
+    images,
   };
 }
 
@@ -482,7 +490,25 @@ async function restoreBackup({ vault, body }) {
   for (const name of names) {
     await vault.writeJson(name, files[name]);
   }
-  return { ok: true, restored: names };
+
+  // Картинки — по одной, и порченый или подставной путь роняет только
+  // саму картинку, а не всё восстановление: остальное всё равно стоит
+  // дописать. writeMedia сам отвергнет путь, ведущий наружу хранилища.
+  let restoredImages = 0;
+  const images = body.images;
+  if (images && typeof images === "object" && !Array.isArray(images)) {
+    for (const [relPath, base64] of Object.entries(images)) {
+      if (typeof base64 !== "string" || !base64) continue;
+      try {
+        await vault.writeMedia(relPath, base64);
+        restoredImages++;
+      } catch {
+        // см. комментарий выше
+      }
+    }
+  }
+
+  return { ok: true, restored: names, images: restoredImages };
 }
 
 // ── История версий ─────────────────────────────

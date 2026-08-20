@@ -452,8 +452,8 @@ i18nRegister({
   "Хранится во внутренней области приложения — её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести данные на другое устройство — резервная копия ниже.":
     "Stored inside the app's private storage — other apps can't see it, and it's deleted along with TasteID. To move your data to another device, use the backup below.",
   "Резервная копия": "Backup",
-  "Отзывы, любимое, тир-листы и настройки — одним файлом, для себя. Загруженные вручную картинки (не по ссылке) в копию не входят.":
-    "Reviews, favorites, tier lists and settings — in one file, for yourself. Manually uploaded pictures (not linked ones) aren't included.",
+  "Отзывы, любимое, тир-листы, настройки и загруженные вручную картинки — одним файлом, для себя.":
+    "Reviews, favorites, tier lists, settings and manually uploaded pictures — in one file, for yourself.",
   "Скачать резервную копию": "Download backup",
   "Восстановить из файла…": "Restore from file…",
   "Текущие отзывы, любимое, тир-листы и настройки будут заменены содержимым файла. Отменить это можно только другой резервной копией. Продолжить?":

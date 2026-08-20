@@ -88,13 +88,19 @@ await page.route(`**/js/mobile.bundle.js**`, (route) =>
 console.log("Скачивание (мобильный путь: fetch → «поделиться»)");
 await page.goto(`http://127.0.0.1:${port}/settings-edit.html`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(600);
-await page.evaluate(async () => {
+const WEBP = "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==";
+await page.evaluate(async (webp) => {
   await fetch("/api/save-review", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title: "Стенд-ап Икс" }),
   });
-});
+  await fetch("/api/upload-char-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ folder: "Евангелион", filename: "синдзи.webp", contentBase64: webp }),
+  });
+}, WEBP);
 await page.click('.side-tab[data-panel="app"]');
 await page.waitForTimeout(400);
 console.log(
@@ -133,6 +139,10 @@ ok(
   backupContent?.files?.["reviews.json"]?.[0]?.title === "Стенд-ап Икс",
   "отзыв, сохранённый только что, попал в копию"
 );
+ok(
+  backupContent?.images?.["chars/Евангелион/синдзи.webp"] === WEBP,
+  "загруженная вручную картинка тоже попала в копию"
+);
 
 console.log("Восстановление требует подтверждения");
 const confirmSeen = await page.evaluate(async () => {
@@ -164,7 +174,7 @@ ok(
 );
 
 console.log("Восстановление после подтверждения действительно заменяет данные");
-await page.evaluate(async () => {
+await page.evaluate(async (webp) => {
   window.confirmDialog = async () => true;
   const dt = new DataTransfer();
   const file = new File(
@@ -172,6 +182,7 @@ await page.evaluate(async () => {
       JSON.stringify({
         format: "tasteid-backup",
         files: { "reviews.json": [{ title: "Из резервной копии", id: 1 }] },
+        images: { "chars/Другой/пришло.webp": webp },
       }),
     ],
     "b.json",
@@ -181,13 +192,17 @@ await page.evaluate(async () => {
   const input = document.getElementById("backup-file");
   input.files = dt.files;
   input.dispatchEvent(new Event("change", { bubbles: true }));
-});
+}, WEBP);
 await page.waitForTimeout(600);
 const restored = await page.evaluate(async () => (await fetch("/reviews.json")).json());
 ok(
   restored.length === 1 && restored[0].title === "Из резервной копии",
   "после подтверждения данные заменились содержимым файла"
 );
+const restoredImage = await page.evaluate(() =>
+  window.__fakeFiles.get("TasteID/chars/Другой/пришло.webp")
+);
+ok(restoredImage === WEBP, "картинка из резервной копии тоже легла на диск, туда, откуда её брали");
 
 await browser.close();
 server.kill();
