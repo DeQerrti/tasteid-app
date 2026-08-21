@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { Vault } from "./vault.js";
 import { createServer, listen } from "./server.js";
 import { titleBarOptions, titleBarCss, overlayColors } from "./chrome.js";
+import { findUpdate, openDownload } from "./update.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.join(HERE, "..", "app");
@@ -94,6 +95,9 @@ const NATIVE_EN = {
   "Обычный размер": "Actual size",
   "Во весь экран": "Toggle full screen",
   "Не указана папка": "No folder given",
+  "Доступно обновление": "Update available",
+  Скачать: "Download",
+  Позже: "Later",
 };
 const tr = (ru) => (appLanguage() === "en" ? NATIVE_EN[ru] || ru : ru);
 
@@ -361,6 +365,31 @@ function openWelcome() {
   win?.loadURL(`http://127.0.0.1:${port}/welcome`);
 }
 
+// ── Обновления ─────────────────────────────────
+// Тихая проверка после запуска: спрашиваем GitHub, есть ли версия
+// новее, и если да — спрашиваем человека, качать ли её. Отказ
+// запоминается в конфиге, чтобы про одну и ту же версию не спрашивать
+// на каждом запуске подряд.
+async function checkForUpdates() {
+  if (!app.isPackaged) return; // при запуске из исходников (npm start) не мешаем
+  try {
+    const update = await findUpdate(app.getVersion());
+    if (!update || config.dismissedUpdate === update.version) return;
+    const { response } = await dialog.showMessageBox(win ?? undefined, {
+      type: "info",
+      title: tr("Доступно обновление"),
+      message: `${tr("Доступно обновление")}: ${update.version}`,
+      buttons: [tr("Скачать"), tr("Позже")],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) openDownload(update);
+    else await saveConfig({ dismissedUpdate: update.version });
+  } catch {
+    // Нет сети или GitHub недоступен — не повод тревожить человека.
+  }
+}
+
 // ── Запуск ─────────────────────────────────────
 
 // Второй запуск при уже открытом окне — не вторая копия, а повод
@@ -395,6 +424,7 @@ app.whenReady().then(async () => {
   await createWindow({ compact: !known });
   if (known) openMain();
   else openWelcome();
+  checkForUpdates();
 
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length) return;
