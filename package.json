@@ -47,11 +47,11 @@
       "output": "dist"
     },
     "files": [
-  "app/**/*",
-  "core/**/*",
-  "electron/**/*",
-  "package.json"
-],
+      "app/**/*",
+      "core/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
     "win": {
       "target": [
         "nsis"
