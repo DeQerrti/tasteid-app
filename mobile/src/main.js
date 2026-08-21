@@ -269,12 +269,89 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
+// ── Проверка обновлений ─────────────────────────
+// Тот же принцип, что и на компьютере (electron/update.js): спрашиваем
+// GitHub, какой релиз последний, и если он новее — показываем полоску
+// внизу экрана. В один клик здесь не поставить: Android всё равно
+// попросит подтверждение при установке файла поверх старой версии,
+// поэтому кнопка открывает системный шаринг на apk, откуда его удобно
+// сохранить и открыть через браузер или «Файлы».
+const UPDATE_REPO = "DeQerrti/tasteid-app";
+const UPDATE_DISMISSED_KEY = "tasteid_update_dismissed";
+
+function isNewerVersion(latest, current) {
+  const a = latest.replace(/^v/i, "").split(".").map(Number);
+  const b = current.replace(/^v/i, "").split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
+
+function showUpdateBanner(version, url) {
+  const ru = currentLang() !== "en";
+  const bar = document.createElement("div");
+  bar.style.cssText =
+    "position:fixed;left:0;right:0;bottom:0;z-index:99999;display:flex;align-items:center;" +
+    "justify-content:space-between;gap:.6rem;padding:.7rem 1rem;background:#2b2318;" +
+    "color:#f0e6d2;font:14px system-ui,sans-serif;box-shadow:0 -2px 10px rgba(0,0,0,.3);";
+
+  const text = document.createElement("span");
+  text.textContent = ru ? `Доступна версия ${version}` : `Version ${version} available`;
+
+  const updateBtn = document.createElement("button");
+  updateBtn.textContent = ru ? "Обновить" : "Update";
+  updateBtn.style.cssText =
+    "padding:.4rem .8rem;border:none;border-radius:.4rem;background:#c8a24a;" +
+    "color:#241d12;font-weight:600;";
+  updateBtn.onclick = () => {
+    Share.share({ title: "TasteID", url }).catch(() => {});
+    bar.remove();
+  };
+
+  const laterBtn = document.createElement("button");
+  laterBtn.textContent = ru ? "Позже" : "Later";
+  laterBtn.style.cssText =
+    "padding:.4rem .8rem;border:1px solid #6b5e4a;border-radius:.4rem;" +
+    "background:transparent;color:#f0e6d2;";
+  laterBtn.onclick = () => {
+    localStorage.setItem(UPDATE_DISMISSED_KEY, `v${version}`);
+    bar.remove();
+  };
+
+  const actions = document.createElement("div");
+  actions.style.cssText = "display:flex;gap:.5rem;flex-shrink:0;";
+  actions.append(updateBtn, laterBtn);
+  bar.append(text, actions);
+  document.body.appendChild(bar);
+}
+
+async function checkForUpdate() {
+  try {
+    const res = await window.fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
+      headers: { Accept: "application/vnd.github+json" },
+    });
+    if (!res.ok) return;
+    const release = await res.json();
+    const tag = release.tag_name || "";
+    if (!tag || !isNewerVersion(tag, APP_VERSION)) return;
+    if (localStorage.getItem(UPDATE_DISMISSED_KEY) === tag) return;
+    const asset = (release.assets || []).find((a) => /\.apk$/i.test(a.name));
+    showUpdateBanner(tag.replace(/^v/i, ""), asset?.browser_download_url || release.html_url);
+  } catch {
+    // Нет сети — молчим, это не ошибка приложения.
+  }
+}
+
 // ── Запуск ─────────────────────────────────────
 
 if (NATIVE) {
   seedLangCookie();
   installFetch();
   vault.ensure().catch(() => {});
+  checkForUpdate().catch(() => {});
   const ready = () => {
     installImages();
     installDownloads();
