@@ -203,6 +203,7 @@ async function applyTheme() {
 
   applyNavLabels();
   applyTabPreferences(settings);
+  applySiteName();
 
   // Событие шлём последним: к этому моменту и подписи, и порядок вкладок
   // уже на месте, а слушатели (config.js, now.js) точно зарегистрированы —
@@ -272,8 +273,10 @@ const DEFAULT_LABELS = {
   nav: { now: i18n("Статусы"), favorites: i18n("Любимое"), reviews: i18n("Отзывы"), stats: i18n("Статистика"), tierlist: i18n("Тир-лист") },
   statuses: { current: i18n("В процессе"), onhold: i18n("Отложено"), planning: i18n("Планирую"), archive: i18n("Архив") },
 
-  // Шапка сайта. Само название — бренд и здесь не настраивается.
-  site: { subtitle: i18n("Цифровой паспорт интересов") },
+  // Шапка сайта: name — само название, по умолчанию бренд, но кто
+  // угодно может назвать свою копию иначе («Мой список», например);
+  // subtitle — строка под ним.
+  site: { name: "TasteID", subtitle: i18n("Цифровой паспорт интересов") },
 
   // Заголовки блоков на вкладке «Любимое»
   sections: {
@@ -372,6 +375,20 @@ function applyNavLabels() {
     for (const key of path) value = value && value[key];
     if (value) el.textContent = value;
   });
+}
+
+// Название на видном месте: шапка каждой страницы («логотип» — тот
+// же текст, что ведёт на главную) и вкладка браузера/окна. Меняем
+// только когда оно правда переопределено — «TasteID» и так уже
+// написан прямо в разметке каждой страницы, трогать DOM без нужды
+// незачем.
+function applySiteName() {
+  const name = siteLabel("site", "name", "TasteID");
+  if (name === "TasteID") return;
+  document.querySelectorAll(".logo").forEach((el) => {
+    el.textContent = name;
+  });
+  document.title = document.title.replace(/TasteID/g, name);
 }
 
 // Промис выставляем наружу: index.html дожидается его, чтобы не рисовать
