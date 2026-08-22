@@ -26,6 +26,9 @@
     "check:mobile-links": "node scripts/check-mobile-links.js",
     "check:dupes": "node scripts/check-duplicate-functions.js"
   },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
   "devDependencies": {
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
@@ -52,6 +55,11 @@
       "electron/**/*",
       "package.json"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "DeQerrti",
+      "repo": "tasteid-app"
+    },
     "win": {
       "target": [
         "nsis"
