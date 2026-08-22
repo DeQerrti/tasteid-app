@@ -1,6 +1,29 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+<script>
+// Тема из кэша — синхронно, до первой отрисовки. theme.js ниже тоже её
+// применяет, но только после fetch("/site-settings.json") — а это сеть,
+// пусть и локальная. При быстрой повторной навигации (пара кликов по
+// логотипу подряд) окно между первой отрисовкой и ответом сервера иногда
+// растягивается настолько, что на долю секунды видна тема по умолчанию
+// из :root, прежде чем встанет настоящая. localStorage читается без
+// сети, поэтому успевает всегда. Ключ пишет и обновляет applyTheme() в
+// theme.js.
+(function () {
+  try {
+    var cached = JSON.parse(localStorage.getItem("tasteid-skin-cache"));
+    if (!cached) return;
+    if (cached.skin) document.documentElement.setAttribute("data-skin", cached.skin);
+    if (cached.declarations) {
+      var s = document.createElement("style");
+      s.id = "theme-overrides";
+      s.textContent = ":root { " + cached.declarations + " }";
+      document.head.appendChild(s);
+    }
+  } catch {}
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TasteID — Цифровой паспорт интересов</title>
