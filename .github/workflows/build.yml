@@ -82,6 +82,8 @@ jobs:
             dist/*.exe
             dist/*.dmg
             dist/*.AppImage
+            dist/*.blockmap
+            dist/latest*.yml
           draft: true
           fail_on_unmatched_files: false
 
