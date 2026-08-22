@@ -18,6 +18,7 @@ import { Vault } from "./vault.js";
 import { createServer, listen } from "./server.js";
 import { titleBarOptions, titleBarCss, overlayColors } from "./chrome.js";
 import { findUpdate, openDownload } from "./update.js";
+import { autoUpdater } from "electron-updater";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.join(HERE, "..", "app");
@@ -99,6 +100,8 @@ const NATIVE_EN = {
   "Нельзя убрать последнее хранилище.": "Can't remove the last vault.",
   "Сначала переключись на другое хранилище.": "Switch to another vault first.",
   "Доступно обновление": "Update available",
+  "Обновление готово": "Update ready",
+  Перезапустить: "Restart",
   Скачать: "Download",
   Позже: "Later",
 };
@@ -464,12 +467,35 @@ function openWelcome() {
 }
 
 // ── Обновления ─────────────────────────────────
-// Тихая проверка после запуска: спрашиваем GitHub, есть ли версия
-// новее, и если да — спрашиваем человека, качать ли её. Отказ
-// запоминается в конфиге, чтобы про одну и ту же версию не спрашивать
-// на каждом запуске подряд.
-async function checkForUpdates() {
-  if (!app.isPackaged) return; // при запуске из исходников (npm start) не мешаем
+// На Windows и Linux — тихо: electron-updater сам качает файл в фоне,
+// спрашиваем только когда всё уже готово и осталось лишь перезапустить.
+// На macOS так не выходит — Gatekeeper блокирует подмену приложения в
+// фоне без платной подписи (Apple Developer, $99/год) и нотаризации, а
+// её здесь нет и не планируется. Поэтому мак остаётся на прежнем
+// пути: диалог с версией и кнопка «Скачать», которая просто открывает
+// страницу загрузки — установка вручную, как и раньше.
+//
+// Отказ («Позже») запоминается в конфиге по номеру версии, чтобы про
+// одну и ту же версию не спрашивать на каждом запуске подряд — общее
+// для обоих путей.
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = false;
+
+autoUpdater.on("update-downloaded", async (info) => {
+  if (config.dismissedUpdate === info.version) return;
+  const { response } = await dialog.showMessageBox(win ?? undefined, {
+    type: "info",
+    title: tr("Доступно обновление"),
+    message: `${tr("Обновление готово")}: ${info.version}`,
+    buttons: [tr("Перезапустить"), tr("Позже")],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (response === 0) autoUpdater.quitAndInstall();
+  else await saveConfig({ dismissedUpdate: info.version });
+});
+
+async function checkForUpdatesMac() {
   try {
     const update = await findUpdate(app.getVersion());
     if (!update || config.dismissedUpdate === update.version) return;
@@ -483,6 +509,19 @@ async function checkForUpdates() {
     });
     if (response === 0) openDownload(update);
     else await saveConfig({ dismissedUpdate: update.version });
+  } catch {
+    // Нет сети или GitHub недоступен — не повод тревожить человека.
+  }
+}
+
+async function checkForUpdates() {
+  if (!app.isPackaged) return; // при запуске из исходников (npm start) не мешаем
+  if (process.platform === "darwin") {
+    await checkForUpdatesMac();
+    return;
+  }
+  try {
+    await autoUpdater.checkForUpdates();
   } catch {
     // Нет сети или GitHub недоступен — не повод тревожить человека.
   }
