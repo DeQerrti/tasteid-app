@@ -176,12 +176,29 @@ async function applyTheme() {
     .map(([key, value]) => `${key}: ${value};`)
     .join(" ");
 
-  const style = document.createElement("style");
-  // id нужен экрану настроек: он читает значения тем прямо из
-  // стилей и должен уметь пропустить уже применённые правки.
-  style.id = "theme-overrides";
+  // Кэш на следующую загрузку — см. инлайновый скрипт в начале <head>
+  // каждой страницы, который читает его синхронно и применяет тему до
+  // первой отрисовки. Здесь же, после fetch, кэш просто обновляется
+  // свежими значениями — на случай, если тему поменяли в другом окне
+  // или на другом устройстве через синхронизацию.
+  try {
+    localStorage.setItem("tasteid-skin-cache", JSON.stringify({ skin, declarations }));
+  } catch {
+    // приватный режим/квота — не страшно, это только кэш для FOUC
+  }
+
+  // Переиспользуем узел, если инлайновый скрипт его уже создал из кэша:
+  // так на странице не копится по два одинаковых <style> на каждую
+  // загрузку.
+  let style = document.getElementById("theme-overrides");
+  if (!style) {
+    style = document.createElement("style");
+    // id нужен экрану настроек: он читает значения тем прямо из
+    // стилей и должен уметь пропустить уже применённые правки.
+    style.id = "theme-overrides";
+    document.head.appendChild(style);
+  }
   style.textContent = `:root { ${declarations} }`;
-  document.head.appendChild(style);
 
   window.SITE_LABELS = mergeLabels(settings.labels);
   window.SITE_LABEL_OVERRIDES = settings.labels || {};
