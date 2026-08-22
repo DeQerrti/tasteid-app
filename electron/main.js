@@ -141,7 +141,9 @@ async function migrateVaults() {
   if (config.vaults || !config.vaultPath) return;
   const id = genVaultId();
   await saveConfig({
-    vaults: [{ id, name: path.basename(config.vaultPath) || tr("Хранилище"), path: config.vaultPath }],
+    vaults: [
+      { id, name: path.basename(config.vaultPath) || tr("Хранилище"), path: config.vaultPath },
+    ],
     currentVaultId: id,
   });
 }
@@ -221,7 +223,8 @@ function appRoutes() {
     "POST /api/app/remove-vault": async ({ body }) => {
       const vaults = config.vaults || [];
       if (vaults.length <= 1) throw new Error(tr("Нельзя убрать последнее хранилище."));
-      if (body.id === config.currentVaultId) throw new Error(tr("Сначала переключись на другое хранилище."));
+      if (body.id === config.currentVaultId)
+        throw new Error(tr("Сначала переключись на другое хранилище."));
       if (!vaults.some((v) => v.id === body.id)) throw new Error(tr("Хранилище не найдено"));
       await saveConfig({ vaults: vaults.filter((v) => v.id !== body.id) });
       return { ok: true };
