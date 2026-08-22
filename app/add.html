@@ -1813,18 +1813,24 @@ async function initPage() {
   updateDateFields();
   const params = new URLSearchParams(location.search);
 
-  // Из чужого паспорта: там нет ни текста отзыва, ни обложки — только
-  // название, тип и год, и добавляются они не поверх ничьего чужого
-  // отзыва, а как новый, свой. editingId нарочно не трогаем: fillForm
-  // сам по себе ничего не редактирует, это делает только присвоение
-  // editingId ниже, в ветке edit=.
+  // Из чужого паспорта: там нет ни текста отзыва — только название,
+  // тип, год и, если автор паспорта указывал обложку внешней ссылкой
+  // (а не локальным файлом), сама эта ссылка. Добавляются они не
+  // поверх ничьего чужого отзыва, а как новый, свой. editingId
+  // нарочно не трогаем: fillForm сам по себе ничего не редактирует,
+  // это делает только присвоение editingId ниже, в ветке edit=.
   const fromPassport = params.get("fromPassport");
   if (fromPassport) {
     fillForm({
       title: params.get("title") || "",
       type: params.get("type") || "",
       year: params.get("year") || "",
+      cover: params.get("cover") || "",
     });
+    // fillForm просто ставит .value — событие oninput на это не
+    // реагирует, поэтому свою резервную копию обложки, как при ручной
+    // вставке ссылки, запускаем явно.
+    if (params.get("cover")) scheduleBackupCover();
     document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
     return;
   }
