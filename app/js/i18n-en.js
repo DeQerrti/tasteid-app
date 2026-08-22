@@ -468,6 +468,26 @@ i18nRegister({
   "не выбрана": "not selected",
 });
 
+// ── Панель «Хранилища» ────────────────────────
+i18nRegister({
+  Хранилища: "Vaults",
+  "Несколько независимых хранилищ на одном устройстве — со своими отзывами, тир-листами и синхронизацией у каждого. Переключение между ними ничего не стирает: данные остаются каждое в своей папке.":
+    "Several independent vaults on one device — each with its own reviews, tier lists and sync. Switching between them doesn't erase anything: each vault's data stays in its own folder.",
+  "Создать новое хранилище…": "Create a new vault…",
+  "Открыть существующее…": "Open an existing one…",
+  "Добавить хранилище…": "Add a vault…",
+  текущее: "current",
+  "Убрать из списка": "Remove from list",
+  "Имя нового хранилища:": "Name for the new vault:",
+  "Новое хранилище": "New vault",
+  "Имя для этого хранилища:": "Name for this vault:",
+  Хранилище: "Vault",
+  "Хранилище будет убрано из списка. Сама папка на диске никуда не денется — её можно будет открыть заново через «Открыть существующее».":
+    "The vault will be removed from the list. The folder itself stays right where it is on disk — you can open it again later via “Open an existing one”.",
+  "Хранилище и все его данные будут стёрты с телефона. Продолжить?":
+    "The vault and all of its data will be erased from the phone. Continue?",
+});
+
 // ── Разметка страниц ──────────────────────────
 i18nRegister({
   "(необязательно)": "(optional)",
