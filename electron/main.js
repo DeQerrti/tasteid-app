@@ -18,7 +18,15 @@ import { Vault } from "./vault.js";
 import { createServer, listen } from "./server.js";
 import { titleBarOptions, titleBarCss, overlayColors } from "./chrome.js";
 import { findUpdate, openDownload } from "./update.js";
-import { autoUpdater } from "electron-updater";
+// Именно так, а не `import { autoUpdater } from "electron-updater"`:
+// electron-updater — модуль CommonJS, и в исходниках (npm start) Node
+// достаточно снисходителен, чтобы сам разобрать его на именованные
+// экспорты. Внутри упакованного app.asar (уже собранный .exe) он на это
+// не идёт — падает с SyntaxError "Named export 'autoUpdater' not found"
+// прямо при старте, до открытия окна. Через default-импорт и
+// деструктуризацию работает в обоих случаях одинаково.
+import pkg from "electron-updater";
+const { autoUpdater } = pkg;
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.join(HERE, "..", "app");
