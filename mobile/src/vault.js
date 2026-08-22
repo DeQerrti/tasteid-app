@@ -29,10 +29,18 @@ const DIR = Directory.Data;
 const HISTORY_LIMIT = 50;
 
 // Папка внутри данных приложения. Не корень: рядом лежит служебное
-// хозяйство самого Capacitor, и мешать с ним паспорт незачем.
-const ROOT = "TasteID";
+// хозяйство самого Capacitor, и мешать с ним хранилища незачем.
+const APP_DIR = "TasteID";
 
-const path = (...parts) => [ROOT, ...parts.filter(Boolean)].join("/");
+// Первое хранилище (id "default") живёт прямо в TasteID/ — так было
+// до того, как хранилищ стало можно заводить несколько, и переносить
+// его в подпапку при обновлении значило бы двигать чужие файлы без
+// необходимости. Хранилище, заведённое позже, получает отдельную
+// подпапку TasteID/vaults/<id>/, чтобы файлы разных хранилищ не
+// путались друг с другом.
+function rootFor(id) {
+  return id && id !== "default" ? `${APP_DIR}/vaults/${id}` : APP_DIR;
+}
 
 // «Файла нет» приезжает от разных платформ по-разному, а отличать его
 // от настоящей ошибки нужно везде: отсутствующий файл — это первый
@@ -69,18 +77,37 @@ function bytesToBase64(bytes) {
 }
 
 export class MobileVault {
-  constructor() {
-    this.root = ROOT;
+  constructor(id) {
+    this.id = id || "default";
+    this.root = rootFor(this.id);
+  }
+
+  #path(...parts) {
+    return [this.root, ...parts.filter(Boolean)].join("/");
   }
 
   #file(name) {
     if (!isAllowedFile(name)) throw new Error(`Неизвестный файл: ${name}`);
-    return path(name);
+    return this.#path(name);
   }
 
   async ensure() {
     for (const dir of ["", "covers", "covers-backup", "chars", ".history"]) {
-      await mkdirp(dir ? path(dir) : ROOT);
+      await mkdirp(dir ? this.#path(dir) : this.root);
+    }
+  }
+
+  // Стереть хранилище целиком — на телефоне это единственный способ
+  // «убрать» его: тут нет проводника, чтобы потом заново открыть
+  // отвязанную папку, как на компьютере через «Открыть существующее».
+  // Для default не делаем ничего — у него нет своей подпапки, она же
+  // TasteID/, стирать было бы вообще всё, включая другие хранилища.
+  async remove() {
+    if (this.id === "default") return;
+    try {
+      await Filesystem.rmdir({ path: this.root, directory: DIR, recursive: true });
+    } catch (e) {
+      if (!isMissing(e)) throw e;
     }
   }
 
@@ -137,7 +164,7 @@ export class MobileVault {
       return; // первого сохранения архивировать нечего
     }
 
-    const dir = path(".history", name);
+    const dir = this.#path(".history", name);
     await mkdirp(dir);
 
     // Имя версии — время. Два сохранения подряд укладываются в одну
@@ -173,7 +200,7 @@ export class MobileVault {
 
   async history(name) {
     if (!isAllowedFile(name)) throw new Error(`Неизвестный файл: ${name}`);
-    const entries = await this.#list(path(".history", name));
+    const entries = await this.#list(this.#path(".history", name));
     return entries
       .filter((f) => f.endsWith(".json"))
       .sort()
@@ -189,7 +216,7 @@ export class MobileVault {
     if (!isAllowedFile(name)) throw new Error(`Неизвестный файл: ${name}`);
     if (!/^[\w-]{1,48}$/.test(id)) throw new Error("Неизвестная версия");
     const res = await Filesystem.readFile({
-      path: `${path(".history", name)}/${id}.json`,
+      path: `${this.#path(".history", name)}/${id}.json`,
       directory: DIR,
       encoding: Encoding.UTF8,
     });
@@ -216,7 +243,7 @@ export class MobileVault {
   mediaDir(base, sub) {
     const parts = [this.#safeSegment(base)];
     if (sub) parts.push(this.#safeSegment(sub));
-    return path(...parts);
+    return this.#path(...parts);
   }
 
   async saveMedia(base, filename, bytes, sub) {
@@ -288,7 +315,7 @@ export class MobileVault {
       .map((p) => this.#safeSegment(p));
     if (!parts.length) throw new Error("Пустой путь");
 
-    const res = await Filesystem.readFile({ path: path(...parts), directory: DIR });
+    const res = await Filesystem.readFile({ path: this.#path(...parts), directory: DIR });
     return res.data; // base64
   }
 
@@ -302,9 +329,9 @@ export class MobileVault {
       .map((p) => this.#safeSegment(p));
     if (!parts.length) throw new Error("Пустой путь");
     const dir = parts.slice(0, -1).join("/");
-    if (dir) await mkdirp(path(dir));
+    if (dir) await mkdirp(this.#path(dir));
     await Filesystem.writeFile({
-      path: path(...parts),
+      path: this.#path(...parts),
       directory: DIR,
       data: base64,
       recursive: true,
@@ -329,13 +356,14 @@ export class MobileVault {
       for (const raw of entries) {
         const entry = typeof raw === "string" ? { name: raw, type: "file" } : raw;
         if (entry.name === ".history") continue;
+        if (!rel && entry.name === "vaults") continue; // соседние хранилища, не наши
         const childRel = rel ? `${rel}/${entry.name}` : entry.name;
         if (entry.type === "directory") await walk(`${dir}/${entry.name}`, childRel);
         else if (IMG.test(entry.name)) out.push(childRel);
       }
     };
 
-    await walk(ROOT, "");
+    await walk(this.root, "");
     return out.sort();
   }
 }
