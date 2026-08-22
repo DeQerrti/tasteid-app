@@ -42,9 +42,11 @@
   }
   #sidebar a.back {
     display: block; margin: 0 20px 20px;
-    color: var(--text-dim); text-decoration: none; font-size: .82rem;
-    position: sticky; top: 0; z-index: 1; background: var(--bg); padding-top: 4px;
+    color: var(--text); text-decoration: none; font-size: .95rem; font-weight: 600;
+    padding: 6px 10px 6px 4px;
+    position: sticky; top: 0; z-index: 1; background: var(--bg);
   }
+  #sidebar a.back:hover { color: var(--text-hi); }
   .side-tab {
     display: block; width: 100%; text-align: left;
     background: none; border: none; margin: 0;
@@ -1975,6 +1977,7 @@
   };
 
   const LABEL_KEY_TITLES = {
+    "site.name":            i18n("Название вместо TasteID"),
     "site.subtitle":        i18n("Подзаголовок под названием"),
     "filters.search":       i18n("Поиск"),
     "filters.type":         i18n("Тип"),
