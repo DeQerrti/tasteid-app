@@ -30,6 +30,31 @@ let guestPassport = null;
 let passportMode = "view"; // view | compare
 let passportsBusy = false;
 
+// Чужой тайтл можно забрать себе — в свой список, не поверх чужого
+// отзыва: у гостя нет ни текста, ни тегов, ни ссылки, только само
+// название/тип/год, так что это всегда новый, пустой свой отзыв,
+// который останется дозаполнить на add.html. Индекс нужен потому,
+// что в названии тайтла может быть что угодно, включая кавычки, —
+// пихать его прямо в onclick небезопасно.
+let ppAddQueue = [];
+
+function registerAddItem(item) {
+  ppAddQueue.push(item);
+  return ppAddQueue.length - 1;
+}
+
+function addFromPassport(idx) {
+  const item = ppAddQueue[idx];
+  if (!item) return;
+  const params = new URLSearchParams({
+    fromPassport: "1",
+    title: item.title || "",
+    type: item.type || "",
+    year: item.year || "",
+  });
+  location.href = `/add.html?${params.toString()}`;
+}
+
 // ── Формат паспорта ────────────────────────────
 // Только то, что нужно для показа и сравнения: тексты отзывов сюда не
 // едут — так файл легче, а решение «что показывать чужим» остаётся за
@@ -272,6 +297,7 @@ function passportIntroHtml() {
 // Ровно то, что человек увидел бы, зайдя к нему на сайт.
 
 function guestViewHtml() {
+  ppAddQueue = [];
   const info = makeGradeInfo(guestPassport.gradeScale);
   const items = guestPassport.items;
   const graded = items.filter((i) => i.grade);
@@ -309,6 +335,8 @@ function guestViewHtml() {
         ${inShelf.map((item) => `
           <div class="pp-card" title="${esc(item.title)}">
             ${ppPoster(item)}
+            <button class="pp-add-btn" title="${esc(i18n("Добавить себе"))}"
+              onclick="addFromPassport(${registerAddItem(item)})">+</button>
             <div class="pp-card-title">${esc(item.title)}</div>
             ${ppMeta(item)}
           </div>`).join("")}
@@ -354,6 +382,7 @@ function ppChip(info, grade) {
 // ── Режим «Сравнение» ──────────────────────────
 
 function compareResultHtml() {
+  ppAddQueue = [];
   const mine = myGradeInfo();
   const theirs = makeGradeInfo(guestPassport.gradeScale);
 
@@ -403,7 +432,7 @@ function compareResultHtml() {
     </div>
     ${comparePairsHtml(i18n("Где разошлись"), i18n("Чем выше, тем сильнее спор."), argued, mine, theirs, i18n("Полное согласие — спорить не о чем."))}
     ${comparePairsHtml(i18n("Где сошлись"), i18n("Одна и та же полка или соседние."), agreed, mine, theirs, i18n("Общих оценок не нашлось."))}
-    ${compareOneSidedHtml(i18n("Стоит забрать себе"), i18n("Он оценил, а у тебя этого нет."), onlyTheirs, theirs)}
+    ${compareOneSidedHtml(i18n("Стоит забрать себе"), i18n("Он оценил, а у тебя этого нет."), onlyTheirs, theirs, true)}
     ${compareOneSidedHtml(i18n("Только у тебя"), i18n("Ты оценил, а у него этого нет."), onlyMine, mine)}
   </div>`;
 }
@@ -426,7 +455,7 @@ function comparePairsHtml(title, sub, pairs, mine, theirs, emptyText) {
   return ppSection(title, sub, rows, emptyText);
 }
 
-function compareOneSidedHtml(title, sub, items, info) {
+function compareOneSidedHtml(title, sub, items, info, showAdd) {
   // Сначала то, что оценено выше: если это список «забрать себе»,
   // сверху должно оказаться лучшее, а не случайное.
   const sorted = [...items].sort((a, b) => {
@@ -443,6 +472,9 @@ function compareOneSidedHtml(title, sub, items, info) {
         ${ppMeta(item)}
       </div>
       <div class="pp-grades">${item.grade ? ppChip(info, item.grade) : ""}</div>
+      ${showAdd
+        ? `<button class="btn btn-ghost pp-add-btn-row" onclick="addFromPassport(${registerAddItem(item)})">${i18n("Добавить себе")}</button>`
+        : ""}
     </div>`).join("");
 
   return ppSection(title, sub, rows, i18n("Пусто"));
@@ -587,7 +619,15 @@ function passportStyles() {
       grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
       gap: .6rem;
     }
-    .pp-card { min-width: 0; }
+    .pp-card { min-width: 0; position: relative; }
+    .pp-add-btn {
+      position: absolute; top: .3rem; right: .3rem;
+      width: 22px; height: 22px; line-height: 20px; text-align: center;
+      border-radius: 50%; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-hi);
+      font-size: 1rem; cursor: pointer; opacity: .85; transition: opacity .15s;
+    }
+    .pp-add-btn:hover { opacity: 1; }
     .pp-card-title {
       font-family: 'Cormorant Garamond', serif;
       font-size: .8rem; font-weight: 600; color: var(--text-hi);
@@ -622,6 +662,7 @@ function passportStyles() {
       color: var(--text-dim); margin-top: .2rem;
     }
     .pp-grades { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; }
+    .pp-add-btn-row { flex-shrink: 0; white-space: nowrap; }
     .pp-side { text-align: center; }
     .pp-who {
       font-family: 'DM Sans', sans-serif;
@@ -645,6 +686,7 @@ function passportStyles() {
       .pp-row { flex-wrap: wrap; }
       .pp-body { flex: 1 1 60%; }
       .pp-grades { width: 100%; justify-content: flex-start; padding-left: 3.6rem; }
+      .pp-add-btn-row { margin-left: 3.6rem; margin-top: .3rem; }
     }
   </style>`;
 }
