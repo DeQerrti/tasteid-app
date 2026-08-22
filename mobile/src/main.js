@@ -34,23 +34,109 @@ const VAULT_FILES = /^\/(reviews|favorites|characters-tier|site-settings|tier-[^
 // Папки хранилища: covers, chars и папки коллекций тир-листа.
 const VAULT_DIRS = /^\/(covers|covers-backup|chars|[^/]+)\/.+\.(png|jpe?g|webp|gif)$/i;
 
-const vault = new MobileVault();
+let vault = new MobileVault(currentVaultId());
+
+// ── Несколько хранилищ ──────────────────────────
+// На компьютере список {name, path} живёт в конфиге и путь выбирают
+// проводником. На телефоне своего проводника нет: список — просто
+// {id, name} в localStorage, а путь на диске всегда выводится из id
+// (см. rootFor в vault.js). Поэтому здесь нет «выбрать папку» — есть
+// только «дать имя», всё остальное берёт на себя MobileVault.
+const VAULTS_KEY = "tasteid_vaults";
+const CURRENT_VAULT_KEY = "tasteid_current_vault";
+
+function genVaultId() {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function listVaults() {
+  let list;
+  try {
+    list = JSON.parse(localStorage.getItem(VAULTS_KEY) || "null");
+  } catch {
+    list = null;
+  }
+  if (!Array.isArray(list) || !list.length) {
+    // Первый запуск или обновление со старой версии, где хранилище
+    // было одно без имени и без id — заводим список из одной записи,
+    // указывающей на те же файлы, что уже лежат на диске.
+    list = [{ id: "default", name: "TasteID" }];
+    saveVaults(list);
+  }
+  return list;
+}
+
+function saveVaults(list) {
+  localStorage.setItem(VAULTS_KEY, JSON.stringify(list));
+}
+
+function currentVaultId() {
+  return localStorage.getItem(CURRENT_VAULT_KEY) || "default";
+}
+
+// Пути картинок кэшируются по имени файла — общий на все хранилища,
+// поэтому при переключении его обязательно чистить, иначе после
+// смены хранилища будут какое-то время показываться обложки из
+// прошлого.
+function clearImageCache() {
+  srcCache.clear();
+}
 
 // ── Настройки самого приложения ────────────────
 // На компьютере это /api/app/* в electron/main.js. Здесь тот же набор,
-// но короче: папку выбирать не дают (на телефоне она одна), масштаб
-// задаёт сама система.
+// но короче: масштаб задаёт сама система, а вместо выбора папки —
+// выбор хранилища из списка (или создание нового по имени).
 const LANG_KEY = "tasteid_lang";
 
-function appRoutes(pathname, body) {
+async function appRoutes(pathname, body) {
   if (pathname === "/api/app/info") {
     return {
       vaultPath: vault.root,
+      vaults: listVaults(),
+      currentVaultId: currentVaultId(),
       lang: currentLang(),
       platform: window.Capacitor?.getPlatform?.() || "mobile",
       version: APP_VERSION,
       mobile: true,
     };
+  }
+  if (pathname === "/api/app/switch-vault") {
+    const entry = listVaults().find((v) => v.id === body?.id);
+    if (!entry) throw new Error("Хранилище не найдено");
+    localStorage.setItem(CURRENT_VAULT_KEY, entry.id);
+    vault = new MobileVault(entry.id);
+    await vault.ensure();
+    clearImageCache();
+    return { ok: true, vault: entry };
+  }
+  if (pathname === "/api/app/add-vault") {
+    const name = String(body?.name || "").trim() || "TasteID";
+    const entry = { id: genVaultId(), name };
+    saveVaults([...listVaults(), entry]);
+    localStorage.setItem(CURRENT_VAULT_KEY, entry.id);
+    vault = new MobileVault(entry.id);
+    await vault.ensure();
+    clearImageCache();
+    return { ok: true, vault: entry };
+  }
+  if (pathname === "/api/app/rename-vault") {
+    const name = String(body?.name || "").trim();
+    if (!body?.id || !name) throw new Error("Хранилище не найдено");
+    saveVaults(listVaults().map((v) => (v.id === body.id ? { ...v, name } : v)));
+    return { ok: true };
+  }
+  if (pathname === "/api/app/remove-vault") {
+    const list = listVaults();
+    if (list.length <= 1) throw new Error("Нельзя убрать последнее хранилище.");
+    if (body?.id === currentVaultId()) throw new Error("Сначала переключись на другое хранилище.");
+    const entry = list.find((v) => v.id === body?.id);
+    if (!entry) throw new Error("Хранилище не найдено");
+    // В отличие от компьютера — тут это настоящее удаление файлов, а
+    // не просто снятие с полки: заново открыть отвязанную папку на
+    // телефоне нечем, проводника нет.
+    await new MobileVault(entry.id).remove();
+    saveVaults(list.filter((v) => v.id !== entry.id));
+    return { ok: true };
   }
   // Полоса состояния наверху экрана — то же, что рамка окна на
   // компьютере: страница шлёт сюда цвета при смене темы, и электронная
@@ -127,8 +213,14 @@ async function handle(pathname, search, init) {
   const method = (init?.method || "GET").toUpperCase();
   const body = init?.body ? JSON.parse(init.body) : {};
 
-  const app = appRoutes(pathname, body);
-  if (app) return jsonResponse(app);
+  if (pathname.startsWith("/api/app/")) {
+    try {
+      const app = await appRoutes(pathname, body);
+      if (app) return jsonResponse(app);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 500);
+    }
+  }
 
   if (pathname.startsWith("/api/")) {
     const handler = ROUTES[`${method} ${pathname}`];
