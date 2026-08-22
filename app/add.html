@@ -1812,6 +1812,23 @@ function resetToNew() {
 async function initPage() {
   updateDateFields();
   const params = new URLSearchParams(location.search);
+
+  // Из чужого паспорта: там нет ни текста отзыва, ни обложки — только
+  // название, тип и год, и добавляются они не поверх ничьего чужого
+  // отзыва, а как новый, свой. editingId нарочно не трогаем: fillForm
+  // сам по себе ничего не редактирует, это делает только присвоение
+  // editingId ниже, в ветке edit=.
+  const fromPassport = params.get("fromPassport");
+  if (fromPassport) {
+    fillForm({
+      title: params.get("title") || "",
+      type: params.get("type") || "",
+      year: params.get("year") || "",
+    });
+    document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
+    return;
+  }
+
   const editId = params.get("edit");
   if (!editId) return;
 
