@@ -146,7 +146,13 @@ function hslToHex(h, s, l) {
 async function applyTheme() {
   let settings = {};
   try {
-    const res = await fetch("site-settings.json");
+    // Абсолютный путь обязателен: перехватчик fetch на телефоне
+    // (mobile/src/main.js, installFetch) ловит только запросы,
+    // начинающиеся с "/" — относительный путь тихо проходил мимо
+    // подмены, улетал в настоящую сеть (которой на телефоне нет для
+    // такого адреса) и падал в catch ниже. Тема и все настройки сайта
+    // из-за этого молча оставались на умолчаниях.
+    const res = await fetch("/site-settings.json");
     if (res.ok) settings = await res.json();
   } catch {
     // нет файла/сети — просто остаёмся на теме и подписях по умолчанию
