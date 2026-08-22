@@ -1008,3 +1008,13 @@ i18nRegister({
   "Синхронизация TasteID": "TasteID sync",
   "Не получилось отправить файл: {path}": "Couldn't send the file: {path}",
 });
+
+// ── Забрать чужой тайтл себе (паспорта) ────────
+i18nRegister({
+  "Добавить себе": "Add to my list",
+});
+
+// ── Название сайта в настройках («Подписи») ────
+i18nRegister({
+  "Название вместо TasteID": "Name instead of TasteID",
+});
