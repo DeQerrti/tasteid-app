@@ -82,8 +82,8 @@ function appLanguage() {
 // общий с фронтендом: тащить app/js/i18n.js в процесс Electron ради
 // десятка подписей значило бы связать две несвязанные части.
 const NATIVE_EN = {
-  "Где лежит паспорт": "Where the passport is",
-  "Где хранить паспорт": "Where to keep the passport",
+  "Где находится хранилище": "Where the vault is",
+  "Где создать хранилище": "Where to create the vault",
   "Выбрать папку": "Choose folder",
   Файл: "File",
   Выход: "Quit",
@@ -95,6 +95,9 @@ const NATIVE_EN = {
   "Обычный размер": "Actual size",
   "Во весь экран": "Toggle full screen",
   "Не указана папка": "No folder given",
+  "Хранилище не найдено": "Vault not found",
+  "Нельзя убрать последнее хранилище.": "Can't remove the last vault.",
+  "Сначала переключись на другое хранилище.": "Switch to another vault first.",
   "Доступно обновление": "Update available",
   Скачать: "Download",
   Позже: "Later",
@@ -106,7 +109,7 @@ const tr = (ru) => (appLanguage() === "en" ? NATIVE_EN[ru] || ru : ru);
 async function askForVault({ mode, previous } = {}) {
   const suggested = previous || path.join(app.getPath("documents"), "TasteID");
   const { canceled, filePaths } = await dialog.showOpenDialog(win ?? undefined, {
-    title: mode === "open" ? tr("Где лежит паспорт") : tr("Где хранить паспорт"),
+    title: mode === "open" ? tr("Где находится хранилище") : tr("Где создать хранилище"),
     defaultPath: suggested,
     properties: ["openDirectory", "createDirectory"],
     buttonLabel: tr("Выбрать папку"),
@@ -117,7 +120,60 @@ async function askForVault({ mode, previous } = {}) {
 async function useVault(root) {
   vault = new Vault(root);
   await vault.ensure();
-  await saveConfig({ vaultPath: root });
+}
+
+// ── Несколько хранилищ ──────────────────────────
+// Список живёт в конфиге рядом с currentVaultId. Раньше был только
+// один vaultPath — при первом запуске после обновления он переезжает
+// сюда единственной записью и дальше не используется.
+//
+// Путь остаётся ключом: одна и та же папка не заводит вторую запись,
+// даже если её выбрали заново через «Сменить папку» на старом экране
+// настроек — тот код ничего не знает про список и просто просит
+// открыть путь, а useVaultPath сам решает, новая это запись или уже
+// существующая.
+
+function genVaultId() {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function migrateVaults() {
+  if (config.vaults || !config.vaultPath) return;
+  const id = genVaultId();
+  await saveConfig({
+    vaults: [{ id, name: path.basename(config.vaultPath) || tr("Хранилище"), path: config.vaultPath }],
+    currentVaultId: id,
+  });
+}
+
+function currentVaultEntry() {
+  return (config.vaults || []).find((v) => v.id === config.currentVaultId) || null;
+}
+
+async function addVaultEntry(root, name) {
+  const id = genVaultId();
+  const entry = { id, name: name || path.basename(root) || tr("Хранилище"), path: root };
+  await useVault(root);
+  await saveConfig({ vaults: [...(config.vaults || []), entry], currentVaultId: id });
+  return entry;
+}
+
+async function switchVaultTo(id) {
+  const entry = (config.vaults || []).find((v) => v.id === id);
+  if (!entry) throw new Error(tr("Хранилище не найдено"));
+  await useVault(entry.path);
+  await saveConfig({ currentVaultId: id });
+  return entry;
+}
+
+// Тот же путь мог уже быть в списке под своим именем — тогда просто
+// переключаемся на запись, а не заводим дубликат с тем же адресом на
+// диске. Используется и первым запуском (список ещё пуст), и старой
+// кнопкой «Сменить папку» на экране приложения.
+async function useVaultPath(root, name) {
+  const existing = (config.vaults || []).find((v) => path.resolve(v.path) === path.resolve(root));
+  if (existing) return switchVaultTo(existing.id);
+  return addVaultEntry(root, name);
 }
 
 // ── Мост для страницы ──────────────────────────
@@ -130,6 +186,8 @@ function appRoutes() {
   return {
     "GET /api/app/info": async () => ({
       vaultPath: vault?.root || null,
+      vaults: (config.vaults || []).map(({ id, name, path: p }) => ({ id, name, path: p })),
+      currentVaultId: config.currentVaultId || null,
       zoom: config.zoom ?? 0,
       lang: appLanguage(),
       platform: process.platform,
@@ -142,7 +200,30 @@ function appRoutes() {
 
     "POST /api/app/use-vault": async ({ body }) => {
       if (!body.path) throw new Error(tr("Не указана папка"));
-      await useVault(body.path);
+      const entry = await useVaultPath(body.path, body.name);
+      return { ok: true, vault: entry };
+    },
+
+    "POST /api/app/switch-vault": async ({ body }) => {
+      if (!body.id) throw new Error(tr("Хранилище не найдено"));
+      const entry = await switchVaultTo(body.id);
+      return { ok: true, vault: entry };
+    },
+
+    "POST /api/app/rename-vault": async ({ body }) => {
+      const name = String(body.name || "").trim();
+      if (!body.id || !name) throw new Error(tr("Хранилище не найдено"));
+      const vaults = (config.vaults || []).map((v) => (v.id === body.id ? { ...v, name } : v));
+      await saveConfig({ vaults });
+      return { ok: true };
+    },
+
+    "POST /api/app/remove-vault": async ({ body }) => {
+      const vaults = config.vaults || [];
+      if (vaults.length <= 1) throw new Error(tr("Нельзя убрать последнее хранилище."));
+      if (body.id === config.currentVaultId) throw new Error(tr("Сначала переключись на другое хранилище."));
+      if (!vaults.some((v) => v.id === body.id)) throw new Error(tr("Хранилище не найдено"));
+      await saveConfig({ vaults: vaults.filter((v) => v.id !== body.id) });
       return { ok: true };
     },
 
@@ -404,13 +485,15 @@ app.on("second-instance", () => {
 
 app.whenReady().then(async () => {
   config = await readConfig();
+  await migrateVaults();
 
   // Папка могла уехать на флешке или быть переименована. Молча завести
   // взамен пустую — худшее, что можно сделать: человек решит, что
   // данные пропали. Поэтому просто ведём на экран приветствия, где
   // видно, что папку надо указать.
-  const known = config.vaultPath && (await exists(config.vaultPath));
-  if (known) await useVault(config.vaultPath);
+  const current = currentVaultEntry();
+  const known = current && (await exists(current.path));
+  if (known) await useVault(current.path);
 
   const server = createServer({
     appDir: APP_DIR,
