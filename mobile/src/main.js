@@ -22,6 +22,7 @@
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Share } from "@capacitor/share";
+import { App } from "@capacitor/app";
 import { ROUTES, ApiError } from "../../core/api.js";
 import { MobileVault } from "./vault.js";
 import { version as APP_VERSION } from "../../package.json";
@@ -361,6 +362,38 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
+// ── Жест/кнопка «назад» ─────────────────────────
+// Без этого обработчика системный жест на Android не умел ничего,
+// кроме как закрыть приложение целиком: bridge последних версий
+// Capacitor сам за WebView.history больше не следит — это отдано на
+// откуп JS через плагин @capacitor/app. Итог по приоритету:
+//   1. открыта модалка (карточка отзыва, форма нового тир-листа,
+//      редактор тега и т.п.) — закрываем её, а не страницу;
+//   2. есть куда возвращаться в истории WebView (например, зашёл в
+//      /settings-edit.html со главной) — обычный переход назад;
+//   3. возвращаться некуда — сворачиваем/закрываем приложение, как
+//      и ожидается от жеста на самом первом экране.
+function closeVisibleModal() {
+  const overlay = document.querySelector(
+    ".modal-overlay:not(.hidden), .review-modal-overlay:not(.hidden)"
+  );
+  if (!overlay) return false;
+  // Каждая страница сама решает, как закрыть свою модалку — общий для
+  // всех приём: клик по самой подложке overlay воспроизводит клик по
+  // фону, на который все они и так реагируют (закрытие по клику мимо
+  // карточки), включая review-modal-overlay в reviews.js.
+  overlay.click();
+  return true;
+}
+
+function installBackButton() {
+  App.addListener("backButton", ({ canGoBack }) => {
+    if (closeVisibleModal()) return;
+    if (canGoBack) window.history.back();
+    else App.exitApp();
+  });
+}
+
 // ── Проверка обновлений ─────────────────────────
 // Тот же принцип, что и на компьютере (electron/update.js): спрашиваем
 // GitHub, какой релиз последний, и если он новее — показываем полоску
@@ -447,6 +480,7 @@ if (NATIVE) {
   const ready = () => {
     installImages();
     installDownloads();
+    installBackButton();
     watchPageColors();
   };
   if (document.readyState === "loading") {
