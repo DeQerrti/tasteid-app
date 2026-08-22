@@ -172,6 +172,7 @@
   }
   .list-row .name { flex: 1; font-size: .88rem; }
   .list-row .tag-note { color: var(--text-dim); font-size: .78rem; }
+  .vault-current { color: var(--text-dim); font-size: .78rem; white-space: nowrap; }
 
   .app-path { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim);
     word-break: break-all; border: 1px dashed var(--border2); border-radius: 4px; padding: 9px 12px; }
@@ -259,6 +260,7 @@
     <button class="side-tab" data-panel="passports" data-i18n>Паспорта</button>
     <button class="side-tab hidden" data-panel="sync" id="tab-sync" data-i18n>Синхронизация</button>
     <button class="side-tab" data-panel="import" data-i18n>Импорт</button>
+    <button class="side-tab hidden" data-panel="vaults" id="tab-vaults" data-i18n>Хранилища</button>
     <button class="side-tab hidden" data-panel="app" id="tab-app" data-i18n>Приложение</button>
     <a href="/backup-history.html" class="back" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;" data-i18n>История версий</a>
   </nav>
@@ -375,6 +377,16 @@
       <div id="syncPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
     </div>
 
+    <!-- Список хранилищ и переключение между ними. Не путать с
+         «Паспортом» на соседней вкладке: тот — урезанный файл-слепок
+         для показа чужим, а тут — свои полноценные хранилища, между
+         которыми можно переключаться, как между профилями в Obsidian.
+         Панель показывается только в приложении — на голом сайте
+         хранилище всегда одно и переключать нечего. -->
+    <div class="panel" id="panel-vaults">
+      <div id="vaultsPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
+    </div>
+
     <!-- Настройки самого приложения. На сайте этой панели нет и быть не
          может: там нет ни папки на диске, ни окна, ни масштаба. Она
          показывается только когда /api/app/info отвечает, то есть когда
@@ -472,6 +484,7 @@
       if (btn.dataset.panel === "passports") loadPassports();
       if (btn.dataset.panel === "sync") renderSyncPanel();
       if (btn.dataset.panel === "import") loadImport();
+      if (btn.dataset.panel === "vaults") renderVaultsPanel();
       if (btn.dataset.panel === "app") loadAppPanel();
     });
   });
@@ -1080,6 +1093,7 @@
     try {
       appInfo = await appApi("/api/app/info");
       document.getElementById("tab-app").classList.remove("hidden");
+      document.getElementById("tab-vaults").classList.remove("hidden");
       // Синхронизация ходит в /api/export-backup и /api/restore-backup —
       // они есть у приложения (core/api.js), но не у голого сайта.
       document.getElementById("tab-sync").classList.remove("hidden");
@@ -1112,6 +1126,141 @@
     document.getElementById("app-vault-actions").classList.toggle("hidden", !!appInfo.mobile);
     document.getElementById("app-vault-mobile-note").classList.toggle("hidden", !appInfo.mobile);
     document.getElementById("app-zoom-section").classList.toggle("hidden", !!appInfo.mobile);
+  }
+
+  // ── Панель «Хранилища» ─────────────────────────
+  // Список {id, name} приходит из appInfo (тот же /api/app/info, что
+  // уже дёргает detectApp()) — отдельного запроса не нужно, разве что
+  // appInfo ещё не готов при самом первом клике по вкладке.
+  //
+  // На компьютере «Добавить» — это выбор папки: новой или уже
+  // существующей (например, скопированной с другого устройства
+  // вручную). На телефоне выбирать нечего — там только имя, а папку
+  // заводит сама MobileVault.
+  async function renderVaultsPanel() {
+    const box = document.getElementById("vaultsPanel");
+    try {
+      if (!appInfo) appInfo = await appApi("/api/app/info");
+      box.innerHTML = `
+        <p class="panel-intro" data-i18n>
+          Несколько независимых хранилищ на одном устройстве — со своими
+          отзывами, тир-листами и синхронизацией у каждого. Переключение
+          между ними ничего не стирает: данные остаются каждое в своей
+          папке.
+        </p>
+        <div id="vaultsList"></div>
+        <div class="row" id="vaults-add-desktop" style="gap:10px;flex-wrap:wrap;margin-top:14px;">
+          <button class="btn btn-ghost" onclick="addVault('new')" data-i18n>Создать новое хранилище…</button>
+          <button class="btn btn-ghost" onclick="addVault('open')" data-i18n>Открыть существующее…</button>
+        </div>
+        <div class="row hidden" id="vaults-add-mobile" style="gap:10px;flex-wrap:wrap;margin-top:14px;">
+          <button class="btn btn-ghost" onclick="addVault('mobile')" data-i18n>Добавить хранилище…</button>
+        </div>
+        <div class="status-msg" id="status-vaults"></div>
+      `;
+      document.getElementById("vaults-add-desktop").classList.toggle("hidden", !!appInfo.mobile);
+      document.getElementById("vaults-add-mobile").classList.toggle("hidden", !appInfo.mobile);
+      applyI18n(box);
+      renderVaultsList();
+    } catch (e) {
+      box.innerHTML = `<p class="panel-intro">${esc(e.message)}</p>`;
+    }
+  }
+
+  function renderVaultsList() {
+    const list = document.getElementById("vaultsList");
+    const vaults = appInfo.vaults || [];
+    const currentId = appInfo.currentVaultId;
+    list.innerHTML = vaults.map(v => `
+      <div class="tab-row" id="vaultrow-${v.id}">
+        <span class="tab-name" id="vaultname-${v.id}">${esc(v.name)}</span>
+        <input type="text" id="vaultinput-${v.id}" value="${esc(v.name)}">
+        ${v.id === currentId
+          ? `<span class="vault-current" data-i18n>текущее</span>`
+          : `<button class="btn btn-ghost" onclick="switchVault('${v.id}')" data-i18n>Открыть</button>`}
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleVaultEdit('${v.id}')">✎</button>
+        ${v.id !== currentId
+          ? `<button class="icon-btn" title="${i18n("Убрать из списка")}" onclick="removeVault('${v.id}')">✕</button>`
+          : ""}
+      </div>
+    `).join("");
+    applyI18n(list);
+  }
+
+  async function toggleVaultEdit(id) {
+    const row = document.getElementById(`vaultrow-${id}`);
+    const editing = row.classList.toggle("editing");
+    if (editing) {
+      const input = document.getElementById(`vaultinput-${id}`);
+      input.focus();
+      input.select();
+      return;
+    }
+    const val = document.getElementById(`vaultinput-${id}`).value.trim();
+    if (!val) { renderVaultsList(); return; }
+    try {
+      await appApi("/api/app/rename-vault", { id, name: val });
+      appInfo.vaults = (appInfo.vaults || []).map(v => v.id === id ? { ...v, name: val } : v);
+      document.getElementById(`vaultname-${id}`).textContent = val;
+    } catch (e) {
+      flashStatus("status-vaults", false, e.message);
+      renderVaultsList();
+    }
+  }
+
+  // Переключение перечитывает reviews.json, favorites.json и всё
+  // остальное с нуля — как и при «Сменить папку» на прошлой версии
+  // этой вкладки, проще и надёжнее перезагрузить страницу, чем гонять
+  // все панели вручную по новой.
+  async function switchVault(id) {
+    try {
+      await appApi("/api/app/switch-vault", { id });
+      location.reload();
+    } catch (e) {
+      flashStatus("status-vaults", false, e.message);
+    }
+  }
+
+  async function addVault(mode) {
+    try {
+      let path;
+      if (mode === "mobile") {
+        const name = prompt(i18n("Имя нового хранилища:"), i18n("Новое хранилище"));
+        if (name === null) return; // отмена
+        await appApi("/api/app/add-vault", { name: name.trim() });
+      } else {
+        const picked = await appApi("/api/app/pick-vault", { mode });
+        if (!picked.path) return; // отмена в системном диалоге выбора папки
+        path = picked.path;
+        const suggested = path.split(/[\\/]/).filter(Boolean).pop() || i18n("Хранилище");
+        const name = prompt(i18n("Имя для этого хранилища:"), suggested);
+        if (name === null) return;
+        await appApi("/api/app/use-vault", { path, name: name.trim() });
+      }
+      location.reload();
+    } catch (e) {
+      flashStatus("status-vaults", false, e.message);
+    }
+  }
+
+  // Из списка можно убрать только не-текущее хранилище (кнопка вообще
+  // не показывается у активного) — предупреждение разное для
+  // компьютера и телефона, потому что и последствия разные: на
+  // компьютере папка остаётся на диске и её можно открыть заново
+  // через «Открыть существующее», на телефоне отдельной папки для
+  // не-default хранилища больше не будет вообще.
+  async function removeVault(id) {
+    const warn = appInfo.mobile
+      ? i18n("Хранилище и все его данные будут стёрты с телефона. Продолжить?")
+      : i18n("Хранилище будет убрано из списка. Сама папка на диске никуда не денется — её можно будет открыть заново через «Открыть существующее».");
+    if (!confirm(warn)) return;
+    try {
+      await appApi("/api/app/remove-vault", { id });
+      appInfo.vaults = (appInfo.vaults || []).filter(v => v.id !== id);
+      renderVaultsList();
+    } catch (e) {
+      flashStatus("status-vaults", false, e.message);
+    }
   }
 
   async function loadAppPanel() {
