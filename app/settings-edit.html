@@ -2226,6 +2226,12 @@
       // а не отдельно выложенный сайт со своей задержкой публикации.
       const savedNote = appInfo ? "Сохранено ✓" : i18n("Сохранено ✓ (обнови страницу на сайте, чтобы увидеть изменения)");
       flashStatus(statusId, data.ok, data.ok ? savedNote : i18n("Ошибка: ") + data.error);
+      // previewPalette() выше красит только эту страницу вживую и кэш
+      // для FOUC (localStorage, см. инлайновый скрипт в начале <head>)
+      // не трогает. Без этого на следующей странице после сохранения
+      // на долю секунды мелькнула бы прошлая тема — applyTheme() сама
+      // перечитает уже сохранённый site-settings.json и обновит кэш.
+      if (data.ok) applyTheme();
     } catch (e) {
       flashStatus(statusId, false, i18n("Ошибка: ") + e.message);
     }
