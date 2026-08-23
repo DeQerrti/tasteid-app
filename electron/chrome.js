@@ -40,7 +40,7 @@ export function titleBarOptions(platform, colors) {
 // Цвета берём из темы, которую выбрал человек: рамка не должна остаться
 // тёмной, когда весь остальной интерфейс светлый.
 export function overlayColors(skin) {
-  const light = /-light$|^soft$|^neomorphism$|^doodle$|^brutal$|^classic-light$/.test(skin || "");
+  const light = /-light$|^soft$|^neomorphism$|^doodle$|^brutal$/.test(skin || "");
   return light ? { bg: "#f4f2ec", symbol: "#3a3a38" } : { bg: "#0a0a0c", symbol: "#c8c4bb" };
 }
 
