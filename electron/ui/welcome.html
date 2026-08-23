@@ -2,6 +2,27 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<script>
+// Тема из кэша — синхронно, до первой отрисовки. Тот же приём, что и на
+// остальных страницах приложения (app/*.html) — здесь он менее
+// заметен, потому что этот экран обычно и открывается ровно тогда,
+// когда сохранённых настроек ещё нет (первый запуск) или хранилище
+// недоступно (папка потерялась), но раз этот экран сознательно делят
+// со всем приложением одни стили и тему — пусть ведёт себя так же.
+(function () {
+  try {
+    var cached = JSON.parse(localStorage.getItem("tasteid-skin-cache"));
+    if (!cached) return;
+    if (cached.skin) document.documentElement.setAttribute("data-skin", cached.skin);
+    if (cached.declarations) {
+      var s = document.createElement("style");
+      s.id = "theme-overrides";
+      s.textContent = ":root { " + cached.declarations + " }";
+      document.head.appendChild(s);
+    }
+  } catch {}
+})();
+</script>
 <title>TasteID</title>
 <!--
   ОКНО ПРИВЕТСТВИЯ
