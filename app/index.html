@@ -404,41 +404,56 @@ section.group { margin-bottom: 3.5rem; }
    уже min-content своего содержимого, а карточка отзыва с обложкой в 150px
    и текстом внутри как раз шире экрана телефона — из-за этого вся страница
    уезжала вбок примерно на 20px. */
-.reviews-grid { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 700px)  { .reviews-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1050px) { .reviews-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1400px) { .reviews-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.reviews-grid { display: grid; gap: .85rem; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 640px)  { .reviews-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 860px)  { .reviews-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1060px) { .reviews-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1280px) { .reviews-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1520px) { .reviews-grid { grid-template-columns: repeat(7, 1fr); } }
 
-/* ══ REVIEW CARD ═════════════════════════════════ */
+/* ══ REVIEW CARD ═════════════════════════════════
+   Постер + минимум подписей — карточка теперь витрина для беглого
+   просмотра коллекции, а не мини-статья. Внутри переиспользован .card
+   (index.html, у него уже есть постер на всю карточку, оверлеи
+   .type-tag/.watch-badge и поддержка всех тем) — та же система, что
+   несёт карточки на вкладке «Статусы» (см. cards.js, manualCard).
+   Полный текст отзыва по-прежнему открывается по клику — см. модалку
+   (.review-modal-*, reviewModalBodyHtml). */
 .review-card-wrap { position: relative; height: 100%; }
+.review-card-wrap { cursor: pointer; }
 
-.review-card {
-  display: flex; flex-direction: column; height: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  color: inherit;
-  position: relative;
-  animation: fadeUp .35s ease both;
-  overflow: visible;
+.card-grade-row {
+  display: flex; align-items: center; gap: .4rem;
+  margin-top: .3rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .82rem; font-weight: 600; font-style: italic;
+  color: var(--text-hi);
+}
+/* Тот же приём отрисовки, что у .tab-btn.active::before (index.html) —
+   не символ шрифта, а повёрнутый на 45° квадрат, чтобы отпечаток не
+   зависел от того, какой шрифт стоит на конкретном устройстве. */
+.card-grade-dot {
+  width: 6px; height: 6px;
+  border-radius: 1px;
+  transform: rotate(45deg);
+  background: var(--gc);
+  flex-shrink: 0;
 }
 
-.review-top { display: flex; gap: 1.1rem; padding: 1.2rem; flex: 1; }
-.review-cover-col {
-  width: 150px; flex-shrink: 0;
-  align-self: flex-start;
-  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+.card-fav {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .68rem;
+  color: var(--text-dim);
+  margin-top: .25rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.review-cover {
-  width: 100%;
-  border-radius: 1px; overflow: hidden;
-  border: 1px solid var(--border2);
-}
-.review-cover img {
-  width: 100%; aspect-ratio: 2/3;
-  object-fit: cover; display: block;
-  filter: grayscale(.1) brightness(.88);
-}
+.card-fav span { color: var(--text); }
+
+.card-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+.card-tags .rtag { font-size: .6rem; padding: .16rem .45rem; }
+
+/* Нужен только модалке (reviewModalBodyHtml) — в самой карточке
+   счётчик пересмотров теперь показан оверлеем .watch-badge. */
 .review-rewatch {
   font-family: 'DM Sans', sans-serif;
   font-size: .78rem;
@@ -449,40 +464,6 @@ section.group { margin-bottom: 3.5rem; }
   padding: .25rem .6rem;
   text-align: center;
 }
-.review-body { flex: 1; min-width: 0; }
-.review-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.2rem; font-weight: 700;
-  color: var(--text-hi); line-height: 1.25;
-  margin-bottom: .35rem;
-}
-.review-meta-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; flex-wrap: wrap; }
-.review-format { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--red-hi); text-transform: uppercase; letter-spacing: .1em; }
-.review-dateline { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); margin-bottom: .45rem; }
-.review-dateline span { color: var(--text-dim); }
-.review-waifu { font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: var(--text); margin-bottom: .45rem; }
-.review-waifu-label { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); }
-.review-waifu span { color: var(--text-hi); font-style: normal; font-weight: 600; }
-.review-preview {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.05rem; font-weight: 300;
-  color: var(--text); line-height: 1.7;
-  margin-top: .5rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 7;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.review-card-wrap { cursor: pointer; }
-.review-read-more {
-  font-family: 'DM Sans', sans-serif;
-  font-size: .75rem;
-  color: var(--red-hi);
-  margin-top: .5rem;
-  opacity: .85;
-}
-.review-card-wrap:hover .review-read-more { opacity: 1; text-decoration: underline; }
 
 .review-modal-overlay {
   position: fixed; inset: 0;
@@ -547,12 +528,6 @@ section.group { margin-bottom: 3.5rem; }
 }
 
 /* ══ TAGS ════════════════════════════════════════ */
-.review-tags {
-  padding: .65rem 1.2rem;
-  display: flex; flex-wrap: wrap; gap: .4rem;
-  border-top: 1px solid var(--border);
-  overflow: visible; position: relative; z-index: 2;
-}
 .rtag {
   font-family: 'DM Sans', sans-serif;
   font-size: .65rem;
@@ -593,18 +568,7 @@ section.group { margin-bottom: 3.5rem; }
   border-top-color: var(--border2); z-index: 21;
 }
 
-/* ══ GRADE BAR ═══════════════════════════════════ */
-.review-grade-bar {
-  display: flex; align-items: center; gap: .7rem;
-  padding: .75rem 1.2rem;
-  border-top: 1px solid var(--border);
-  margin-top: auto;
-}
-.grade-square {
-  width: 10px; height: 10px;
-  border-radius: 1px; flex-shrink: 0;
-  transform: rotate(45deg);
-}
+/* ══ GRADE ═══════════════════════════════════════ */
 .grade-chip {
   font-family: 'Playfair Display', serif;
   font-size: 1rem; font-weight: 700;
