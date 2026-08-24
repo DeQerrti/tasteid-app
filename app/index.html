@@ -630,6 +630,24 @@ section.group { margin-bottom: 3.5rem; }
 /* ══ STATS ═══════════════════════════════════════ */
 .stat-section { margin-bottom: 3.5rem; animation: fadeUp .4s ease both; }
 
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4rem;
+}
+.stat-grid .stat-card {
+  margin-bottom: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.6rem 1.8rem;
+  min-width: 0; /* allow children (year-bars-wrap etc.) to shrink inside grid cell */
+}
+.stat-grid .stat-card.wide { grid-column: 1 / -1; }
+@media (max-width: 780px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}
+
 .stat-total { display: flex; align-items: baseline; gap: .75rem; margin-bottom: 2rem; }
 .stat-total-num {
   font-family: 'Playfair Display', serif;
