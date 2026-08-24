@@ -1,6 +1,6 @@
 {
   "name": "tasteid",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "description": "TasteID — личный паспорт интересов. Настольное приложение: данные лежат папкой на твоём диске.",
   "type": "module",
