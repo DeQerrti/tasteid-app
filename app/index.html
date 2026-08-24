@@ -55,66 +55,141 @@
 
 /* ══ HEADER ══════════════════════════════════════ */
 
-/* ══ NAV — ИСПРАВЛЕНА ПРОКРУТКА ══════════════════ */
-nav {
-  display: flex;
-  justify-content: center;
-  gap: 0;
-  padding: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--nav-bg);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(20px);
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-}
-nav::-webkit-scrollbar { display: none; }
+/* ══ ОБОЛОЧКА: БОКОВАЯ ПАНЕЛЬ ═════════════════════
+   Раньше здесь был бренд-хиро на всю ширину (логотип, подзаголовок,
+   декоративные точки) и под ним — горизонтальная строка вкладок,
+   пришитая к верху. Это работало как первая страница сайта: витрина,
+   которую видят один раз. Для окна, которое открывают по многу раз в
+   день, это означало заново скроллить мимо одного и того же хиро на
+   каждой перезагрузке — и вкладки, актуальные только на десктопе.
 
-@media (max-width: 700px) {
-  nav { justify-content: flex-start; }
+   Ниже — тот же приём, что уже работает в settings-edit.html
+   (#sidebar): липкая колонка слева, а не строка сверху. Логотип
+   переиспользует класс .logo — он же нужен JS-перехвату клика на
+   логотипе (см. скрипт в конце файла), поэтому просто переопределяем
+   его размер здесь, а не заводим новый класс. */
+body { display: flex; }
+
+nav#rail {
+  width: 236px; flex: 0 0 auto;
+  display: flex; flex-direction: column;
+  padding: 18px 14px;
+  border-right: 1px solid var(--border);
+  background: var(--nav-bg);
+  position: sticky; top: 0;
+  /* var(--app-titlebar) — только в Electron: chrome.js поднимает верх
+     колонки ниже полосы для перетаскивания окна (см. её же комментарий
+     про top у nav). В браузере и на телефоне переменная не задана,
+     calc() тогда просто вычитает 0. */
+  height: calc(100vh - var(--app-titlebar, 0px));
+  overflow-y: auto; scrollbar-width: thin;
 }
+
+nav#rail .logo {
+  font-size: 1.2rem;
+  letter-spacing: .02em;
+  display: block;
+  padding: 4px 6px 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.rail-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: -10px; padding: 0 6px 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.rail-tabs { display: flex; flex-direction: column; gap: 2px; }
 
 .tab-btn {
   font-family: 'Cormorant Garamond', serif;
   font-size: 1rem;
   font-weight: 600;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+  letter-spacing: .04em;
   color: var(--text-dim);
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  padding: 1.1rem 1.4rem;
+  border-radius: 7px;
+  text-align: left;
+  padding: .6rem .7rem;
   cursor: pointer;
-  transition: color .25s, border-color .25s;
-  white-space: nowrap;
-  flex-shrink: 0;
+  transition: color .15s, background .15s;
   position: relative;
-  scroll-snap-align: start;
 }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--text-hi); border-bottom-color: var(--red); }
-/* Ромб над активной вкладкой рисуется, а не берётся символом '◆' из
+.tab-btn:hover { color: var(--text); background: var(--tint-hi); }
+.tab-btn.active { color: var(--text-hi); background: var(--tint-hi); }
+/* Ромб слева от активной вкладки рисуется, а не берётся символом '◆' из
    шрифта: ни один из самохостящихся файлов Cormorant Garamond не
    содержит этот знак (проверено по cmap), и браузер молча подставлял
    системный запасной шрифт — на Android его ромб рисуется заметно
    крупнее и грубее, чем на компьютере, хотя код был один и тот же.
    Тот же приём — цветной квадрат, повёрнутый на 45° — уже используется
-   в .header-deco и .tl-label-dot чуть выше и ниже по файлам: здесь он
-   просто переиспользован, чтобы отпечаток не зависел от того, какой
-   шрифт есть у конкретного устройства. */
+   в .tl-label-dot чуть ниже по файлу: здесь он просто переиспользован,
+   чтобы отпечаток не зависел от того, какой шрифт есть у конкретного
+   устройства. */
 .tab-btn.active::before {
   content: '';
   width: 5px; height: 5px;
   border-radius: 1px;
   position: absolute;
-  top: .6rem; left: 50%;
-  transform: translateX(-50%) rotate(45deg);
+  top: 50%; left: -3px;
+  transform: translateY(-50%) rotate(45deg);
   background: var(--red);
+}
+
+.rail-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
+
+/* См. комментарий у #admin-settings-link в разметке ниже: без этого
+   правила класс .hidden у ссылки ничего не делал. */
+.hidden { display: none; }
+
+#admin-settings-link {
+  display: block;
+  font-size: .85rem;
+  padding: .5rem .7rem;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-radius: 7px;
+}
+#admin-settings-link:hover { color: var(--text); background: var(--tint-hi); }
+
+/* Телефон. 236px рельсы там съедали бы больше половины ширины — как и
+   в settings-edit.html при той же проблеме, но лечится иначе: там
+   всего один экран за раз, а тут пять равноценных вкладок, к которым
+   возвращаются по многу раз за сессию — им лучше подходит нижняя
+   панель, приклеенная к низу экрана, чем прокручиваемая строка сверху
+   (тот же паттерн, что в большинстве мобильных приложений). */
+@media (max-width: 700px) {
+  body { display: block; }
+
+  nav#rail {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+    width: auto; height: auto;
+    flex-direction: row; align-items: stretch;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    border-right: none; border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    z-index: 50;
+  }
+  nav#rail .logo, .rail-sub, .rail-foot { display: none; }
+
+  .rail-tabs { flex-direction: row; flex: 1; gap: 0; }
+  .tab-btn {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px;
+    font-size: .64rem; letter-spacing: .01em;
+    padding: .5rem .2rem;
+    border-radius: 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tab-btn.active::before {
+    top: 1px; left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
 }
 
 /* Видимая рамка фокуса. Карточка отзыва теперь фокусируема
@@ -130,7 +205,10 @@ nav::-webkit-scrollbar { display: none; }
 .review-card-wrap:focus:not(:focus-visible) { outline: none; }
 
 /* ══ LAYOUT ══════════════════════════════════════ */
-main { max-width: 1800px; margin: 0 auto; padding: 2.5rem 2.5rem 6rem; }
+main { flex: 1; min-width: 0; max-width: 1800px; margin: 0 auto; padding: 2.5rem 2.5rem 6rem; }
+@media (max-width: 700px) {
+  main { padding: 1.25rem 1rem calc(5.5rem + env(safe-area-inset-bottom)); }
+}
 .tab-content.hidden { display: none; }
 section.group { margin-bottom: 3.5rem; }
 
@@ -1162,30 +1240,34 @@ section.group { margin-bottom: 3.5rem; }
 </head>
 <body>
 
-<header>
-  <div class="header-eyebrow" data-label="site.subtitle">Цифровой паспорт интересов</div>
+<nav id="rail" aria-label="Боковая панель">
   <a href="/" class="logo">TasteID</a>
-  <div class="header-deco">
-    <span></span><span></span><span></span><span></span><span></span>
+  <div class="rail-sub" data-label="site.subtitle">Цифровой паспорт интересов</div>
+  <div class="rail-tabs" role="tablist" aria-label="Разделы">
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-now" data-label="nav.now" onclick="switchTab('tab-now', this)">Статусы</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-favorites" data-label="nav.favorites" onclick="switchTab('tab-favorites', this)">Любимое</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-reviews" data-label="nav.reviews" onclick="switchTab('tab-reviews', this)">Отзывы</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-stats" data-label="nav.stats" onclick="switchTab('tab-stats', this)">Статистика</button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-tierlist" data-label="nav.tierlist" onclick="switchTab('tab-tierlist', this)">Тир-лист</button>
   </div>
-  <a href="/settings-edit.html" id="admin-settings-link" class="hidden admin-link" style="position:absolute;top:16px;right:16px;font-size:.95rem;padding:.4rem .85rem;color:var(--text);border:1px solid var(--border);border-radius:3px;text-decoration:none;" data-i18n>Настройки</a>
-</header>
+  <div class="rail-foot">
+    <a href="/settings-edit.html" id="admin-settings-link" class="hidden admin-link" data-i18n>Настройки</a>
+  </div>
+</nav>
 
 <script>
+  // .hidden у ссылки настроек — обычный CSS-класс, а не HTML-атрибут
+  // hidden, и на этой странице ни разу не был описан отдельным
+  // правилом (в отличие от backup-history.html и settings-edit.html,
+  // где .hidden{display:none} есть). Ссылка была видна всем, а не
+  // только владельцу — простое дополнение, раз уж элемент и так
+  // переносится в боковую панель.
   document.addEventListener("DOMContentLoaded", () => {
     if (typeof isAdmin === "function" && isAdmin()) {
       document.getElementById("admin-settings-link").classList.remove("hidden");
     }
   });
 </script>
-
-<nav role="tablist" aria-label="Разделы">
-  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-now" data-label="nav.now" onclick="switchTab('tab-now', this)">Статусы</button>
-  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-favorites" data-label="nav.favorites" onclick="switchTab('tab-favorites', this)">Любимое</button>
-  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-reviews" data-label="nav.reviews" onclick="switchTab('tab-reviews', this)">Отзывы</button>
-  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-stats" data-label="nav.stats" onclick="switchTab('tab-stats', this)">Статистика</button>
-  <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-tierlist" data-label="nav.tierlist" onclick="switchTab('tab-tierlist', this)">Тир-лист</button>
-</nav>
 
 <main>
   <div id="tab-now" role="tabpanel" tabindex="0"       class="tab-content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
