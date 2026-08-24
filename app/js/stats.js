@@ -132,15 +132,15 @@ function renderAllTimeStats(reviews, completed) {
   }
   const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
 
-  return `
+  return `<div class="stat-grid">
     ${isStatVisible("counters")   ? renderCounters(counts, total) : ""}
     ${isStatVisible("donut")      ? renderDonut(counts, total) : ""}
+    ${isStatVisible("grades")     ? renderGradeChart(gradeCounts) : ""}
     ${isStatVisible("watch-bars") ? renderStackedBarChart(siteLabel("stats", "watchYears", i18n("По годам просмотра")), "watch-bars", watchYearsByType) : ""}
     ${isStatVisible("release-bars") ? renderStackedBarChart(siteLabel("stats", "releaseYears", i18n("По годам выхода")), "release-bars", releaseYearsByType) : ""}
-    ${isStatVisible("grades")     ? renderGradeChart(gradeCounts) : ""}
     ${isStatVisible("rewatch")    ? renderRewatchStats(reviews) : ""}
     ${isStatVisible("tags")       ? renderTagCloud(topTags) : ""}
-  `;
+  </div>`;
 }
 
 // ── Годовой дайджест ────────────────────────────
@@ -175,11 +175,11 @@ function renderYearDigest(year, completed) {
   const spotlight = statsTopTitlesOfYear(withGrade);
 
   return `
-    <div id="stats-digest">
+    <div id="stats-digest" class="stat-grid">
       ${isStatVisible("counters") ? renderCounters(counts, total, `Итоги ${year}`, siteLabel("stats", "completed", i18n("завершено"))) : ""}
       ${isStatVisible("donut")    ? renderDonut(counts, total) : ""}
-      ${isStatVisible("spotlight") ? renderTitleOfYear(spotlight, year) : ""}
       ${isStatVisible("grades")   ? renderGradeChart(gradeCounts) : ""}
+      ${isStatVisible("spotlight") ? renderTitleOfYear(spotlight, year) : ""}
       ${isStatVisible("rewatch")  ? renderRewatchStats(yearReviews) : ""}
       ${isStatVisible("tags")     ? renderTagCloud(topTags) : ""}
     </div>
@@ -207,7 +207,7 @@ function renderTitleOfYear(list, year) {
     : siteLabel("stats", "spotlightOne", i18n("Тайтл {year} года"))
   ).replace("{year}", year);
   const cards = list.map((r, i) => `<div class="year-spotlight-item">${manualCard(r, i)}</div>`).join("");
-  return `<section class="stat-section">
+  return `<section class="stat-section stat-card wide">
     <h2 class="section-title">${esc(heading)}</h2>
     <div class="year-spotlight-grid">${cards}</div>
   </section>`;
@@ -236,7 +236,7 @@ function renderCounters(counts, total, sectionTitle = null, totalLabel = null) {
   `;
   }).join("");
 
-  return `<section class="stat-section">
+  return `<section class="stat-section stat-card wide">
     <h2 class="section-title">${esc(sectionTitle)}</h2>
     <div class="stat-total">
       <span class="stat-total-num" data-target="${total}">0</span>
@@ -274,7 +274,7 @@ function renderDonut(counts, total) {
     return seg;
   }).join("");
 
-  return `<section class="stat-section">
+  return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "types", i18n("Разбивка по типам")))}</h2>
     <div class="stat-donut-wrap">
       <svg viewBox="0 0 200 200" class="stat-donut-svg">
@@ -321,7 +321,7 @@ function renderStackedBarChart(title, id, yearsByType) {
     </div>`;
   }).join("");
 
-  return `<section class="stat-section">
+  return `<section class="stat-section stat-card wide">
     <h2 class="section-title">${esc(title)}</h2>
     <div class="year-bars-wrap" id="${id}">${bars}</div>
   </section>`;
@@ -347,7 +347,7 @@ function renderGradeChart(gradeCounts) {
     </div>`;
   }).join("");
 
-  return `<section class="stat-section">
+  return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "grades", i18n("Шкала послевкусия")))}</h2>
     <div class="grade-bars">${bars}</div>
   </section>`;
@@ -361,7 +361,7 @@ function renderRewatchStats(reviews) {
   const totalRewatches = rewatched.reduce((sum, r) => sum + r.rewatch_count, 0);
   const top = [...rewatched].sort((a, b) => b.rewatch_count - a.rewatch_count)[0];
 
-  return `<section class="stat-section">
+  return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "rewatch", i18n("Пересмотры")))}</h2>
     <div class="stat-counters">
       <div class="stat-counter">
@@ -393,7 +393,7 @@ function renderTagCloud(topTags) {
     return `<span class="rtag ${cls} stat-tag" style="${styleAttr}font-size:${scale.toFixed(2)}rem"
       data-tip="${esc(info?.tip || "")}">${esc(tag)} <span class="stat-tag-cnt">${cnt}</span></span>`;
   }).join("");
-  return `<section class="stat-section">
+  return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "tags", i18n("Частые теги в отзывах")))}</h2>
     <div class="stat-tag-cloud">${items}</div>
   </section>`;
