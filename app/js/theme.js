@@ -253,7 +253,12 @@ function domReady() {
 // Итоговую стартовую вкладку кладём в window.SITE_INITIAL_TAB: сама
 // активация — за index.html, который знает про switchTab().
 function applyTabPreferences(settings) {
-  const nav = document.querySelector("nav");
+  // .rail-tabs, а не просто "nav": на главной <nav> — это вся боковая
+  // панель целиком (логотип, вкладки, ссылка на настройки), а не
+  // только сами вкладки. appendChild на весь nav переставлял бы кнопки
+  // в его конец — то есть выдёргивал бы их из .rail-tabs и ронял после
+  // ссылки "Настройки", а не переупорядочивал внутри своего контейнера.
+  const nav = document.querySelector(".rail-tabs") || document.querySelector("nav");
   const buttons = Array.from(document.querySelectorAll("[data-label^='nav.']"));
   if (!buttons.length) return;
 
