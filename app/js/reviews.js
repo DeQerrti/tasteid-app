@@ -301,45 +301,40 @@ function sourceBtnHtml(url, source) {
 function reviewCard(r, i) {
   const grade = GRADES[gradeToShelf(r.grade)] || null;
 
+  // Верхние 3: карточка — это витрина для беглого взгляда, не место
+  // для полного списка тегов. Все теги по-прежнему видны в модалке
+  // при клике (см. reviewModalBodyHtml).
   const tagsHtml = (r.tags || []).length
-    ? `<div class="review-tags">
-        ${r.tags.map(tag => tagHtml(tag)).join("")}
-      </div>`
+    ? `<div class="card-tags">${r.tags.slice(0, 3).map(tag => tagHtml(tag)).join("")}</div>`
     : "";
 
-  const waifuHtml = r.favorites
-    ? `<div class="review-waifu"><span class="review-waifu-label">${i18n("Фавориты:")}</span> <span>${esc(r.favorites)}</span></div>`
+  const favHtml = r.favorites
+    ? `<div class="card-fav">${i18n("Фавориты:")} <span>${esc(r.favorites)}</span></div>`
     : "";
 
   const dateRaw = r.date_end || r.date_start || r.date || null;
   const dateStr = dateRaw
-    ? new Date(dateRaw).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
+    ? new Date(dateRaw).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
     : "";
 
   const rewatchHtml = r.rewatch_count > 0
-    ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>`
+    ? `<span class="watch-badge" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</span>`
     : "";
 
   const formatYear = [r.format, r.year].filter(Boolean).join(" · ");
-
-  const btn1 = sourceBtnHtml(r.url,  r.source);
-  const btn2 = sourceBtnHtml(r.url2, r.source2);
-  const sourceButtons = `<div class="source-buttons">${btn1}${btn2}</div>`;
-
-  const gradeHtml = grade
-    ? `<div class="review-grade-bar">
-        <div class="grade-square" style="background:${grade.color}"></div>
-        <div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(grade.name)}</div>
-        ${sourceButtons}
-      </div>`
-    : `<div class="review-grade-bar">
-        <div style="flex:1"></div>
-        ${sourceButtons}
-      </div>`;
+  const typeLabel = TYPE_LABELS[r.type] || r.type || "";
 
   const editId  = r.id ?? encodeURIComponent(r.title);
   const editBtn = isAdmin()
     ? `<a href="/add.html?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
+    : "";
+
+  // Ромб рисуется через ту же технику, что и активная вкладка в
+  // рельсе (nav#rail, .tab-btn.active::before) и полки тир-листа —
+  // не символом из шрифта, чтобы отпечаток не гулял между
+  // устройствами (см. комментарий у .tab-btn.active::before).
+  const gradeHtml = grade
+    ? `<div class="card-grade-row"><span class="card-grade-dot" style="--gc:${grade.color}"></span>${esc(grade.name)}</div>`
     : "";
 
   // tabindex + role: карточка открывает модалку по клику, но до этой
@@ -350,29 +345,20 @@ function reviewCard(r, i) {
   return `<div class="review-card-wrap" data-review-idx="${i}"
     role="button" tabindex="0" aria-label="${i18n("Открыть отзыв: {v0}", { v0: esc(r.title) })}">
     ${editBtn}
-    <div class="review-card"
-        style="animation-delay:${Math.min(i * 40, 600)}ms;
-               border-top: 2px solid ${grade ? grade.color + "66" : "var(--border2)"}">
-      <div class="review-top">
-        <div class="review-cover-col">
-          <div class="review-cover">
-            <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
-          </div>
-          ${rewatchHtml}
+    <div class="card" style="animation-delay:${Math.min(i * 40, 600)}ms">
+      ${typeLabel ? `<span class="type-tag tag-manual">${esc(typeLabel)}</span>` : ""}
+      ${rewatchHtml}
+      <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <div class="card-body">
+        <div class="card-title">${esc(r.title)}</div>
+        <div class="card-meta">
+          ${formatYear ? `<span>${esc(formatYear)}</span>` : ""}
+          ${dateStr ? `<span>${esc(dateStr)}</span>` : ""}
         </div>
-        <div class="review-body">
-          <div class="review-title">${esc(r.title)}</div>
-          <div class="review-meta-row">
-            ${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}
-          </div>
-          ${dateStr ? `<div class="review-dateline">Ознакомился: <span>${esc(dateStr)}</span></div>` : ""}
-          ${waifuHtml}
-          <div class="review-preview">${esc(r.preview || "")}</div>
-          <div class="review-read-more">${i18n("Читать полностью →")}</div>
-        </div>
+        ${gradeHtml}
+        ${favHtml}
+        ${tagsHtml}
       </div>
-      ${tagsHtml}
-      ${gradeHtml}
     </div>
   </div>`;
 }
