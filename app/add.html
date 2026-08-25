@@ -1943,15 +1943,24 @@ document.addEventListener("tags-map-updated", syncTypePickerLabel);
 // Само значение по-прежнему лежит в поле f-status (теперь hidden),
 // поэтому заполнение и сохранение формы менять не пришлось.
 
+// Встроенные статусы (как TYPE_BUILTINS у типов) — их нельзя вычеркнуть
+// из DEFAULT_STATUS_BUCKETS в коде, поэтому «удаление» для них
+// складывается в hiddenStatuses (тот же массив, что и глазок в
+// /settings-edit — там же можно вернуть обратно), а не по-настоящему
+// стирает статус. У своих статусов удаление настоящее.
+const STATUS_BUILTINS = ["current", "onhold", "planning"];
+
 // Список всех доступных статусов. "completed" — не bucket, он всегда
-// последний и неудаляемый: это конечное состояние, а не этап.
+// последний и неудаляемый: это конечное состояние, а не этап, и он
+// не проходит через hiddenStatuses (см. её же комментарий в now.js) —
+// без него нечем было бы пометить отзыв завершённым.
 function statusOptions() {
   const buckets = activeStatusBuckets().filter(
     (b) => !window.SITE_HIDDEN_STATUSES?.has(b.key)
   );
   return [
-    ...buckets.map((b) => ({ key: b.key, label: b.label, removable: b.removable !== false })),
-    { key: "completed", label: siteLabel("statuses", "archive", i18n("Завершено")), removable: false },
+    ...buckets.map((b) => ({ key: b.key, label: b.label })),
+    { key: "completed", label: siteLabel("statuses", "archive", i18n("Завершено")) },
   ];
 }
 
@@ -1974,7 +1983,7 @@ function renderStatusPickerDropdown() {
     <div class="src-type-option${o.key === current ? " active" : ""}" data-status-key="${esc(o.key)}" onclick="selectStatusPicker('${esc(o.key)}')">
       <span class="src-type-option-label">${esc(o.label)}</span>
       <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameStatusPicker('${esc(o.key)}')">✎</span>
-      ${o.removable ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeStatusPicker('${esc(o.key)}')">✕</span>` : ""}
+      ${o.key !== "completed" ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeStatusPicker('${esc(o.key)}')">✕</span>` : ""}
     </div>`
     )
     .join("");
@@ -2087,12 +2096,23 @@ async function confirmAddStatus() {
 
 async function removeStatusPicker(key) {
   if (!(await confirmDialog(i18n("Удалить статус «{name}»?", { name: statusLabel(key) })))) return;
+  const isBuiltin = STATUS_BUILTINS.includes(key);
   try {
     await patchSiteSettings((settings) => {
-      if (!settings.statusBuckets) return;
-      settings.statusBuckets = settings.statusBuckets.filter((b) => b.key !== key);
+      if (isBuiltin) {
+        settings.hiddenStatuses = settings.hiddenStatuses || [];
+        if (!settings.hiddenStatuses.includes(key)) settings.hiddenStatuses.push(key);
+      } else {
+        if (!settings.statusBuckets) return;
+        settings.statusBuckets = settings.statusBuckets.filter((b) => b.key !== key);
+      }
     });
-    window.SITE_STATUS_BUCKETS = (window.SITE_STATUS_BUCKETS || []).filter((b) => b.key !== key);
+    if (isBuiltin) {
+      window.SITE_HIDDEN_STATUSES = window.SITE_HIDDEN_STATUSES || new Set();
+      window.SITE_HIDDEN_STATUSES.add(key);
+    } else {
+      window.SITE_STATUS_BUCKETS = (window.SITE_STATUS_BUCKETS || []).filter((b) => b.key !== key);
+    }
     if (document.getElementById("f-status").value === key) {
       selectStatusPicker(statusOptions()[0]?.key || "completed");
     } else {
