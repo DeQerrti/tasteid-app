@@ -554,6 +554,19 @@ async function restoreFileVersion({ vault, body }) {
   return { ok: true };
 }
 
+async function clearFileHistory({ vault, body }) {
+  const path = body?.path;
+  if (!isAllowedFile(path)) throw new ApiError("Этот файл не отслеживается");
+  await vault.clearHistory(path);
+  return { ok: true };
+}
+
+async function pruneHistory({ vault, body }) {
+  const days = Number(body?.days) || 0;
+  if (!days) throw new ApiError("Не указан срок");
+  return { ok: true, ...(await vault.pruneHistoryByAge(days)) };
+}
+
 // ── Таблица адресов ────────────────────────────
 
 export const ROUTES = {
@@ -572,6 +585,8 @@ export const ROUTES = {
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/backup-cover": backupCover,
   "POST /api/restore-file-version": restoreFileVersion,
+  "POST /api/clear-file-history": clearFileHistory,
+  "POST /api/prune-history": pruneHistory,
 };
 
 export { ApiError };

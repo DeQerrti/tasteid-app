@@ -163,6 +163,41 @@ export class Vault {
     return JSON.parse(raw);
   }
 
+  // Стирает всю историю одного файла — текущая версия (сам файл вне
+  // .history) не трогается, отменить откатом уже нечем.
+  async clearHistory(name) {
+    if (!isAllowedFile(name)) throw new Error(`Неизвестный файл: ${name}`);
+    await fs.rm(path.join(this.root, ".history", name), { recursive: true, force: true });
+  }
+
+  // Возраст поверх HISTORY_LIMIT — тот срезает по количеству, а при
+  // редких, но долгих сохранениях пятидесяти версий хватает на годы.
+  // Имя файла версии — и есть её дата (см. history()), читать stat()
+  // незачем и на телефоне так же надёжно не вышло бы.
+  async pruneHistoryByAge(maxAgeDays) {
+    if (!maxAgeDays) return { removed: 0 };
+    const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+    const root = path.join(this.root, ".history");
+    let entries;
+    try {
+      entries = await fs.readdir(root, { withFileTypes: true });
+    } catch {
+      return { removed: 0 };
+    }
+    let removed = 0;
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const versions = await this.history(entry.name).catch(() => []);
+      for (const v of versions) {
+        const t = Date.parse(v.date);
+        if (Number.isNaN(t) || t >= cutoff) continue;
+        await fs.rm(path.join(root, entry.name, `${v.id}.json`), { force: true }).catch(() => {});
+        removed++;
+      }
+    }
+    return { removed };
+  }
+
   // ── Картинки ─────────────────────────────────
   // Наружу отдаём путь того же вида, что был на сайте (/covers/…,
   // /chars/<папка>/…): разметка и данные не должны заметить, что файл

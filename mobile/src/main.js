@@ -477,6 +477,12 @@ if (NATIVE) {
   installFetch();
   vault.ensure().catch(() => {});
   checkForUpdate().catch(() => {});
+  // Возрастная чистка .history — по желанию, необязательна (см. её же
+  // комментарий в electron/vault.js), фоном, не блокирует запуск.
+  vault
+    .readJson("site-settings.json", {})
+    .then((settings) => vault.pruneHistoryByAge(settings.historyRetentionDays))
+    .catch(() => {});
   const ready = () => {
     installImages();
     installDownloads();

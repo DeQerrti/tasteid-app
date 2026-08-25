@@ -59,8 +59,92 @@
       if (!FILES.some(f => f.path === currentPath)) currentPath = FILES[0].path;
       renderFileTabs();
       loadVersions(currentPath);
+      initHistoryRetention();
     } finally {
       busy = false;
+    }
+  }
+
+  // ── Хранить версии не дольше ───────────────────
+  // Лимит по количеству (50 на файл, см. vault.js) не спасает того, кто
+  // сохраняет редко, но подолгу — этих пятидесяти версий хватит на годы.
+  // Возраст — отдельный, необязательный предел поверх количества,
+  // выключен по умолчанию, чтобы ничего не терялось молча для тех, кому
+  // это не нужно.
+  const RETENTION_OPTIONS = [
+    { value: "", label: i18n("Не удалять автоматически") },
+    { value: "7", label: i18n("Старше недели") },
+    { value: "30", label: i18n("Старше месяца") },
+    { value: "182", label: i18n("Старше полугода") },
+  ];
+
+  async function initHistoryRetention() {
+    const select = document.getElementById("history-retention-select");
+    if (!select) return;
+    select.innerHTML = RETENTION_OPTIONS.map(o => `<option value="${o.value}">${esc(o.label)}</option>`).join("");
+    try {
+      const settings = await currentSiteSettings();
+      select.value = settings.historyRetentionDays ? String(settings.historyRetentionDays) : "";
+    } catch {
+      // Настройки не прочитались — остаёмся на «не удалять автоматически».
+    }
+  }
+
+  async function saveHistoryRetention(value) {
+    const statusEl = document.getElementById("status-history-retention");
+    try {
+      await patchSiteSettings((settings) => {
+        settings.historyRetentionDays = value ? Number(value) : null;
+      });
+      if (statusEl) { statusEl.textContent = i18n("Сохранено."); statusEl.className = "status-msg ok"; }
+    } catch (e) {
+      if (statusEl) { statusEl.textContent = e.message; statusEl.className = "status-msg err"; }
+    }
+  }
+
+  async function pruneHistoryNow() {
+    const select = document.getElementById("history-retention-select");
+    const days = select?.value ? Number(select.value) : null;
+    if (!days) {
+      backupToast(i18n("Сначала выбери, версии старше какого срока чистить."), false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/prune-history", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      Object.keys(versionsCache).forEach(k => delete versionsCache[k]);
+      loadVersions(currentPath);
+      backupToast(i18n("Удалено версий: {n}", { n: data.removed }), true);
+    } catch (e) {
+      backupToast(i18n("Не удалось почистить: {msg}", { msg: e.message }), false);
+    }
+  }
+
+  async function clearFileHistory(path) {
+    if (!(await confirmDialog(
+      i18n("Удалить всю историю файла «{file}»?\n\nТекущая версия не пострадает — удалятся только прошлые.", { file: path }),
+      i18n("Удалить")
+    ))) return;
+    try {
+      const res = await fetch("/api/clear-file-history", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      delete versionsCache[path];
+      loadVersions(path);
+      backupToast(i18n("История очищена ✓"), true);
+    } catch (e) {
+      backupToast(i18n("Не удалось удалить: {msg}", { msg: e.message }), false);
     }
   }
 
@@ -106,7 +190,12 @@
       content.innerHTML = `<div class="state-box">${i18n("Пока нет истории для этого файла.")}</div>`;
       return;
     }
-    content.innerHTML = versions.map((v, i) => {
+    const head = `
+      <div class="version-list-head">
+        <span class="version-list-count">${i18n("Версий: {n}", { n: versions.length })}</span>
+        <button class="btn-mini danger" onclick="clearFileHistory('${path}')">${i18n("Удалить всю историю")}</button>
+      </div>`;
+    content.innerHTML = head + versions.map((v, i) => {
       const dt = v.date ? new Date(v.date) : null;
       const dateStr = dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
       const msg = firstLine(v.message);
@@ -178,4 +267,7 @@
   window.selectBackupFile = selectBackupFile;
   window.downloadBackupVersion = downloadBackupVersion;
   window.restoreBackupVersion = restoreBackupVersion;
+  window.saveHistoryRetention = saveHistoryRetention;
+  window.pruneHistoryNow = pruneHistoryNow;
+  window.clearFileHistory = clearFileHistory;
 })();

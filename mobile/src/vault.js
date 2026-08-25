@@ -223,6 +223,49 @@ export class MobileVault {
     return JSON.parse(res.data);
   }
 
+  // Тот же приём, что у настольного electron/vault.js (см. её же
+  // комментарий) — держим оба хранилища одним поведением.
+  async clearHistory(name) {
+    if (!isAllowedFile(name)) throw new Error(`Неизвестный файл: ${name}`);
+    try {
+      await Filesystem.rmdir({
+        path: this.#path(".history", name),
+        directory: DIR,
+        recursive: true,
+      });
+    } catch (e) {
+      if (!isMissing(e)) throw e;
+    }
+  }
+
+  async pruneHistoryByAge(maxAgeDays) {
+    if (!maxAgeDays) return { removed: 0 };
+    const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+    const root = this.#path(".history");
+    let dirs;
+    try {
+      const res = await Filesystem.readdir({ path: root, directory: DIR });
+      dirs = res.files
+        .filter((f) => typeof f !== "string" && f.type === "directory")
+        .map((f) => f.name);
+    } catch {
+      return { removed: 0 };
+    }
+    let removed = 0;
+    for (const name of dirs) {
+      const versions = await this.history(name).catch(() => []);
+      for (const v of versions) {
+        const t = Date.parse(v.date);
+        if (Number.isNaN(t) || t >= cutoff) continue;
+        await Filesystem.deleteFile({ path: `${root}/${name}/${v.id}.json`, directory: DIR }).catch(
+          () => {}
+        );
+        removed++;
+      }
+    }
+    return { removed };
+  }
+
   // ── Картинки ─────────────────────────────────
   // Имена проверяются по тем же правилам, что на компьютере: они
   // приходят из запроса, и без проверки в них можно было бы подставить

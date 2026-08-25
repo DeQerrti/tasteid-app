@@ -29,7 +29,7 @@
 <title>Настройки — TasteID</title>
 <link rel="stylesheet" href="/fonts.css?v=1">
 <link rel="stylesheet" href="/style.css?v=20">
-<link rel="stylesheet" href="/admin.css?v=13">
+<link rel="stylesheet" href="/admin.css?v=14">
 <link rel="stylesheet" href="/themes.css?v=15">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
@@ -44,7 +44,7 @@
 <script src="/js/passports.js?v=13"></script>
 <script src="/js/import-formats.js?v=14"></script>
 <script src="/js/import.js?v=17"></script>
-<script src="/js/backup-history.js?v=1"></script>
+<script src="/js/backup-history.js?v=2"></script>
 <style>
   body { display: flex; }
 
@@ -553,6 +553,12 @@
         текущая версия сломается. Выбери файл, найди нужную дату и либо скачай эту версию как
         JSON, либо восстанови её — тогда она станет текущей.
       </p>
+      <div class="history-retention">
+        <label for="history-retention-select" data-i18n>Автоматически удалять версии старше:</label>
+        <select id="history-retention-select" onchange="saveHistoryRetention(this.value)"></select>
+        <button class="btn btn-ghost" onclick="pruneHistoryNow()" data-i18n>Почистить сейчас</button>
+      </div>
+      <div class="status-msg" id="status-history-retention"></div>
       <div class="file-tabs" id="fileTabs"></div>
       <div id="content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
     </div>

@@ -1089,3 +1089,22 @@ i18nRegister({
   "Поддержать автора": "Support the author",
   "Поддержать на Boosty": "Support on Boosty",
 });
+
+// ── Возрастная чистка истории версий ───────────
+i18nRegister({
+  "Автоматически удалять версии старше:": "Automatically delete versions older than:",
+  "Почистить сейчас": "Clean up now",
+  "Не удалять автоматически": "Don't delete automatically",
+  "Старше недели": "Older than a week",
+  "Старше месяца": "Older than a month",
+  "Старше полугода": "Older than six months",
+  "Сначала выбери, версии старше какого срока чистить.": "Pick an age threshold first.",
+  "Удалено версий: {n}": "Deleted {n} versions",
+  "Не удалось почистить: {msg}": "Couldn't clean up: {msg}",
+  "Удалить всю историю": "Delete all history",
+  "Удалить всю историю файла «{file}»?\n\nТекущая версия не пострадает — удалятся только прошлые.":
+    "Delete all history for “{file}”?\n\nThe current version is untouched — only past ones are removed.",
+  "История очищена ✓": "History cleared ✓",
+  "Не удалось удалить: {msg}": "Couldn't delete: {msg}",
+  "Версий: {n}": "Versions: {n}",
+});

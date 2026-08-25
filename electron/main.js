@@ -661,6 +661,16 @@ app.whenReady().then(async () => {
   else openWelcome();
   checkForUpdates();
 
+  // Возрастная чистка .history — по желанию, необязательна (см. её же
+  // комментарий в vault.js), не блокирует показ окна: это фоновая
+  // уборка, а не то, чего человек ждёт при запуске.
+  if (known) {
+    vault
+      .readJson("site-settings.json", {})
+      .then((settings) => vault.pruneHistoryByAge(settings.historyRetentionDays))
+      .catch(() => {});
+  }
+
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length) return;
     await createWindow({ compact: !vault });

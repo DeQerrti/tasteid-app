@@ -72,6 +72,24 @@
    например, с плавающей кнопки «История» на формах) и панелью
    «История версий» в settings-edit.html — один и тот же JS
    (js/backup-history.js) рисует один и тот же список в оба места. */
+.history-retention {
+  display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+  margin-bottom: 1.6rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--border);
+}
+.history-retention label {
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; color: var(--text-dim);
+}
+.history-retention select { min-width: 200px; }
+
+.version-list-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+  margin-bottom: .6rem;
+}
+.version-list-count {
+  font-family: 'DM Sans', sans-serif; font-size: .68rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+
 .file-tabs { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
 .file-tab {
   font-family: 'DM Sans', sans-serif; font-size: .78rem; letter-spacing: .03em;
