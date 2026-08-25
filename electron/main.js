@@ -595,7 +595,10 @@ async function promptRestart(info) {
     `${tr("Обновление готово")}: ${info.version}`,
     tr("Перезапустить")
   );
-  if (restart) autoUpdater.quitAndInstall();
+  // Второй аргумент — isForceRunAfter: без него electron-updater не
+  // гарантирует перезапуск после тихой (oneClick) установки на Windows,
+  // и приложение просто закрывалось, не открываясь обратно само.
+  if (restart) autoUpdater.quitAndInstall(false, true);
   else await saveConfig({ dismissedUpdate: info.version });
 }
 

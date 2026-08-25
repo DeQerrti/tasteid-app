@@ -1850,6 +1850,14 @@ html[data-skin="brutal-dark"] h2 {
   /* Caveat в том же кегле, что и базовый Cormorant Garamond, читается
      мельче и тоньше — почерк тоньше засечек. */
   font-size: 1.18rem;
+  /* Базовый .tab-btn выровнен по левому краю — там уместно, текст сразу
+     после ромба-маркера слева. Здесь у каждой вкладки уже своя
+     скруглённая форма (border-radius выше) — и активная, и при
+     наведении/фокусе (background подсвечивается тем же скруглением), —
+     так что левое выравнивание лепит текст к одному краю формы везде,
+     не только у активной. Центрируем сразу в базовом правиле, а не
+     только в .active. */
+  text-align: center;
 }
 /* На телефоне рельса становится нижней панелью с компактным шрифтом
    (index.html, .tab-btn на max-width: 700px) — тот же почерк там
@@ -1862,11 +1870,6 @@ html[data-skin="brutal-dark"] h2 {
   background: var(--accent-wash);
   border: 2px solid var(--text);
   transform: rotate(-1deg);
-  /* Базовый .tab-btn выровнен по левому краю — там уместно, текст сразу
-     после ромба-маркера слева. Здесь ромб убран (см. правило ниже), а
-     сама вкладка стала овальным «пузырём» с рамкой — при выравнивании
-     влево текст лепится к одному краю овала, оставляя пустоту справа. */
-  text-align: center;
 }
 [data-skin="doodle"] .tab-btn.active::before {
   display: none;
@@ -2226,6 +2229,7 @@ html[data-skin="brutal-dark"] h2 {
   margin: 0.5rem 0.25rem;
   padding: 0.5rem 1.15rem;
   font-size: 1.18rem;
+  text-align: center;
 }
 @media (max-width: 700px) {
   [data-skin="doodle-dark"] .tab-btn { font-size: 0.8rem; }
@@ -2235,7 +2239,6 @@ html[data-skin="brutal-dark"] h2 {
   background: var(--accent-wash);
   border: 2px solid var(--text);
   transform: rotate(-1deg);
-  text-align: center;
 }
 [data-skin="doodle-dark"] .tab-btn.active::before {
   display: none;

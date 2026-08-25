@@ -379,26 +379,26 @@ function keyBindingMatches(e, b) {
 function keyboardShortcutsList() {
   const kb = currentKeybindings();
   return [
-    { keys: ["1", "5"], range: true, desc: i18n("Переключить вкладку") },
+    { keys: ["1", "5"], range: true, desc: i18n("Переключить вкладку"), settingsHide: true },
     { action: "search", keys: [keyBindingLabel(kb.search)], desc: i18n("Поиск в «Отзывах»") },
     { action: "newReview", keys: [keyBindingLabel(kb.newReview)], desc: i18n("Новый отзыв"), adminOnly: true },
     { action: "shortcuts", keys: [keyBindingLabel(kb.shortcuts)], desc: i18n("Список горячих клавиш") },
-    { keys: ["Esc"], desc: i18n("Закрыть окно") },
+    { keys: ["Esc"], desc: i18n("Закрыть окно"), settingsHide: true },
   ];
 }
 // editable — только для панели «Горячие клавиши» в настройках: рядом с
 // перебиндиваемыми строками рисует кнопку «Изменить». В подсказке по
 // «?» на главной этого не должно быть — там просто справка.
-// Строка «1–5 Переключить вкладку» там же, в настройках, скрыта —
-// ниже есть отдельный раздел «Переключение вкладок» с тем же самым,
-// плюс своими биндингами; дублировать нечего. В подсказке «?» на
-// главной остаётся — там это единственное быстрое упоминание,
-// заходить в настройки ради него не всегда нужно.
+// settingsHide — строки, которые в настройках лишние: «1–5» дублирует
+// отдельный раздел «Переключение вкладок» чуть ниже на той же
+// странице, а «Esc — Закрыть окно» — это не перебиндиваемое действие,
+// а системное поведение (закрывает то, что открыто) без своей кнопки
+// «Изменить»; в подсказке по «?» на главной обе строки остаются.
 function keyboardShortcutsHtml(editable) {
   const admin = typeof isAdmin === "function" && isAdmin();
   return keyboardShortcutsList()
     .filter((s) => !s.adminOnly || admin)
-    .filter((s) => !editable || !s.range)
+    .filter((s) => !editable || !s.settingsHide)
     .map((s) => {
       const keys = s.range
         ? `<span class="kbd">${esc(s.keys[0])}</span>–<span class="kbd">${esc(s.keys[1])}</span>`
