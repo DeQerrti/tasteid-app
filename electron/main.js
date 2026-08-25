@@ -57,10 +57,15 @@ if (!app.requestSingleInstanceLock()) {
 // иначе их негде было бы прочитать до того, как оно выбрано.
 const configFile = () => path.join(app.getPath("userData"), "config.json");
 
-// Масштаб как у браузера: шаг примерно 10%, предел в обе стороны, чтобы
-// нельзя было довести окно до нечитаемого и не суметь вернуть обратно.
-const ZOOM_MIN = -3;
-const ZOOM_MAX = 5;
+// Масштаб — проценты, а не «уровни» setZoomLevel: тот множит на 1.2 за
+// шаг, поэтому от 100% сразу прыгает на 120%, потом на 144% — с таким
+// шагом не попасть ни на 110%, ни на 140%. setZoomFactor принимает
+// множитель напрямую (1.4 = 140%), отсюда и везде проценты. Предел в
+// обе стороны — чтобы нельзя было довести окно до нечитаемого и не
+// суметь вернуть обратно.
+const ZOOM_MIN = 50;
+const ZOOM_MAX = 200;
+const ZOOM_STEP = 10;
 
 let vault = null;
 let win = null;
@@ -69,7 +74,17 @@ let config = {};
 
 async function readConfig() {
   try {
-    return JSON.parse(await fs.readFile(configFile(), "utf8"));
+    const cfg = JSON.parse(await fs.readFile(configFile(), "utf8"));
+    // До этой версии zoom хранился «уровнем» setZoomLevel (-3..5, шаг
+    // ×1.2 за step) — теперь это готовый процент для setZoomFactor
+    // (50..200, см. комментарий у ZOOM_MIN). Уровень всегда меньше
+    // ZOOM_MIN, живой процент — никогда, этим и отличаем старое
+    // значение от нового; пересчитываем на лету, чтобы у тех, кто уже
+    // подгонял масштаб под себя, он не сбросился молча на 100%.
+    if (typeof cfg.zoom === "number" && cfg.zoom < ZOOM_MIN) {
+      cfg.zoom = Math.round(100 * Math.pow(1.2, cfg.zoom));
+    }
+    return cfg;
   } catch {
     return {};
   }
@@ -214,7 +229,7 @@ function appRoutes() {
       vaultPath: vault?.root || null,
       vaults: (config.vaults || []).map(({ id, name, path: p }) => ({ id, name, path: p })),
       currentVaultId: config.currentVaultId || null,
-      zoom: config.zoom ?? 0,
+      zoom: config.zoom ?? 100,
       lang: appLanguage(),
       platform: process.platform,
       version: app.getVersion(),
@@ -273,10 +288,10 @@ function appRoutes() {
     },
 
     "POST /api/app/zoom": async ({ body }) => {
-      const level = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(body.level) || 0));
-      applyZoom(level);
-      await saveConfig({ zoom: level });
-      return { zoom: level };
+      const percent = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(body.percent) || 100));
+      applyZoom(percent);
+      await saveConfig({ zoom: percent });
+      return { zoom: percent };
     },
 
     "POST /api/app/language": async ({ body }) => {
@@ -301,8 +316,8 @@ function appRoutes() {
 
 // ── Окно ───────────────────────────────────────
 
-function applyZoom(level) {
-  win?.webContents.setZoomLevel(level);
+function applyZoom(percent) {
+  win?.webContents.setZoomFactor(percent / 100);
 }
 
 const isHexColor = (v) => /^#[0-9a-f]{6}$/i.test(v || "");
@@ -316,10 +331,10 @@ function applyTitleBarColors(bg, symbol) {
   win.setTitleBarOverlay(titleBarOptions(process.platform, { bg, symbol }).titleBarOverlay);
 }
 
-async function bumpZoom(delta) {
-  const level = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (config.zoom ?? 0) + delta));
-  applyZoom(level);
-  await saveConfig({ zoom: level });
+async function bumpZoom(deltaPercent) {
+  const percent = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, (config.zoom ?? 100) + deltaPercent));
+  applyZoom(percent);
+  await saveConfig({ zoom: percent });
 }
 
 // Меню не показывается — окно безрамочное, полосы меню у него нет. Но
@@ -347,12 +362,20 @@ function buildMenu() {
       {
         label: tr("Вид"),
         submenu: [
-          { label: tr("Крупнее"), accelerator: "CommandOrControl+=", click: () => bumpZoom(1) },
-          { label: tr("Мельче"), accelerator: "CommandOrControl+-", click: () => bumpZoom(-1) },
+          {
+            label: tr("Крупнее"),
+            accelerator: "CommandOrControl+=",
+            click: () => bumpZoom(ZOOM_STEP),
+          },
+          {
+            label: tr("Мельче"),
+            accelerator: "CommandOrControl+-",
+            click: () => bumpZoom(-ZOOM_STEP),
+          },
           {
             label: tr("Обычный размер"),
             accelerator: "CommandOrControl+0",
-            click: () => bumpZoom(-(config.zoom ?? 0)),
+            click: () => bumpZoom(100 - (config.zoom ?? 100)),
           },
           { role: "togglefullscreen", label: tr("Во весь экран") },
         ],
@@ -467,7 +490,7 @@ async function createWindow({ compact = false } = {}) {
   });
 
   win.webContents.on("did-finish-load", async () => {
-    applyZoom(config.zoom ?? 0);
+    applyZoom(config.zoom ?? 100);
     // Тему выбирают внутри приложения, а цвет рамки рисует система —
     // подхватываем его после загрузки, чтобы рамка не осталась тёмной
     // на светлой теме.

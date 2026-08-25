@@ -393,7 +393,7 @@ function renderTagCloud(topTags) {
   const items = topTags.map(([tag, cnt]) => {
     const info  = TAGS_MAP[tag];
     const customColor = info && CAT_COLORS[info.cat];
-    const cls   = customColor ? "rtag-custom" : (info ? TAG_CAT_CLASS[info.cat] : "rtag-special");
+    const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
     const styleAttr = customColor ? `--tag-color:${customColor};` : "";
     const scale = 0.8 + (cnt / max) * 0.7;
     return `<span class="rtag ${cls} stat-tag" style="${styleAttr}font-size:${scale.toFixed(2)}rem"

@@ -1960,6 +1960,10 @@ function statusLabel(key) {
 }
 
 let statusPickerOpen = false;
+// Ключ статуса, у которого сейчас открыт инлайн-рендейм — тот же приём,
+// что и у typeRenamePending (см. её же комментарий): Enter сам вызывает
+// blur для коммита, флаг не даёт коммитнуть дважды подряд.
+let statusRenamePending = null;
 
 function renderStatusPickerDropdown() {
   const dd = document.getElementById("status-picker-dropdown");
@@ -1967,8 +1971,9 @@ function renderStatusPickerDropdown() {
   const options = statusOptions()
     .map(
       (o) => `
-    <div class="src-type-option${o.key === current ? " active" : ""}" onclick="selectStatusPicker('${esc(o.key)}')">
-      <span>${esc(o.label)}</span>
+    <div class="src-type-option${o.key === current ? " active" : ""}" data-status-key="${esc(o.key)}" onclick="selectStatusPicker('${esc(o.key)}')">
+      <span class="src-type-option-label">${esc(o.label)}</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameStatusPicker('${esc(o.key)}')">✎</span>
       ${o.removable ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeStatusPicker('${esc(o.key)}')">✕</span>` : ""}
     </div>`
     )
@@ -2095,6 +2100,76 @@ async function removeStatusPicker(key) {
     }
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
+  }
+}
+
+// Переименование — тот же инлайн-приём, что и у типа (startRenameTypePicker):
+// клик по ✎ подменяет подпись на текстовое поле, Enter/уход фокуса
+// сохраняют, Esc отменяет. «Завершено» — не настоящий bucket (см.
+// statusOptions), его подпись живёт в labels.statuses.archive, у
+// обычных — прямо в statusBuckets.
+function startRenameStatusPicker(key) {
+  const dd = document.getElementById("status-picker-dropdown");
+  const row = dd?.querySelector(`.src-type-option[data-status-key="${CSS.escape(key)}"]`);
+  const labelEl = row?.querySelector(".src-type-option-label");
+  if (!labelEl) return;
+
+  statusRenamePending = key;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "src-type-rename-input";
+  input.value = statusLabel(key);
+  input.onclick = (e) => e.stopPropagation();
+  input.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+    else if (e.key === "Escape") { e.preventDefault(); statusRenamePending = null; renderStatusPickerDropdown(); }
+  };
+  input.onblur = () => {
+    if (statusRenamePending !== key) return;
+    statusRenamePending = null;
+    confirmRenameStatusPicker(key, input.value);
+  };
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function confirmRenameStatusPicker(key, rawName) {
+  const name = rawName.trim();
+  const oldName = statusLabel(key);
+  if (!name || name === oldName) { if (statusPickerOpen) renderStatusPickerDropdown(); return; }
+  if (statusOptions().some((o) => o.key !== key && o.label.toLowerCase() === name.toLowerCase())) {
+    alert(i18n("Такой статус уже есть"));
+    if (statusPickerOpen) renderStatusPickerDropdown();
+    return;
+  }
+
+  try {
+    await patchSiteSettings((settings) => {
+      if (key === "completed") {
+        settings.labels = settings.labels || {};
+        settings.labels.statuses = settings.labels.statuses || {};
+        settings.labels.statuses.archive = name;
+      } else {
+        settings.statusBuckets = settings.statusBuckets || [];
+        const bucket = settings.statusBuckets.find((b) => b.key === key);
+        if (bucket) bucket.label = name;
+      }
+    });
+    if (key === "completed") {
+      window.SITE_LABELS = window.SITE_LABELS || {};
+      window.SITE_LABELS.statuses = window.SITE_LABELS.statuses || {};
+      window.SITE_LABELS.statuses.archive = name;
+    } else {
+      const bucket = window.SITE_STATUS_BUCKETS?.find((b) => b.key === key);
+      if (bucket) bucket.label = name;
+    }
+    syncStatusPickerLabel();
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  } finally {
+    if (statusPickerOpen) renderStatusPickerDropdown();
   }
 }
 

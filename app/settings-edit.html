@@ -40,7 +40,7 @@
 <script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/api.js?v=12"></script>
-<script src="/js/cards.js?v=13"></script>
+<script src="/js/cards.js?v=14"></script>
 <script src="/js/passports.js?v=13"></script>
 <script src="/js/import-formats.js?v=14"></script>
 <script src="/js/import.js?v=17"></script>
@@ -520,10 +520,10 @@
         <h2 class="section-h" data-i18n>Масштаб</h2>
         <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
           <input type="range" id="app-zoom-slider" class="app-zoom-slider"
-            min="-3" max="5" step="1" value="0"
-            oninput="previewZoom(this.value)" onchange="setZoom(this.value)">
+            min="50" max="200" step="5" value="100"
+            oninput="previewZoom(this.value)">
           <span class="app-zoom" id="app-zoom-value">100%</span>
-          <button class="btn btn-ghost" onclick="setZoom(0)" data-i18n>Сбросить</button>
+          <button class="btn btn-ghost" onclick="setZoom(100)" data-i18n>Сбросить</button>
         </div>
       </div>
 
@@ -1229,10 +1229,8 @@
     }
   }
 
-  // Масштаб приложение хранит уровнями, как браузер: шаг — множитель
-  // 1.2. Человеку показываем проценты, иначе «уровень 2» ни о чём.
-  function zoomPercent(level) {
-    return Math.round(Math.pow(1.2, level) * 100) + "%";
+  function zoomPercent(percent) {
+    return Math.round(percent) + "%";
   }
 
   function renderAppPanel() {
@@ -1244,8 +1242,8 @@
         .join("");
     }
     document.getElementById("app-vault-path").textContent = appInfo.vaultPath || i18n("не выбрана");
-    document.getElementById("app-zoom-value").textContent = zoomPercent(appInfo.zoom || 0);
-    document.getElementById("app-zoom-slider").value = appInfo.zoom || 0;
+    document.getElementById("app-zoom-value").textContent = zoomPercent(appInfo.zoom || 100);
+    document.getElementById("app-zoom-slider").value = appInfo.zoom || 100;
     document.getElementById("app-version").textContent =
       `TasteID ${appInfo.version || ""} · ${appInfo.platform || ""}`;
 
@@ -1398,18 +1396,20 @@
     renderAppPanel();
   }
 
-  // Ползунок двигается сразу — превью значения без похода на сервер,
-  // сам вызов /api/app/zoom только когда отпустили (change), а не на
-  // каждый промежуточный кадр drag'а (input).
-  function previewZoom(level) {
-    document.getElementById("app-zoom-value").textContent = zoomPercent(Number(level));
+  // Ползунок применяет масштаб сразу на каждое перемещение — это и есть
+  // «живой» предпросмотр, не только цифра рядом. renderAppPanel() здесь
+  // не зовём: слайдер и так уже стоит там, куда его тащат, а полная
+  // перерисовка панели на каждый кадр drag'а — лишняя работа.
+  function previewZoom(percent) {
+    document.getElementById("app-zoom-value").textContent = zoomPercent(Number(percent));
+    setZoom(Number(percent), { silent: true });
   }
 
-  async function setZoom(level) {
+  async function setZoom(percent, { silent = false } = {}) {
     try {
-      const { zoom } = await appApi("/api/app/zoom", { level: Number(level) });
+      const { zoom } = await appApi("/api/app/zoom", { percent: Number(percent) });
       appInfo.zoom = zoom;
-      renderAppPanel();
+      if (!silent) renderAppPanel();
     } catch (e) {
       flashStatus("status-app", false, e.message);
     }

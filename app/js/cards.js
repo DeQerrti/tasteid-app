@@ -60,7 +60,13 @@ function fmtDateStr(str, short = false) {
 function tagHtml(tag) {
   const info = TAGS_MAP[tag];
   const customColor = info && CAT_COLORS[info.cat];
-  const cls = customColor ? "rtag-custom" : (info ? TAG_CAT_CLASS[info.cat] : "rtag-special");
+  // TAG_CAT_CLASS знает только про встроенные категории — своя категория
+  // без выбранного цвета (осознанно оставленная «нейтральной», см.
+  // tm-cat-colornote в add.html) в нём не найдётся, и cls раньше уходил
+  // в undefined: класс "rtag undefined" не даёт вообще никакой оболочки.
+  // Тот же rtag-special, что у встроенных без цвета, — то самое
+  // «нейтральные» из подсказки, а не поломка.
+  const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
   const style = customColor ? ` style="--tag-color:${customColor}"` : "";
   const tip  = info?.tip || "";
   return `<span class="rtag ${cls}"${style} data-tip="${esc(tip)}">${esc(tag)}</span>`;
