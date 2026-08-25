@@ -35,7 +35,7 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=16"></script>
+<script src="/js/utils.js?v=17"></script>
 <script src="/js/theme.js?v=14"></script>
 <script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
@@ -64,6 +64,13 @@
     padding: 24px 0;
     position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
+  /* Растягивание мышью — см. js/utils.js, makeResizablePanel(); тот же
+     приём, что и у рельсы на главной (app/index.html, .rail-resize). */
+  .sidebar-resize {
+    position: absolute; top: 0; right: -3px; bottom: 0; width: 7px;
+    cursor: col-resize; z-index: 5;
+  }
+  .sidebar-resize:hover, .sidebar-resize.active { background: var(--red-dim); opacity: .5; }
   #sidebar a.back {
     display: block; margin: 0 20px 20px;
     color: var(--text); text-decoration: none; font-size: .95rem; font-weight: 600;
@@ -110,6 +117,7 @@
       overflow-x: auto; scrollbar-width: none;
     }
     #sidebar::-webkit-scrollbar { display: none; }
+    .sidebar-resize { display: none; }
     #sidebar a.back {
       margin: 0 8px 0 12px; white-space: nowrap; flex-shrink: 0;
       position: sticky; left: 0; z-index: 1; background: var(--bg);
@@ -298,6 +306,7 @@
     <button class="side-tab hidden" data-panel="vaults" id="tab-vaults" data-i18n>Хранилища</button>
     <button class="side-tab hidden" data-panel="app" id="tab-app" data-i18n>Приложение</button>
     <button class="side-tab side-tab-divider" data-panel="backup" data-i18n>История версий</button>
+    <div class="sidebar-resize" id="sidebar-resize" aria-hidden="true"></div>
   </nav>
 
   <main id="main">
@@ -529,6 +538,12 @@
     document.getElementById("app").classList.remove("hidden");
   }
 
+  makeResizablePanel(
+    document.getElementById("sidebar"),
+    document.getElementById("sidebar-resize"),
+    "tasteid-sidebar-width", 180, 380
+  );
+
   document.querySelectorAll(".side-tab").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".side-tab").forEach(b => b.classList.remove("active"));
@@ -558,15 +573,8 @@
   // спрятано, наведи скажет «Показать». Кнопка, а не чекбокс: заодно
   // подпись при наведении можно поставить любую, а не то, что браузер
   // сам придумает для input.
-  function eyeIcon(hidden) {
-    return hidden
-      ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.22 4.5M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
-      : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-  }
-
-  function eyeButton(hidden, onclickExpr) {
-    return `<button type="button" class="icon-btn" title="${hidden ? "Показать" : "Скрыть"}" onclick="${onclickExpr}">${eyeIcon(hidden)}</button>`;
-  }
+  // eyeIcon()/eyeButton() переехали в js/utils.js — общие для всех
+  // страниц, здесь просто зовутся.
 
   // ── Блоки статистики ──
   const STAT_BLOCKS = [
@@ -2080,6 +2088,7 @@
     "filters.type":         i18n("Тип"),
     "filters.grade":        i18n("Оценка"),
     "filters.source":       i18n("Ссылки"),
+    "filters.tags":         i18n("Теги"),
     "filters.all":          i18n("Кнопка «все»"),
     "stats.total":          i18n("Заголовок общего блока"),
     "stats.completed":      i18n("Подпись под числом за год"),

@@ -35,7 +35,7 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=16"></script>
+<script src="/js/utils.js?v=17"></script>
 <script src="/js/theme.js?v=14"></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/external-ids.js?v=12"></script>
@@ -315,6 +315,56 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
   border: 1px solid var(--border2); }
 .tm-empty { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); padding: .4rem 0; }
 
+/* ── Массовое удаление тегов ──
+   Тот же список (#tm-tag-list), что и всегда, просто в другом режиме:
+   форма добавления/правки и переключатель «Тег/Категория» прячутся —
+   нечего редактировать, пока выбираешь, что удалить, — а у строк
+   вместо ✎ появляется галочка выбора. */
+.btn-new-danger { border-color: var(--err); color: var(--err); }
+.btn-new-danger:hover { background: var(--err-wash, rgba(163,51,51,.12)); border-color: var(--err); }
+
+#tag-modal-tag-panel.bulk-mode .field,
+#tag-modal-tag-panel.bulk-mode .tm-actions,
+#tag-modal-overlay.bulk-mode .tag-modal-tabs {
+  display: none;
+}
+.tm-bulk-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  margin-bottom: .8rem; padding: .55rem .8rem;
+  background: var(--surface2); border: 1px solid var(--border2); border-radius: 3px;
+  font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
+}
+.tm-bulk-bar.hidden { display: none; }
+.tm-bulk-actions { display: flex; align-items: center; gap: .9rem; }
+.tm-row-check {
+  width: 14px; height: 14px; flex-shrink: 0; border-radius: 3px;
+  border: 1px solid var(--border2); position: relative;
+}
+.tm-row.selected .tm-row-check { border-color: var(--red); background: var(--red-dim); }
+.tm-row.selected .tm-row-check::after {
+  content: ''; position: absolute; left: 3px; top: 0px; width: 4px; height: 8px;
+  border: solid var(--text-hi); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.tm-row.selected { border-color: var(--red-dim); background: var(--accent-wash); color: var(--text-hi); }
+
+/* ── Какие теги показывать на карточке ── */
+.card-tags-hint { font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); margin: .3rem 0 .7rem; }
+.card-tag-row {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .4rem .1rem; border-bottom: 1px solid var(--border);
+  font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text);
+}
+.card-tag-row:last-child { border-bottom: none; }
+.card-tag-row-name { flex: 1; }
+
+.tm-cat-delete-choice {
+  margin: 1rem 0; padding: .9rem 1rem;
+  background: var(--surface2); border: 1px solid var(--err); border-radius: 3px;
+}
+.tm-cat-delete-choice.hidden { display: none; }
+.tm-cat-delete-choice .tm-note { color: var(--text); margin: 0 0 .7rem; }
+.tm-cat-delete-choice .field { margin-bottom: .7rem; }
+
 /* ══ TAGS ════════════════════════════════════════ */
 .tags-grid {
   display: flex;
@@ -544,11 +594,20 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
         <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('gradetags', false)">✕</button>
       </div>
       <div class="grades-grid" id="grades-grid"></div>
-      <div class="field" style="margin:1.25rem 0 .75rem;">
-        <label data-i18n>Теги</label>
-        <button type="button" class="btn-new" onclick="openTagModal()" data-i18n>Новый тег</button>
+      <div class="field" style="margin:1.25rem 0 .75rem; display:flex; align-items:flex-end; gap:.6rem;">
+        <div style="flex:1;">
+          <label data-i18n>Теги</label>
+          <button type="button" class="btn-new" onclick="openTagModal()" data-i18n>Новый тег</button>
+        </div>
+        <button type="button" class="btn-new btn-new-danger" onclick="openTagModal({bulk:true})" data-i18n>Удалить</button>
       </div>
       <div class="tags-grid" id="tags-grid"></div>
+
+      <div class="field" id="card-tags-field" style="margin-top:1.25rem;" hidden>
+        <label data-i18n>Какие теги показывать на карточке</label>
+        <p class="card-tags-hint" data-i18n>На карточке помещается немного — выбери, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.</p>
+        <div id="card-tags-list"></div>
+      </div>
     </div>
   </div>
 
@@ -596,6 +655,13 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
         <button type="button" class="tm-link tm-danger" id="tm-tag-del" onclick="deleteTag()" hidden data-i18n>Удалить</button>
       </div>
 
+      <div class="tm-bulk-bar hidden" id="tm-bulk-bar">
+        <span id="tm-bulk-count" data-i18n>Ничего не выбрано</span>
+        <div class="tm-bulk-actions">
+          <button type="button" class="tm-link" onclick="tmBulkCancel()" data-i18n>Отмена</button>
+          <button type="button" class="tm-link tm-danger" id="tm-bulk-delete-btn" onclick="tmBulkDeleteConfirm()" disabled data-i18n>Удалить выбранное</button>
+        </div>
+      </div>
       <div class="tm-list-head">
         <span data-i18n>Существующие теги</span>
         <input type="search" id="tm-tag-search" placeholder="Поиск" data-i18n-placeholder="Поиск" oninput="renderTmTagList()">
@@ -620,6 +686,23 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
         <button class="btn-save" id="tm-cat-save" onclick="submitCategory()" data-i18n>Добавить категорию</button>
         <button type="button" class="tm-link" id="tm-cat-cancel" onclick="resetCatForm()" hidden data-i18n>Отмена</button>
         <button type="button" class="tm-link tm-danger" id="tm-cat-del" onclick="deleteCategory()" hidden data-i18n>Удалить</button>
+      </div>
+
+      <!-- Показывается вместо тихой ошибки, когда в категории ещё есть
+           теги: раньше deleteCategory() просто отказывала и просила
+           перенести теги руками — здесь и перенос, и удаление вместе с
+           категорией доступны в один клик. -->
+      <div class="tm-cat-delete-choice hidden" id="tm-cat-delete-choice">
+        <p class="tm-note" id="tm-cat-delete-note"></p>
+        <div class="field">
+          <label data-i18n>Перенести теги в категорию</label>
+          <div class="select-wrap"><select id="tm-cat-move-target"></select></div>
+        </div>
+        <div class="tm-actions">
+          <button type="button" class="btn-new" onclick="tmCatDeleteMove()" data-i18n>Перенести и удалить категорию</button>
+          <button type="button" class="tm-link tm-danger" onclick="tmCatDeleteAll()" data-i18n>Удалить категорию вместе с тегами</button>
+          <button type="button" class="tm-link" onclick="tmCatDeleteCancel()" data-i18n>Отмена</button>
+        </div>
       </div>
 
       <div class="tm-list-head"><span data-i18n>Категории</span></div>
@@ -835,14 +918,41 @@ function renderTagsGrid() {
     btn.title = meta.tip || "";
     if (selectedTags.has(tag)) btn.classList.add("active");
     btn.onclick = () => {
-      if (selectedTags.has(tag)) { selectedTags.delete(tag); btn.classList.remove("active"); }
+      if (selectedTags.has(tag)) { selectedTags.delete(tag); btn.classList.remove("active"); hiddenCardTags.delete(tag); }
       else { selectedTags.add(tag); btn.classList.add("active"); }
+      renderCardTagsList();
     };
     tagsGrid.appendChild(btn);
   }
 }
 renderTagsGrid();
 document.addEventListener("tags-map-updated", renderTagsGrid);
+
+// ── Какие из выбранных тегов показывать на карточке ──
+// Карточка — витрина на беглый взгляд, всех тегов там не поместится
+// (reviews.js, reviewCard: показывает первые 3 из не-скрытых). Раньше
+// «первые 3» решались только порядком в массиве — глазок здесь даёт
+// решить это самому, а не молча зависеть от порядка выбора. Все теги
+// по-прежнему видны в модалке отзыва — это только про карточку.
+let hiddenCardTags = new Set();
+function renderCardTagsList() {
+  const field = document.getElementById("card-tags-field");
+  const box = document.getElementById("card-tags-list");
+  const tags = [...selectedTags];
+  field.hidden = !tags.length;
+  if (!tags.length) return;
+  box.innerHTML = tags.map(tag => `
+    <div class="card-tag-row">
+      ${eyeButton(hiddenCardTags.has(tag), `toggleCardTagVisibility('${esc(tag)}')`)}
+      <span class="card-tag-row-name">${esc(tag)}</span>
+    </div>
+  `).join("");
+}
+function toggleCardTagVisibility(tag) {
+  if (hiddenCardTags.has(tag)) hiddenCardTags.delete(tag);
+  else hiddenCardTags.add(tag);
+  renderCardTagsList();
+}
 
 // ── Модалка: теги и категории ──────────────────
 //    Раньше правка тегов жила в /settings-edit; её убрали оттуда, а сюда
@@ -866,16 +976,18 @@ function tmStatus(text, kind) {
   el.className = "status-msg" + (kind ? " " + kind : "");
 }
 
-function openTagModal() {
+function openTagModal(opts) {
   document.getElementById("tm-tag-search").value = "";
   resetTagForm();
   resetCatForm();
   switchTagModalTab("tag");
   tmStatus("");
+  if (opts?.bulk) tmBulkStart(); else tmBulkCancel();
   document.getElementById("tag-modal-overlay").classList.remove("hidden");
 }
 function closeTagModal() {
   document.getElementById("tag-modal-overlay").classList.add("hidden");
+  tmBulkCancel();
 }
 function closeTagModalOnOverlay(e) {
   if (e.target === document.getElementById("tag-modal-overlay")) closeTagModal();
@@ -902,12 +1014,83 @@ function populateTagModalCatSelect() {
   if (current && CAT_LABELS[current] !== undefined) select.value = current;
 }
 
+// ── Массовое удаление тегов ─────────────────────
+// Тот же список, что и всегда, — просто клик по строке выбирает её
+// вместо того, чтобы открывать правку, а форма добавления/правки и
+// переключатель вкладок спрятаны CSS-классом .bulk-mode (см. стили).
+let tmBulkMode = false;
+let tmBulkSelected = new Set();
+
+function tmBulkStart() {
+  tmBulkMode = true;
+  tmBulkSelected = new Set();
+  document.getElementById("tag-modal-tag-panel").classList.add("bulk-mode");
+  document.getElementById("tag-modal-overlay").classList.add("bulk-mode");
+  document.getElementById("tm-bulk-bar").classList.remove("hidden");
+  tmBulkSyncBar();
+  renderTmTagList();
+}
+function tmBulkCancel() {
+  tmBulkMode = false;
+  tmBulkSelected = new Set();
+  document.getElementById("tag-modal-tag-panel").classList.remove("bulk-mode");
+  document.getElementById("tag-modal-overlay").classList.remove("bulk-mode");
+  document.getElementById("tm-bulk-bar").classList.add("hidden");
+  renderTmTagList();
+}
+function tmBulkToggle(name) {
+  if (tmBulkSelected.has(name)) tmBulkSelected.delete(name);
+  else tmBulkSelected.add(name);
+  tmBulkSyncBar();
+  renderTmTagList();
+}
+function tmBulkSyncBar() {
+  const n = tmBulkSelected.size;
+  document.getElementById("tm-bulk-count").textContent = n
+    ? i18n("Выбрано: {n}", { n })
+    : i18n("Ничего не выбрано");
+  document.getElementById("tm-bulk-delete-btn").disabled = !n;
+}
+async function tmBulkDeleteConfirm() {
+  const names = [...tmBulkSelected];
+  if (!names.length) return;
+  if (!(await confirmDialog(i18n("Удалить выбранные теги ({n})?\n\nОни пропадут и из уже сохранённых отзывов.", { n: names.length })))) return;
+
+  const btn = document.getElementById("tm-bulk-delete-btn");
+  btn.disabled = true;
+  try {
+    await patchSiteSettings((settings) => {
+      settings.customTags = settings.customTags || {};
+      const hidden = new Set(settings.hiddenTags || []);
+      names.forEach((name) => {
+        delete settings.customTags[name];
+        if (BUILTIN_TAG_NAMES.has(name)) hidden.add(name);
+      });
+      settings.hiddenTags = [...hidden];
+    });
+    for (let i = 0; i < names.length; i++) {
+      tmStatus(i18n("Удаляем {i} из {n}…", { i: i + 1, n: names.length }));
+      await applyTagToReviews(names[i], "");
+      delete TAGS_MAP[names[i]];
+      selectedTags.delete(names[i]);
+    }
+    document.dispatchEvent(new CustomEvent("tags-map-updated"));
+    tmStatus(i18n("Удалено тегов: {n}", { n: names.length }), "ok");
+    tmBulkCancel();
+  } catch (err) {
+    tmStatus(err.message || i18n("Ошибка удаления"), "err");
+    btn.disabled = false;
+  }
+}
+
 // ── Списки существующих ────────────────────────
 // Клик по строке делегирован на контейнер: имена тегов приходят от
 // пользователя и в inline-onclick их пришлось бы экранировать дважды.
 document.getElementById("tm-tag-list").addEventListener("click", (e) => {
   const row = e.target.closest(".tm-row");
-  if (row) editTag(row.dataset.name);
+  if (!row) return;
+  if (tmBulkMode) tmBulkToggle(row.dataset.name);
+  else editTag(row.dataset.name);
 });
 document.getElementById("tm-cat-list").addEventListener("click", (e) => {
   const row = e.target.closest(".tm-row");
@@ -938,11 +1121,18 @@ function renderTmTagList() {
   }
 
   box.innerHTML = order.map(key => {
-    const rows = byCat[key].map(name => `
-      <button type="button" class="tm-row${name === tmTagEdit ? " active" : ""}" data-name="${esc(name)}">
+    const rows = byCat[key].map(name => {
+      const selected = tmBulkMode && tmBulkSelected.has(name);
+      const active = !tmBulkMode && name === tmTagEdit;
+      const marker = tmBulkMode
+        ? `<span class="tm-row-check"></span>`
+        : `<span class="tm-row-note">✎</span>`;
+      return `
+      <button type="button" class="tm-row${active ? " active" : ""}${selected ? " selected" : ""}" data-name="${esc(name)}">
         <span class="tm-row-name">${esc(name)}</span>
-        <span class="tm-row-note">✎</span>
-      </button>`).join("");
+        ${marker}
+      </button>`;
+    }).join("");
     return `<div class="tm-group">${esc(CAT_LABELS[key] || key)}</div>${rows}`;
   }).join("");
 }
@@ -1121,6 +1311,7 @@ function resetCatForm() {
   tmCatColorSet = true;
   document.getElementById("tm-cat-name").value = "";
   document.getElementById("tm-cat-color").value = "#8b1a1a";
+  document.getElementById("tm-cat-delete-choice").classList.add("hidden");
   tmSyncCatForm();
   renderTmCatList();
 }
@@ -1192,6 +1383,11 @@ async function submitCategory() {
   }
 }
 
+function tmCatTagWord(n) {
+  return n % 10 === 1 && n % 100 !== 11 ? i18n("тег")
+    : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "тега" : i18n("тегов"));
+}
+
 // Встроенную категорию, как и встроенный тег, нельзя вырезать из
 // config.js — поэтому её удаление складывается в hiddenCategories, а
 // оттуда применяется при загрузке настроек.
@@ -1201,13 +1397,88 @@ async function deleteCategory() {
 
   const used = Object.values(TAGS_MAP).filter(info => info.cat === key).length;
   if (used) {
-    const word = used % 10 === 1 && used % 100 !== 11 ? i18n("тег")
-      : (used % 10 >= 2 && used % 10 <= 4 && (used % 100 < 12 || used % 100 > 14) ? "тега" : i18n("тегов"));
-    tmStatus(`В категории ещё ${used} ${word} — сначала перенеси их в другую`, "err");
+    tmCatDeleteShowChoice(key, used);
     return;
   }
   if (!(await confirmDialog(i18n("Удалить категорию «{name}»?", { name: CAT_LABELS[key] })))) return;
+  await tmCatDeleteCommit(key);
+}
 
+// Раньше здесь была тихая ошибка «сначала перенеси теги вручную» —
+// теперь перенос (в любую другую категорию) и удаление вместе с тегами
+// сделаны прямо тут, одним из двух кликов.
+function tmCatDeleteShowChoice(key, used) {
+  document.getElementById("tm-cat-delete-note").textContent =
+    i18n("В категории ещё {n} {word}. Перенести их в другую категорию или удалить вместе с категорией?", { n: used, word: tmCatTagWord(used) });
+  const select = document.getElementById("tm-cat-move-target");
+  select.innerHTML = Object.entries(CAT_LABELS)
+    .filter(([k]) => k !== key)
+    .map(([k, label]) => `<option value="${esc(k)}">${esc(label)}</option>`).join("");
+  document.getElementById("tm-cat-delete-choice").classList.remove("hidden");
+  tmStatus("");
+}
+function tmCatDeleteCancel() {
+  document.getElementById("tm-cat-delete-choice").classList.add("hidden");
+}
+
+async function tmCatDeleteMove() {
+  const key = tmCatEdit;
+  const target = document.getElementById("tm-cat-move-target").value;
+  if (!key || !target) return;
+  if (!(await confirmDialog(i18n("Перенести теги категории «{from}» в «{to}» и удалить «{from}»?", { from: CAT_LABELS[key], to: CAT_LABELS[target] })))) return;
+  tmStatus(i18n("Переносим…"));
+  try {
+    await tmCatReassignTags(key, target);
+    await tmCatDeleteCommit(key);
+  } catch (err) {
+    tmStatus(err.message || i18n("Ошибка сохранения"), "err");
+  }
+}
+async function tmCatDeleteAll() {
+  const key = tmCatEdit;
+  if (!key) return;
+  const names = Object.keys(TAGS_MAP).filter(n => TAGS_MAP[n].cat === key);
+  if (!(await confirmDialog(i18n("Удалить категорию «{name}» вместе со всеми тегами ({n})?\n\nОни пропадут и из уже сохранённых отзывов.", { name: CAT_LABELS[key], n: names.length })))) return;
+  try {
+    await tmCatDeleteAllTags(names);
+    await tmCatDeleteCommit(key);
+  } catch (err) {
+    tmStatus(err.message || i18n("Ошибка удаления"), "err");
+  }
+}
+
+// Категория у тега (в т.ч. встроенного) переопределяется тем же
+// механизмом, что и переименование тега в submitTag() — записью в
+// settings.customTags по точному имени тега, встроенный он или свой.
+async function tmCatReassignTags(fromCat, toCat) {
+  const names = Object.keys(TAGS_MAP).filter(n => TAGS_MAP[n].cat === fromCat);
+  await patchSiteSettings((settings) => {
+    settings.customTags = settings.customTags || {};
+    names.forEach((name) => {
+      settings.customTags[name] = { cat: toCat, tip: TAGS_MAP[name].tip || "" };
+    });
+  });
+  names.forEach((name) => { TAGS_MAP[name] = { ...TAGS_MAP[name], cat: toCat }; });
+}
+
+async function tmCatDeleteAllTags(names) {
+  await patchSiteSettings((settings) => {
+    settings.customTags = settings.customTags || {};
+    const hidden = new Set(settings.hiddenTags || []);
+    names.forEach((name) => {
+      delete settings.customTags[name];
+      if (BUILTIN_TAG_NAMES.has(name)) hidden.add(name);
+    });
+    settings.hiddenTags = [...hidden];
+  });
+  for (const name of names) {
+    await applyTagToReviews(name, "");
+    delete TAGS_MAP[name];
+    selectedTags.delete(name);
+  }
+}
+
+async function tmCatDeleteCommit(key) {
   const btn = document.getElementById("tm-cat-del");
   btn.disabled = true;
   tmStatus(i18n("Удаляем…"));
@@ -1228,6 +1499,7 @@ async function deleteCategory() {
     delete CAT_COLORS[key];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     populateTagModalCatSelect();
+    document.getElementById("tm-cat-delete-choice").classList.add("hidden");
     resetCatForm();
     tmStatus(i18n("Категория удалена"), "ok");
   } catch (err) {
@@ -1782,6 +2054,8 @@ function fillForm(r) {
   selectedTags = new Set(r.tags || []);
   document.querySelectorAll(".tag-toggle").forEach(b =>
     b.classList.toggle("active", selectedTags.has(b.dataset.tag)));
+  hiddenCardTags = new Set(r.hidden_tags_on_card || []);
+  renderCardTagsList();
 }
 
 // ── сброс ──────────────────────────────────────
@@ -1821,8 +2095,10 @@ function resetToNew() {
   document.getElementById("cover-img").style.display = "none";
   selectedGrade = null;
   selectedTags.clear();
+  hiddenCardTags.clear();
   renderGradeInput();
   document.querySelectorAll(".tag-toggle").forEach(b => b.classList.remove("active"));
+  renderCardTagsList();
   document.getElementById("status").textContent = "";
   document.getElementById("status").className = "status-msg";
   updateDateFields();
@@ -2120,6 +2396,7 @@ async function saveReview() {
     review_full: reviewFull || null,
     grade:      selectedGrade,
     tags:       [...selectedTags],
+    hidden_tags_on_card: [...hiddenCardTags].filter(t => selectedTags.has(t)),
   };
 
   if (Object.keys(ids).length) review.ids = ids;

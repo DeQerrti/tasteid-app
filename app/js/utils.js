@@ -163,6 +163,61 @@ function confirmDialog(message, okLabel = i18n("Удалить"), cancelLabel = 
   });
 }
 
+// ── Растягиваемая боковая панель ────────────────
+// Тот же приём, что в Обсидиане: тонкая полоска у правого края панели
+// (#rail на главной, #sidebar в настройках), таскаешь мышью — ширина
+// меняется и запоминается в localStorage per-панель, так что при
+// следующем открытии остаётся та же. На телефоне полоски нет вовсе
+// (см. CSS, display:none в мобильном брейкпоинте) — там подгонять
+// нечего, ширина и так на весь экран.
+function makeResizablePanel(panel, handle, storageKey, min, max) {
+  if (!panel || !handle) return;
+  const saved = parseInt(localStorage.getItem(storageKey), 10);
+  if (saved && saved >= min && saved <= max) panel.style.width = saved + "px";
+
+  let dragging = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  handle.addEventListener("mousedown", (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startWidth = panel.getBoundingClientRect().width;
+    handle.classList.add("active");
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+    e.preventDefault();
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const w = Math.max(min, Math.min(max, startWidth + (e.clientX - startX)));
+    panel.style.width = w + "px";
+  });
+  document.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove("active");
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+    localStorage.setItem(storageKey, Math.round(panel.getBoundingClientRect().width));
+  });
+}
+
+// ── Глаз вместо галочки ─────────────────────────
+// Открытый — показано, наведи скажет «Скрыть». Перечёркнутый — спрятано,
+// наведи скажет «Показать». Кнопка, а не чекбокс: заодно подпись при
+// наведении можно поставить любую, а не то, что браузер сам придумает
+// для input. Раньше жила только в settings-edit.html — теперь общая,
+// её же зовёт card-tags-list в add.html.
+function eyeIcon(hidden) {
+  return hidden
+    ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.22 4.5M14.12 14.12a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+    : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+}
+function eyeButton(hidden, onclickExpr) {
+  return `<button type="button" class="icon-btn" title="${hidden ? "Показать" : "Скрыть"}" onclick="${onclickExpr}">${eyeIcon(hidden)}</button>`;
+}
+
 // ── Тултипы [data-tip] — общий JS, а не CSS ::after ────────────────
 // Раньше подсказка у тега (.rtag) и у оценки (.grade-chip) рисовалась
 // чистым CSS: ::after с content: attr(data-tip), position: absolute

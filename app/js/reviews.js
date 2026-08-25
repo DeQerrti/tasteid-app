@@ -9,6 +9,7 @@ const rvState = {
   grade:  "all",
   source: "all",
   search: "",
+  tagSearch: "",
 };
 
 let rvLastFiltered = [];
@@ -69,6 +70,17 @@ function renderReviews(reviews) {
             value="${esc(rvState.search)}"
           >
         </div>
+        <div class="rv-filter-group">
+          <span class="rv-filter-label">${esc(siteLabel("filters", "tags", i18n("Теги")))}</span>
+          <input
+            type="text"
+            id="rv-tag-search"
+            class="rv-search-input"
+            placeholder="${i18n("Название тега…")}"
+            autocomplete="off"
+            value="${esc(rvState.tagSearch)}"
+          >
+        </div>
         ${renderRvFilterGroup("type",   siteLabel("filters", "type", i18n("Тип")),     types,   TYPE_LABELS,   rvState.type)}
         ${renderRvFilterGroup("grade",  siteLabel("filters", "grade", i18n("Оценка")), grades,  gradeLabels(), rvState.grade)}
         ${renderRvFilterGroup("source", siteLabel("filters", "source", i18n("Ссылки")), sources, SOURCE_LABELS, rvState.source)}
@@ -83,6 +95,11 @@ function renderReviews(reviews) {
   const searchInput = document.getElementById("rv-search");
   searchInput.addEventListener("input", () => {
     rvState.search = searchInput.value.trim().toLowerCase();
+    applyRvFilters(reviews);
+  });
+  const tagSearchInput = document.getElementById("rv-tag-search");
+  tagSearchInput.addEventListener("input", () => {
+    rvState.tagSearch = tagSearchInput.value.trim().toLowerCase();
     applyRvFilters(reviews);
   });
 
@@ -145,6 +162,11 @@ function applyRvFilters(reviews) {
   if (rvState.search) {
     filtered = filtered.filter(r =>
       r.title.toLowerCase().includes(rvState.search)
+    );
+  }
+  if (rvState.tagSearch) {
+    filtered = filtered.filter(r =>
+      (r.tags || []).some(t => t.toLowerCase().includes(rvState.tagSearch))
     );
   }
 
@@ -302,10 +324,16 @@ function reviewCard(r, i) {
   const grade = GRADES[gradeToShelf(r.grade)] || null;
 
   // Верхние 3: карточка — это витрина для беглого взгляда, не место
-  // для полного списка тегов. Все теги по-прежнему видны в модалке
-  // при клике (см. reviewModalBodyHtml).
-  const tagsHtml = (r.tags || []).length
-    ? `<div class="card-tags">${r.tags.slice(0, 3).map(tag => tagHtml(tag)).join("")}</div>`
+  // для полного списка тегов. Какие именно 3 — выбирает человек в
+  // редакторе (add.html, «Какие теги показывать на карточке»), а не
+  // случайный порядок в массиве; hidden_tags_on_card — теги этого же
+  // отзыва, отмеченные там как «не на карточку». Без поля (старые
+  // отзывы) ничего не скрыто — прежнее поведение. Все теги по-прежнему
+  // видны в модалке при клике (см. reviewModalBodyHtml).
+  const hiddenOnCard = new Set(r.hidden_tags_on_card || []);
+  const cardTags = (r.tags || []).filter(tag => !hiddenOnCard.has(tag));
+  const tagsHtml = cardTags.length
+    ? `<div class="card-tags">${cardTags.slice(0, 3).map(tag => tagHtml(tag)).join("")}</div>`
     : "";
 
   const favHtml = r.favorites

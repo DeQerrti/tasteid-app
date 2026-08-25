@@ -1019,6 +1019,44 @@ i18nRegister({
   "Название вместо TasteID": "Name instead of TasteID",
 });
 
+// ── Поиск по тегам (фильтры на вкладке «Отзывы») ──
+i18nRegister({
+  Теги: "Tags",
+  "Название тега…": "Tag name…",
+});
+
+// ── Какие теги показывать на карточке (add.html) ──
+i18nRegister({
+  "Какие теги показывать на карточке": "Which tags to show on the card",
+  "На карточке помещается немного — выбери, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.":
+    "The card only fits a few — pick which of the selected tags matter most. The rest stay visible inside the review.",
+});
+
+// ── Массовое удаление тегов (add.html) ─────────
+i18nRegister({
+  "Ничего не выбрано": "Nothing selected",
+  "Выбрано: {n}": "Selected: {n}",
+  "Удалить выбранное": "Delete selected",
+  "Удалить выбранные теги ({n})?\n\nОни пропадут и из уже сохранённых отзывов.":
+    "Delete the selected tags ({n})?\n\nThey'll disappear from saved reviews too.",
+  "Удаляем {i} из {n}…": "Deleting {i} of {n}…",
+  "Удалено тегов: {n}": "Deleted {n} tags",
+});
+
+// ── Удаление категории с тегами внутри (add.html) ──
+i18nRegister({
+  "Перенести теги в категорию": "Move tags to category",
+  "Перенести и удалить категорию": "Move and delete category",
+  "Удалить категорию вместе с тегами": "Delete category with its tags",
+  "В категории ещё {n} {word}. Перенести их в другую категорию или удалить вместе с категорией?":
+    "The category still has {n} {word}. Move them to another category, or delete them along with the category?",
+  "Переносим…": "Moving…",
+  "Перенести теги категории «{from}» в «{to}» и удалить «{from}»?":
+    "Move the tags from “{from}” to “{to}” and delete “{from}”?",
+  "Удалить категорию «{name}» вместе со всеми тегами ({n})?\n\nОни пропадут и из уже сохранённых отзывов.":
+    "Delete the category “{name}” along with all its tags ({n})?\n\nThey'll disappear from saved reviews too.",
+});
+
 // ── Цвета по типам (Статистика) ────────────────
 i18nRegister({
   "Цвета по типам": "Colours by type",
