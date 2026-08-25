@@ -28,15 +28,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Настройки — TasteID</title>
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=16">
+<link rel="stylesheet" href="/style.css?v=17">
 <link rel="stylesheet" href="/admin.css?v=13">
-<link rel="stylesheet" href="/themes.css?v=14">
+<link rel="stylesheet" href="/themes.css?v=15">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=15"></script>
-<script src="/js/theme.js?v=13"></script>
+<script src="/js/utils.js?v=16"></script>
+<script src="/js/theme.js?v=14"></script>
 <script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/api.js?v=12"></script>
@@ -342,6 +342,11 @@
     <div class="panel" id="panel-stats">
       <p class="panel-intro" data-i18n>Что показывать на вкладке "Статистика".</p>
       <div id="statsList"></div>
+
+      <h2 class="section-h" data-i18n>Цвета по типам</h2>
+      <p class="panel-intro" data-i18n>Красят разбивку по типам и годам — диаграмму, столбики и цифры.</p>
+      <div id="typeColorsList"></div>
+
       <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
       <div class="status-msg" id="status-stats"></div>
     </div>
@@ -575,6 +580,45 @@
     { key: "spotlight", label: i18n("Топ тайтлы года") },
   ];
   let hiddenStatsState = new Set();
+
+  // ── Цвета по типам ──────────────────────────────
+  // Красят разбивку по типам и годам на вкладке «Статистика»
+  // (js/stats.js, TYPE_COLORS — это те же ключи и цвета по умолчанию).
+  // Список типов — тот же, что у BUILTIN_TYPE_DEFAULTS ниже по файлу;
+  // typeLabels ещё не заполнен на момент объявления, поэтому названия
+  // читает сама функция рендера, а не константа здесь.
+  const TYPE_COLOR_DEFAULTS = {
+    anime: "#8b1a1a", manga: "#1a4a8b", manhwa: "#2563a8", manhua: "#4a7abf",
+    novel: "#5a2d8a", book: "#8a4abf", movie: "#1a6b3a", show: "#2d8a52",
+    dorama: "#4aab6e", game: "#8b6914", gacha: "#c0a020",
+  };
+  let typeColors = {};
+
+  function renderTypeColorsList() {
+    const box = document.getElementById("typeColorsList");
+    if (!box) return;
+    box.innerHTML = Object.keys(TYPE_COLOR_DEFAULTS).map(key => {
+      const label = typeLabels[key] || key;
+      const color = typeColors[key] || TYPE_COLOR_DEFAULTS[key];
+      return `<div class="pal-row">
+        <input type="color" data-type-color="${key}" value="${color}">
+        <div class="pal-text"><div class="pal-name">${esc(label)}</div></div>
+        <button type="button" class="pal-reset" data-type-reset="${key}"${typeColors[key] ? "" : " hidden"}>${i18n("Цвет по умолчанию")}</button>
+      </div>`;
+    }).join("");
+    box.querySelectorAll('input[type="color"]').forEach(input => {
+      input.oninput = () => {
+        typeColors[input.dataset.typeColor] = input.value;
+        box.querySelector(`[data-type-reset="${input.dataset.typeColor}"]`).hidden = false;
+      };
+    });
+    box.querySelectorAll("[data-type-reset]").forEach(btn => {
+      btn.onclick = () => {
+        delete typeColors[btn.dataset.typeReset];
+        renderTypeColorsList();
+      };
+    });
+  }
 
   function renderStatsList() {
     const container = document.getElementById("statsList");
@@ -1977,6 +2021,9 @@
     hiddenTypes = new Set(settings.hiddenTypes || []);
     typePlural = JSON.parse(JSON.stringify(settings.customTypePlural || {}));
 
+    typeColors = { ...(settings.typeColors || {}) };
+    renderTypeColorsList();
+
     subtypeLabels = { ...BUILTIN_SUBTYPE_DEFAULTS, ...(settings.customSubtypes || {}) };
     const subtypeOverrides = labels.subtypes || {};
     for (const [key, val] of Object.entries(subtypeOverrides)) {
@@ -2201,6 +2248,7 @@
       customTypes,
       hiddenTypes: [...hiddenTypes],
       customTypePlural,
+      typeColors,
       customSubtypes,
       hiddenSubtypes: [...hiddenSubtypes],
       hiddenTabs,

@@ -1018,3 +1018,11 @@ i18nRegister({
 i18nRegister({
   "Название вместо TasteID": "Name instead of TasteID",
 });
+
+// ── Цвета по типам (Статистика) ────────────────
+i18nRegister({
+  "Цвета по типам": "Colours by type",
+  "Красят разбивку по типам и годам — диаграмму, столбики и цифры.":
+    "Colours the breakdown by type and by year — the chart, the bars and the numbers.",
+  "Цвет по умолчанию": "Default colour",
+});

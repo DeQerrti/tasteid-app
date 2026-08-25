@@ -211,6 +211,7 @@ async function applyTheme() {
   window.SITE_CUSTOM_CATEGORIES = settings.customCategories || {};
   window.SITE_HIDDEN_CATEGORIES = settings.hiddenCategories || [];
   window.SITE_CATEGORY_COLORS = settings.categoryColors || {};
+  window.SITE_TYPE_COLORS = settings.typeColors || {};
   window.SITE_GRADE_SCALE = settings.gradeScale || null;
   window.SITE_STATUS_BUCKETS = settings.statusBuckets || null;
   window.SITE_HIDDEN_STATUSES = new Set(settings.hiddenStatuses || []);

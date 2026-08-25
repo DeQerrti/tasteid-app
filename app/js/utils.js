@@ -162,3 +162,61 @@ function confirmDialog(message, okLabel = i18n("Удалить"), cancelLabel = 
     document.addEventListener("keydown", onKey);
   });
 }
+
+// ── Тултипы [data-tip] — общий JS, а не CSS ::after ────────────────
+// Раньше подсказка у тега (.rtag) и у оценки (.grade-chip) рисовалась
+// чистым CSS: ::after с content: attr(data-tip), position: absolute
+// внутри самого элемента. Это ломалось всюду, где элемент лежит внутри
+// чего-то с overflow: hidden/auto, — а это ровно то, что нужно карточке
+// (.card, ради уголков-декораций) и модалке отзыва (.review-modal-panel,
+// ради скролла): подсказка обрезалась по границе контейнера вместо
+// того, чтобы вылезти поверх него, как и полагается всплывающей
+// подсказке. Один плавающий элемент вне потока страницы, позиционируемый
+// в JS, — тот же приём, что уже работает у тултипа тир-листа
+// (js/tierlist.js, .tl-tooltip): такому чужой overflow не мешает.
+let dataTipEl = null;
+
+function dataTipEnsure() {
+  if (!dataTipEl) {
+    dataTipEl = document.createElement("div");
+    dataTipEl.className = "data-tip-tooltip hidden";
+    document.body.appendChild(dataTipEl);
+  }
+  return dataTipEl;
+}
+
+function dataTipPosition(target, tip) {
+  const r = target.getBoundingClientRect();
+  const centered = !target.classList.contains("grade-chip");
+  const tw = tip.offsetWidth;
+  const th = tip.offsetHeight;
+  let x = centered ? r.left + r.width / 2 - tw / 2 : r.left;
+  let y = r.top - th - 8;
+  if (y < 4) y = r.bottom + 8; // не помещается сверху — показываем снизу
+  x = Math.max(4, Math.min(x, window.innerWidth - tw - 4));
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+
+document.addEventListener("mouseover", (e) => {
+  const target = e.target.closest("[data-tip]");
+  if (!target || !target.getAttribute("data-tip")) return;
+  const tip = dataTipEnsure();
+  tip.textContent = target.getAttribute("data-tip");
+  tip.classList.toggle("data-tip-tooltip--grade", target.classList.contains("grade-chip"));
+  tip.classList.remove("hidden");
+  dataTipPosition(target, tip);
+});
+
+document.addEventListener(
+  "mouseout",
+  (e) => {
+    const target = e.target.closest("[data-tip]");
+    if (!target || !dataTipEl) return;
+    // relatedTarget внутри той же подсказки-цели — не уход, а переход
+    // между дочерними узлами (например, счётчиком внутри .stat-tag).
+    if (target.contains(e.relatedTarget)) return;
+    dataTipEl.classList.add("hidden");
+  },
+  true
+);

@@ -458,6 +458,29 @@ select option { background: var(--bg2); }
   margin: 0 auto 1rem;
 }
 
+/* ══ ТУЛТИП [data-tip] ═════════════════════════════
+   Позиционируется в JS (js/utils.js) — см. её же комментарий про то,
+   почему не чистым CSS ::after. */
+.data-tip-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: var(--surface2); color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .68rem; padding: .35rem .7rem;
+  border-radius: 2px; border: 1px solid var(--border2);
+  max-width: 260px;
+  white-space: pre-line;
+  pointer-events: none;
+  box-shadow: 0 6px 24px var(--shadow);
+}
+.data-tip-tooltip.hidden { display: none; }
+.data-tip-tooltip--grade {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .95rem; font-style: italic; font-weight: 400;
+  padding: .5rem .9rem;
+  white-space: normal;
+}
+
 .state-box {
   text-align: center;
   padding: 5rem 2rem;

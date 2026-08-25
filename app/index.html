@@ -34,14 +34,14 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0a0a0c">
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=16">
-<link rel="stylesheet" href="/themes.css?v=14">
+<link rel="stylesheet" href="/style.css?v=17">
+<link rel="stylesheet" href="/themes.css?v=15">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=15"></script>
-<script src="/js/theme.js?v=13"></script>
+<script src="/js/utils.js?v=16"></script>
+<script src="/js/theme.js?v=14"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
 
@@ -77,19 +77,21 @@ nav#rail {
   overflow-y: auto; scrollbar-width: thin;
 }
 
+/* Логотип и подпись под ним — один визуальный блок с одной чертой
+   снизу, а не два раздельных (раньше у каждого была своя граница и
+   свой отступ, а между ними — отрицательный margin, чтобы стянуть их
+   обратно: две линии почти впритык читались как двойная рамка). */
 nav#rail .logo {
   font-size: 1.2rem;
   letter-spacing: .02em;
   display: block;
-  padding: 4px 6px 14px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
+  padding: 4px 6px 2px;
 }
 .rail-sub {
   font-family: 'DM Sans', sans-serif;
-  font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
+  font-size: .6rem; letter-spacing: .06em; text-transform: uppercase;
   color: var(--text-dim);
-  margin-top: -10px; padding: 0 6px 14px;
+  padding: 0 6px 14px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
 }
@@ -542,24 +544,6 @@ section.group { margin-bottom: 3.5rem; }
   border: 1px solid color-mix(in srgb, var(--tag-color, var(--text-hi)) 30%, transparent);
 }
 
-.rtag[data-tip]:hover::after {
-  content: attr(data-tip);
-  position: absolute; bottom: calc(100% + 6px); left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface2); color: var(--text);
-  font-size: .68rem; padding: .35rem .7rem;
-  border-radius: 2px; border: 1px solid var(--border2);
-  white-space: nowrap; z-index: 9999;
-  pointer-events: none; box-shadow: 0 6px 24px var(--shadow);
-}
-.rtag[data-tip]:hover::before {
-  content: '';
-  position: absolute; bottom: calc(100% + 1px); left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: var(--border2); z-index: 21;
-}
-
 /* ══ GRADE ═══════════════════════════════════════ */
 .grade-chip {
   font-family: 'Playfair Display', serif;
@@ -568,24 +552,6 @@ section.group { margin-bottom: 3.5rem; }
   cursor: default; position: relative;
   min-width: 80px; white-space: nowrap;
 }
-.grade-chip[data-tip]:hover::after {
-  content: attr(data-tip);
-  position: absolute; bottom: calc(100% + 8px); left: 0;
-  background: var(--surface2); color: var(--text);
-  font-family: 'Cormorant Garamond', serif;
-  font-size: .95rem; font-style: italic; font-weight: 400;
-  padding: .5rem .9rem; border-radius: 2px;
-  border: 1px solid var(--border2); white-space: nowrap;
-  z-index: 9999; pointer-events: none;
-  box-shadow: 0 6px 24px var(--shadow);
-}
-.grade-chip[data-tip]:hover::before {
-  content: '';
-  position: absolute; bottom: calc(100% + 3px); left: 1rem;
-  border: 5px solid transparent;
-  border-top-color: var(--border2); z-index: 21;
-}
-
 /* ══ SOURCE BUTTONS ══════════════════════════════ */
 .source-buttons { display: flex; gap: .4rem; flex-shrink: 0; }
 .review-source-link {
@@ -654,8 +620,23 @@ section.group { margin-bottom: 3.5rem; }
 }
 
 .stat-counters { display: flex; flex-wrap: wrap; gap: 1px; border: 1px solid var(--border); }
-.stat-rewatch-top { margin-top: .75rem; font-size: .85rem; color: var(--text-dim); }
-.stat-rewatch-top b { color: var(--text-hi); }
+.stat-rewatch-top {
+  margin-top: 1.2rem;
+  padding: .9rem 1.1rem;
+  background: var(--tint);
+  border: 1px solid var(--tint-line);
+  border-radius: 4px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  color: var(--text-dim);
+}
+.stat-rewatch-top b {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--text-hi);
+}
 .stat-counter {
   flex: 1; min-width: 80px; padding: 1rem 1.2rem;
   background: var(--surface); text-align: center;
@@ -1278,7 +1259,7 @@ section.group { margin-bottom: 3.5rem; }
 <script src="/js/now.js?v=12"></script>
 <script src="/js/favorites.js?v=12"></script>
 <script src="/js/reviews.js?v=12"></script>
-<script src="/js/stats.js?v=13"></script>
+<script src="/js/stats.js?v=14"></script>
 <script src="/js/tierlist.js?v=13"></script>
 
 <script>

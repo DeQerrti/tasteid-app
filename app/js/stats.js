@@ -19,6 +19,12 @@ const TYPE_COLORS = {
   gacha:   "#c0a020",   // жёлтый светлее
 };
 
+// Настройки → Статистика → «Цвета по типам» — своя перекраска поверх
+// TYPE_COLORS, ключ в ключ. Без своего цвета остаётся значение выше.
+function typeColor(key) {
+  return (window.SITE_TYPE_COLORS && window.SITE_TYPE_COLORS[key]) || TYPE_COLORS[key] || "#666";
+}
+
 // Выбранный год дайджеста. "all" — обычная статистика за всё время.
 const statsState = { year: "all" };
 
@@ -101,7 +107,7 @@ function renderAllTimeStats(reviews, completed) {
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   }
   const counts = Object.entries(TYPE_LABELS)
-    .map(([key, label]) => ({ key, label, val: typeCounts[key] || 0, color: TYPE_COLORS[key] || "#666" }))
+    .map(([key, label]) => ({ key, label, val: typeCounts[key] || 0, color: typeColor(key) }))
     .filter(c => c.val > 0);
   const total = counts.reduce((s, c) => s + c.val, 0);
 
@@ -154,7 +160,7 @@ function renderYearDigest(year, completed) {
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   }
   const counts = Object.entries(TYPE_LABELS)
-    .map(([key, label]) => ({ key, label, val: typeCounts[key] || 0, color: TYPE_COLORS[key] || "#666" }))
+    .map(([key, label]) => ({ key, label, val: typeCounts[key] || 0, color: typeColor(key) }))
     .filter(c => c.val > 0);
   const total = counts.reduce((s, c) => s + c.val, 0);
 
@@ -301,7 +307,7 @@ function renderStackedBarChart(title, id, yearsByType) {
     const pct = max ? (yearTotal / max * 100) : 0;
 
     const segments = Object.entries(TYPE_LABELS)
-      .map(([key]) => ({ key, val: yearsByType[year][key] || 0, color: TYPE_COLORS[key] || "#666" }))
+      .map(([key]) => ({ key, val: yearsByType[year][key] || 0, color: typeColor(key) }))
       .filter(s => s.val > 0)
       .map(s => {
         const segPct = yearTotal ? (s.val / yearTotal * 100).toFixed(2) : 0;

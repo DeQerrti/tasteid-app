@@ -1847,6 +1847,15 @@ html[data-skin="brutal-dark"] h2 {
   border-radius: var(--doodle-wobble-pill);
   margin: 0.5rem 0.25rem;
   padding: 0.5rem 1.15rem;
+  /* Caveat в том же кегле, что и базовый Cormorant Garamond, читается
+     мельче и тоньше — почерк тоньше засечек. */
+  font-size: 1.18rem;
+}
+/* На телефоне рельса становится нижней панелью с компактным шрифтом
+   (index.html, .tab-btn на max-width: 700px) — тот же почерк там
+   мельче, но не такой же мелкий, как у прямого начертания рядом. */
+@media (max-width: 700px) {
+  [data-skin="doodle"] .tab-btn { font-size: 0.8rem; }
 }
 [data-skin="doodle"] .tab-btn.active {
   color: var(--text-hi);
@@ -2211,6 +2220,10 @@ html[data-skin="brutal-dark"] h2 {
   border-radius: var(--doodle-wobble-pill);
   margin: 0.5rem 0.25rem;
   padding: 0.5rem 1.15rem;
+  font-size: 1.18rem;
+}
+@media (max-width: 700px) {
+  [data-skin="doodle-dark"] .tab-btn { font-size: 0.8rem; }
 }
 [data-skin="doodle-dark"] .tab-btn.active {
   color: var(--text-hi);
@@ -2454,12 +2467,12 @@ html[data-skin="brutal-dark"] h2 {
 }
 
 /* ══ УКРАШЕНИЯ «МЯГКОГО БОТАНИЧЕСКОГО» ═══════════
-   Лианы по обоим краям экрана: тема ботаническая, а поля на широких
-   мониторах оставались пустыми.
+   Лиана в правом поле: тема ботаническая, а поле на широких мониторах
+   оставалось пустым.
 
    Рисунок подключён как mask-image, а не background-image, — тогда цвет
-   ему задаёт CSS, и лианы следуют за палитрой темы, а не остаются
-   намертво зелёными, если человек перекрасит её под себя.
+   ему задаёт CSS, и лиана следует за палитрой темы, а не остаётся
+   намертво зелёной, если человек перекрасит её под себя.
 
    /decor/vine.svg нарисован так, чтобы стыковаться сам с собой по
    вертикали: на обоих концах отрезка стебель выходит в одной точке и
@@ -2470,17 +2483,20 @@ html[data-skin="brutal-dark"] h2 {
 
    На тёмный вариант те же правила распространены через тот же
    селектор: цвет и так берётся из var(--border2), то есть уже
-   подстроен под тёмную палитру — лиан здесь не было только потому,
-   что селектор их не включал, а не потому, что для тёмной темы
-   рисунок нужен другой. */
-[data-skin="soft"] body::before,
+   подстроен под тёмную палитру.
+
+   Левая лиана здесь была симметрично, но с приходом боковых панелей
+   (#rail на главной, #sidebar в настройках, .app-topbar на остальных
+   страницах) левое поле уже не пустует почти никогда — панели либо
+   съедают его целиком, либо сама лиана невидна за их фоном. Оставлена
+   только правая, где поле и правда бывает пустым. */
 [data-skin="soft"] body::after,
-[data-skin="soft-dark"] body::before,
 [data-skin="soft-dark"] body::after {
   content: "";
   position: fixed;
   top: 0;
   bottom: 0;
+  right: 0;
   width: 100px;
   z-index: 0;
   opacity: 0.4;
@@ -2492,45 +2508,25 @@ html[data-skin="brutal-dark"] h2 {
   -webkit-mask-size: 100px 400px;
   mask-repeat: repeat-y;
   -webkit-mask-repeat: repeat-y;
-}
-[data-skin="soft"] body::before,
-[data-skin="soft-dark"] body::before {
-  left: 0;
-}
-[data-skin="soft"] body::after,
-[data-skin="soft-dark"] body::after {
-  right: 0;
   transform: scaleX(-1);
 }
 
-/* Контент должен лежать поверх украшений. Навигации здесь нет
+/* Контент должен лежать поверх украшения. Навигации здесь нет
    намеренно: у неё уже z-index 100 ради position: sticky, и если
    опустить её до единицы, main начнёт проезжать поверх при скролле. */
-[data-skin="soft"] header,
+[data-skin="soft"] .app-topbar,
 [data-skin="soft"] main,
-[data-skin="soft-dark"] header,
+[data-skin="soft-dark"] .app-topbar,
 [data-skin="soft-dark"] main {
   position: relative;
   z-index: 1;
 }
 
-/* Лианы живут в пустых полях. Как только поля кончились — они наезжают
-   на контент, поэтому ниже этой ширины их нет. */
+/* Лиана живёт в пустом поле. Как только поле кончилось — она наезжает
+   на контент, поэтому ниже этой ширины её нет. */
 @media (max-width: 1400px) {
-  [data-skin="soft"] body::before,
   [data-skin="soft"] body::after,
-  [data-skin="soft-dark"] body::before,
   [data-skin="soft-dark"] body::after {
     display: none;
   }
-}
-
-/* Левая лиана жила в пустом поле слева — а с боковой панелью (#rail,
-   app/index.html) поле там больше не пустует: 236px панели встают
-   ровно в её 100px и глушат рисунок целиком, наглухо и без остатка.
-   Проще погасить лиану там, где панель есть, чем гонять её в этом
-   же поле вместе с контентом. Правая не тронута — там всё ещё пусто. */
-[data-skin="soft"] body:has(#rail)::before,
-[data-skin="soft-dark"] body:has(#rail)::before {
-  display: none;
 }
