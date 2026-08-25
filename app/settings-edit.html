@@ -134,6 +134,20 @@
   .panel-intro { color: var(--text-dim); font-size: .85rem; margin-bottom: 20px; }
   .panel-intro a { color: var(--red-hi); text-decoration: none; }
   .panel-intro a:hover { text-decoration: underline; }
+  /* --text-dim в классической, мягкой ботанической, неоморфизме и
+     рисованной темах слишком близок к фону — рядом с обычным текстом
+     (.sync-intro, тот же по сути пояснительный абзац, просто другого
+     класса) читается заметно тусклее. В брутализме та же пара цветов
+     на предельно чёрно-белом фоне ещё держит контраст, там не трогаем. */
+  [data-skin="classic"] .panel-intro,
+  [data-skin="soft"] .panel-intro,
+  [data-skin="soft-dark"] .panel-intro,
+  [data-skin="neomorphism"] .panel-intro,
+  [data-skin="neomorphism-dark"] .panel-intro,
+  [data-skin="doodle"] .panel-intro,
+  [data-skin="doodle-dark"] .panel-intro {
+    color: var(--text);
+  }
 
   .sync-intro { color: var(--text); font-size: .9rem; margin-bottom: 20px; }
   .sync-intro a { color: var(--red-hi); text-decoration: none; }
