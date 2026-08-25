@@ -349,12 +349,20 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 
 /* ── Какие теги показывать на карточке ── */
 .card-tags-hint { font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); margin: .3rem 0 .7rem; }
+.card-tags-count { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); margin: .5rem .1rem 0; }
 .card-tag-row {
-  display: flex; align-items: center; gap: .6rem;
+  display: flex; align-items: center; gap: .6rem; cursor: pointer;
   padding: .4rem .1rem; border-bottom: 1px solid var(--border);
   font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text);
 }
 .card-tag-row:last-child { border-bottom: none; }
+.card-tag-row.selected { color: var(--text-hi); }
+.card-tag-row.selected .tm-row-check { border-color: var(--red); background: var(--red-dim); }
+.card-tag-row.selected .tm-row-check::after {
+  content: ''; position: absolute; left: 3px; top: 0px; width: 4px; height: 8px;
+  border: solid var(--text-hi); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.card-tag-row.disabled { opacity: .4; cursor: not-allowed; }
 .card-tag-row-name { flex: 1; }
 
 .tm-cat-delete-choice {
@@ -607,6 +615,7 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
         <label data-i18n>Какие теги показывать на карточке</label>
         <p class="card-tags-hint" data-i18n>На карточке помещается немного — выбери, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.</p>
         <div id="card-tags-list"></div>
+        <p class="card-tags-count" id="card-tags-count"></p>
       </div>
     </div>
   </div>
@@ -918,7 +927,7 @@ function renderTagsGrid() {
     btn.title = meta.tip || "";
     if (selectedTags.has(tag)) btn.classList.add("active");
     btn.onclick = () => {
-      if (selectedTags.has(tag)) { selectedTags.delete(tag); btn.classList.remove("active"); hiddenCardTags.delete(tag); }
+      if (selectedTags.has(tag)) { selectedTags.delete(tag); btn.classList.remove("active"); featuredCardTags.delete(tag); }
       else { selectedTags.add(tag); btn.classList.add("active"); }
       renderCardTagsList();
     };
@@ -930,27 +939,36 @@ document.addEventListener("tags-map-updated", renderTagsGrid);
 
 // ── Какие из выбранных тегов показывать на карточке ──
 // Карточка — витрина на беглый взгляд, всех тегов там не поместится
-// (reviews.js, reviewCard: показывает первые 3 из не-скрытых). Раньше
-// «первые 3» решались только порядком в массиве — глазок здесь даёт
-// решить это самому, а не молча зависеть от порядка выбора. Все теги
-// по-прежнему видны в модалке отзыва — это только про карточку.
-let hiddenCardTags = new Set();
+// (reviews.js, reviewCard: показывает первые CARD_TAGS_MAX). Модалка
+// показывает все выбранные теги отзыва — кликом отмечаешь до
+// CARD_TAGS_MAX «избранных». Ничего не отмечено — карточка сама берёт
+// первые по порядку (старое поведение, не нужно ничего решать вручную).
+const CARD_TAGS_MAX = 4;
+let featuredCardTags = new Set();
 function renderCardTagsList() {
   const field = document.getElementById("card-tags-field");
   const box = document.getElementById("card-tags-list");
+  const count = document.getElementById("card-tags-count");
   const tags = [...selectedTags];
   field.hidden = !tags.length;
   if (!tags.length) return;
-  box.innerHTML = tags.map(tag => `
-    <div class="card-tag-row">
-      ${eyeButton(hiddenCardTags.has(tag), `toggleCardTagVisibility('${esc(tag)}')`)}
+  const atCap = featuredCardTags.size >= CARD_TAGS_MAX;
+  box.innerHTML = tags.map(tag => {
+    const featured = featuredCardTags.has(tag);
+    const disabled = atCap && !featured;
+    return `<div class="card-tag-row ${featured ? "selected" : ""} ${disabled ? "disabled" : ""}"
+        onclick="toggleCardTagFeatured('${esc(tag)}')">
+      <span class="tm-row-check"></span>
       <span class="card-tag-row-name">${esc(tag)}</span>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
+  count.textContent = featuredCardTags.size
+    ? i18n("Выбрано: {n}/{max}", { n: featuredCardTags.size, max: CARD_TAGS_MAX })
+    : i18n("Ничего не выбрано — покажутся первые теги по порядку.");
 }
-function toggleCardTagVisibility(tag) {
-  if (hiddenCardTags.has(tag)) hiddenCardTags.delete(tag);
-  else hiddenCardTags.add(tag);
+function toggleCardTagFeatured(tag) {
+  if (featuredCardTags.has(tag)) featuredCardTags.delete(tag);
+  else if (featuredCardTags.size < CARD_TAGS_MAX) featuredCardTags.add(tag);
   renderCardTagsList();
 }
 
@@ -2054,7 +2072,7 @@ function fillForm(r) {
   selectedTags = new Set(r.tags || []);
   document.querySelectorAll(".tag-toggle").forEach(b =>
     b.classList.toggle("active", selectedTags.has(b.dataset.tag)));
-  hiddenCardTags = new Set(r.hidden_tags_on_card || []);
+  featuredCardTags = new Set(r.featured_tags_on_card || []);
   renderCardTagsList();
 }
 
@@ -2095,7 +2113,7 @@ function resetToNew() {
   document.getElementById("cover-img").style.display = "none";
   selectedGrade = null;
   selectedTags.clear();
-  hiddenCardTags.clear();
+  featuredCardTags.clear();
   renderGradeInput();
   document.querySelectorAll(".tag-toggle").forEach(b => b.classList.remove("active"));
   renderCardTagsList();
@@ -2396,7 +2414,7 @@ async function saveReview() {
     review_full: reviewFull || null,
     grade:      selectedGrade,
     tags:       [...selectedTags],
-    hidden_tags_on_card: [...hiddenCardTags].filter(t => selectedTags.has(t)),
+    featured_tags_on_card: [...featuredCardTags].filter(t => selectedTags.has(t)),
   };
 
   if (Object.keys(ids).length) review.ids = ids;

@@ -323,17 +323,22 @@ function sourceBtnHtml(url, source) {
 function reviewCard(r, i) {
   const grade = GRADES[gradeToShelf(r.grade)] || null;
 
-  // Верхние 3: карточка — это витрина для беглого взгляда, не место
-  // для полного списка тегов. Какие именно 3 — выбирает человек в
-  // редакторе (add.html, «Какие теги показывать на карточке»), а не
-  // случайный порядок в массиве; hidden_tags_on_card — теги этого же
-  // отзыва, отмеченные там как «не на карточку». Без поля (старые
-  // отзывы) ничего не скрыто — прежнее поведение. Все теги по-прежнему
-  // видны в модалке при клике (см. reviewModalBodyHtml).
+  // Верхние 4: карточка — это витрина для беглого взгляда, не место
+  // для полного списка тегов. Какие именно — выбирает человек в
+  // редакторе (add.html, «Какие теги показывать на карточке»),
+  // featured_tags_on_card — явно отмеченные там «избранные» теги
+  // этого отзыва. Пусто/нет поля — человек ничего не выбрал, тогда
+  // просто первые из массива (старое поведение); hidden_tags_on_card —
+  // более старое поле (список того, что скрыть, а не что показать),
+  // ещё встречается в несохранённых заново отзывах. Все теги
+  // по-прежнему видны в модалке при клике (см. reviewModalBodyHtml).
+  const featuredOnCard = (r.featured_tags_on_card || []).filter(tag => (r.tags || []).includes(tag));
   const hiddenOnCard = new Set(r.hidden_tags_on_card || []);
-  const cardTags = (r.tags || []).filter(tag => !hiddenOnCard.has(tag));
+  const cardTags = featuredOnCard.length
+    ? featuredOnCard
+    : (r.tags || []).filter(tag => !hiddenOnCard.has(tag));
   const tagsHtml = cardTags.length
-    ? `<div class="card-tags">${cardTags.slice(0, 3).map(tag => tagHtml(tag)).join("")}</div>`
+    ? `<div class="card-tags">${cardTags.slice(0, 4).map(tag => tagHtml(tag)).join("")}</div>`
     : "";
 
   const favHtml = r.favorites
@@ -362,7 +367,7 @@ function reviewCard(r, i) {
   // не символом из шрифта, чтобы отпечаток не гулял между
   // устройствами (см. комментарий у .tab-btn.active::before).
   const gradeHtml = grade
-    ? `<div class="card-grade-row"><span class="card-grade-dot" style="--gc:${grade.color}"></span>${esc(grade.name)}</div>`
+    ? `<div class="card-grade-row" data-tip="${esc(grade.desc)}"><span class="card-grade-dot" style="--gc:${grade.color}"></span>${esc(grade.name)}</div>`
     : "";
 
   // tabindex + role: карточка открывает модалку по клику, но до этой

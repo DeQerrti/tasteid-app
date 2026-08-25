@@ -1030,6 +1030,8 @@ i18nRegister({
   "Какие теги показывать на карточке": "Which tags to show on the card",
   "На карточке помещается немного — выбери, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.":
     "The card only fits a few — pick which of the selected tags matter most. The rest stay visible inside the review.",
+  "Выбрано: {n}/{max}": "Selected: {n}/{max}",
+  "Ничего не выбрано — покажутся первые теги по порядку.": "Nothing selected — the first tags in order will show.",
 });
 
 // ── Массовое удаление тегов (add.html) ─────────
