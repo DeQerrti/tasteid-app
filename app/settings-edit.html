@@ -35,7 +35,7 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=18"></script>
+<script src="/js/utils.js?v=19"></script>
 <script src="/js/theme.js?v=14"></script>
 <script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
@@ -521,7 +521,7 @@
         <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
           <input type="range" id="app-zoom-slider" class="app-zoom-slider"
             min="50" max="200" step="5" value="100"
-            oninput="previewZoom(this.value)">
+            oninput="previewZoom(this.value)" onchange="setZoom(this.value)">
           <span class="app-zoom" id="app-zoom-value">100%</span>
           <button class="btn btn-ghost" onclick="setZoom(100)" data-i18n>Сбросить</button>
         </div>
@@ -1396,20 +1396,20 @@
     renderAppPanel();
   }
 
-  // Ползунок применяет масштаб сразу на каждое перемещение — это и есть
-  // «живой» предпросмотр, не только цифра рядом. renderAppPanel() здесь
-  // не зовём: слайдер и так уже стоит там, куда его тащат, а полная
-  // перерисовка панели на каждый кадр drag'а — лишняя работа.
+  // Применять масштаб на каждое перемещение ползунка казалось удобным,
+  // но вышло наоборот: сам интерфейс (в том числе ползунок) едет вместе
+  // с масштабом прямо под курсором, и попасть в нужное значение труднее,
+  // а не легче. Цифра рядом обновляется вживую (input), а сам масштаб —
+  // только когда отпустили (change).
   function previewZoom(percent) {
     document.getElementById("app-zoom-value").textContent = zoomPercent(Number(percent));
-    setZoom(Number(percent), { silent: true });
   }
 
-  async function setZoom(percent, { silent = false } = {}) {
+  async function setZoom(percent) {
     try {
       const { zoom } = await appApi("/api/app/zoom", { percent: Number(percent) });
       appInfo.zoom = zoom;
-      if (!silent) renderAppPanel();
+      renderAppPanel();
     } catch (e) {
       flashStatus("status-app", false, e.message);
     }

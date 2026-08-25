@@ -276,6 +276,31 @@ document.addEventListener(
   true
 );
 
+// ── Esc закрывает открытое — общее для всех страниц ────────────
+// Каждая страница успела обзавестись своим способом закрыть открытое:
+// у модалок (.modal-overlay, .review-modal-overlay) — клик по подложке
+// (onclick="closeXOnOverlay(event)" или прямой addEventListener с тем
+// же условием e.target === overlay), у выпадающих списков в add.html
+// (.src-type-dropdown — «выпадающие списки с инлайн-добавлением») —
+// свои closeXDropdown(). Вместо того чтобы заводить третий похожий
+// обработчик на каждой новой странице, один слушатель здесь: клик по
+// самой подложке синтетический (совпадает с условием в её же
+// обработчике, так что закрывается по-настоящему, а не просто прячется
+// класс), а closeXDropdown() зовутся, только если страница их вообще
+// определила — на страницах без такого выпадающего списка это просто
+// no-op. inline-переименование (startRenameTypePicker и т.п.) само
+// останавливает всплытие на Escape, так что до этого слушателя не
+// доходит и не мешает отмене прямо в поле.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  document
+    .querySelectorAll(".modal-overlay:not(.hidden), .review-modal-overlay:not(.hidden)")
+    .forEach((overlay) => overlay.click());
+  ["closeTypeDropdown", "closeTypePickerDropdown", "closeStatusPickerDropdown"].forEach((fn) => {
+    if (typeof window[fn] === "function") window[fn]();
+  });
+});
+
 // ── Горячие клавиши — общий список ─────────────
 // Один источник для подсказки по «?» на главной (index.html) и для
 // справочной панели в настройках (settings-edit.html) — чтобы правка
