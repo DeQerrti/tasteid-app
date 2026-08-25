@@ -361,6 +361,37 @@ function buildMenu() {
   );
 }
 
+// Заставка на время старта. До этого места окно не появлялось вообще,
+// пока не отработают config/vault/сервер (обычно доля секунды, но на
+// медленном диске или под антивирусом, который сканирует каждый файл
+// на чтение, это способно растянуться на несколько секунд без единого
+// признака жизни на экране — ровно то самое «нажал — курсор
+// покрутился — и тишина», из-за которого нажимают ещё раз). Ей нечего
+// грузить с сервера (тот ещё не поднят) и незачем знать тему (конфиг
+// ещё не прочитан) — чистый data:, ноль сетевых обращений, поэтому и
+// появляется почти мгновенно. Настоящее окно (createWindow ниже)
+// создаётся следом и подменяет её, как только всё готово.
+const SPLASH_HTML = `data:text/html,${encodeURIComponent(
+  `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;height:100%;background:#0a0a0c;display:flex;align-items:center;justify-content:center;}
+.wordmark{font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:1.6rem;color:#d9d5c9;opacity:.85;letter-spacing:.02em;}
+</style></head><body><div class="wordmark">TasteID</div></body></html>`
+)}`;
+
+function createSplashWindow() {
+  win = new BrowserWindow({
+    width: 560,
+    height: 560,
+    show: false,
+    backgroundColor: "#0a0a0c",
+    ...titleBarOptions(process.platform, overlayColors(undefined)),
+    webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
+  });
+  win.once("ready-to-show", () => win.show());
+  win.loadURL(SPLASH_HTML);
+  return win;
+}
+
 async function createWindow({ compact = false } = {}) {
   const skin = config.skin || "classic";
   win = new BrowserWindow({
@@ -573,6 +604,14 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(async () => {
+  // Заставка сразу, до всего остального асинхронного — см. её же
+  // комментарий выше про то, какую тишину она закрывает собой. `win`
+  // указывает на неё с этого момента, поэтому second-instance тоже
+  // получает что показать/сфокусировать, даже если второй клик пришёлся
+  // на этот самый медленный участок, а не только после того, как всё
+  // уже готово.
+  const splash = createSplashWindow();
+
   config = await readConfig();
   await migrateVaults();
 
@@ -594,6 +633,7 @@ app.whenReady().then(async () => {
 
   buildMenu();
   await createWindow({ compact: !known });
+  splash.close();
   if (known) openMain();
   else openWelcome();
   checkForUpdates();
