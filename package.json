@@ -1,6 +1,6 @@
 {
   "name": "tasteid",
-  "version": "0.3.18",
+  "version": "0.3.19",
   "private": true,
   "description": "TasteID — личный паспорт интересов. Настольное приложение: данные лежат папкой на твоём диске.",
   "type": "module",
@@ -68,8 +68,7 @@
       "icon": "app/icons/icon-512.png"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "mac": {
