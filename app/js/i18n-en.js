@@ -1083,3 +1083,9 @@ i18nRegister({
   "Переименовать": "Rename",
   "Должен остаться хотя бы один тип": "At least one type must remain",
 });
+
+// ── Поддержать автора (App panel) ──────────────
+i18nRegister({
+  "Поддержать автора": "Support the author",
+  "Поддержать на Boosty": "Support on Boosty",
+});
