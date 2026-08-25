@@ -1862,6 +1862,11 @@ html[data-skin="brutal-dark"] h2 {
   background: var(--accent-wash);
   border: 2px solid var(--text);
   transform: rotate(-1deg);
+  /* Базовый .tab-btn выровнен по левому краю — там уместно, текст сразу
+     после ромба-маркера слева. Здесь ромб убран (см. правило ниже), а
+     сама вкладка стала овальным «пузырём» с рамкой — при выравнивании
+     влево текст лепится к одному краю овала, оставляя пустоту справа. */
+  text-align: center;
 }
 [data-skin="doodle"] .tab-btn.active::before {
   display: none;
@@ -2230,6 +2235,7 @@ html[data-skin="brutal-dark"] h2 {
   background: var(--accent-wash);
   border: 2px solid var(--text);
   transform: rotate(-1deg);
+  text-align: center;
 }
 [data-skin="doodle-dark"] .tab-btn.active::before {
   display: none;
