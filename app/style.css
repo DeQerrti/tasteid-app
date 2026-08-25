@@ -334,6 +334,22 @@ select option { background: var(--bg2); }
   outline-offset: 2px;
 }
 
+/* Кнопки-переключатели (вкладки, фильтры, табы) отдельно показывают
+   .active — рамка фокуса поверх нее только мешает и легко всплывает
+   не к месту: у браузера :focus-visible включается от ЛЮБОГО keydown
+   на уже сфокусированном элементе, даже голого Shift без всякого
+   хоткея — кликнул вкладку мышью, потом нажал что угодно с клавиатуры,
+   и вокруг неё расцветает рамка, хотя человек ничего не «нажимал» в
+   смысле навигации. Список собран по всем местам с похожим
+   переключателем — index.html, settings-edit.html, backup-history.html,
+   chars-edit.html, add.html. */
+.tab-btn:focus-visible, .side-tab:focus-visible, .file-tab:focus-visible,
+.tl-filter:focus-visible, .rv-filter-btn:focus-visible, .tl-mode-btn:focus-visible,
+.tl-list-btn:focus-visible, .list-tab:focus-visible, .tag-toggle:focus-visible,
+.src-type-option:focus-visible {
+  outline: none;
+}
+
 /* Нативный <input type="file"> НЕЛЬЗЯ полноценно перекрасить нигде —
    его подпись "No file chosen" не красится в принципе ни в одном браузере
    (это системный текст, не CSS-элемент). Поэтому вместо попытки

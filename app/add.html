@@ -2625,6 +2625,17 @@ async function saveReview() {
   btn.textContent = editingId !== null ? "Сохранить изменения" : i18n("Сохранить отзыв");
 }
 
+// Esc выходит из редактора — раньше не выходил никак, только клик по
+// стрелке в шапке. Приоритет у открытого выпадающего списка или
+// модалки: их первым Escape закрывает общий обработчик в js/utils.js
+// (и closeTypeDropdown/closeTypePickerDropdown/closeStatusPickerDropdown
+// прямо здесь), а не сразу уводит со страницы.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (document.querySelector(".src-type-dropdown:not(.hidden), .modal-overlay:not(.hidden)")) return;
+  location.href = "/";
+});
+
 initPage();
 </script>
 <script src="/js/backup.js?v=12"></script>

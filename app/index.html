@@ -198,9 +198,11 @@ nav#rail .logo {
 
 /* Видимая рамка фокуса. Карточка отзыва теперь фокусируема
    (role="button" + tabindex), и без этого правила человек, идущий
-   по странице с клавиатуры, не понимал бы, где находится. */
+   по странице с клавиатуры, не понимал бы, где находится.
+   .tab-btn сюда не входит — см. общее правило в style.css у
+   button:focus-visible, где объясняется, почему для вкладочных
+   контролов рамку отключают отдельно. */
 .review-card-wrap:focus-visible,
-.tab-btn:focus-visible,
 .review-modal-close:focus-visible {
   outline: 2px solid var(--red-hi);
   outline-offset: 2px;
