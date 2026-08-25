@@ -135,9 +135,6 @@
 }
 
 /* Структурные отличия темы — то, что переменной не выразить */
-[data-skin="soft"] nav {
-  border-bottom-color: var(--border);
-}
 [data-skin="soft"] .tab-btn {
   font-family: "Playfair Display", serif;
   font-style: italic;
@@ -169,20 +166,9 @@
   display: none;
 }
 
-/* Шапка: вместо резкой красной полосы — мягкий градиент */
-[data-skin="soft"] header {
+/* Шапка */
+[data-skin="soft"] .app-topbar {
   border-bottom-color: var(--border);
-}
-[data-skin="soft"] header::after {
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(125, 143, 95, 0.5) 35%,
-    rgba(125, 143, 95, 0.7) 50%,
-    rgba(125, 143, 95, 0.5) 65%,
-    transparent
-  );
 }
 
 /* Бейджи: цвета приходят переменными выше, здесь только форма и отступ */
@@ -387,9 +373,6 @@
   --err: #d97a63;
 }
 
-[data-skin="soft-dark"] nav {
-  border-bottom-color: var(--border);
-}
 [data-skin="soft-dark"] .tab-btn {
   font-family: "Playfair Display", serif;
   font-style: italic;
@@ -420,19 +403,8 @@
   display: none;
 }
 
-[data-skin="soft-dark"] header {
+[data-skin="soft-dark"] .app-topbar {
   border-bottom-color: var(--border);
-}
-[data-skin="soft-dark"] header::after {
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(143, 174, 106, 0.4) 35%,
-    rgba(143, 174, 106, 0.6) 50%,
-    rgba(143, 174, 106, 0.4) 65%,
-    transparent
-  );
 }
 
 [data-skin="soft-dark"] .type-tag,
@@ -652,17 +624,28 @@ html[data-skin="brutal"] h2 {
 [data-skin="brutal"] .logo {
   text-transform: uppercase;
 }
-[data-skin="brutal"] header {
+[data-skin="brutal"] .app-topbar {
   border-bottom: 4px solid #000;
 }
-/* Мягкий градиент под шапкой базовой темы — здесь сплошная полоса
-   акцента во всю ширину. */
-[data-skin="brutal"] header::after {
-  height: 8px;
-  background: var(--red);
+/* #rail (главная) и #sidebar (настройки) — толстая чёрная рамка со
+   стороны, которой они примыкают к контенту: справа на компьютере,
+   а на телефоне — с той стороны, которой каждая из них там же
+   приклеена (у #rail это верх, у #sidebar низ — см. их же CSS). */
+[data-skin="brutal"] #rail,
+[data-skin="brutal"] #sidebar {
+  border-right: 4px solid #000;
 }
-[data-skin="brutal"] nav {
-  border-bottom: 4px solid #000;
+@media (max-width: 700px) {
+  [data-skin="brutal"] #rail {
+    border-right: none;
+    border-top: 4px solid #000;
+  }
+}
+@media (max-width: 720px) {
+  [data-skin="brutal"] #sidebar {
+    border-right: none;
+    border-bottom: 4px solid #000;
+  }
 }
 [data-skin="brutal"] .tab-btn {
   text-transform: uppercase;
@@ -922,18 +905,24 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="brutal-dark"] .logo {
   text-transform: uppercase;
 }
-[data-skin="brutal-dark"] header {
+[data-skin="brutal-dark"] .app-topbar {
   border-bottom: 4px solid #fff;
 }
-/* В светлой версии сплошная акцентная полоса работает как громкий
-   бренд-росчерк на спокойном фоне — на чёрном фоне рядом с белой
-   рамкой она читается как случайная деталь, а не приём. Здесь и без
-   неё есть чёткая белая линия под шапкой. */
-[data-skin="brutal-dark"] header::after {
-  display: none;
+[data-skin="brutal-dark"] #rail,
+[data-skin="brutal-dark"] #sidebar {
+  border-right: 4px solid #fff;
 }
-[data-skin="brutal-dark"] nav {
-  border-bottom: 4px solid #fff;
+@media (max-width: 700px) {
+  [data-skin="brutal-dark"] #rail {
+    border-right: none;
+    border-top: 4px solid #fff;
+  }
+}
+@media (max-width: 720px) {
+  [data-skin="brutal-dark"] #sidebar {
+    border-right: none;
+    border-bottom: 4px solid #fff;
+  }
 }
 [data-skin="brutal-dark"] .tab-btn {
   text-transform: uppercase;
@@ -1194,15 +1183,26 @@ html[data-skin="brutal-dark"] h2 {
 }
 
 /* ── Шапка и навигация ── */
-[data-skin="neomorphism"] header {
+[data-skin="neomorphism"] .app-topbar {
   border-bottom: none;
   box-shadow: 0 6px 16px -8px var(--neo-dark);
 }
-[data-skin="neomorphism"] header::after {
-  display: none;
+/* #rail (главная) и #sidebar (настройки): та же смена рамки на тень,
+   что у шапки, — со стороны, которой панель примыкает к контенту. */
+[data-skin="neomorphism"] #rail,
+[data-skin="neomorphism"] #sidebar {
+  border-right: none;
+  box-shadow: 6px 0 16px -8px var(--neo-dark);
 }
-[data-skin="neomorphism"] nav {
-  border-bottom: none;
+@media (max-width: 700px) {
+  [data-skin="neomorphism"] #rail {
+    box-shadow: 0 -6px 16px -8px var(--neo-dark);
+  }
+}
+@media (max-width: 720px) {
+  [data-skin="neomorphism"] #sidebar {
+    box-shadow: 0 6px 16px -8px var(--neo-dark);
+  }
 }
 [data-skin="neomorphism"] .tab-btn {
   border: none;
@@ -1500,15 +1500,24 @@ html[data-skin="brutal-dark"] h2 {
   font-style: normal;
 }
 
-[data-skin="neomorphism-dark"] header {
+[data-skin="neomorphism-dark"] .app-topbar {
   border-bottom: none;
   box-shadow: 0 6px 16px -8px var(--neo-dark);
 }
-[data-skin="neomorphism-dark"] header::after {
-  display: none;
+[data-skin="neomorphism-dark"] #rail,
+[data-skin="neomorphism-dark"] #sidebar {
+  border-right: none;
+  box-shadow: 6px 0 16px -8px var(--neo-dark);
 }
-[data-skin="neomorphism-dark"] nav {
-  border-bottom: none;
+@media (max-width: 700px) {
+  [data-skin="neomorphism-dark"] #rail {
+    box-shadow: 0 -6px 16px -8px var(--neo-dark);
+  }
+}
+@media (max-width: 720px) {
+  [data-skin="neomorphism-dark"] #sidebar {
+    box-shadow: 0 6px 16px -8px var(--neo-dark);
+  }
 }
 [data-skin="neomorphism-dark"] .tab-btn {
   border: none;
@@ -1832,25 +1841,6 @@ html[data-skin="brutal-dark"] h2 {
   font-family: "Patrick Hand", cursive;
 }
 
-/* ── Шапка и навигация: прямую линию заменяет волнистая, нарисованная
-   маской по тому же принципу, что лианы мягкой темы — просто вместо
-   отдельного SVG-файла инлайновый data-uri, узор совсем маленький. ── */
-[data-skin="doodle"] header {
-  border-bottom: none;
-}
-[data-skin="doodle"] header::after {
-  height: 6px;
-  background: var(--red);
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
-  mask-repeat: repeat-x;
-  -webkit-mask-repeat: repeat-x;
-  mask-size: 20px 6px;
-  -webkit-mask-size: 20px 6px;
-}
-[data-skin="doodle"] nav {
-  border-bottom: none;
-}
 [data-skin="doodle"] .tab-btn {
   border: none;
   background: transparent;
@@ -2215,22 +2205,6 @@ html[data-skin="brutal-dark"] h2 {
   font-family: "Patrick Hand", cursive;
 }
 
-[data-skin="doodle-dark"] header {
-  border-bottom: none;
-}
-[data-skin="doodle-dark"] header::after {
-  height: 6px;
-  background: var(--red);
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 6'%3E%3Cpath d='M0 3 Q 5 0 10 3 T 20 3' stroke='%23000' fill='none' stroke-width='2.4'/%3E%3C/svg%3E");
-  mask-repeat: repeat-x;
-  -webkit-mask-repeat: repeat-x;
-  mask-size: 20px 6px;
-  -webkit-mask-size: 20px 6px;
-}
-[data-skin="doodle-dark"] nav {
-  border-bottom: none;
-}
 [data-skin="doodle-dark"] .tab-btn {
   border: none;
   background: transparent;

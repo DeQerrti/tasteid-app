@@ -29,18 +29,19 @@
   z-index: 20;
   background: var(--bg);
 }
+/* .logo, а не своя пара свойств: это тот же класс, что несёт
+   вордмарк на главной (nav#rail .logo) — темы вроде «Брутализм» или
+   «Рисованный» перекрашивают и переодевают в свой шрифт именно
+   .logo (см. themes.css), а самодельный класс тема бы просто не
+   увидела. Здесь только раскладка и размер под узкую полосу —
+   шрифт, цвет, начертание остаются на .logo и теме. */
 .topbar-back {
-  font-family: "Playfair Display", serif;
-  font-weight: 700;
-  font-style: italic;
-  font-size: 1.05rem;
-  color: var(--text-hi);
-  text-decoration: none;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
+.app-topbar .logo { font-size: 1.05rem; }
 .topbar-back:hover { color: var(--red-hi); }
 .topbar-back .arrow {
   color: var(--text-dim);

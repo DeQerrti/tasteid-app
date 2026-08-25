@@ -24,8 +24,10 @@ const SHELL_CACHE = `tasteid-shell-${VERSION}`;
 const DATA_CACHE = `tasteid-data-${VERSION}`;
 const IMAGE_CACHE = `tasteid-img-${VERSION}`;
 
-// Страницы админки кэшировать нельзя: их отдаёт _middleware.js только
-// авторизованному, и закэшированная копия обошла бы эту проверку.
+// Страницы админки кэшировать нельзя: доступ к ним решает кука
+// tasteid_ui, которую на каждый ответ ставит локальный сервер
+// (см. «Админ без входа» в README) — закэшированная копия могла бы
+// пережить смену куки и показать чужому то, что видел владелец.
 const NEVER_CACHE = [
   "/api/",
   "/add",
@@ -34,7 +36,6 @@ const NEVER_CACHE = [
   "/settings-edit",
   "/reviews-order",
   "/backup-history",
-  "/login",
 ];
 
 const IMAGE_PREFIXES = ["/chars/", "/covers/", "/title-covers/", "/covers-backup/", "/icons/"];
