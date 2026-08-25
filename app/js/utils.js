@@ -187,7 +187,6 @@ function makeResizablePanel(panel, handle, storageKey, min, max) {
     dragging = true;
     startX = e.clientX;
     startWidth = panel.getBoundingClientRect().width;
-    handle.classList.add("active");
     document.body.style.userSelect = "none";
     document.body.style.cursor = "col-resize";
     e.preventDefault();
@@ -200,7 +199,6 @@ function makeResizablePanel(panel, handle, storageKey, min, max) {
   document.addEventListener("mouseup", () => {
     if (!dragging) return;
     dragging = false;
-    handle.classList.remove("active");
     document.body.style.userSelect = "";
     document.body.style.cursor = "";
     localStorage.setItem(storageKey, Math.round(panel.getBoundingClientRect().width));
@@ -288,7 +286,7 @@ document.addEventListener(
 // расцветает рамка, хотя человек её не просил и не Tab'ался туда.
 // html.kb-nav — свой, честный признак: единственное, что его
 // включает — клавиша Tab, единственное, что выключает — любой клик
-// мышью. CSS ниже (см. .review-card-wrap, .review-modal-close в
+// мышью. CSS (см. .review-card-wrap и .review-modal-panel в
 // index.html) реагирует на него вместо :focus-visible.
 document.addEventListener("keydown", (e) => {
   if (e.key === "Tab") document.documentElement.classList.add("kb-nav");
@@ -376,6 +374,47 @@ function keyBindingMatches(e, b) {
   return e.code === b.code && e.shiftKey === !!b.shift;
 }
 
+// ── Одна проверка занятости на все три группы ──
+// Сочетания живут в трёх местах: цифры 1–5 (переключение вкладок по
+// порядку, зашито в index.html), обычные хоткеи (currentKeybindings) и
+// привязки вкладок (currentTabKeyBindings). Раньше каждая группа
+// проверяла на занятость только саму себя, и получались молчаливые
+// накладки: вкладка, повешенная на «/», отбирала клавишу у поиска
+// (обработчик вкладок стоит выше), а вкладка, повешенная на «1»,
+// вообще не срабатывала — позиционный обработчик цифр перехватывал
+// её ещё раньше. Ни о том, ни о другом человеку не сообщалось.
+//
+// Возвращает готовое объяснение, с кем именно конфликт, или null.
+function keyBindingConflict(result, { action = null, tabId = null } = {}) {
+  const sameKey = (b) =>
+    b &&
+    ((result.type === "mouse" && b.type === "mouse" && b.button === result.button) ||
+      (result.type !== "mouse" && b.type !== "mouse" && b.code === result.code && !!b.shift === !!result.shift));
+
+  if (result.type !== "mouse" && !result.shift && /^Digit[1-5]$/.test(result.code)) {
+    return i18n("Цифры 1–5 уже переключают вкладки по порядку.");
+  }
+
+  const ACTION_NAMES = {
+    search: i18n("Поиск в «Отзывах»"),
+    newReview: i18n("Новый отзыв"),
+    shortcuts: i18n("Список горячих клавиш"),
+  };
+  for (const [a, b] of Object.entries(currentKeybindings())) {
+    if (a !== action && sameKey(b)) {
+      return i18n("Эта клавиша уже занята: {what}.", { what: ACTION_NAMES[a] || a });
+    }
+  }
+
+  for (const [id, b] of Object.entries(currentTabKeyBindings())) {
+    if (id !== tabId && sameKey(b)) {
+      const label = typeof window.siteLabel === "function" ? window.siteLabel("nav", id, id) : id;
+      return i18n("Эта клавиша уже занята вкладкой «{tab}».", { tab: label });
+    }
+  }
+  return null;
+}
+
 function keyboardShortcutsList() {
   const kb = currentKeybindings();
   return [
@@ -429,10 +468,9 @@ async function startRebindShortcut(action, btn) {
     document.removeEventListener("keydown", onKey, true);
     rebindingAction = null;
     if (result) {
-      const kb = currentKeybindings();
-      const clash = Object.entries(kb).find(([a, b]) => a !== action && b.code === result.code && !!b.shift === result.shift);
+      const clash = keyBindingConflict(result, { action });
       if (clash) {
-        backupToastGlobal(i18n("Эта клавиша уже занята другим действием."), false);
+        backupToastGlobal(clash, false);
       } else {
         try {
           await patchSiteSettings((settings) => {
@@ -544,18 +582,12 @@ async function startRebindTabKey(tabId, btn) {
     document.removeEventListener("mousedown", onMouse, true);
     rebindingTabAction = null;
     if (result) {
-      const bindings = currentTabKeyBindings();
-      const clash = Object.entries(bindings).find(
-        ([id, b]) =>
-          id !== tabId &&
-          ((result.type === "key" && tabBindingMatchesKey(result, b)) ||
-            (result.type === "mouse" && tabBindingMatchesMouse(result, b)))
-      );
+      const clash = keyBindingConflict(result, { tabId });
       if (clash) {
-        backupToastGlobal(i18n("Эта клавиша уже занята другой вкладкой."), false);
+        backupToastGlobal(clash, false);
       } else {
         try {
-          const next = { ...bindings, [tabId]: result };
+          const next = { ...currentTabKeyBindings(), [tabId]: result };
           await patchSiteSettings((settings) => {
             settings.tabKeyBindings = next;
           });

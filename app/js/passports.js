@@ -181,6 +181,18 @@ function indexByKeys(items) {
 // поэтому каждая оценка переводится в положение на своей шкале:
 // 0 — лучшее, 1 — худшее. Дальше сравнимо что угодно с чем угодно.
 
+// Цвет из чужого паспорта подставляется в style="--chip:…", а файл
+// паспорта приходит от другого человека — то есть это единственное
+// место, где в разметку попадает не своё. esc() спасает от выхода из
+// атрибута, но не от точки с запятой: «red;background:url(…)» дописал
+// бы соседнее правило и увёл бы запрос наружу. Пропускаем только то,
+// что и правда цвет.
+const SAFE_COLOR = /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%deg]+\)|[a-z]{3,20})$/i;
+function safeColor(value, fallback = "var(--text-dim)") {
+  const v = String(value ?? "").trim();
+  return SAFE_COLOR.test(v) ? v : fallback;
+}
+
 function makeGradeInfo(scale) {
   const shelves = scale.shelves;
   const byKey = new Map(shelves.map((s, i) => [s.key, { ...s, index: i }]));
@@ -188,7 +200,7 @@ function makeGradeInfo(scale) {
   return {
     shelves,
     label: (key) => byKey.get(key)?.name || key || "—",
-    color: (key) => byKey.get(key)?.color || "var(--text-dim)",
+    color: (key) => safeColor(byKey.get(key)?.color),
     position: (key) => {
       const shelf = byKey.get(key);
       return shelf ? shelf.index / last : null;
@@ -333,7 +345,7 @@ function guestViewHtml() {
     if (!inShelf.length) return "";
     return `<section class="pp-shelf">
       <div class="pp-shelf-head">
-        <span class="pp-shelf-dot" style="--chip:${esc(shelf.color || "var(--text-dim)")}"></span>
+        <span class="pp-shelf-dot" style="--chip:${esc(safeColor(shelf.color))}"></span>
         <h3 class="pp-shelf-name">${esc(shelf.name)}</h3>
         <span class="pp-shelf-count">${inShelf.length}</span>
       </div>

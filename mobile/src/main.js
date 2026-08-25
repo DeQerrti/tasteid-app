@@ -25,7 +25,24 @@ import { Share } from "@capacitor/share";
 import { App } from "@capacitor/app";
 import { ROUTES, ApiError } from "../../core/api.js";
 import { MobileVault } from "./vault.js";
-import { version as APP_VERSION } from "../../package.json";
+// Версию спрашиваем у самого приложения, а не вшиваем из package.json
+// на сборке. Так уже делает Gradle (android/app/build.gradle читает ту
+// же package.json и кладёт её в versionName), и вторая копия того же
+// числа внутри собранного бандла — ровно та лишняя сущность, которая
+// однажды и разъехалась: bundle остался на 0.3.13, когда приложение
+// уже было 0.3.20, и проверка обновлений на телефоне сравнивала себя
+// со старым номером, то есть предлагала обновиться бесконечно.
+// Заодно сам bundle перестаёт меняться от одного лишь поднятия версии.
+let appVersionCache = null;
+async function appVersion() {
+  if (appVersionCache !== null) return appVersionCache;
+  try {
+    appVersionCache = (await App.getInfo()).version || "";
+  } catch {
+    appVersionCache = ""; // не нативная среда — там этот код и не работает
+  }
+  return appVersionCache;
+}
 
 const NATIVE = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.();
 
@@ -97,7 +114,7 @@ async function appRoutes(pathname, body) {
       currentVaultId: currentVaultId(),
       lang: currentLang(),
       platform: window.Capacitor?.getPlatform?.() || "mobile",
-      version: APP_VERSION,
+      version: await appVersion(),
       mobile: true,
     };
   }
@@ -468,7 +485,8 @@ async function checkForUpdate(force = false) {
     if (!res.ok) return force ? "error" : undefined;
     const release = await res.json();
     const tag = release.tag_name || "";
-    if (!tag || !isNewerVersion(tag, APP_VERSION)) return force ? "latest" : undefined;
+    const mine = await appVersion();
+    if (!tag || !mine || !isNewerVersion(tag, mine)) return force ? "latest" : undefined;
     if (!force && localStorage.getItem(UPDATE_DISMISSED_KEY) === tag) return;
     if (force) localStorage.removeItem(UPDATE_DISMISSED_KEY);
     const asset = (release.assets || []).find((a) => /\.apk$/i.test(a.name));

@@ -23,7 +23,7 @@
 // ══════════════════════════════════════════════
 
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { isAllowedFile } from "../../core/files.js";
+import { isAllowedFile, historyDate } from "../../core/files.js";
 
 const DIR = Directory.Data;
 const HISTORY_LIMIT = 50;
@@ -207,8 +207,7 @@ export class MobileVault {
       .reverse()
       .map((f) => ({
         id: f.replace(/\.json$/, ""),
-        // Обратно из имени файла: двоеточия и точку вернули на место.
-        date: f.replace(/\.json$/, "").replace(/-(\d{2})-(\d{2})-(\d{3})Z$/, ":$1:$2.$3Z"),
+        date: historyDate(f),
       }));
   }
 
@@ -350,8 +349,16 @@ export class MobileVault {
   // Содержимое одной картинки — для резервной копии (core/api.js:
   // exportBackup). Capacitor сам отдаёт файл в base64 — тем же видом,
   // которым его ждёт обратно writeMedia ниже.
-  async readMedia(urlPath) {
-    const parts = decodeURIComponent(urlPath)
+  // Без decodeURIComponent, и это принципиально: сюда приходит не адрес,
+  // а имя файла как оно лежит на диске (из listAllMedia). Раскодировать
+  // его было прямой ошибкой — «100%.webp» роняло decodeURIComponent
+  // целиком («URI malformed»), а вместе с ним и весь экспорт, тогда как
+  // «50%20off.webp» тихо превращалось в «50 off.webp», то есть в путь,
+  // которого на диске нет. Настольная реализация никогда не
+  // раскодировала, и расхождение ещё и делало копии несовместимыми
+  // между телефоном и компьютером.
+  async readMedia(relPath) {
+    const parts = String(relPath)
       .replace(/^\/+/, "")
       .split("/")
       .filter(Boolean)
@@ -364,8 +371,10 @@ export class MobileVault {
 
   // Обратная сторона readMedia — восстановление картинки из резервной
   // копии на тот же относительный путь, с которого она была снята.
+  // Тоже без decodeURIComponent — см. readMedia выше: ключи в резервной
+  // копии это имена файлов, а не адреса.
   async writeMedia(relPath, base64) {
-    const parts = decodeURIComponent(relPath)
+    const parts = String(relPath)
       .replace(/^\/+/, "")
       .split("/")
       .filter(Boolean)

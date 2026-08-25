@@ -32,7 +32,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { isAllowedFile } from "../core/files.js";
+import { isAllowedFile, historyDate } from "../core/files.js";
 
 // Сколько версий держим на файл. Пятьдесят сохранений — это заведомо
 // больше, чем успеваешь наделать за один заход, а места они занимают
@@ -151,8 +151,7 @@ export class Vault {
       .reverse()
       .map((f) => ({
         id: f.replace(/\.json$/, ""),
-        // Обратно из имени файла: двоеточия и точку вернули на место.
-        date: f.replace(/\.json$/, "").replace(/-(\d{2})-(\d{2})-(\d{3})Z$/, ":$1:$2.$3Z"),
+        date: historyDate(f),
       }));
   }
 

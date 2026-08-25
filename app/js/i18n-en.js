@@ -1096,6 +1096,10 @@ i18nRegister({
   "Проверяем…": "Checking…",
   "У тебя последняя версия.": "You're on the latest version.",
   "Не удалось проверить обновления.": "Couldn't check for updates.",
+  "Найдена версия {v} — качаем, предложим установить.":
+    "Found version {v} — downloading, we'll offer to install it.",
+  "Запущено из исходников — обновления не проверяются.":
+    "Running from source — updates aren't checked.",
 });
 
 // ── Настоящая «текущая» версия в истории ───────
@@ -1128,7 +1132,6 @@ i18nRegister({
     "The keys for search, a new review, and this list itself can be rebound — hit “Change” and press the key you want.",
   "Изменить": "Change",
   "Нажмите клавишу…": "Press a key…",
-  "Эта клавиша уже занята другим действием.": "That key is already used by another action.",
   "Сбросить к умолчаниям": "Reset to defaults",
 });
 
@@ -1140,7 +1143,9 @@ i18nRegister({
   "не задано": "not set",
   "Очистить": "Clear",
   "Нажмите клавишу или кнопку мыши…": "Press a key or mouse button…",
-  "Эта клавиша уже занята другой вкладкой.": "That key is already used by another tab.",
+  "Цифры 1–5 уже переключают вкладки по порядку.": "Digits 1–5 already switch tabs in order.",
+  "Эта клавиша уже занята: {what}.": "That key is already taken by: {what}.",
+  "Эта клавиша уже занята вкладкой «{tab}».": "That key is already taken by the “{tab}” tab.",
   "Средняя кнопка": "Middle button",
   "Кнопка «Назад»": "Back button",
   "Кнопка «Вперёд»": "Forward button",

@@ -571,15 +571,27 @@ autoUpdater.autoInstallOnAppQuit = false;
 // обновления, всплывший как раз в момент клика по вкладке где-то ещё
 // на странице, засчитывал этот клик как «Позже» — человек ничего не
 // нажимал, а уведомление уже пропадало.
+//
+// Возвращает три состояния, а не два, и это важно: true — «да»,
+// false — человек нажал «Позже», null — спросить не удалось вообще
+// (окна нет, страница ещё не догрузила utils.js). Раньше последний
+// случай возвращал тот же false, что и явный отказ, — и вызывающий код
+// записывал версию в dismissedUpdate, то есть обновление, которое
+// человеку даже не показали, больше не предлагалось никогда. Ловится
+// это только вручную через «Проверить обновления», о чём никто не
+// догадается.
 async function showThemedUpdateDialog(message, actionLabel) {
-  if (!win || win.webContents.isDestroyed()) return false;
+  if (!win || win.webContents.isDestroyed()) return null;
   try {
-    return await win.webContents.executeJavaScript(
-      `window.confirmDialog(${JSON.stringify(message)}, ${JSON.stringify(actionLabel)}, ${JSON.stringify(tr("Позже"))}, {strict:true})`
+    const answer = await win.webContents.executeJavaScript(
+      `typeof window.confirmDialog === "function"
+         ? window.confirmDialog(${JSON.stringify(message)}, ${JSON.stringify(actionLabel)}, ${JSON.stringify(tr("Позже"))}, {strict:true})
+         : null`
     );
+    return answer === null ? null : !!answer;
   } catch {
     // Страница ещё не загрузила utils.js (маловероятно, но не повод падать).
-    return false;
+    return null;
   }
 }
 
@@ -595,6 +607,10 @@ async function promptRestart(info) {
     `${tr("Обновление готово")}: ${info.version}`,
     tr("Перезапустить")
   );
+  // null — спросить не вышло; молчим и не запоминаем отказ, которого не
+  // было. Файл уже скачан и лежит в pendingUpdateInfo, так что предложим
+  // снова при следующем запуске или по кнопке в настройках.
+  if (restart === null) return;
   // Второй аргумент — isForceRunAfter: без него electron-updater не
   // гарантирует перезапуск после тихой (oneClick) установки на Windows,
   // и приложение просто закрывалось, не открываясь обратно само.
@@ -605,6 +621,13 @@ async function promptRestart(info) {
 autoUpdater.on("update-downloaded", async (info) => {
   pendingUpdateInfo = info;
   if (config.dismissedUpdate === info.version) return;
+  // Окно могло ещё не догрузить страницу — тогда confirmDialog там
+  // просто нет, и спрашивать пока некого. Ждём загрузки и спрашиваем
+  // после неё, вместо того чтобы потерять обновление молча.
+  if (win && !win.webContents.isDestroyed() && win.webContents.isLoading()) {
+    win.webContents.once("did-finish-load", () => promptRestart(info));
+    return;
+  }
   await promptRestart(info);
 });
 
@@ -616,6 +639,7 @@ async function checkForUpdatesMac() {
       `${tr("Доступно обновление")}: ${update.version}`,
       tr("Скачать")
     );
+    if (download === null) return; // спросить не вышло — см. promptRestart
     if (download) openDownload(update);
     else await saveConfig({ dismissedUpdate: update.version });
   } catch {
@@ -638,9 +662,10 @@ async function checkForUpdatesManual() {
         `${tr("Доступно обновление")}: ${update.version}`,
         tr("Скачать")
       );
+      if (download === null) return { status: "error" }; // спросить не вышло
       if (download) openDownload(update);
       else await saveConfig({ dismissedUpdate: update.version });
-      return { status: "available" };
+      return { status: "available", version: update.version };
     } catch {
       return { status: "error" };
     }
@@ -648,7 +673,7 @@ async function checkForUpdatesManual() {
 
   if (pendingUpdateInfo) {
     await promptRestart(pendingUpdateInfo);
-    return { status: "available" };
+    return { status: "available", version: pendingUpdateInfo.version };
   }
 
   await saveConfig({ dismissedUpdate: null });
@@ -658,7 +683,7 @@ async function checkForUpdatesManual() {
     if (!version || version === app.getVersion()) return { status: "latest" };
     // Обновление нашлось и качается в фоне — диалог покажет сам
     // обработчик update-downloaded, как только файл будет готов.
-    return { status: "downloading" };
+    return { status: "downloading", version };
   } catch {
     return { status: "error" };
   }

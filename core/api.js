@@ -446,9 +446,19 @@ async function exportBackup({ vault }) {
     files[name] = await vault.readJson(name, []);
   }
 
+  // По одной и с перехватом: копия без одной картинки несравнимо лучше,
+  // чем отсутствие копии вообще. Раньше первый же нечитаемый файл
+  // (права, полпути удалённый файл, кривое имя) обрывал весь экспорт с
+  // невнятной ошибкой — а на телефоне резервная копия это единственный
+  // способ вынести свои данные наружу.
   const images = {};
+  let skippedImages = 0;
   for (const relPath of await vault.listAllMedia()) {
-    images[relPath] = await vault.readMedia(relPath);
+    try {
+      images[relPath] = await vault.readMedia(relPath);
+    } catch {
+      skippedImages++;
+    }
   }
 
   return {
@@ -457,6 +467,7 @@ async function exportBackup({ vault }) {
     exportedAt: new Date().toISOString(),
     files,
     images,
+    ...(skippedImages ? { skippedImages } : {}),
   };
 }
 
@@ -538,7 +549,21 @@ async function fileHistory({ vault, query }) {
   // а это не то же самое: «Удалить всю историю» стирает .history
   // целиком, и без этой строки список после такой чистки выглядел так,
   // будто пропали и текущие данные тоже, хотя сам файл не тронут.
-  const current = await vault.readJson(path, null);
+  //
+  // try/catch обязателен: readJson намеренно бросает на испорченном
+  // JSON, и без перехвата весь список версий переставал открываться
+  // ровно тогда, когда он нужнее всего — сообщение о порче так и
+  // говорит «загляни в историю», а история и не открывалась. Битый
+  // текущий файл — не повод прятать прошлые версии, наоборот.
+  let current = null;
+  try {
+    current = await vault.readJson(path, null);
+  } catch {
+    // Файл есть, но не читается — значит он точно есть, и строку
+    // «текущая» показать надо (скачать её как JSON всё равно можно,
+    // а восстанавливать поверх неё как раз и собираются).
+    current = { __unreadable: true };
+  }
   if (current !== null) list.unshift({ sha: "current", date: null, message: "текущая версия" });
   return { ok: true, versions: list };
 }
