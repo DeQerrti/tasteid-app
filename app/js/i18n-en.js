@@ -1121,3 +1121,13 @@ i18nRegister({
   "Не удалось удалить: {msg}": "Couldn't delete: {msg}",
   "Версий: {n}": "Versions: {n}",
 });
+
+// ── Перебиндинг горячих клавиш (панель настроек) ─
+i18nRegister({
+  "Клавиши для поиска, нового отзыва и списка горячих клавиш можно поменять под себя — жми «Изменить» и нажми нужную клавишу.":
+    "The keys for search, a new review, and this list itself can be rebound — hit “Change” and press the key you want.",
+  "Изменить": "Change",
+  "Нажмите клавишу…": "Press a key…",
+  "Эта клавиша уже занята другим действием.": "That key is already used by another action.",
+  "Сбросить к умолчаниям": "Reset to defaults",
+});

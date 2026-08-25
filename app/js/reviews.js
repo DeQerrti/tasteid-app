@@ -284,7 +284,10 @@ function openReviewModal(r) {
   document.body.style.overflow = "hidden";
   // Фокус внутрь окна — иначе скринридер продолжит читать страницу
   // под ним, а Tab уведёт за пределы диалога с первого же нажатия.
-  overlay.querySelector(".review-modal-close")?.focus();
+  // На саму панель, не на кнопку закрытия — той больше нет (Esc и
+  // клик в стороне уже закрывают модалку, отдельный крестик был
+  // лишним элементом).
+  overlay.querySelector(".review-modal-panel")?.focus();
 }
 
 function closeReviewModal() {
@@ -323,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay || e.target.closest(".review-modal-close")) closeReviewModal();
+    if (e.target === overlay) closeReviewModal();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeReviewModal();

@@ -280,6 +280,23 @@ document.addEventListener(
   true
 );
 
+// ── Настоящая клавиатурная навигация, не любой keydown ─────────
+// У браузерного :focus-visible есть подвох: он включается от ЛЮБОЙ
+// клавиши, нажатой пока элемент в фокусе — даже голого Shift без
+// всякой навигации. Кликнул мышью по карточке отзыва или по крестику
+// модалки, потом нажал что угодно с клавиатуры — и вокруг элемента
+// расцветает рамка, хотя человек её не просил и не Tab'ался туда.
+// html.kb-nav — свой, честный признак: единственное, что его
+// включает — клавиша Tab, единственное, что выключает — любой клик
+// мышью. CSS ниже (см. .review-card-wrap, .review-modal-close в
+// index.html) реагирует на него вместо :focus-visible.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Tab") document.documentElement.classList.add("kb-nav");
+}, true);
+document.addEventListener("mousedown", () => {
+  document.documentElement.classList.remove("kb-nav");
+}, true);
+
 // ── Esc закрывает открытое — общее для всех страниц ────────────
 // Каждая страница успела обзавестись своим способом закрыть открытое:
 // у модалок (.modal-overlay, .review-modal-overlay) — клик по подложке
@@ -305,22 +322,74 @@ document.addEventListener("keydown", (e) => {
   });
 });
 
-// ── Горячие клавиши — общий список ─────────────
+// ── Esc уходит со страницы — общее для страниц-редакторов ──────
+// add.html, settings-edit.html, backup-history.html и подобные
+// открываются только кликом из главной, и раньше единственным
+// выходом была стрелка в шапке — с клавиатуры никак. Учитывает уже
+// открытые модалки и выпадающие списки: тем Escape сначала просто
+// закрывает их (см. общий обработчик выше), страницу это не покидает.
+function enableEscapeToLeave(extraOpenSelector) {
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const selector = [".modal-overlay:not(.hidden)", ".review-modal-overlay:not(.hidden)", extraOpenSelector]
+      .filter(Boolean)
+      .join(", ");
+    if (document.querySelector(selector)) return;
+    location.href = "/";
+  });
+}
+
+// ── Горячие клавиши — общий список и биндинги ──
 // Один источник для подсказки по «?» на главной (index.html) и для
 // справочной панели в настройках (settings-edit.html) — чтобы правка
 // одного списка не расходилась с другим. Сами обработчики клавиш
 // живут в index.html — там же, где вкладки и модалки, которыми они
-// управляют; здесь только то, что выводится человеку на экран.
+// управляют; здесь только то, что выводится человеку на экран, и
+// сами биндинги — общие для чтения и там, и там.
+//
+// Биндинг хранится по коду физической клавиши (e.code), а не по
+// символу (e.key): «/» и «?» на многих раскладках вообще не
+// печатаются, а код клавиши не зависит от раскладки. label — как эта
+// клавиша называлась в момент, когда её нажали при перебиндинге,
+// нужен только для подписи, в сравнении не участвует.
+const DEFAULT_KEYBINDINGS = {
+  search:    { code: "Slash", shift: false, label: "/" },
+  newReview: { code: "KeyN",  shift: false, label: "N" },
+  shortcuts: { code: "Slash", shift: true,  label: "?" },
+};
+
+function currentKeybindings() {
+  const saved = window.SITE_KEYBINDINGS || {};
+  const out = {};
+  for (const action of Object.keys(DEFAULT_KEYBINDINGS)) {
+    const b = saved[action];
+    out[action] = b && b.code ? b : DEFAULT_KEYBINDINGS[action];
+  }
+  return out;
+}
+
+function keyBindingLabel(b) {
+  return (b.shift ? "Shift+" : "") + (b.label || b.code);
+}
+
+function keyBindingMatches(e, b) {
+  return e.code === b.code && e.shiftKey === !!b.shift;
+}
+
 function keyboardShortcutsList() {
+  const kb = currentKeybindings();
   return [
     { keys: ["1", "5"], range: true, desc: i18n("Переключить вкладку") },
-    { keys: ["/"], desc: i18n("Поиск в «Отзывах»") },
-    { keys: ["N"], desc: i18n("Новый отзыв"), adminOnly: true },
-    { keys: ["?"], desc: i18n("Список горячих клавиш") },
+    { action: "search", keys: [keyBindingLabel(kb.search)], desc: i18n("Поиск в «Отзывах»") },
+    { action: "newReview", keys: [keyBindingLabel(kb.newReview)], desc: i18n("Новый отзыв"), adminOnly: true },
+    { action: "shortcuts", keys: [keyBindingLabel(kb.shortcuts)], desc: i18n("Список горячих клавиш") },
     { keys: ["Esc"], desc: i18n("Закрыть окно") },
   ];
 }
-function keyboardShortcutsHtml() {
+// editable — только для панели «Горячие клавиши» в настройках: рядом с
+// перебиндиваемыми строками рисует кнопку «Изменить». В подсказке по
+// «?» на главной этого не должно быть — там просто справка.
+function keyboardShortcutsHtml(editable) {
   const admin = typeof isAdmin === "function" && isAdmin();
   return keyboardShortcutsList()
     .filter((s) => !s.adminOnly || admin)
@@ -328,7 +397,66 @@ function keyboardShortcutsHtml() {
       const keys = s.range
         ? `<span class="kbd">${esc(s.keys[0])}</span>–<span class="kbd">${esc(s.keys[1])}</span>`
         : s.keys.map((k) => `<span class="kbd">${esc(k)}</span>`).join("");
-      return `<div class="shortcut-row">${keys}<span class="shortcut-desc">${esc(s.desc)}</span></div>`;
+      const editBtn = editable && s.action
+        ? `<button type="button" class="btn-mini" data-rebind="${s.action}" onclick="startRebindShortcut('${s.action}', this)">${i18n("Изменить")}</button>`
+        : "";
+      return `<div class="shortcut-row"><span class="shortcut-keys">${keys}</span><span class="shortcut-desc">${esc(s.desc)}</span>${editBtn}</div>`;
     })
     .join("");
+}
+
+// ── Перебиндинг — только в настройках ──────────
+// «Изменить» переводит кнопку в режим ожидания следующей клавиши;
+// Escape отменяет, любая другая клавиша (кроме голых модификаторов)
+// сохраняется. Совпадение с уже занятой комбинацией — отказ, а не
+// молчаливая замена: два действия на одной клавише работали бы как
+// повезёт, в зависимости от порядка проверки в обработчике.
+let rebindingAction = null;
+async function startRebindShortcut(action, btn) {
+  if (rebindingAction) return; // уже ждём другую клавишу — не начинать вторую одновременно
+  rebindingAction = action;
+  const prevLabel = btn.textContent;
+  btn.textContent = i18n("Нажмите клавишу…");
+  btn.disabled = true;
+
+  const finish = async (result) => {
+    document.removeEventListener("keydown", onKey, true);
+    rebindingAction = null;
+    if (result) {
+      const kb = currentKeybindings();
+      const clash = Object.entries(kb).find(([a, b]) => a !== action && b.code === result.code && !!b.shift === result.shift);
+      if (clash) {
+        backupToastGlobal(i18n("Эта клавиша уже занята другим действием."), false);
+      } else {
+        try {
+          await patchSiteSettings((settings) => {
+            settings.keyBindings = { ...(settings.keyBindings || {}), [action]: result };
+          });
+          window.SITE_KEYBINDINGS = { ...(window.SITE_KEYBINDINGS || {}), [action]: result };
+        } catch (e) {
+          backupToastGlobal(e.message, false);
+        }
+      }
+    }
+    if (typeof window.refreshShortcutsPanel === "function") window.refreshShortcutsPanel();
+    else { btn.textContent = prevLabel; btn.disabled = false; }
+  };
+
+  const onKey = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === "Escape") return finish(null);
+    if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return; // ждём настоящую клавишу дальше
+    finish({ code: e.code, shift: e.shiftKey, label: e.key.length === 1 ? e.key.toUpperCase() : e.key });
+  };
+  document.addEventListener("keydown", onKey, true);
+}
+// Тост есть не на каждой странице (собственный backupToast — только у
+// backup-history.js) — здесь свой минимальный, без зависимости.
+function backupToastGlobal(text, ok) {
+  const el = document.createElement("div");
+  el.className = "toast " + (ok ? "ok" : "err");
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
 }

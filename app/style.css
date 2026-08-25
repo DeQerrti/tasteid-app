@@ -533,7 +533,7 @@ select option { background: var(--bg2); }
   font-family: 'DM Sans', sans-serif; font-size: .82rem;
 }
 .shortcut-row:last-child { border-bottom: none; }
-.shortcut-desc { color: var(--text-dim); }
+.shortcut-desc { color: var(--text-dim); flex: 1; }
 
 .state-box {
   text-align: center;

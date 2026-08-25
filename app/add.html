@@ -35,8 +35,8 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=20"></script>
-<script src="/js/theme.js?v=14"></script>
+<script src="/js/utils.js?v=21"></script>
+<script src="/js/theme.js?v=15"></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/external-ids.js?v=12"></script>
 <link rel="stylesheet" href="/style.css?v=20">
@@ -2625,16 +2625,7 @@ async function saveReview() {
   btn.textContent = editingId !== null ? "Сохранить изменения" : i18n("Сохранить отзыв");
 }
 
-// Esc выходит из редактора — раньше не выходил никак, только клик по
-// стрелке в шапке. Приоритет у открытого выпадающего списка или
-// модалки: их первым Escape закрывает общий обработчик в js/utils.js
-// (и closeTypeDropdown/closeTypePickerDropdown/closeStatusPickerDropdown
-// прямо здесь), а не сразу уводит со страницы.
-document.addEventListener("keydown", (e) => {
-  if (e.key !== "Escape") return;
-  if (document.querySelector(".src-type-dropdown:not(.hidden), .modal-overlay:not(.hidden)")) return;
-  location.href = "/";
-});
+enableEscapeToLeave(".src-type-dropdown:not(.hidden)");
 
 initPage();
 </script>

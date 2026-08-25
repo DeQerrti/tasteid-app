@@ -200,6 +200,7 @@ async function applyTheme() {
   }
   style.textContent = `:root { ${declarations} }`;
 
+  window.SITE_KEYBINDINGS = settings.keyBindings || null;
   window.SITE_LABELS = mergeLabels(settings.labels);
   window.SITE_LABEL_OVERRIDES = settings.labels || {};
   window.SITE_CUSTOM_TAGS = settings.customTags || {};
