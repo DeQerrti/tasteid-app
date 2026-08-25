@@ -275,3 +275,31 @@ document.addEventListener(
   },
   true
 );
+
+// ── Горячие клавиши — общий список ─────────────
+// Один источник для подсказки по «?» на главной (index.html) и для
+// справочной панели в настройках (settings-edit.html) — чтобы правка
+// одного списка не расходилась с другим. Сами обработчики клавиш
+// живут в index.html — там же, где вкладки и модалки, которыми они
+// управляют; здесь только то, что выводится человеку на экран.
+function keyboardShortcutsList() {
+  return [
+    { keys: ["1", "5"], range: true, desc: i18n("Переключить вкладку") },
+    { keys: ["/"], desc: i18n("Поиск в «Отзывах»") },
+    { keys: ["N"], desc: i18n("Новый отзыв"), adminOnly: true },
+    { keys: ["?"], desc: i18n("Список горячих клавиш") },
+    { keys: ["Esc"], desc: i18n("Закрыть окно") },
+  ];
+}
+function keyboardShortcutsHtml() {
+  const admin = typeof isAdmin === "function" && isAdmin();
+  return keyboardShortcutsList()
+    .filter((s) => !s.adminOnly || admin)
+    .map((s) => {
+      const keys = s.range
+        ? `<span class="kbd">${esc(s.keys[0])}</span>–<span class="kbd">${esc(s.keys[1])}</span>`
+        : s.keys.map((k) => `<span class="kbd">${esc(k)}</span>`).join("");
+      return `<div class="shortcut-row">${keys}<span class="shortcut-desc">${esc(s.desc)}</span></div>`;
+    })
+    .join("");
+}

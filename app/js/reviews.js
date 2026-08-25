@@ -4,6 +4,11 @@
 // ══════════════════════════════════════════════
 
 // ── Состояние фильтров ─────────────────────────
+// Переживает уход со вкладки и перезаход на сайт — раньше фильтры
+// сбрасывались каждый раз, хотя вкладка и так помнит, какая она
+// последняя открытая (site-settings.json: mainTab). Ключ и значения —
+// то же rvState, просто зеркалится в localStorage при каждой правке.
+const RV_FILTERS_KEY = "tasteid-rv-filters";
 const rvState = {
   type:   "all",
   grade:  "all",
@@ -11,6 +16,14 @@ const rvState = {
   search: "",
   tagSearch: "",
 };
+try {
+  Object.assign(rvState, JSON.parse(localStorage.getItem(RV_FILTERS_KEY)) || {});
+} catch {}
+function rvPersistFilters() {
+  try {
+    localStorage.setItem(RV_FILTERS_KEY, JSON.stringify(rvState));
+  } catch {}
+}
 
 let rvLastFiltered = [];
 
@@ -95,11 +108,13 @@ function renderReviews(reviews) {
   const searchInput = document.getElementById("rv-search");
   searchInput.addEventListener("input", () => {
     rvState.search = searchInput.value.trim().toLowerCase();
+    rvPersistFilters();
     applyRvFilters(reviews);
   });
   const tagSearchInput = document.getElementById("rv-tag-search");
   tagSearchInput.addEventListener("input", () => {
     rvState.tagSearch = tagSearchInput.value.trim().toLowerCase();
+    rvPersistFilters();
     applyRvFilters(reviews);
   });
 
@@ -136,6 +151,7 @@ function bindRvFilters(reviews) {
       const field = btn.dataset.field;
       const val   = btn.dataset.val;
       rvState[field] = val;
+      rvPersistFilters();
 
       document.querySelectorAll(`.rv-filter-btn[data-field="${field}"]`)
         .forEach(b => b.classList.toggle("active", b.dataset.val === val));

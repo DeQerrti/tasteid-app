@@ -34,13 +34,13 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0a0a0c">
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=17">
+<link rel="stylesheet" href="/style.css?v=18">
 <link rel="stylesheet" href="/themes.css?v=15">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=17"></script>
+<script src="/js/utils.js?v=18"></script>
 <script src="/js/theme.js?v=14"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
@@ -1264,12 +1264,22 @@ section.group { margin-bottom: 3.5rem; }
   </div>
 </div>
 
+<!-- Модалка: список горячих клавиш, вызывается «?» — тот же список,
+     что и справочная панель в настройках (js/utils.js: keyboardShortcutsHtml) -->
+<div class="modal-overlay hidden" id="shortcuts-modal-overlay" onclick="closeShortcutsModalOnOverlay(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShortcutsModal()">✕</button>
+    <div class="modal-title" data-i18n>Горячие клавиши</div>
+    <div id="shortcuts-modal-list"></div>
+  </div>
+</div>
+
 <script src="/js/config.js?v=14"></script>
 <script src="/js/api.js?v=12"></script>
 <script src="/js/cards.js?v=12"></script>
 <script src="/js/now.js?v=12"></script>
 <script src="/js/favorites.js?v=12"></script>
-<script src="/js/reviews.js?v=14"></script>
+<script src="/js/reviews.js?v=15"></script>
 <script src="/js/stats.js?v=14"></script>
 <script src="/js/tierlist.js?v=13"></script>
 
@@ -1296,6 +1306,49 @@ function switchTab(tabId, btn) {
   if (tabId === "tab-stats")     loadStats();
   if (tabId === "tab-tierlist")  loadTierlist();
 }
+
+// ── Горячие клавиши ─────────────────────────────
+// 1–5 переключают вкладки рельсы, / открывает поиск в «Отзывах», N —
+// новый отзыв (только у админа), ? — эта же подсказка списком. Список
+// показываемых сочетаний — общий с панелью в настройках, см.
+// js/utils.js: keyboardShortcutsList/Html.
+function openShortcutsModal() {
+  document.getElementById("shortcuts-modal-list").innerHTML = keyboardShortcutsHtml();
+  document.getElementById("shortcuts-modal-overlay").classList.remove("hidden");
+}
+function closeShortcutsModal() {
+  document.getElementById("shortcuts-modal-overlay").classList.add("hidden");
+}
+function closeShortcutsModalOnOverlay(e) {
+  if (e.target === document.getElementById("shortcuts-modal-overlay")) closeShortcutsModal();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { closeShortcutsModal(); return; }
+
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+  if (document.querySelector(".modal-overlay:not(.hidden), .review-modal-overlay:not(.hidden)")) return;
+
+  if (e.key >= "1" && e.key <= "5") {
+    const idx = Number(e.key) - 1;
+    const btn = document.querySelectorAll(".rail-tabs .tab-btn")[idx];
+    const tabId = ["tab-now", "tab-favorites", "tab-reviews", "tab-stats", "tab-tierlist"][idx];
+    if (btn) { e.preventDefault(); switchTab(tabId, btn); }
+  } else if (e.key === "/") {
+    e.preventDefault();
+    const btn = document.querySelector('.tab-btn[aria-controls="tab-reviews"]');
+    switchTab("tab-reviews", btn);
+    setTimeout(() => document.getElementById("rv-search")?.focus(), 50);
+  } else if (e.key === "n" && typeof isAdmin === "function" && isAdmin()) {
+    e.preventDefault();
+    location.href = "/add.html";
+  } else if (e.key === "?") {
+    e.preventDefault();
+    openShortcutsModal();
+  }
+});
 
 // Первую вкладку открываем только после того, как применились настройки
 // сайта: до этого неизвестны ни стартовая вкладка (mainTab), ни порядок,

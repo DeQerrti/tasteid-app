@@ -1066,3 +1066,14 @@ i18nRegister({
     "Colours the breakdown by type and by year — the chart, the bars and the numbers.",
   "Цвет по умолчанию": "Default colour",
 });
+
+// ── Горячие клавиши (index.html, панель настроек) ──
+i18nRegister({
+  "Горячие клавиши": "Keyboard shortcuts",
+  "Работают на главной странице — везде, кроме полей ввода и открытых окон.":
+    "Work on the main page — everywhere except text fields and open windows.",
+  "Переключить вкладку": "Switch tab",
+  "Поиск в «Отзывах»": "Search in “Reviews”",
+  "Список горячих клавиш": "List of keyboard shortcuts",
+  "Закрыть окно": "Close window",
+});
