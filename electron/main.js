@@ -235,6 +235,8 @@ function appRoutes() {
       version: app.getVersion(),
     }),
 
+    "POST /api/app/check-update": async () => checkForUpdatesManual(),
+
     "POST /api/app/pick-vault": async ({ body }) => ({
       path: await askForVault({ mode: body.mode, previous: vault?.root }),
     }),
@@ -564,11 +566,16 @@ autoUpdater.autoInstallOnAppQuit = false;
 // executeJavaScript — тем же приёмом, что уже работает для
 // __syncBeforeQuit перед закрытием окна и для чтения цветов темы после
 // загрузки страницы (см. чуть ниже).
+// strict — см. confirmDialog() в app/js/utils.js: подложка и Escape
+// диалог не закрывают, нужен явный клик по кнопке. Без этого диалог
+// обновления, всплывший как раз в момент клика по вкладке где-то ещё
+// на странице, засчитывал этот клик как «Позже» — человек ничего не
+// нажимал, а уведомление уже пропадало.
 async function showThemedUpdateDialog(message, actionLabel) {
   if (!win || win.webContents.isDestroyed()) return false;
   try {
     return await win.webContents.executeJavaScript(
-      `window.confirmDialog(${JSON.stringify(message)}, ${JSON.stringify(actionLabel)}, ${JSON.stringify(tr("Позже"))})`
+      `window.confirmDialog(${JSON.stringify(message)}, ${JSON.stringify(actionLabel)}, ${JSON.stringify(tr("Позже"))}, {strict:true})`
     );
   } catch {
     // Страница ещё не загрузила utils.js (маловероятно, но не повод падать).
@@ -576,14 +583,26 @@ async function showThemedUpdateDialog(message, actionLabel) {
   }
 }
 
-autoUpdater.on("update-downloaded", async (info) => {
-  if (config.dismissedUpdate === info.version) return;
+// Держим готовое к установке обновление отдельно от dismissedUpdate:
+// человек мог один раз нажать «Позже», а потом передумать и нажать
+// «Проверить обновления» в настройках — тогда файл уже скачан и
+// диалог можно показать заново сразу, не дожидаясь следующего цикла
+// autoUpdater.
+let pendingUpdateInfo = null;
+
+async function promptRestart(info) {
   const restart = await showThemedUpdateDialog(
     `${tr("Обновление готово")}: ${info.version}`,
     tr("Перезапустить")
   );
   if (restart) autoUpdater.quitAndInstall();
   else await saveConfig({ dismissedUpdate: info.version });
+}
+
+autoUpdater.on("update-downloaded", async (info) => {
+  pendingUpdateInfo = info;
+  if (config.dismissedUpdate === info.version) return;
+  await promptRestart(info);
 });
 
 async function checkForUpdatesMac() {
@@ -598,6 +617,47 @@ async function checkForUpdatesMac() {
     else await saveConfig({ dismissedUpdate: update.version });
   } catch {
     // Нет сети или GitHub недоступен — не повод тревожить человека.
+  }
+}
+
+// Ручная проверка — кнопка «Проверить обновления» в настройках.
+// В отличие от автоматической, всегда снимает прошлый отказ: если
+// человек однажды нажал «Позже», а потом сам попросил проверить снова,
+// молчать в ответ на dismissedUpdate было бы странно.
+async function checkForUpdatesManual() {
+  if (!app.isPackaged) return { status: "dev" };
+
+  if (process.platform === "darwin") {
+    try {
+      const update = await findUpdate(app.getVersion());
+      if (!update) return { status: "latest" };
+      const download = await showThemedUpdateDialog(
+        `${tr("Доступно обновление")}: ${update.version}`,
+        tr("Скачать")
+      );
+      if (download) openDownload(update);
+      else await saveConfig({ dismissedUpdate: update.version });
+      return { status: "available" };
+    } catch {
+      return { status: "error" };
+    }
+  }
+
+  if (pendingUpdateInfo) {
+    await promptRestart(pendingUpdateInfo);
+    return { status: "available" };
+  }
+
+  await saveConfig({ dismissedUpdate: null });
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    const version = result?.updateInfo?.version;
+    if (!version || version === app.getVersion()) return { status: "latest" };
+    // Обновление нашлось и качается в фоне — диалог покажет сам
+    // обработчик update-downloaded, как только файл будет готов.
+    return { status: "downloading" };
+  } catch {
+    return { status: "error" };
   }
 }
 

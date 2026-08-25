@@ -1090,6 +1090,14 @@ i18nRegister({
   "Поддержать на Boosty": "Support on Boosty",
 });
 
+// ── Ручная проверка обновлений (App panel) ─────
+i18nRegister({
+  "Проверить обновления": "Check for updates",
+  "Проверяем…": "Checking…",
+  "У тебя последняя версия.": "You're on the latest version.",
+  "Не удалось проверить обновления.": "Couldn't check for updates.",
+});
+
 // ── Возрастная чистка истории версий ───────────
 i18nRegister({
   "Автоматически удалять версии старше:": "Automatically delete versions older than:",

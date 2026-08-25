@@ -115,7 +115,7 @@ function plural(n, forms) {
 // «Позже».
 let confirmDialogEl = null;
 
-function confirmDialog(message, okLabel = i18n("Удалить"), cancelLabel = i18n("Отмена")) {
+function confirmDialog(message, okLabel = i18n("Удалить"), cancelLabel = i18n("Отмена"), { strict = false } = {}) {
   if (!confirmDialogEl) {
     confirmDialogEl = document.createElement("div");
     confirmDialogEl.id = "confirm-dialog-overlay";
@@ -156,10 +156,14 @@ function confirmDialog(message, okLabel = i18n("Удалить"), cancelLabel = 
     cancelBtn.onclick = () => finish(false);
     // Клик по подложке — тот же жест, что и Отмена, а не ОК: случайный
     // клик мимо диалога не должен удалять то, что спросили удалить.
+    // В строгом режиме (strict) подложка и Escape вообще не реагируют —
+    // для диалогов вроде «доступно обновление», которые могут появиться
+    // прямо посреди клика по чему-то другому: иначе тот самый клик,
+    // пришедшийся на подложку, тихо считался бы отказом.
     confirmDialogEl.onclick = (e) => {
-      if (e.target === confirmDialogEl) finish(false);
+      if (!strict && e.target === confirmDialogEl) finish(false);
     };
-    document.addEventListener("keydown", onKey);
+    if (!strict) document.addEventListener("keydown", onKey);
   });
 }
 

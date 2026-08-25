@@ -153,6 +153,10 @@ async function appRoutes(pathname, body) {
     document.cookie = `${LANG_KEY}=${lang}; path=/`;
     return { lang };
   }
+  if (pathname === "/api/app/check-update") {
+    const status = await checkForUpdate(true);
+    return { status: status || "latest" };
+  }
   // Остальное с телефона неприменимо, но отвечать надо: страница
   // проверяет наличие этих адресов, чтобы понять, что она в приложении.
   if (pathname.startsWith("/api/app/")) return { ok: true };
@@ -453,20 +457,25 @@ function showUpdateBanner(version, url) {
   document.body.appendChild(bar);
 }
 
-async function checkForUpdate() {
+// force — кнопка «Проверить обновления» в настройках: снимает прошлый
+// отказ («Позже») и всегда возвращает статус, а не молчит, как тихая
+// проверка при запуске.
+async function checkForUpdate(force = false) {
   try {
     const res = await window.fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
       headers: { Accept: "application/vnd.github+json" },
     });
-    if (!res.ok) return;
+    if (!res.ok) return force ? "error" : undefined;
     const release = await res.json();
     const tag = release.tag_name || "";
-    if (!tag || !isNewerVersion(tag, APP_VERSION)) return;
-    if (localStorage.getItem(UPDATE_DISMISSED_KEY) === tag) return;
+    if (!tag || !isNewerVersion(tag, APP_VERSION)) return force ? "latest" : undefined;
+    if (!force && localStorage.getItem(UPDATE_DISMISSED_KEY) === tag) return;
+    if (force) localStorage.removeItem(UPDATE_DISMISSED_KEY);
     const asset = (release.assets || []).find((a) => /\.apk$/i.test(a.name));
     showUpdateBanner(tag.replace(/^v/i, ""), asset?.browser_download_url || release.html_url);
+    return "available";
   } catch {
-    // Нет сети — молчим, это не ошибка приложения.
+    return force ? "error" : undefined;
   }
 }
 
