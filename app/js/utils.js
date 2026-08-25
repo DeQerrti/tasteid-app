@@ -109,9 +109,13 @@ function plural(n, forms) {
 // отдельной подгонки под каждый скин.
 //
 // Использование: if (!(await confirmDialog("Удалить «Тег»?"))) return;
+// cancelLabel по умолчанию — «Отмена»; она же зовёт эту коробку и для
+// диалога обновления (electron/main.js, executeJavaScript) со своими
+// подписями — там «Отмена» читалась бы не в тему, поэтому там передают
+// «Позже».
 let confirmDialogEl = null;
 
-function confirmDialog(message, okLabel = i18n("Удалить")) {
+function confirmDialog(message, okLabel = i18n("Удалить"), cancelLabel = i18n("Отмена")) {
   if (!confirmDialogEl) {
     confirmDialogEl = document.createElement("div");
     confirmDialogEl.id = "confirm-dialog-overlay";
@@ -120,7 +124,7 @@ function confirmDialog(message, okLabel = i18n("Удалить")) {
       <div class="modal confirm-dialog">
         <div class="confirm-dialog-text"></div>
         <div class="confirm-dialog-actions">
-          <button type="button" class="btn btn-ghost" data-act="cancel">${i18n("Отмена")}</button>
+          <button type="button" class="btn btn-ghost" data-act="cancel"></button>
           <button type="button" class="btn btn-primary" data-act="ok"></button>
         </div>
       </div>`;
@@ -132,6 +136,7 @@ function confirmDialog(message, okLabel = i18n("Удалить")) {
   const cancelBtn = confirmDialogEl.querySelector('[data-act="cancel"]');
   textEl.textContent = message;
   okBtn.textContent = okLabel;
+  cancelBtn.textContent = cancelLabel;
   confirmDialogEl.classList.remove("hidden");
   okBtn.focus();
 

@@ -502,17 +502,33 @@ function openWelcome() {
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = false;
 
+// Раньше здесь стоял dialog.showMessageBox — системная коробка Windows
+// поверх тёмной страницы приложения, безо всякой связи с выбранной
+// темой. Вместо неё — confirmDialog() из app/js/utils.js: та же
+// модалка, что и везде в приложении (удаление полки, отката версии и
+// т.д.), сама подхватывает тему и палитру. Зовём её из renderer'а через
+// executeJavaScript — тем же приёмом, что уже работает для
+// __syncBeforeQuit перед закрытием окна и для чтения цветов темы после
+// загрузки страницы (см. чуть ниже).
+async function showThemedUpdateDialog(message, actionLabel) {
+  if (!win || win.webContents.isDestroyed()) return false;
+  try {
+    return await win.webContents.executeJavaScript(
+      `window.confirmDialog(${JSON.stringify(message)}, ${JSON.stringify(actionLabel)}, ${JSON.stringify(tr("Позже"))})`
+    );
+  } catch {
+    // Страница ещё не загрузила utils.js (маловероятно, но не повод падать).
+    return false;
+  }
+}
+
 autoUpdater.on("update-downloaded", async (info) => {
   if (config.dismissedUpdate === info.version) return;
-  const { response } = await dialog.showMessageBox(win ?? undefined, {
-    type: "info",
-    title: tr("Доступно обновление"),
-    message: `${tr("Обновление готово")}: ${info.version}`,
-    buttons: [tr("Перезапустить"), tr("Позже")],
-    defaultId: 0,
-    cancelId: 1,
-  });
-  if (response === 0) autoUpdater.quitAndInstall();
+  const restart = await showThemedUpdateDialog(
+    `${tr("Обновление готово")}: ${info.version}`,
+    tr("Перезапустить")
+  );
+  if (restart) autoUpdater.quitAndInstall();
   else await saveConfig({ dismissedUpdate: info.version });
 });
 
@@ -520,15 +536,11 @@ async function checkForUpdatesMac() {
   try {
     const update = await findUpdate(app.getVersion());
     if (!update || config.dismissedUpdate === update.version) return;
-    const { response } = await dialog.showMessageBox(win ?? undefined, {
-      type: "info",
-      title: tr("Доступно обновление"),
-      message: `${tr("Доступно обновление")}: ${update.version}`,
-      buttons: [tr("Скачать"), tr("Позже")],
-      defaultId: 0,
-      cancelId: 1,
-    });
-    if (response === 0) openDownload(update);
+    const download = await showThemedUpdateDialog(
+      `${tr("Доступно обновление")}: ${update.version}`,
+      tr("Скачать")
+    );
+    if (download) openDownload(update);
     else await saveConfig({ dismissedUpdate: update.version });
   } catch {
     // Нет сети или GitHub недоступен — не повод тревожить человека.
