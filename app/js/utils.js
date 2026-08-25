@@ -460,3 +460,123 @@ function backupToastGlobal(text, ok) {
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
+
+// ── Переключение вкладок — своя клавиша или кнопка мыши ────────
+// По умолчанию вкладки переключаются цифрами 1–5 по видимой позиции
+// (сама адаптируется к скрытым вкладкам — см. index.html). Здесь —
+// необязательная привязка ПОВЕРХ цифр: конкретная клавиша или кнопка
+// мыши на конкретную вкладку по её id, а не по позиции, поэтому не
+// требует отдельной адаптации при скрытии других вкладок.
+const TAB_IDS = ["now", "favorites", "reviews", "stats", "tierlist"];
+
+function currentTabKeyBindings() {
+  return window.SITE_TAB_KEYBINDINGS || {};
+}
+
+function tabBindingLabel(b) {
+  if (!b) return "";
+  if (b.type === "mouse") return b.label;
+  return (b.shift ? "Shift+" : "") + (b.label || b.code);
+}
+
+function tabBindingMatchesKey(e, b) {
+  return !!b && b.type === "key" && e.code === b.code && e.shiftKey === !!b.shift;
+}
+
+function tabBindingMatchesMouse(e, b) {
+  return !!b && b.type === "mouse" && e.button === b.button;
+}
+
+function tabSwitchBindingsHtml() {
+  const bindings = currentTabKeyBindings();
+  return TAB_IDS.map((id) => {
+    const label = typeof window.siteLabel === "function" ? window.siteLabel("nav", id, id) : id;
+    const b = bindings[id];
+    const current = b
+      ? `<span class="kbd">${esc(tabBindingLabel(b))}</span>`
+      : `<span class="shortcut-desc">${esc(i18n("не задано"))}</span>`;
+    const clearBtn = b
+      ? `<button type="button" class="btn-mini" onclick="clearTabKeyBinding('${id}')">${i18n("Очистить")}</button>`
+      : "";
+    return `<div class="shortcut-row">
+      <span class="shortcut-keys">${current}</span>
+      <span class="shortcut-desc">${esc(label)}</span>
+      <button type="button" class="btn-mini" data-rebind-tab="${id}" onclick="startRebindTabKey('${id}', this)">${i18n("Изменить")}</button>
+      ${clearBtn}
+    </div>`;
+  }).join("");
+}
+
+async function clearTabKeyBinding(id) {
+  try {
+    const bindings = { ...currentTabKeyBindings() };
+    delete bindings[id];
+    await patchSiteSettings((settings) => {
+      settings.tabKeyBindings = bindings;
+    });
+    window.SITE_TAB_KEYBINDINGS = bindings;
+  } catch (e) {
+    backupToastGlobal(e.message, false);
+  }
+  if (typeof window.refreshTabKeyBindingsPanel === "function") window.refreshTabKeyBindingsPanel();
+}
+
+// «Изменить» слушает и клавиатуру, и мышь одновременно — что сработает
+// первым, то и биндится. Левая кнопка мыши не биндится вообще: ей
+// открывают эту же панель и жмут другие кнопки, отличить намеренный
+// клик по действию от «выбираю мышь как биндинг» было бы нечем.
+let rebindingTabAction = null;
+async function startRebindTabKey(tabId, btn) {
+  if (rebindingTabAction) return;
+  rebindingTabAction = tabId;
+  const prevLabel = btn.textContent;
+  btn.textContent = i18n("Нажмите клавишу или кнопку мыши…");
+  btn.disabled = true;
+
+  const finish = async (result) => {
+    document.removeEventListener("keydown", onKey, true);
+    document.removeEventListener("mousedown", onMouse, true);
+    rebindingTabAction = null;
+    if (result) {
+      const bindings = currentTabKeyBindings();
+      const clash = Object.entries(bindings).find(
+        ([id, b]) =>
+          id !== tabId &&
+          ((result.type === "key" && tabBindingMatchesKey(result, b)) ||
+            (result.type === "mouse" && tabBindingMatchesMouse(result, b)))
+      );
+      if (clash) {
+        backupToastGlobal(i18n("Эта клавиша уже занята другой вкладкой."), false);
+      } else {
+        try {
+          const next = { ...bindings, [tabId]: result };
+          await patchSiteSettings((settings) => {
+            settings.tabKeyBindings = next;
+          });
+          window.SITE_TAB_KEYBINDINGS = next;
+        } catch (e) {
+          backupToastGlobal(e.message, false);
+        }
+      }
+    }
+    if (typeof window.refreshTabKeyBindingsPanel === "function") window.refreshTabKeyBindingsPanel();
+    else { btn.textContent = prevLabel; btn.disabled = false; }
+  };
+
+  const onKey = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === "Escape") return finish(null);
+    if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
+    finish({ type: "key", code: e.code, shift: e.shiftKey, label: e.key.length === 1 ? e.key.toUpperCase() : e.key });
+  };
+  const onMouse = (e) => {
+    if (e.button === 0) return; // левая — обычный клик по панели, не биндинг
+    e.preventDefault();
+    e.stopPropagation();
+    const names = { 1: i18n("Средняя кнопка"), 3: i18n("Кнопка «Назад»"), 4: i18n("Кнопка «Вперёд»") };
+    finish({ type: "mouse", button: e.button, label: names[e.button] || i18n("Кнопка мыши {n}", { n: e.button }) });
+  };
+  document.addEventListener("keydown", onKey, true);
+  document.addEventListener("mousedown", onMouse, true);
+}

@@ -40,8 +40,8 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=21"></script>
-<script src="/js/theme.js?v=15"></script>
+<script src="/js/utils.js?v=22"></script>
+<script src="/js/theme.js?v=16"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
 
@@ -1340,28 +1340,64 @@ document.addEventListener("keydown", (e) => {
   // клавиша N — и вовсе не «н», а совсем другая), и сочетания молча не
   // срабатывали, пока не переключишься на английскую. code от раскладки
   // не зависит.
+  // Позиция считается только по ВИДИМЫМ вкладкам — скрытые в настройках
+  // (settings.hiddenTabs, см. theme.js) остаются в DOM с атрибутом
+  // hidden, и без фильтра «1» продолжала бы указывать на позицию в
+  // общем списке, а не на первую видимую. tabId берём из самой кнопки
+  // (aria-controls), а не гадаем по номеру — settings.tabOrder может
+  // переставить вкладки местами, и порядковый номер после этого уже
+  // не совпадает с зашитым «tab-now, tab-favorites, …».
   const digitMatch = /^Digit([1-5])$/.exec(e.code);
+  const visibleTabBtns = () => Array.from(document.querySelectorAll(".rail-tabs .tab-btn:not([hidden])"));
   if (digitMatch) {
-    const idx = Number(digitMatch[1]) - 1;
-    const btn = document.querySelectorAll(".rail-tabs .tab-btn")[idx];
-    const tabId = ["tab-now", "tab-favorites", "tab-reviews", "tab-stats", "tab-tierlist"][idx];
-    if (btn) { e.preventDefault(); switchTab(tabId, btn); }
-  } else {
-    // Биндинги настраиваемые (см. js/utils.js: currentKeybindings) —
-    // /, N и ? по умолчанию, но каждый можно перевесить на другую
-    // клавишу в Настройки → Горячие клавиши.
-    const kb = currentKeybindings();
-    if (keyBindingMatches(e, kb.search)) {
-      e.preventDefault();
-      const btn = document.querySelector('.tab-btn[aria-controls="tab-reviews"]');
-      switchTab("tab-reviews", btn);
-      setTimeout(() => document.getElementById("rv-search")?.focus(), 50);
-    } else if (keyBindingMatches(e, kb.newReview) && typeof isAdmin === "function" && isAdmin()) {
-      e.preventDefault();
-      location.href = "/add.html";
-    } else if (keyBindingMatches(e, kb.shortcuts)) {
-      e.preventDefault();
-      openShortcutsModal();
+    const btn = visibleTabBtns()[Number(digitMatch[1]) - 1];
+    if (btn) { e.preventDefault(); switchTab(btn.getAttribute("aria-controls"), btn); }
+    return;
+  }
+
+  // Своя клавиша на конкретную вкладку (Настройки → Горячие клавиши →
+  // Переключение вкладок) — привязана к id, а не к позиции, поэтому
+  // работает поверх цифр независимо от того, что скрыто или переставлено.
+  for (const [tabId, b] of Object.entries(currentTabKeyBindings())) {
+    if (tabBindingMatchesKey(e, b)) {
+      const btn = document.querySelector(`.tab-btn[aria-controls="tab-${tabId}"]:not([hidden])`);
+      if (btn) { e.preventDefault(); switchTab(`tab-${tabId}`, btn); }
+      return;
+    }
+  }
+
+  // Биндинги настраиваемые (см. js/utils.js: currentKeybindings) —
+  // /, N и ? по умолчанию, но каждый можно перевесить на другую
+  // клавишу в Настройки → Горячие клавиши.
+  const kb = currentKeybindings();
+  if (keyBindingMatches(e, kb.search)) {
+    e.preventDefault();
+    const btn = document.querySelector('.tab-btn[aria-controls="tab-reviews"]');
+    switchTab("tab-reviews", btn);
+    setTimeout(() => document.getElementById("rv-search")?.focus(), 50);
+  } else if (keyBindingMatches(e, kb.newReview) && typeof isAdmin === "function" && isAdmin()) {
+    e.preventDefault();
+    location.href = "/add.html";
+  } else if (keyBindingMatches(e, kb.shortcuts)) {
+    e.preventDefault();
+    openShortcutsModal();
+  }
+});
+
+// Кнопки мыши (средняя, «назад»/«вперёд» на боковине) для переключения
+// вкладок — та же привязка по id, что и у клавиш выше, просто другой
+// источник события. Левая кнопка сюда не заходит (button === 0) — она
+// нужна для обычных кликов по интерфейсу.
+document.addEventListener("mousedown", (e) => {
+  if (e.button === 0) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+  if (document.querySelector(".modal-overlay:not(.hidden), .review-modal-overlay:not(.hidden)")) return;
+  for (const [tabId, b] of Object.entries(currentTabKeyBindings())) {
+    if (tabBindingMatchesMouse(e, b)) {
+      const btn = document.querySelector(`.tab-btn[aria-controls="tab-${tabId}"]:not([hidden])`);
+      if (btn) { e.preventDefault(); switchTab(`tab-${tabId}`, btn); }
+      return;
     }
   }
 });

@@ -1131,3 +1131,18 @@ i18nRegister({
   "Эта клавиша уже занята другим действием.": "That key is already used by another action.",
   "Сбросить к умолчаниям": "Reset to defaults",
 });
+
+// ── Своя клавиша/кнопка мыши на вкладку (панель настроек) ─
+i18nRegister({
+  "Переключение вкладок": "Tab switching",
+  "Цифры 1–5 переключают вкладки по порядку и сами подстраиваются, если какую-то скрыть. Здесь — необязательно, поверх цифр: своя клавиша или кнопка мыши (средняя, «назад»/«вперёд») на конкретную вкладку, привязанная к ней самой, а не к номеру.":
+    "Digits 1–5 switch tabs in order and adjust automatically when one is hidden. This is optional, on top of the digits: a key or mouse button (middle, back/forward) bound to a specific tab itself, not to its position.",
+  "не задано": "not set",
+  "Очистить": "Clear",
+  "Нажмите клавишу или кнопку мыши…": "Press a key or mouse button…",
+  "Эта клавиша уже занята другой вкладкой.": "That key is already used by another tab.",
+  "Средняя кнопка": "Middle button",
+  "Кнопка «Назад»": "Back button",
+  "Кнопка «Вперёд»": "Forward button",
+  "Кнопка мыши {n}": "Mouse button {n}",
+});

@@ -86,6 +86,14 @@ html[data-skin="soft"] { color-scheme: light; }
    на нём держится скрытие вкладок из site-settings.json (см. theme.js). */
 [hidden] { display: none !important; }
 
+/* Оболочка приложения не выделяется протяжкой мыши, как текст на
+   сайте, — тем же принципом живёт любое десктопное приложение
+   (Obsidian и т.п.): выделяется настоящий текст-контент (отзыв,
+   название), а не кнопки, подписи полей и панель вкладок. */
+button, label, nav, .app-topbar, .kbd {
+  user-select: none;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -348,6 +356,19 @@ select option { background: var(--bg2); }
 .tl-list-btn:focus-visible, .list-tab:focus-visible, .tag-toggle:focus-visible,
 .src-type-option:focus-visible {
   outline: none;
+}
+
+/* Общая заплатка поверх всего перечисленного выше: у панелей вкладок
+   (#tab-now и т.д.) тоже есть tabindex — для скринридера, и та же
+   history с рамкой на голый Shift после клика по пустому месту внутри
+   панели повторилась и там. Вместо того чтобы гоняться за каждым
+   отдельным элементом с tabindex по всему приложению, один
+   универсальный предохранитель: вне настоящей клавиатурной навигации
+   (html.kb-nav, см. js/utils.js) рамки не бывает нигде, у чего угодно.
+   Правилам выше, которые ЗАДАЮТ рамку под html.kb-nav, это не мешает —
+   условия взаимоисключающие. */
+html:not(.kb-nav) *:focus {
+  outline: none !important;
 }
 
 /* Нативный <input type="file"> НЕЛЬЗЯ полноценно перекрасить нигде —

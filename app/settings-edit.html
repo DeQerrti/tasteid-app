@@ -35,8 +35,8 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=21"></script>
-<script src="/js/theme.js?v=15"></script>
+<script src="/js/utils.js?v=22"></script>
+<script src="/js/theme.js?v=16"></script>
 <script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/api.js?v=12"></script>
@@ -372,6 +372,15 @@
       </p>
       <div id="shortcutsList"></div>
       <button class="btn btn-ghost" onclick="resetShortcutsToDefault()" data-i18n>Сбросить к умолчаниям</button>
+
+      <h2 class="section-h" data-i18n>Переключение вкладок</h2>
+      <p class="panel-intro" data-i18n>
+        Цифры 1–5 переключают вкладки по порядку и сами подстраиваются,
+        если какую-то скрыть. Здесь — необязательно, поверх цифр: своя
+        клавиша или кнопка мыши (средняя, «назад»/«вперёд») на
+        конкретную вкладку, привязанная к ней самой, а не к номеру.
+      </p>
+      <div id="tabKeyBindingsList"></div>
     </div>
 
     <div class="panel" id="panel-stats">
@@ -2010,6 +2019,11 @@
     if (el) el.innerHTML = keyboardShortcutsHtml(true);
   }
 
+  function refreshTabKeyBindingsPanel() {
+    const el = document.getElementById("tabKeyBindingsList");
+    if (el) el.innerHTML = tabSwitchBindingsHtml();
+  }
+
   async function resetShortcutsToDefault() {
     try {
       await patchSiteSettings((settings) => { settings.keyBindings = {}; });
@@ -2121,6 +2135,7 @@
     renderTypeColorsList();
 
     refreshShortcutsPanel();
+    refreshTabKeyBindingsPanel();
 
     subtypeLabels = { ...BUILTIN_SUBTYPE_DEFAULTS, ...(settings.customSubtypes || {}) };
     const subtypeOverrides = labels.subtypes || {};
