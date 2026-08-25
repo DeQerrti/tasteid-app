@@ -389,10 +389,16 @@ function keyboardShortcutsList() {
 // editable — только для панели «Горячие клавиши» в настройках: рядом с
 // перебиндиваемыми строками рисует кнопку «Изменить». В подсказке по
 // «?» на главной этого не должно быть — там просто справка.
+// Строка «1–5 Переключить вкладку» там же, в настройках, скрыта —
+// ниже есть отдельный раздел «Переключение вкладок» с тем же самым,
+// плюс своими биндингами; дублировать нечего. В подсказке «?» на
+// главной остаётся — там это единственное быстрое упоминание,
+// заходить в настройки ради него не всегда нужно.
 function keyboardShortcutsHtml(editable) {
   const admin = typeof isAdmin === "function" && isAdmin();
   return keyboardShortcutsList()
     .filter((s) => !s.adminOnly || admin)
+    .filter((s) => !editable || !s.range)
     .map((s) => {
       const keys = s.range
         ? `<span class="kbd">${esc(s.keys[0])}</span>–<span class="kbd">${esc(s.keys[1])}</span>`
