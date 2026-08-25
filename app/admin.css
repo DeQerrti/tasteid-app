@@ -10,15 +10,110 @@
    специфичность, побеждает то, что ниже.
    ══════════════════════════════════════════════ */
 
-/* Подзаголовок под логотипом: «Редактор персонажей» и т.п. */
-.header-sub {
+/* ══ КОМПАКТНАЯ ШАПКА ══════════════════════════
+   Раньше каждая из этих страниц открывалась витриной сайта: логотип
+   TasteID во весь экран (тот же .logo/.header-eyebrow/.header-deco,
+   что раньше стоял на главной — см. её же комментарий про рельсу).
+   Для формы или списка, которые открывают на несколько секунд и
+   закрывают, это лишний скролл на каждый заход, особенно на телефоне.
+   Липкая полоса сверху: стрелка назад — короткий заголовок раздела —
+   и сразу контент. */
+.app-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+}
+.topbar-back {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--text-hi);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.topbar-back:hover { color: var(--red-hi); }
+.topbar-back .arrow {
+  color: var(--text-dim);
   font-family: "DM Sans", sans-serif;
-  font-size: 0.62rem;
-  letter-spacing: 0.3em;
+  font-size: 1rem;
+  line-height: 1;
+}
+.topbar-title {
+  font-family: "DM Sans", sans-serif;
+  font-size: .72rem;
+  letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--text-dim);
-  margin-top: 0.6rem;
+  margin: 0;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+@media (max-width: 700px) {
+  .app-topbar { padding: 12px 16px; }
+  .topbar-back { font-size: .95rem; }
+}
+
+/* ══ ИСТОРИЯ ВЕРСИЙ ════════════════════════════
+   Общее между backup-history.html (отдельная страница — открывается,
+   например, с плавающей кнопки «История» на формах) и панелью
+   «История версий» в settings-edit.html — один и тот же JS
+   (js/backup-history.js) рисует один и тот же список в оба места. */
+.file-tabs { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+.file-tab {
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; letter-spacing: .03em;
+  padding: .55rem 1.1rem; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text-dim); cursor: pointer; transition: all .2s ease;
+}
+.file-tab:hover { color: var(--text-hi); border-color: var(--border2); }
+.file-tab.active { color: var(--text-hi); border-color: var(--red); background: var(--accent-fill); }
+
+.version-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem 0; border-bottom: 1px solid var(--border);
+}
+.version-row:first-child { padding-top: 0; }
+.version-main { flex: 1; min-width: 0; }
+.version-date { font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text-hi); }
+.version-badge {
+  display: inline-block; margin-left: .5rem; font-size: .62rem; letter-spacing: .04em;
+  color: var(--green-hi); border: 1px solid var(--green-hi); border-radius: 2px;
+  padding: .05rem .4rem; vertical-align: middle;
+}
+.version-msg {
+  font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
+  margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.version-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+.btn-mini {
+  font-family: 'DM Sans', sans-serif; font-size: .72rem;
+  padding: .45rem .85rem; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 3px; color: var(--text); cursor: pointer; transition: all .2s ease;
+}
+.btn-mini:hover { color: var(--text-hi); border-color: var(--red); }
+.btn-mini.danger:hover { color: #f0d0d0; border-color: var(--err); background: rgba(163,51,51,.15); }
+.btn-mini:disabled { opacity: .5; cursor: default; }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  font-family: 'DM Sans', sans-serif; font-size: .8rem;
+  padding: .7rem 1.2rem; border-radius: 4px; z-index: 10000;
+  background: var(--surface2); border: 1px solid var(--border2); color: var(--text-hi);
+}
+.toast.ok  { border-color: var(--green-hi); }
+.toast.err { border-color: var(--err); }
 
 /* Поясняющая строка над списком/формой */
 .hint {
