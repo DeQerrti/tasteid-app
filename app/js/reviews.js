@@ -247,6 +247,12 @@ function reviewModalBodyHtml(r) {
         ${(btn1 || btn2) ? `<p class="review-modal-nofull-hint">Развёрнутый текст пока не перенесён на сайт — полный отзыв можно почитать по ссылке ниже.</p>` : ""}
       </div>`;
 
+  // Карточка режет теги до CARD_TAGS_MAX (reviews.js: reviewCard) — тут,
+  // в развороте отзыва, места на всех хватает, показываем полный набор.
+  const tagsHtml = (r.tags || []).length
+    ? `<div class="card-tags review-modal-tags">${r.tags.map(tag => tagHtml(tag)).join("")}</div>`
+    : "";
+
   return `
     <div class="review-modal-header">
       <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" class="review-modal-cover" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
@@ -258,6 +264,7 @@ function reviewModalBodyHtml(r) {
         ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(grade.name)}</div>` : ""}
       </div>
     </div>
+    ${tagsHtml}
     ${textHtml}
     <div class="source-buttons">${btn1}${btn2}</div>
   `;

@@ -1077,3 +1077,9 @@ i18nRegister({
   "Список горячих клавиш": "List of keyboard shortcuts",
   "Закрыть окно": "Close window",
 });
+
+// ── Переименование типа (add.html) ─────────────
+i18nRegister({
+  "Переименовать": "Rename",
+  "Должен остаться хотя бы один тип": "At least one type must remain",
+});

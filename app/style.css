@@ -91,6 +91,13 @@ body {
   color: var(--text);
   font-family: 'Cormorant Garamond', 'Georgia', serif;
   min-height: 100vh;
+  /* Страница как целое не должна скроллиться вбок — любой отдельный
+     широкий блок (таблица, длинная строка настроек) обязан прятать
+     свой избыток сам, через собственный overflow-x. Без этой строки
+     редкий узкий блок внутри мог протолкнуть горизонтальный скролл на
+     весь документ — тонкую полоску снизу окна, бессмысленную саму по
+     себе (сама страница шире не становится, просто едет). */
+  overflow-x: hidden;
 }
 
 .logo {
@@ -434,7 +441,13 @@ select option { background: var(--bg2); }
 }
 .src-type-option:hover { background: var(--tint-hi); }
 .src-type-option.active { color: var(--red-hi); }
-.src-type-option .icon-btn.src-type-remove { width: 22px; height: 22px; font-size: .65rem; }
+.src-type-option-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src-type-option .icon-btn.src-type-remove,
+.src-type-option .icon-btn.src-type-rename { width: 22px; height: 22px; font-size: .65rem; flex-shrink: 0; }
+.src-type-rename-input {
+  flex: 1; min-width: 0; padding: .2rem .4rem; font-size: .8rem;
+  font-family: 'DM Sans', sans-serif;
+}
 
 .src-type-add-row { border-top: 1px solid var(--border); margin-top: .3rem; padding-top: .3rem; }
 .src-type-add-btn { width: 100%; text-align: center; }

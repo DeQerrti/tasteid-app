@@ -33,7 +33,7 @@ function findReviewForTitle(title, type) {
 
 function gradeInlineHtml(info) {
   if (!info) return "";
-  return `<span class="card-grade-inline" style="color:${info.grade.color}">${esc(info.grade.name)}</span>`;
+  return `<span class="card-grade-inline" style="color:${info.grade.color}" data-tip="${esc(info.grade.desc)}">${esc(info.grade.name)}</span>`;
 }
 
 function fmtDateStr(str, short = false) {

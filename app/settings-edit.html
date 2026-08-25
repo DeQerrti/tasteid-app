@@ -28,7 +28,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Настройки — TasteID</title>
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=18">
+<link rel="stylesheet" href="/style.css?v=19">
 <link rel="stylesheet" href="/admin.css?v=13">
 <link rel="stylesheet" href="/themes.css?v=15">
 <script src="/js/mobile.bundle.js?v=1"></script>
@@ -40,7 +40,7 @@
 <script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/api.js?v=12"></script>
-<script src="/js/cards.js?v=12"></script>
+<script src="/js/cards.js?v=13"></script>
 <script src="/js/passports.js?v=13"></script>
 <script src="/js/import-formats.js?v=14"></script>
 <script src="/js/import.js?v=17"></script>
@@ -222,6 +222,23 @@
   .app-zoom { font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text-hi);
     min-width: 4rem; text-align: center; }
 
+  /* Ползунок масштаба — тот же минимализм, что у остальных полей:
+     тонкий трек, квадратный бегунок без родных стрелок браузера. */
+  .app-zoom-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 200px; max-width: 100%; height: 3px;
+    background: var(--border2); border-radius: 2px; outline: none;
+  }
+  .app-zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 2px;
+    background: var(--red); cursor: pointer;
+  }
+  .app-zoom-slider::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 2px; border: none;
+    background: var(--red); cursor: pointer;
+  }
+
   .fav-restore { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
     margin-top: 10px; font-size: .78rem; color: var(--text-dim); }
   .fav-restore-btn { background: none; border: 1px dashed var(--border2); color: var(--text-dim);
@@ -350,7 +367,6 @@
     </div>
 
     <div class="panel" id="panel-shortcuts">
-      <p class="panel-intro" data-i18n>Работают на главной странице — везде, кроме полей ввода и открытых окон.</p>
       <div id="shortcutsList"></div>
     </div>
 
@@ -502,11 +518,12 @@
            которая ничего не меняла. -->
       <div id="app-zoom-section">
         <h2 class="section-h" data-i18n>Масштаб</h2>
-        <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-ghost" onclick="stepZoom(-1)" data-i18n>Мельче</button>
+        <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="range" id="app-zoom-slider" class="app-zoom-slider"
+            min="-3" max="5" step="1" value="0"
+            oninput="previewZoom(this.value)" onchange="setZoom(this.value)">
           <span class="app-zoom" id="app-zoom-value">100%</span>
-          <button class="btn btn-ghost" onclick="stepZoom(1)" data-i18n>Крупнее</button>
-          <button class="btn btn-ghost" onclick="stepZoom(0)" data-i18n>Сбросить</button>
+          <button class="btn btn-ghost" onclick="setZoom(0)" data-i18n>Сбросить</button>
         </div>
       </div>
 
@@ -1228,6 +1245,7 @@
     }
     document.getElementById("app-vault-path").textContent = appInfo.vaultPath || i18n("не выбрана");
     document.getElementById("app-zoom-value").textContent = zoomPercent(appInfo.zoom || 0);
+    document.getElementById("app-zoom-slider").value = appInfo.zoom || 0;
     document.getElementById("app-version").textContent =
       `TasteID ${appInfo.version || ""} · ${appInfo.platform || ""}`;
 
@@ -1380,10 +1398,16 @@
     renderAppPanel();
   }
 
-  async function stepZoom(delta) {
-    const next = delta === 0 ? 0 : (appInfo?.zoom || 0) + delta;
+  // Ползунок двигается сразу — превью значения без похода на сервер,
+  // сам вызов /api/app/zoom только когда отпустили (change), а не на
+  // каждый промежуточный кадр drag'а (input).
+  function previewZoom(level) {
+    document.getElementById("app-zoom-value").textContent = zoomPercent(Number(level));
+  }
+
+  async function setZoom(level) {
     try {
-      const { zoom } = await appApi("/api/app/zoom", { level: next });
+      const { zoom } = await appApi("/api/app/zoom", { level: Number(level) });
       appInfo.zoom = zoom;
       renderAppPanel();
     } catch (e) {

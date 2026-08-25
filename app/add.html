@@ -39,7 +39,7 @@
 <script src="/js/theme.js?v=14"></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/external-ids.js?v=12"></script>
-<link rel="stylesheet" href="/style.css?v=18">
+<link rel="stylesheet" href="/style.css?v=19">
 <link rel="stylesheet" href="/admin.css?v=13">
 <link rel="stylesheet" href="/themes.css?v=15">
 <style>
@@ -1727,13 +1727,19 @@ function syncTypePickerLabel() {
   document.getElementById("type-picker-label").textContent = typeLabel(key);
 }
 
+// Ключ типа, у которого сейчас открыт инлайн-рендейм (см.
+// startRenameTypePicker) — нужен, чтобы Enter (который сам вызывает
+// blur для коммита) и естественный blur не сработали дважды подряд.
+let typeRenamePending = null;
+
 function renderTypePickerDropdown() {
   const dd = document.getElementById("type-picker-dropdown");
   const current = document.getElementById("f-type").value || "anime";
   const options = Object.entries(TYPE_LABELS).map(([key, label]) => `
-    <div class="src-type-option${key === current ? " active" : ""}" onclick="selectTypePicker('${key}')">
-      <span>${esc(label)}</span>
-      ${!TYPE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeTypePicker('${key}')">✕</span>` : ""}
+    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectTypePicker('${key}')">
+      <span class="src-type-option-label">${esc(label)}</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameTypePicker('${key}')">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeTypePicker('${key}')">✕</span>
     </div>`).join("");
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
@@ -1832,22 +1838,96 @@ async function confirmAddType() {
   }
 }
 
+// Встроенный тип нельзя вырезать из TYPE_LABELS в коде — «удаление»
+// для него складывается в hiddenTypes, тем же приёмом, что и у тегов и
+// категорий: он просто перестаёт появляться в списке. У своих типов
+// удаление настоящее — стирает customTypes/customTypePlural целиком.
 async function removeTypePicker(key) {
+  if (Object.keys(TYPE_LABELS).length <= 1) {
+    alert(i18n("Должен остаться хотя бы один тип"));
+    return;
+  }
   if (!(await confirmDialog(i18n("Удалить тип «{name}»?", { name: TYPE_LABELS[key] })))) return;
+  const isBuiltin = TYPE_BUILTINS.includes(key);
   try {
     await patchSiteSettings((settings) => {
-      settings.customTypes = settings.customTypes || {};
-      settings.customTypePlural = settings.customTypePlural || {};
-      delete settings.customTypes[key];
-      delete settings.customTypePlural[key];
+      if (isBuiltin) {
+        settings.hiddenTypes = settings.hiddenTypes || [];
+        if (!settings.hiddenTypes.includes(key)) settings.hiddenTypes.push(key);
+      } else {
+        settings.customTypes = settings.customTypes || {};
+        settings.customTypePlural = settings.customTypePlural || {};
+        delete settings.customTypes[key];
+        delete settings.customTypePlural[key];
+      }
     });
     delete TYPE_LABELS[key];
     delete TYPE_PLURAL[key];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     if (typePickerOpen) renderTypePickerDropdown();
-    if (document.getElementById("f-type").value === key) selectTypePicker("anime");
+    if (document.getElementById("f-type").value === key) selectTypePicker(Object.keys(TYPE_LABELS)[0]);
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
+  }
+}
+
+// Переименование — инлайн, прямо в строке списка: клик по ✎ подменяет
+// подпись на текстовое поле, Enter/уход фокуса сохраняют, Esc отменяет.
+// Встроенный тип переименовывается через labels.types (оверрайд
+// подписи, ключ в TYPE_BUILTINS не меняется), свой — через сам
+// customTypes[key].
+function startRenameTypePicker(key) {
+  const dd = document.getElementById("type-picker-dropdown");
+  const row = dd?.querySelector(`.src-type-option[data-type-key="${CSS.escape(key)}"]`);
+  const labelEl = row?.querySelector(".src-type-option-label");
+  if (!labelEl) return;
+
+  typeRenamePending = key;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "src-type-rename-input";
+  input.value = TYPE_LABELS[key];
+  input.onclick = (e) => e.stopPropagation();
+  input.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+    else if (e.key === "Escape") { e.preventDefault(); typeRenamePending = null; renderTypePickerDropdown(); }
+  };
+  input.onblur = () => {
+    if (typeRenamePending !== key) return;
+    typeRenamePending = null;
+    confirmRenameTypePicker(key, input.value);
+  };
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function confirmRenameTypePicker(key, rawName) {
+  const name = rawName.trim();
+  const oldName = TYPE_LABELS[key];
+  if (!name || name === oldName) { if (typePickerOpen) renderTypePickerDropdown(); return; }
+  const exists = Object.entries(TYPE_LABELS).some(([k, l]) => k !== key && l.toLowerCase() === name.toLowerCase());
+  if (exists) { alert(i18n("Такой тип уже есть")); if (typePickerOpen) renderTypePickerDropdown(); return; }
+
+  const isBuiltin = TYPE_BUILTINS.includes(key);
+  try {
+    await patchSiteSettings((settings) => {
+      if (isBuiltin) {
+        settings.labels = settings.labels || {};
+        settings.labels.types = settings.labels.types || {};
+        settings.labels.types[key] = name;
+      } else {
+        settings.customTypes = settings.customTypes || {};
+        settings.customTypes[key] = name;
+      }
+    });
+    TYPE_LABELS[key] = name;
+    document.dispatchEvent(new CustomEvent("tags-map-updated"));
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  } finally {
+    if (typePickerOpen) { syncTypePickerLabel(); renderTypePickerDropdown(); }
   }
 }
 
