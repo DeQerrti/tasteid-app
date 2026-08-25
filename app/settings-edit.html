@@ -28,8 +28,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Настройки — TasteID</title>
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=15">
-<link rel="stylesheet" href="/admin.css?v=12">
+<link rel="stylesheet" href="/style.css?v=16">
+<link rel="stylesheet" href="/admin.css?v=13">
 <link rel="stylesheet" href="/themes.css?v=14">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
@@ -44,6 +44,7 @@
 <script src="/js/passports.js?v=13"></script>
 <script src="/js/import-formats.js?v=14"></script>
 <script src="/js/import.js?v=17"></script>
+<script src="/js/backup-history.js?v=1"></script>
 <style>
   body { display: flex; }
 
@@ -79,6 +80,15 @@
   }
   .side-tab:hover { color: var(--text); background: var(--surface2); }
   .side-tab.active { color: var(--text-hi); border-left-color: var(--red); background: var(--surface2); }
+
+  /* «История версий» — раньше была ссылкой на отдельную страницу
+     (backup-history.html), теперь такая же панель, как остальные, но
+     визуально отделена от них: это не часть настроек одной темы, а
+     отдельная функция сбоку. */
+  .side-tab.side-tab-divider { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 18px; }
+  @media (max-width: 720px) {
+    .side-tab.side-tab-divider { margin-top: 0; padding-top: 8px; border-top: none; border-left: 1px solid var(--border); }
+  }
 
   /* min-width: 0 — иначе колонка не даёт себе стать уже содержимого,
      и на узком экране за край уезжает вся страница, а не отдельный
@@ -287,7 +297,7 @@
     <button class="side-tab" data-panel="import" data-i18n>Импорт</button>
     <button class="side-tab hidden" data-panel="vaults" id="tab-vaults" data-i18n>Хранилища</button>
     <button class="side-tab hidden" data-panel="app" id="tab-app" data-i18n>Приложение</button>
-    <a href="/backup-history.html" class="back" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;" data-i18n>История версий</a>
+    <button class="side-tab side-tab-divider" data-panel="backup" data-i18n>История версий</button>
   </nav>
 
   <main id="main">
@@ -488,6 +498,22 @@
     <div class="panel" id="panel-import">
       <div id="importPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
     </div>
+
+    <!-- История версий файлов данных. Раньше отдельная страница
+         (backup-history.html) — открывалась поверх настроек и обратно
+         вела только на главную, а не назад в настройки. Здесь та же
+         разметка (#fileTabs/#content) и тот же скрипт
+         (js/backup-history.js), просто внутри панели — переключение
+         между панелями уже умеет .side-tab. -->
+    <div class="panel" id="panel-backup">
+      <p class="panel-intro" data-i18n>
+        Каждое сохранение файла — это отдельная версия, которая навсегда остаётся здесь, даже если
+        текущая версия сломается. Выбери файл, найди нужную дату и либо скачай эту версию как
+        JSON, либо восстанови её — тогда она станет текущей.
+      </p>
+      <div class="file-tabs" id="fileTabs"></div>
+      <div id="content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
+    </div>
   </main>
 </div>
 
@@ -511,6 +537,7 @@
       if (btn.dataset.panel === "import") loadImport();
       if (btn.dataset.panel === "vaults") renderVaultsPanel();
       if (btn.dataset.panel === "app") loadAppPanel();
+      if (btn.dataset.panel === "backup") initBackupHistoryPanel();
     });
   });
 

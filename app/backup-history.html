@@ -31,8 +31,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=15">
-<link rel="stylesheet" href="/admin.css?v=12">
+<link rel="stylesheet" href="/style.css?v=16">
+<link rel="stylesheet" href="/admin.css?v=13">
 <link rel="stylesheet" href="/themes.css?v=14">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
@@ -43,63 +43,14 @@
 <script src="/js/config.js?v=14"></script>
 <style>
 
-header { padding: 3rem 1rem 2rem; }
-.logo { font-size: clamp(2.5rem, 6vw, 4rem); }
-
 main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 
 #locked a { color: var(--red-hi); }
 .hidden { display: none; }
 
-.hint { font-size: .78rem; margin-bottom: 1.75rem; line-height: 1.6; }
-
-.file-tabs { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
-.file-tab {
-  font-family: 'DM Sans', sans-serif; font-size: .78rem; letter-spacing: .03em;
-  padding: .55rem 1.1rem; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 3px; color: var(--text-dim); cursor: pointer; transition: all .2s ease;
-}
-.file-tab:hover { color: var(--text-hi); border-color: var(--border2); }
-.file-tab.active { color: var(--text-hi); border-color: var(--red); background: var(--accent-fill); }
-
-.version-row {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 1rem 0; border-bottom: 1px solid var(--border);
-}
-.version-row:first-child { padding-top: 0; }
-.version-main { flex: 1; min-width: 0; }
-.version-date { font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text-hi); }
-.version-badge {
-  display: inline-block; margin-left: .5rem; font-size: .62rem; letter-spacing: .04em;
-  color: var(--green-hi); border: 1px solid var(--green-hi); border-radius: 2px;
-  padding: .05rem .4rem; vertical-align: middle;
-}
-.version-msg {
-  font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
-  margin-top: .2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.version-actions { display: flex; gap: .5rem; flex-shrink: 0; }
-.btn-mini {
-  font-family: 'DM Sans', sans-serif; font-size: .72rem;
-  padding: .45rem .85rem; background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 3px; color: var(--text); cursor: pointer; transition: all .2s ease;
-}
-.btn-mini:hover { color: var(--text-hi); border-color: var(--red); }
-.btn-mini.danger:hover { color: #f0d0d0; border-color: var(--err); background: rgba(163,51,51,.15); }
-.btn-mini:disabled { opacity: .5; cursor: default; }
-
 .state-box { padding: 4rem 2rem; font-size: 1.05rem; }
 .spinner { width: 24px; height: 24px; margin: 0 auto .75rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.toast {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  font-family: 'DM Sans', sans-serif; font-size: .8rem;
-  padding: .7rem 1.2rem; border-radius: 4px; z-index: 10000;
-  background: var(--surface2); border: 1px solid var(--border2); color: var(--text-hi);
-}
-.toast.ok  { border-color: var(--green-hi); }
-.toast.err { border-color: var(--err); }
 </style>
 </head>
 <body>
@@ -111,9 +62,9 @@ main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 </div>
 
 <div id="app" class="hidden">
-  <header>
-    <div class="header-sub" data-i18n>Бэкап и восстановление</div>
-    <a href="/" class="logo">TasteID</a>
+  <header class="app-topbar">
+    <a href="/" class="logo topbar-back"><span class="arrow">&larr;</span>TasteID</a>
+    <h1 class="topbar-title" data-i18n>Бэкап и восстановление</h1>
   </header>
 
   <main>
@@ -129,154 +80,9 @@ main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
   </main>
 </div>
 
+<script src="/js/backup-history.js?v=1"></script>
 <script>
-const FILES = [
-  { path: "reviews.json",         label: i18n("Отзывы") },
-  { path: "favorites.json",       label: i18n("Любимое") },
-  { path: "characters-tier.json", label: i18n("Персонажи") },
-  { path: "site-settings.json",   label: i18n("Настройки") },
-];
-
-let currentPath = FILES[0].path;
-let versionsCache = {}; // path -> versions[]
-let inApp = false; // приложение публикует правки сразу, сайту нужны ~30с на выкладку
-
-async function init() {
-  if (typeof isAdmin !== "function" || !isAdmin()) {
-    document.getElementById("locked").classList.remove("hidden");
-    return;
-  }
-  document.getElementById("app").classList.remove("hidden");
-
-  inApp = await isAppContext();
-
-  // Свои коллекции тир-листа — из настроек, не зашиты списком: список
-  // однажды бы разъехался с тем, что человек сам завёл на вкладке
-  // «Тир-листы». «Персонажи» уже есть выше под своим файлом — не дублируем.
-  try {
-    const res = await fetch("/site-settings.json?_=" + Date.now());
-    const settings = await res.json();
-    const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
-    for (const c of collections) {
-      if (c.id === "characters") continue;
-      FILES.push({ path: `tier-${c.id}.json`, label: c.label || c.id });
-    }
-  } catch {
-    // Настройки не прочитались — остаёмся с базовым списком файлов.
-  }
-
-  renderFileTabs();
-  loadVersions(currentPath);
-}
-
-function renderFileTabs() {
-  const container = document.getElementById("fileTabs");
-  container.innerHTML = FILES.map(f => `
-    <button class="file-tab${f.path === currentPath ? " active" : ""}" onclick="selectFile('${f.path}')">${f.label}</button>
-  `).join("");
-}
-
-function selectFile(path) {
-  currentPath = path;
-  renderFileTabs();
-  loadVersions(path);
-}
-
-async function loadVersions(path) {
-  const content = document.getElementById("content");
-  if (versionsCache[path]) {
-    renderVersions(path, versionsCache[path]);
-    return;
-  }
-  content.innerHTML = `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем историю…")}</div>`;
-  try {
-    const res = await fetch(`/api/file-history?path=${encodeURIComponent(path)}`, { credentials: "include" });
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    versionsCache[path] = data.versions;
-    if (path === currentPath) renderVersions(path, data.versions);
-  } catch (e) {
-    if (path === currentPath) {
-      content.innerHTML = `<div class="state-box">Ошибка загрузки: ${esc(e.message)}</div>`;
-    }
-  }
-}
-
-function renderVersions(path, versions) {
-  const content = document.getElementById("content");
-  if (!versions.length) {
-    content.innerHTML = `<div class="state-box">${i18n("Пока нет истории для этого файла.")}</div>`;
-    return;
-  }
-  content.innerHTML = versions.map((v, i) => {
-    const dt = v.date ? new Date(v.date) : null;
-    const dateStr = dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
-    const msg = firstLine(v.message);
-    return `
-    <div class="version-row">
-      <div class="version-main">
-        <div class="version-date">${esc(dateStr)}${i === 0 ? '<span class="version-badge">${i18n("текущая")}</span>' : ""}</div>
-        <div class="version-msg" title="${esc(v.message)}">${esc(msg)}</div>
-      </div>
-      <div class="version-actions">
-        <button class="btn-mini" onclick="downloadVersion('${path}','${v.sha}')">${i18n("⤓ Скачать")}</button>
-        ${i === 0 ? "" : `<button class="btn-mini danger" onclick="restoreVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')" data-i18n>↺ Восстановить</button>`}
-      </div>
-    </div>`;
-  }).join("");
-}
-
-function firstLine(s) {
-  return String(s || "").split("\n")[0];
-}
-
-async function downloadVersion(path, sha) {
-  try {
-    const res = await fetch(`/api/file-at-commit?path=${encodeURIComponent(path)}&sha=${encodeURIComponent(sha)}`, { credentials: "include" });
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: "application/json" });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${path.replace(".json", "")}-${sha.slice(0, 7)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    showToast("Не удалось скачать: " + e.message, false);
-  }
-}
-
-async function restoreVersion(path, sha, dateStr) {
-  if (!(await confirmDialog(i18n("Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл — все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).", { file: path, date: dateStr }), i18n("Восстановить")))) {
-    return;
-  }
-  try {
-    const res = await fetch("/api/restore-file-version", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path, sha }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    delete versionsCache[path];
-    showToast(inApp ? "Восстановлено ✓" : i18n("Восстановлено ✓ (сайт обновится через ~30 секунд)"), true);
-    loadVersions(path);
-  } catch (e) {
-    showToast("Не удалось восстановить: " + e.message, false);
-  }
-}
-
-function showToast(text, ok) {
-  const el = document.createElement("div");
-  el.className = "toast " + (ok ? "ok" : "err");
-  el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
-}
-
-init();
+initBackupHistoryPanel();
 </script>
 <script src="/js/backup.js?v=12"></script>
 </body>

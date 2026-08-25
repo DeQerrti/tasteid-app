@@ -31,8 +31,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=15">
-<link rel="stylesheet" href="/admin.css?v=12">
+<link rel="stylesheet" href="/style.css?v=16">
+<link rel="stylesheet" href="/admin.css?v=13">
 <link rel="stylesheet" href="/themes.css?v=14">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
@@ -42,9 +42,6 @@
 <script src="/js/theme.js?v=13"></script>
 <script src="/js/touch-drag.js?v=1" defer></script>
 <style>
-
-header { padding: 3rem 1rem 2rem; }
-.logo { font-size: clamp(2.5rem, 6vw, 4rem); }
 
 main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 
@@ -114,9 +111,9 @@ main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 </head>
 <body>
 
-<header>
-  <div class="header-sub" data-i18n>Редактор порядка</div>
-  <a href="/" class="logo">TasteID</a>
+<header class="app-topbar">
+  <a href="/" class="logo topbar-back"><span class="arrow">&larr;</span>TasteID</a>
+  <h1 class="topbar-title" data-i18n>Редактор порядка</h1>
 </header>
 
 <main>

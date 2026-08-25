@@ -31,8 +31,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=15">
-<link rel="stylesheet" href="/admin.css?v=12">
+<link rel="stylesheet" href="/style.css?v=16">
+<link rel="stylesheet" href="/admin.css?v=13">
 <link rel="stylesheet" href="/themes.css?v=14">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
@@ -43,8 +43,6 @@
 <script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/config.js?v=14"></script>
 <style>
-.logo { display: block; }
-
 input, select {
   width: 100%;
   background: var(--surface2);
@@ -214,12 +212,9 @@ input::placeholder { color: var(--text-dim); }
 </head>
 <body>
 
-<header>
-  <div class="header-eyebrow" id="page-subtitle" data-i18n>Персонажи и персоны</div>
-  <a href="/" class="logo">TasteID</a>
-  <div class="header-deco">
-    <span></span><span></span><span></span><span></span><span></span>
-  </div>
+<header class="app-topbar">
+  <a href="/" class="logo topbar-back"><span class="arrow">&larr;</span>TasteID</a>
+  <h1 class="topbar-title" id="page-subtitle" data-i18n>Персонажи и персоны</h1>
 </header>
 
 <main>

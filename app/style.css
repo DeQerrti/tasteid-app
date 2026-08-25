@@ -93,38 +93,6 @@ body {
   min-height: 100vh;
 }
 
-header {
-  text-align: center;
-  padding: 3.5rem 1rem 2.5rem;
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
-}
-
-header::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--red-dim) 20%, var(--red) 50%, var(--red-dim) 80%, transparent 100%);
-}
-
-.header-eyebrow {
-  font-family: 'DM Sans', sans-serif;
-  font-size: .62rem;
-  letter-spacing: .35em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .7rem;
-}
-
-.header-eyebrow::before,
-.header-eyebrow::after { content: '—'; color: var(--border2); }
-
 .logo {
   font-family: 'Playfair Display', serif;
   font-weight: 900;
@@ -138,29 +106,6 @@ header::after {
      правила на каждой странице. */
   text-decoration: none;
 }
-
-.header-deco {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .4rem;
-  margin-top: 1.2rem;
-}
-
-.header-deco span {
-  width: 4px; height: 4px;
-  transform: rotate(45deg);
-  background: var(--border2);
-}
-
-.header-deco span:nth-child(3) {
-  width: 6px; height: 6px;
-  background: var(--red);
-}
-
-.header-deco::before { content: ''; width: 50px; height: 1px; background: linear-gradient(90deg, transparent, var(--border2)); }
-
-.header-deco::after  { content: ''; width: 50px; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
 
 .section-title::before { content: ''; display: inline-block; width: 16px; height: 1px; background: var(--red); }
 
