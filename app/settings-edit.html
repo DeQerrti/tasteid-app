@@ -62,7 +62,7 @@
     width: 220px; flex-shrink: 0;
     border-right: 1px solid var(--border);
     padding: 24px 0;
-    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
   }
   /* Растягивание мышью — см. js/utils.js, makeResizablePanel(); тот же
      приём, что и у рельсы на главной (app/index.html, .rail-resize). */
@@ -1278,7 +1278,7 @@
     if (btn) btn.disabled = true;
     flashStatus("status-update", true, i18n("Проверяем…"));
     try {
-      const data = await appApi("/api/app/check-update");
+      const data = await appApi("/api/app/check-update", {});
       if (data.status === "latest") flashStatus("status-update", true, i18n("У тебя последняя версия."));
       else if (data.status === "error") flashStatus("status-update", false, i18n("Не удалось проверить обновления."));
       else flashStatus("status-update", true, "");

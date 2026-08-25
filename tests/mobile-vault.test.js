@@ -159,17 +159,20 @@ test("прошлая версия уезжает в историю и оттуд
     vault,
     query: new URLSearchParams("path=site-settings.json"),
   });
-  assert.equal(versions.length, 1, "две записи — одна прошлая версия");
+  // versions[0] — сам живой файл (sha:"current"), не запись из
+  // .history: за ним и идёт единственная настоящая прошлая версия.
+  assert.equal(versions[0].sha, "current");
+  assert.equal(versions.length, 2, "текущая плюс одна прошлая версия");
 
   const { data } = await ROUTES["GET /api/file-at-commit"]({
     vault,
-    query: new URLSearchParams(`path=site-settings.json&sha=${versions[0].sha}`),
+    query: new URLSearchParams(`path=site-settings.json&sha=${versions[1].sha}`),
   });
   assert.equal(data.theme, "classic", "в истории лежит то, что было до перезаписи");
 
   await ROUTES["POST /api/restore-file-version"]({
     vault,
-    body: { path: "site-settings.json", sha: versions[0].sha },
+    body: { path: "site-settings.json", sha: versions[1].sha },
   });
   assert.equal((await vault.readJson("site-settings.json", {})).theme, "classic");
 });

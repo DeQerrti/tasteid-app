@@ -74,7 +74,7 @@ nav#rail {
      про top у nav). В браузере и на телефоне переменная не задана,
      calc() тогда просто вычитает 0. */
   height: calc(100vh - var(--app-titlebar, 0px));
-  overflow-y: auto; scrollbar-width: thin;
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
 }
 
 /* Растягивание рельсы мышью — см. js/utils.js, makeResizablePanel().
@@ -1301,6 +1301,10 @@ function switchTab(tabId, btn) {
   document.getElementById(tabId).classList.remove("hidden");
   btn.classList.add("active");
   btn.setAttribute("aria-selected", "true");
+  // Иначе клавиатурный фокус остаётся на кнопке, кликнутой мышью раньше
+  // (переключение по 1–5 её не трогает), и следующее нажатие клавиши
+  // рисует рамку :focus-visible вокруг неё, а не вокруг активной вкладки.
+  if (document.activeElement !== btn) btn.focus({ preventScroll: true });
 
   if (!_navInit) {
     btn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
@@ -1340,20 +1344,26 @@ document.addEventListener("keydown", (e) => {
   if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
   if (document.querySelector(".modal-overlay:not(.hidden), .review-modal-overlay:not(.hidden)")) return;
 
-  if (e.key >= "1" && e.key <= "5") {
-    const idx = Number(e.key) - 1;
+  // e.code — физическая клавиша, не символ: e.key на русской раскладке
+  // для тех же клавиш отдаёт кириллицу («ф» вместо «/», «т» вместо «н» —
+  // клавиша N — и вовсе не «н», а совсем другая), и сочетания молча не
+  // срабатывали, пока не переключишься на английскую. code от раскладки
+  // не зависит.
+  const digitMatch = /^Digit([1-5])$/.exec(e.code);
+  if (digitMatch) {
+    const idx = Number(digitMatch[1]) - 1;
     const btn = document.querySelectorAll(".rail-tabs .tab-btn")[idx];
     const tabId = ["tab-now", "tab-favorites", "tab-reviews", "tab-stats", "tab-tierlist"][idx];
     if (btn) { e.preventDefault(); switchTab(tabId, btn); }
-  } else if (e.key === "/") {
+  } else if (e.code === "Slash" && !e.shiftKey) {
     e.preventDefault();
     const btn = document.querySelector('.tab-btn[aria-controls="tab-reviews"]');
     switchTab("tab-reviews", btn);
     setTimeout(() => document.getElementById("rv-search")?.focus(), 50);
-  } else if (e.key === "n" && typeof isAdmin === "function" && isAdmin()) {
+  } else if (e.code === "KeyN" && typeof isAdmin === "function" && isAdmin()) {
     e.preventDefault();
     location.href = "/add.html";
-  } else if (e.key === "?") {
+  } else if (e.code === "Slash" && e.shiftKey) {
     e.preventDefault();
     openShortcutsModal();
   }

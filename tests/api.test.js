@@ -84,7 +84,10 @@ test("прошлая версия уезжает в историю и оттуд
     await api("POST", "/api/save-review", { title: "Третий", type: "anime" });
 
     const { data: history } = await api("GET", "/api/file-history?path=reviews.json");
-    assert.equal(history.versions.length, 2, "три записи — две прошлые версии");
+    // Первая запись — сам живой файл (sha:"current"), не из .history —
+    // за ней и идут три записи минус одна: две настоящие прошлые версии.
+    assert.equal(history.versions[0].sha, "current");
+    assert.equal(history.versions.length, 3, "текущая плюс две прошлые версии");
 
     // Самая старая версия — состояние после первого сохранения.
     const oldest = history.versions.at(-1).sha;
@@ -119,8 +122,8 @@ test("запросы внахлёст не теряют правки и не п�
     assert.deepEqual([...new Set(list.map((r) => r.id))].length, 3, "номера не повторяются");
 
     const { data } = await api("GET", "/api/file-history?path=reviews.json");
-    assert.equal(data.versions.length, 2, "три записи — две прошлые версии");
-    assert.equal(new Set(data.versions.map((c) => c.sha)).size, 2, "версии не затёрли друг друга");
+    assert.equal(data.versions.length, 3, "текущая плюс две прошлые версии");
+    assert.equal(new Set(data.versions.map((c) => c.sha)).size, 3, "версии не затёрли друг друга");
   });
 });
 

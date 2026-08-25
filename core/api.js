@@ -527,14 +527,20 @@ async function fileHistory({ vault, query }) {
   const versions = await vault.history(path);
   // Форма ответа та же, что была у гита: фронтенд (backup-history.html)
   // её уже умеет читать — ok плюс versions с sha/date/message у каждой.
-  return {
-    ok: true,
-    versions: versions.map((v) => ({
-      sha: v.id,
-      date: v.date,
-      message: "сохранение",
-    })),
-  };
+  const list = versions.map((v) => ({
+    sha: v.id,
+    date: v.date,
+    message: "сохранение",
+  }));
+  // sha:"current" — не запись из .history (там лежат только прошлые
+  // версии, см. #archive() в vault.js), а сам живой файл. Раньше
+  // «текущей» в списке считалась просто самая новая архивная запись —
+  // а это не то же самое: «Удалить всю историю» стирает .history
+  // целиком, и без этой строки список после такой чистки выглядел так,
+  // будто пропали и текущие данные тоже, хотя сам файл не тронут.
+  const current = await vault.readJson(path, null);
+  if (current !== null) list.unshift({ sha: "current", date: null, message: "текущая версия" });
+  return { ok: true, versions: list };
 }
 
 async function fileAtCommit({ vault, query }) {

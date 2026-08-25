@@ -190,24 +190,31 @@
       content.innerHTML = `<div class="state-box">${i18n("Пока нет истории для этого файла.")}</div>`;
       return;
     }
+    // sha:"current" — не запись из .history, а сам живой файл (см.
+    // fileHistory() в core/api.js): «Удалить всю историю» её не
+    // трогает, поэтому и в счётчике, и в кнопке участвуют только
+    // настоящие прошлые версии.
+    const pastCount = versions.filter(v => v.sha !== "current").length;
     const head = `
       <div class="version-list-head">
-        <span class="version-list-count">${i18n("Версий: {n}", { n: versions.length })}</span>
-        <button class="btn-mini danger" onclick="clearFileHistory('${path}')">${i18n("Удалить всю историю")}</button>
+        <span class="version-list-count">${i18n("Версий: {n}", { n: pastCount })}</span>
+        ${pastCount ? `<button class="btn-mini danger" onclick="clearFileHistory('${path}')">${i18n("Удалить всю историю")}</button>` : ""}
       </div>`;
-    content.innerHTML = head + versions.map((v, i) => {
+    content.innerHTML = head + versions.map((v) => {
+      const isCurrent = v.sha === "current";
       const dt = v.date ? new Date(v.date) : null;
-      const dateStr = dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
+      const dateStr = isCurrent ? i18n("сейчас") :
+        dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
       const msg = firstLine(v.message);
       return `
       <div class="version-row">
         <div class="version-main">
-          <div class="version-date">${esc(dateStr)}${i === 0 ? `<span class="version-badge">${i18n("текущая")}</span>` : ""}</div>
+          <div class="version-date">${esc(dateStr)}${isCurrent ? `<span class="version-badge">${i18n("текущая")}</span>` : ""}</div>
           <div class="version-msg" title="${esc(v.message)}">${esc(msg)}</div>
         </div>
         <div class="version-actions">
           <button class="btn-mini" onclick="downloadBackupVersion('${path}','${v.sha}')">${i18n("⤓ Скачать")}</button>
-          ${i === 0 ? "" : `<button class="btn-mini danger" onclick="restoreBackupVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')" data-i18n>↺ Восстановить</button>`}
+          ${isCurrent ? "" : `<button class="btn-mini danger" onclick="restoreBackupVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')" data-i18n>↺ Восстановить</button>`}
         </div>
       </div>`;
     }).join("");
@@ -219,10 +226,16 @@
 
   async function downloadBackupVersion(path, sha) {
     try {
-      const res = await fetch(`/api/file-at-commit?path=${encodeURIComponent(path)}&sha=${encodeURIComponent(sha)}`, { credentials: "include" });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: "application/json" });
+      // "current" — не запись из .history (её там нет), а сам живой
+      // файл: он и так отдаётся по своему обычному адресу.
+      const url0 = sha === "current"
+        ? `/${path}?_=${Date.now()}`
+        : `/api/file-at-commit?path=${encodeURIComponent(path)}&sha=${encodeURIComponent(sha)}`;
+      const res = await fetch(url0, { credentials: "include" });
+      const raw = await res.json();
+      if (!res.ok) throw new Error(raw.error || `HTTP ${res.status}`);
+      const data = sha === "current" ? raw : (raw.ok ? raw.data : (() => { throw new Error(raw.error || "Ошибка"); })());
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url  = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
