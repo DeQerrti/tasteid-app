@@ -1474,13 +1474,19 @@
     const root = document.documentElement;
     root.setAttribute("data-skin", selectedTheme);
     const own = themeColors[selectedTheme] || {};
+    // "important" третьим аргументом — не для красоты: #theme-overrides
+    // (theme.js) теперь тоже пишет свои переменные с !important (см. её
+    // же комментарий), а обычный инлайн-стиль !important в стилевом
+    // блоке не перебивает. Без этого живой предпросмотр здесь просто
+    // переставал бы что-либо менять на глаз, стоило странице загрузиться
+    // не с чистого кэша.
     for (const { key } of PALETTE_TOKENS) {
-      if (own[key]) root.style.setProperty(key, own[key]);
+      if (own[key]) root.style.setProperty(key, own[key], "important");
       else root.style.removeProperty(key);
     }
     const accent = own.accent || themeDefaults(selectedTheme).accent;
     for (const [key, value] of Object.entries(accentVariants(accent))) {
-      root.style.setProperty(key, value);
+      root.style.setProperty(key, value, "important");
     }
 
     // В приложении рамку окна красит Electron, а не CSS — сам он не
