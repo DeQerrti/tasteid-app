@@ -62,20 +62,30 @@
     width: 220px; flex-shrink: 0;
     border-right: 1px solid var(--border);
     padding: 24px 0;
-    position: sticky; top: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
+    position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
+    background: var(--bg);
+    z-index: 2;
   }
-  /* height: 100vh (а не auto/stretch по флексу) обязателен для sticky:
-     если высота колонки сравняется с высотой страницы, липнуть ей не за
-     что — контейнер и элемент одного размера, «стянуть» некуда, и
-     sticky превращается в обычный relative (проверено: без явной
-     высоты позиция колонки при скролле в точности повторяла -scrollY,
-     то есть просто уезжала вместе со страницей). overflow-y: auto здесь
-     ради редкого случая, когда список разделов (плюс «Синхронизация» /
-     «Приложение» в самом приложении, которых на сайте нет) всё-таки не
-     помещается в невысокое окно — тогда прокрутить его можно, но не
-     колесом мыши: см. onSidebarWheel ниже, он всегда отдаёт колесо
-     странице, а не этому внутреннему скроллу, — иначе список визуально
-     «прыгал» сам по себе, независимо от прокрутки страницы. */
+  /* Раньше здесь был position: sticky с явной height: 100vh (вместо
+     auto/stretch по флексу — тот вариант ломал sticky совсем: контейнер
+     и колонка одной высоты, «стянуть» некуда). Но и sticky с явной
+     высотой всё равно уезжала вместе со страницей — воспроизвелось у
+     пользователя на видео, хотя в этой же вёрстке без масштабирования
+     страницы всё было на месте. Причина — в Chromium известно ломается
+     расчёт position: sticky, когда масштаб страницы (webContents.
+     setZoomFactor в electron/main.js, ползунок «Масштаб» в этой же
+     панели) отличается от 100%: подтверждено эмуляцией зума в тесте —
+     тот же самый разрыв. Sticky тут вообще не нужен: колонка всегда
+     занимает весь экран по высоте, ей незачем «отлипать» — fixed делает
+     ровно то же самое визуально, но не зависит от этого расчёта sticky.
+     #main получает соответствующий margin-left ниже по скрипту (see
+     ResizeObserver у #sidebar), а overflow-y: auto здесь по прежней
+     причине: список разделов (плюс «Синхронизация» / «Приложение» в
+     самом приложении, которых на сайте нет) может не поместиться в
+     невысокое окно — тогда его можно прокрутить, но не колесом мыши:
+     см. обработчик wheel ниже, он всегда отдаёт колесо странице, а не
+     этому внутреннему скроллу, — иначе список визуально «прыгал» сам по
+     себе, независимо от прокрутки страницы. */
   /* Растягивание мышью — см. js/utils.js, makeResizablePanel(); тот же
      приём, что и у рельсы на главной (app/index.html, .rail-resize). */
   .sidebar-resize {
@@ -110,8 +120,12 @@
 
   /* min-width: 0 — иначе колонка не даёт себе стать уже содержимого,
      и на узком экране за край уезжает вся страница, а не отдельный
-     широкий блок внутри. */
-  #main { flex: 1; min-width: 0; max-width: 680px; padding: 40px 32px; }
+     широкий блок внутри. margin-left компенсирует то, что #sidebar
+     теперь position: fixed и выпал из потока флекса — 220px тут ровно
+     дефолтная ширина колонки (см. #sidebar), а при её изменении
+     мышью или восстановлении сохранённой ширины из localStorage
+     margin пересчитывает скрипт ниже (ResizeObserver у #sidebar). */
+  #main { flex: 1; min-width: 0; max-width: 680px; padding: 40px 32px; margin-left: 220px; }
   h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 0 0 24px; }
 
   /* Телефон. Сайдбар в 220px тут съедал больше половины ширины, и на
@@ -129,6 +143,11 @@
     }
     #sidebar::-webkit-scrollbar { display: none; }
     .sidebar-resize { display: none; }
+    /* #sidebar тут снова в потоке (position: static) — компенсирующий
+       margin-left у #main из десктопного правила больше не нужен, JS
+       ниже и сам его снимает по ResizeObserver, но на первый кадр до
+       его срабатывания margin уже должен быть 0. */
+    #main { margin-left: 0; }
     #sidebar a.back {
       margin: 0 8px 0 12px; white-space: nowrap; flex-shrink: 0;
       position: sticky; left: 0; z-index: 1; background: var(--bg);
@@ -730,6 +749,25 @@
     "tasteid-sidebar-width", 180, 380
   );
 
+  // #sidebar — position: fixed (см. её же комментарий в CSS), поэтому
+  // выпадает из потока флекса и #main нужно вручную сдвигать на её
+  // ширину через margin-left. ResizeObserver ловит и восстановленную
+  // из localStorage ширину при загрузке, и перетаскивание мышью, и сам
+  // факт того, что на телефоне #sidebar становится position: static
+  // (тогда её ширина/высота в потоке не при чём — margin снимаем).
+  (function () {
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("main");
+    if (!sidebar || !main) return;
+    const syncMainMargin = () => {
+      const fixed = getComputedStyle(sidebar).position === "fixed";
+      main.style.marginLeft = fixed ? sidebar.getBoundingClientRect().width + "px" : "";
+    };
+    new ResizeObserver(syncMainMargin).observe(sidebar);
+    window.addEventListener("resize", syncMainMargin);
+    syncMainMargin();
+  })();
+
   document.querySelectorAll(".side-tab").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".side-tab").forEach(b => b.classList.remove("active"));
@@ -870,7 +908,7 @@
   });
 
   // Колесо мыши над #sidebar всегда крутит страницу, а не список
-  // разделов. #sidebar — position: sticky с overflow-y: auto (см. её
+  // разделов. #sidebar — position: fixed с overflow-y: auto (см. её
   // же комментарий в CSS): без auto список не пролистать на невысоком
   // окне, но браузер по умолчанию отдаёт колесо БЛИЖАЙШЕМУ скроллящемуся
   // предку под курсором — то есть самому сайдбару, если курсор над ним.
