@@ -56,7 +56,13 @@
      настройки на миг показывались разлогиненным пользователям). */
   .hidden { display: none !important; }
 
-  #app { display: flex; width: 100%; }
+  /* padding-left держит место под #sidebar (position: fixed, вне потока
+     — см. её комментарий ниже) так, чтобы #main центрировался в
+     ОСТАВШЕЙСЯ после сайдбара ширине, а не прилипал прямо к его краю.
+     Значение по умолчанию — 220px, дефолтная ширина колонки; при
+     resize мышью его пересчитывает тот же скрипт, что раньше двигал
+     margin-left у #main напрямую (см. ResizeObserver у #sidebar). */
+  #app { display: flex; width: 100%; padding-left: 220px; }
 
   #sidebar {
     width: 220px; flex-shrink: 0;
@@ -120,12 +126,17 @@
 
   /* min-width: 0 — иначе колонка не даёт себе стать уже содержимого,
      и на узком экране за край уезжает вся страница, а не отдельный
-     широкий блок внутри. margin-left компенсирует то, что #sidebar
-     теперь position: fixed и выпал из потока флекса — 220px тут ровно
-     дефолтная ширина колонки (см. #sidebar), а при её изменении
-     мышью или восстановлении сохранённой ширины из localStorage
-     margin пересчитывает скрипт ниже (ResizeObserver у #sidebar). */
-  #main { flex: 1; min-width: 0; max-width: 680px; padding: 40px 32px; margin-left: 220px; }
+     широкий блок внутри. margin: 0 auto центрирует узкую (max-width:
+     680px) колонку в пространстве, которое #app оставляет под неё —
+     то есть во всей ширине ЗА ВЫЧЕТОМ padding-left под #sidebar (см.
+     её же комментарий у #app и у #sidebar: колонка теперь position:
+     fixed и не занимает места в потоке сама, поэтому это место ей
+     «бронирует» именно padding). Без margin: 0 auto контент прилипал
+     прямо к сайдбару, а вся пустота у широкого окна уезжала в один
+     правый край — раньше, при position: sticky, эта же центровка была
+     бесплатной (колонка оставалась в потоке флекса), теперь её нужно
+     воссоздавать явно. */
+  #main { flex: 1; min-width: 0; max-width: 680px; padding: 40px 32px; margin: 0 auto; }
   h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 0 0 24px; }
 
   /* Телефон. Сайдбар в 220px тут съедал больше половины ширины, и на
@@ -133,7 +144,7 @@
      без исключения. Кладём меню сверху отдельной прокручиваемой
      полосой, как вкладки на главной. */
   @media (max-width: 720px) {
-    #app { flex-direction: column; }
+    #app { flex-direction: column; padding-left: 0; }
     #sidebar {
       width: auto; height: auto; position: static;
       border-right: none; border-bottom: 1px solid var(--border);
@@ -143,11 +154,6 @@
     }
     #sidebar::-webkit-scrollbar { display: none; }
     .sidebar-resize { display: none; }
-    /* #sidebar тут снова в потоке (position: static) — компенсирующий
-       margin-left у #main из десктопного правила больше не нужен, JS
-       ниже и сам его снимает по ResizeObserver, но на первый кадр до
-       его срабатывания margin уже должен быть 0. */
-    #main { margin-left: 0; }
     #sidebar a.back {
       margin: 0 8px 0 12px; white-space: nowrap; flex-shrink: 0;
       position: sticky; left: 0; z-index: 1; background: var(--bg);
@@ -750,22 +756,26 @@
   );
 
   // #sidebar — position: fixed (см. её же комментарий в CSS), поэтому
-  // выпадает из потока флекса и #main нужно вручную сдвигать на её
-  // ширину через margin-left. ResizeObserver ловит и восстановленную
-  // из localStorage ширину при загрузке, и перетаскивание мышью, и сам
-  // факт того, что на телефоне #sidebar становится position: static
-  // (тогда её ширина/высота в потоке не при чём — margin снимаем).
+  // выпадает из потока флекса и #app нужно вручную резервировать под
+  // неё место через padding-left (#main внутри центрируется в этом
+  // остатке через margin: 0 auto — см. её же комментарий в CSS).
+  // ResizeObserver ловит и восстановленную из localStorage ширину при
+  // загрузке, и перетаскивание мышью, и сам факт того, что на телефоне
+  // #sidebar становится position: static (тогда её ширина/высота в
+  // потоке не при чём — padding снимаем, мобильная медиа-выборка и
+  // так уже обнуляет его сама, но до срабатывания ResizeObserver кадр
+  // может проскочить со старым значением).
   (function () {
     const sidebar = document.getElementById("sidebar");
-    const main = document.getElementById("main");
-    if (!sidebar || !main) return;
-    const syncMainMargin = () => {
+    const app = document.getElementById("app");
+    if (!sidebar || !app) return;
+    const syncAppPadding = () => {
       const fixed = getComputedStyle(sidebar).position === "fixed";
-      main.style.marginLeft = fixed ? sidebar.getBoundingClientRect().width + "px" : "";
+      app.style.paddingLeft = fixed ? sidebar.getBoundingClientRect().width + "px" : "";
     };
-    new ResizeObserver(syncMainMargin).observe(sidebar);
-    window.addEventListener("resize", syncMainMargin);
-    syncMainMargin();
+    new ResizeObserver(syncAppPadding).observe(sidebar);
+    window.addEventListener("resize", syncAppPadding);
+    syncAppPadding();
   })();
 
   document.querySelectorAll(".side-tab").forEach(btn => {
