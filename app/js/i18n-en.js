@@ -1178,4 +1178,7 @@ i18nRegister({
   "Отзыв не сохранён — закрыть и потерять правки?": "This review isn’t saved — close and lose your changes?",
   "Закрыть без сохранения": "Close without saving",
   Остаться: "Stay",
+  "Есть несохранённые изменения — уйти и потерять их?": "You have unsaved changes — leave and lose them?",
+  "Уйти без сохранения": "Leave without saving",
+  "Отзыв не сохранён — уйти и потерять правки?": "This review isn’t saved — leave and lose your changes?",
 });

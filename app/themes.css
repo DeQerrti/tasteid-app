@@ -1844,8 +1844,6 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle"] .section-title,
 [data-skin="doodle"] .modal-title,
 [data-skin="doodle"] .tab-btn,
-[data-skin="doodle"] .side-tab,
-[data-skin="doodle"] #admin-settings-link,
 [data-skin="doodle"] .btn-save,
 [data-skin="doodle"] .card-title,
 [data-skin="doodle"] .review-title {
@@ -1873,8 +1871,21 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle"] .tl-label-name,
 [data-skin="doodle"] input,
 [data-skin="doodle"] select,
-[data-skin="doodle"] textarea {
+[data-skin="doodle"] textarea,
+[data-skin="doodle"] .side-tab,
+[data-skin="doodle"] #admin-settings-link {
   font-family: "Patrick Hand", cursive;
+}
+/* .side-tab и #admin-settings-link жили в группе Caveat выше — тот же
+   почерк, что и в рельсе (.tab-btn), но без компенсирующего
+   font-size: 1.18rem, который там есть специально (см. комментарий у
+   .tab-btn ниже: Caveat в кегле обычного текста читается мельче и
+   тоньше засечек). Мелкие пункты меню настроек в Caveat без такой
+   поправки получались почти нечитаемыми — переехали в Patrick Hand,
+   он для мелкого текста и предназначен, плюс сюда же увеличен кегль. */
+[data-skin="doodle"] .side-tab,
+[data-skin="doodle"] #admin-settings-link {
+  font-size: 1rem;
 }
 
 [data-skin="doodle"] .tab-btn {
@@ -2232,8 +2243,6 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle-dark"] .section-title,
 [data-skin="doodle-dark"] .modal-title,
 [data-skin="doodle-dark"] .tab-btn,
-[data-skin="doodle-dark"] .side-tab,
-[data-skin="doodle-dark"] #admin-settings-link,
 [data-skin="doodle-dark"] .btn-save,
 [data-skin="doodle-dark"] .card-title,
 [data-skin="doodle-dark"] .review-title {
@@ -2261,8 +2270,15 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle-dark"] .tl-label-name,
 [data-skin="doodle-dark"] input,
 [data-skin="doodle-dark"] select,
-[data-skin="doodle-dark"] textarea {
+[data-skin="doodle-dark"] textarea,
+[data-skin="doodle-dark"] .side-tab,
+[data-skin="doodle-dark"] #admin-settings-link {
   font-family: "Patrick Hand", cursive;
+}
+/* См. комментарий у [data-skin="doodle"] .side-tab чуть выше по файлу. */
+[data-skin="doodle-dark"] .side-tab,
+[data-skin="doodle-dark"] #admin-settings-link {
+  font-size: 1rem;
 }
 
 [data-skin="doodle-dark"] .tab-btn {
