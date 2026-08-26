@@ -590,6 +590,9 @@ i18nRegister({
   "Оценка и теги": "Rating and tags",
   "Оценки и статусы": "Ratings and statuses",
   Палитра: "Palette",
+  "Размер шрифта": "Text size",
+  "Только текст — иконки и отступы не меняются. Чтобы увеличить вообще всё, используйте «Масштаб» на вкладке «Приложение».":
+    "Text only — icons and spacing stay the same. To scale up everything, use “Zoom” on the App tab.",
   "Папка (источник)": "Folder (source)",
   "Папка по умолчанию в chars/ *": "Default folder inside chars/ *",
   "Папки не найдены": "No folders found",

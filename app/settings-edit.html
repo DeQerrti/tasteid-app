@@ -480,6 +480,23 @@
     <div class="panel active" id="panel-appearance">
       <div class="theme-grid" id="themeGrid"></div>
 
+      <!-- Отдельно от «Масштаба» (Приложение) — тот через
+           webContents.setZoomFactor у Electron увеличивает вообще всё
+           (включая иконки и рамки в px) и недоступен на телефоне/сайте.
+           Это чистый CSS-множитель (--text-scale, см. style.css) —
+           растягивает только текст и то, что в rem, работает везде. -->
+      <h2 class="section-h" data-i18n>Размер шрифта</h2>
+      <p class="panel-intro" data-i18n>
+        Только текст — иконки и отступы не меняются. Чтобы увеличить вообще
+        всё, используйте «Масштаб» на вкладке «Приложение».
+      </p>
+      <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
+        <input type="range" id="text-scale-slider" min="80" max="150" step="5" value="100"
+          oninput="applyTextScale(this.value, true)">
+        <span class="app-zoom" id="text-scale-value">100%</span>
+        <button type="button" class="btn btn-ghost" onclick="applyTextScale(100, true)" data-i18n>Сбросить</button>
+      </div>
+
       <h2 class="section-h" data-i18n>Палитра</h2>
       <div id="paletteList"></div>
       <div class="pal-foot">
@@ -1346,6 +1363,22 @@
   // своя копия — и она успела разъехаться: темы «Мягкий ботанический»
   // в ней не было вовсе, то есть выбрать её из настроек было нельзя.
   const THEMES = typeof themeOptions === "function" ? themeOptions() : [];
+
+  // Размер шрифта — см. её же комментарий в разметке выше и в
+  // style.css (--text-scale). markDirty=false — только для начальной
+  // загрузки из loadCurrentSettings(), где значение просто отражает то,
+  // что уже сохранено, а не правку человека.
+  let textScale = 100;
+  function applyTextScale(percent, markDirty) {
+    percent = Math.min(150, Math.max(80, Number(percent) || 100));
+    textScale = percent;
+    const slider = document.getElementById("text-scale-slider");
+    const label = document.getElementById("text-scale-value");
+    if (slider) slider.value = percent;
+    if (label) label.textContent = percent + "%";
+    document.documentElement.style.setProperty("--text-scale", percent / 100, "important");
+    if (markDirty) settingsDirty = true;
+  }
 
   let selectedTheme = "classic";
 
@@ -2387,6 +2420,8 @@
     const settings = await currentSiteSettings();
     rawSettings = settings;
 
+    applyTextScale(Number(settings.textScale) || 100, false);
+
     selectedTheme = settings.theme || "classic";
     themeColors = JSON.parse(JSON.stringify(settings.themeColors || {}));
     // Раньше акцент был один на весь сайт (customAccent) и тянулся за
@@ -2695,6 +2730,7 @@
 
     const payload = {
       ...rawSettings,
+      textScale,
       theme: selectedTheme,
       themeColors: prunePalette(),
       customTags,

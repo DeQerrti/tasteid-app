@@ -169,6 +169,18 @@ async function applyTheme() {
   }
   Object.assign(overrides, accentVariants(resolveAccent(settings, skin)));
 
+  // Размер шрифта — отдельно от «Масштаба» (тот в Приложение, только на
+  // компьютере, через webContents.setZoomFactor — увеличивает вообще
+  // всё, включая иконки и отступы в px, и не работает на телефоне/сайте).
+  // Этот множитель — чистый CSS: меняет только font-size у <html>, а
+  // все rem-размеры в style.css/themes.css уже посчитаны от него, так
+  // что раздувается именно текст (и то, что специально в rem), а не
+  // фиксированные в px иконки и рамки. См. :root { --text-scale } и
+  // html { font-size } в style.css.
+  const scalePercent = Number(settings.textScale);
+  const clampedScale = Math.min(200, Math.max(70, scalePercent || 100));
+  overrides["--text-scale"] = String(clampedScale / 100);
+
   // !important, а не расчёт на порядок в <head>. Раньше комментарий тут
   // объяснял это через «стиль добавляется в конец <head>, после
   // themes.css — при равной специфичности выигрывает он» — верно только
