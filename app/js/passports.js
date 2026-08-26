@@ -58,7 +58,40 @@ function addFromPassport(idx) {
   // ссылки), buildMyPassport() подставляет вместо неё путь на его
   // диске — у нас он не откроется никогда, тащить его смысла нет.
   if (/^https?:\/\//.test(item.cover || "")) params.set("cover", item.cover);
-  location.href = `/add.html?${params.toString()}`;
+  openAddFromPassportModal(`/add.html?${params.toString()}`);
+}
+
+// ── Модалка «добавить себе» ─────────────────────
+// Раньше это была обычная навигация (location.href на add.html) — она
+// уводила с чужого паспорта на пустую страницу редактора, и вернуться
+// в то же место (та же вкладка настроек, тот же открытый паспорт)
+// можно было только кнопкой «назад» в браузере, если она вообще
+// сработала бы так, как ожидает человек. Модалка с add.html внутри
+// iframe решает это без переписывания самого редактора — та же
+// страница, тот же код, просто в рамке поверх текущей. Сохранился —
+// add.html сам закроет модалку (см. её initPage()/saveReview(): она
+// проверяет window.parent и зовёт closeAddFromPassportModal()) — и
+// человек остаётся там же, где был, в настройках, на чужом паспорте.
+function openAddFromPassportModal(url) {
+  const overlay = document.getElementById("pp-add-modal-overlay");
+  const frame = document.getElementById("pp-add-modal-frame");
+  if (!overlay || !frame) { location.href = url; return; }
+  frame.src = url;
+  overlay.classList.remove("hidden");
+  document.addEventListener("keydown", onAddFromPassportModalKey);
+}
+
+function closeAddFromPassportModal() {
+  const overlay = document.getElementById("pp-add-modal-overlay");
+  const frame = document.getElementById("pp-add-modal-frame");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  if (frame) frame.src = "about:blank";
+  document.removeEventListener("keydown", onAddFromPassportModalKey);
+}
+
+function onAddFromPassportModalKey(e) {
+  if (e.key === "Escape") closeAddFromPassportModal();
 }
 
 // ── Формат паспорта ────────────────────────────
