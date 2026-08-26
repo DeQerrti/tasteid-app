@@ -162,9 +162,6 @@ async function applyTheme() {
   const skin = THEME_PRESETS[settings.theme] ? settings.theme : "classic";
   document.documentElement.setAttribute("data-skin", skin);
 
-  // Свои цвета и акцент идут последними, чтобы перебить значения из
-  // блока темы. Стиль добавляется в конец <head>, то есть после
-  // themes.css — при равной специфичности выигрывает он.
   const palette = themePalette(settings, skin);
   const overrides = {};
   for (const { key } of PALETTE_TOKENS) {
@@ -172,8 +169,26 @@ async function applyTheme() {
   }
   Object.assign(overrides, accentVariants(resolveAccent(settings, skin)));
 
+  // !important, а не расчёт на порядок в <head>. Раньше комментарий тут
+  // объяснял это через «стиль добавляется в конец <head>, после
+  // themes.css — при равной специфичности выигрывает он» — верно только
+  // когда этот <style> создаётся ЗДЕСЬ и правда попадает в конец. Но со
+  // второй загрузки страницы (и на любой другой странице, кроме первой
+  // за сессию) синхронный инлайн-скрипт в начале <head> уже создаёт тот
+  // же #theme-overrides из кэша localStorage ДО style.css и themes.css —
+  // задолго до этого места, — и applyTheme() ниже просто переиспользует
+  // существующий узел (см. её же комментарий про getElementById), не
+  // трогая его позицию. При равной специфичности побеждает style.css,
+  // объявленный позже в разметке, — свой акцент и палитра тихо
+  // откатывались на дефолтный тёмно-красный (--red в style.css) при
+  // каждом заходе не с первой страницы. !important снимает зависимость
+  // от порядка в DOM целиком — но тогда и живой предпросмотр в
+  // settings-edit.html (previewPalette, инлайновый style на <html>)
+  // обязан ставить свои значения тоже с !important, иначе обычный
+  // инлайн проигрывает этому !important в стилевом блоке — см. её же
+  // комментарий там.
   const declarations = Object.entries(overrides)
-    .map(([key, value]) => `${key}: ${value};`)
+    .map(([key, value]) => `${key}: ${value} !important;`)
     .join(" ");
 
   // Кэш на следующую загрузку — см. инлайновый скрипт в начале <head>

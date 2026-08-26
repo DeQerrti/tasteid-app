@@ -1895,8 +1895,9 @@ html[data-skin="brutal-dark"] h2 {
   margin: 0.5rem 0.25rem;
   padding: 0.5rem 1.15rem;
   /* Caveat в том же кегле, что и базовый Cormorant Garamond, читается
-     мельче и тоньше — почерк тоньше засечек. */
-  font-size: 1.18rem;
+     мельче и тоньше — почерк тоньше засечек, поэтому кегль увеличен
+     заметно сильнее обычной компенсации (см. также .side-tab выше). */
+  font-size: 1.32rem;
   /* Базовый .tab-btn выровнен по левому краю — там уместно, текст сразу
      после ромба-маркера слева. Здесь у каждой вкладки уже своя
      скруглённая форма (border-radius выше) — и активная, и при
@@ -1910,7 +1911,7 @@ html[data-skin="brutal-dark"] h2 {
    (index.html, .tab-btn на max-width: 700px) — тот же почерк там
    мельче, но не такой же мелкий, как у прямого начертания рядом. */
 @media (max-width: 700px) {
-  [data-skin="doodle"] .tab-btn { font-size: 0.8rem; }
+  [data-skin="doodle"] .tab-btn { font-size: 0.9rem; }
 }
 [data-skin="doodle"] .tab-btn.active {
   color: var(--text-hi);
@@ -2287,11 +2288,11 @@ html[data-skin="brutal-dark"] h2 {
   border-radius: var(--doodle-wobble-pill);
   margin: 0.5rem 0.25rem;
   padding: 0.5rem 1.15rem;
-  font-size: 1.18rem;
+  font-size: 1.32rem;
   text-align: center;
 }
 @media (max-width: 700px) {
-  [data-skin="doodle-dark"] .tab-btn { font-size: 0.8rem; }
+  [data-skin="doodle-dark"] .tab-btn { font-size: 0.9rem; }
 }
 [data-skin="doodle-dark"] .tab-btn.active {
   color: var(--text-hi);
