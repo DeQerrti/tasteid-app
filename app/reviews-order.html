@@ -123,7 +123,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 </main>
 
 <script>
-const TYPE_LABELS = {
+const PAGE_TYPE_LABELS = {
   anime:i18n("Аниме"), manga:i18n("Манга"), manhwa:i18n("Манхва"), manhua:i18n("Маньхуа"),
   novel:i18n("Ранобэ"), movie:i18n("Фильм"), show:i18n("Сериал"), dorama:i18n("Дорама"),
   book:i18n("Книга"), game:i18n("Игра"), gacha:i18n("Гача"),
@@ -160,7 +160,7 @@ function render() {
 
   const items = titles.map((r, i) => {
     const cover = r.cover || PH;
-    const label = TYPE_LABELS[r.type] || r.type || "—";
+    const label = PAGE_TYPE_LABELS[r.type] || r.type || "—";
     return `<div class="dnd-item" draggable="true" data-id="${r.id}">
       <div class="dnd-item-num">${i + 1}</div>
       <img src="${esc(cover)}" alt="${esc(r.title)}"
