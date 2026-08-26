@@ -3,10 +3,10 @@
 //  Менять только здесь, больше нигде
 // ══════════════════════════════════════════════
 
-const PH_TALL = "https://placehold.co/300x420/28211a/6b5e4a?text=?";
-const PH_SQ   = "https://placehold.co/300x300/28211a/6b5e4a?text=?";
-
-const NOVEL_FORMATS = ["NOVEL", "LIGHT_NOVEL"];
+// Заглушки рисуются на месте, а не тянутся с placehold.co —
+// см. imagePlaceholder() в js/utils.js (он подключается раньше).
+const PH_TALL = imagePlaceholder(300, 420, "?", { bg: "#28211a", fg: "#6b5e4a" });
+const PH_SQ   = imagePlaceholder(300, 300, "?", { bg: "#28211a", fg: "#6b5e4a" });
 
 // Глобальный кэш — один объект на всё приложение
 const cache = {};
@@ -48,9 +48,12 @@ function loadHtml2Canvas() {
 // но для надёжности всё равно конвертируем в data:-URL — у data:-URL нет
 // источника, canvas с ним не "пачкается" вообще, независимо от браузера.
 //
-// Используем wsrv.nl — публичный image-proxy с хорошей репутацией IP.
-// Он умеет забирать картинки с GitHub и не блокируется ни одним из наших
-// источников. https-URL передаём со схемой, иначе wsrv.nl трактует как http.
+// Сперва пробуем забрать картинку напрямую — большинство наших
+// источников отдают Access-Control-Allow-Origin: *, и посредник им не
+// нужен. Запасной путь — wsrv.nl, публичный image-proxy с хорошей
+// репутацией IP: он умеет забирать картинки с GitHub и не блокируется
+// ни одним из наших источников. https-URL передаём со схемой, иначе
+// wsrv.nl трактует как http.
 //
 // Возвращает restore() — вызывать в finally, чтобы вернуть оригинальные src.
 async function proxyImagesToDataUrls(container) {
@@ -74,12 +77,22 @@ async function proxyImagesToDataUrls(container) {
   }
 
   await Promise.all(toProxy.map(async ({ img, src }) => {
-    try {
-      const dataUrl = await fetchAsDataUrl(`https://wsrv.nl/?url=${encodeURIComponent(src)}`);
-      origSrc.set(img, src);
-      img.src = dataUrl;
-    } catch (e) {
-      console.warn(`[proxyImagesToDataUrls] wsrv.nl не смог получить ${src}: ${e.message}`);
+    // Сперва напрямую. Большинство обложек лежит на CDN, которые отдают
+    // Access-Control-Allow-Origin: * (AniList, TMDB) — тогда картинка
+    // берётся сама, без посредника. Уходить к чужому прокси в этом
+    // случае значит и рассказывать ему, что человек смотрит, и терять
+    // кнопку целиком, когда интернет есть, а до wsrv.nl не достучаться.
+    // Прокси остаётся запасным путём — для источников без CORS, где
+    // прямой fetch не даст прочитать картинку.
+    for (const url of [src, `https://wsrv.nl/?url=${encodeURIComponent(src)}`]) {
+      try {
+        const dataUrl = await fetchAsDataUrl(url);
+        origSrc.set(img, src);
+        img.src = dataUrl;
+        return;
+      } catch (e) {
+        if (url !== src) console.warn(`[proxyImagesToDataUrls] не удалось получить ${src}: ${e.message}`);
+      }
     }
   }));
 

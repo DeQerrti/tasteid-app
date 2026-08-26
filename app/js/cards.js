@@ -36,13 +36,17 @@ function gradeInlineHtml(info) {
   return `<span class="card-grade-inline" style="color:${info.grade.color}" data-tip="${esc(info.grade.desc)}">${esc(info.grade.name)}</span>`;
 }
 
+// Локаль — по языку интерфейса, а не жёстко "ru-RU": с английским
+// интерфейсом даты оставались русскими («12 мар.»), то есть половина
+// карточки переводилась, а половина нет.
 function fmtDateStr(str, short = false) {
   if (!str) return null;
   const d = new Date(str);
   if (isNaN(d)) return null;
+  const locale = dateLocale();
   const currentYear = new Date().getFullYear();
   if (d.getFullYear() === currentYear) {
-    return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+    return d.toLocaleDateString(locale, { day: "numeric", month: "short" });
   } else {
     if (short) {
       const dd = String(d.getDate()).padStart(2, "0");
@@ -50,7 +54,7 @@ function fmtDateStr(str, short = false) {
       const yy = String(d.getFullYear()).slice(2);
       return `${dd}.${mm}.${yy}`;
     }
-    return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+    return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
   }
 }
 
@@ -80,7 +84,7 @@ function manualCard(r, index) {
   let watchBadge = "";
   if (r.status === "current" && r.date_start) {
     const s = fmtDateStr(r.date_start, true);
-    if (s) watchBadge = `с ${s}`;
+    if (s) watchBadge = i18n("с {date}", { date: s });
   } else if (r.status === "completed") {
     const startStr = r.date_start ? fmtDateStr(r.date_start, true) : null;
     const endStr   = r.date_end   ? fmtDateStr(r.date_end,   true) : null;

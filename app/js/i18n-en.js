@@ -1151,3 +1151,20 @@ i18nRegister({
   "Кнопка «Вперёд»": "Forward button",
   "Кнопка мыши {n}": "Mouse button {n}",
 });
+
+// ── Строки, добавленные аудитом перед релизом ─
+i18nRegister({
+  Убрать: "Remove",
+  Порядок: "Order",
+  "Ошибка:": "Error:",
+  "Готово.": "Done.",
+  "Итоги {year}": "{year} in review",
+  "Ознакомился:": "Finished:",
+  "с {date}": "since {date}",
+  "выгружен {date}": "exported {date}",
+  "Загружен чужой паспорт: {count}&nbsp;{unit}": "Someone else’s passport loaded: {count}&nbsp;{unit}",
+  "«{name}» удалена.": "“{name}” deleted.",
+  "Название нового тир-листа:": "Name for the new tier list:",
+  "Развёрнутый текст сюда не перенесён — полный отзыв можно почитать по ссылке ниже.":
+    "The full text hasn’t been moved here — the complete review is available at the link below.",
+});

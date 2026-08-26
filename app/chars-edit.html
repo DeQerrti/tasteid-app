@@ -457,7 +457,14 @@ function bindTitleDrag() {
 function selectTitle(id) {
   activeId = id;
   const title = data.find(t => t.id === id);
-  if (title) activeListId = title.tierlists[0]?.id || null;
+  // title.tierlists?.[0], а не title.tierlists[0]: файл хранилища
+  // открытый и правится руками (README про это прямо говорит), да ещё
+  // и приезжает из чужих резервных копий. Запись без tierlists роняла
+  // здесь весь редактор с «Cannot read properties of undefined» —
+  // страница оставалась пустой, и починить её изнутри приложения было
+  // уже нечем. Ниже, в renderEditor, такая запись просто покажет
+  // пустой список тир-листов, который можно завести заново.
+  if (title) activeListId = title.tierlists?.[0]?.id || null;
   renderSidebar();
   renderEditor();
 }
@@ -669,6 +676,9 @@ function renderEditor() {
 
   const title = data.find(t => t.id === activeId);
   if (!title) return;
+  // Тот же случай, что в selectTitle: запись без tierlists — не повод
+  // ронять страницу, пустой список чинится кнопкой «Создать список».
+  if (!Array.isArray(title.tierlists)) title.tierlists = [];
   if (!activeListId) activeListId = title.tierlists[0]?.id || null;
   const list = title.tierlists.find(l => l.id === activeListId) || title.tierlists[0];
 
@@ -701,7 +711,7 @@ function renderEditor() {
 }
 
 // Заглушка для карточки персонажа — размер под .char-card
-const CHAR_PLACEHOLDER = "https://placehold.co/72x108/111114/4a4540?text=?";
+const CHAR_PLACEHOLDER = imagePlaceholder(72, 108);
 
 function renderTierRow(title, list, tier, ti) {
   const chars = tier.chars.map((ch, ci) => `
@@ -734,12 +744,17 @@ function renderTierRow(title, list, tier, ti) {
 // ══ ТИР-ЛИСТЫ ══════════════════════════════════
 function selectList(id) { activeListId = id; renderEditor(); }
 
-function addList() {
-  const label = prompt("Название нового тир-листа:");
-  if (!label) return;
+// promptDialog, а не window.prompt: в Electron последнего нет вовсе —
+// вызов бросает «prompt() is not supported.», и кнопка «+ тир-лист» в
+// настольном приложении просто падала с ошибкой в консоль (см.
+// js/utils.js).
+async function addList() {
+  const label = await promptDialog(i18n("Название нового тир-листа:"), "", i18n("Создать"));
+  if (!label || !label.trim()) return;
   const title = data.find(t => t.id === activeId);
+  if (!title) return;
   const id    = activeId + "-" + Date.now();
-  title.tierlists.push({ id, label, tiers: defaultTiers() });
+  title.tierlists.push({ id, label: label.trim(), tiers: defaultTiers() });
   activeListId = id;
   renderEditor();
 }
@@ -874,7 +889,7 @@ async function loadGallery(folder, title) {
         onclick="selectGalleryItem(this)"
         title="${esc(f.name)}${used ? " (уже добавлен)" : ""}">
       <img src="${esc(f.preview || f.url)}" alt="${esc(f.name)}" loading="lazy"
-        data-placeholder="https://placehold.co/80x120/111114/4a4540?text=?">
+        data-placeholder="${esc(imagePlaceholder(80, 120))}">
       <div class="gallery-item-name">${esc(f.name)}</div>
       <div class="gallery-check">✓</div>
     </div>`;

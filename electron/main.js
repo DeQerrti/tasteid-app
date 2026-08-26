@@ -404,7 +404,15 @@ html,body{margin:0;height:100%;background:#0a0a0c;display:flex;align-items:cente
 )}`;
 
 function createSplashWindow() {
-  win = new BrowserWindow({
+  // splash, а не глобальный win: к моменту, когда ready-to-show
+  // сработает, win уже может указывать на настоящее окно (createWindow
+  // ниже присваивает его же). Тогда show() показывал НЕ заставку, а
+  // недорисованное главное окно — то есть ровно ту белую вспышку, от
+  // которой оба show: false и заведены, а сама заставка так и не
+  // появлялась. Ссылку на своё окно держим локально; глобальный win
+  // всё равно ставим, чтобы второй запуск (second-instance) знал,
+  // что показывать, пока настоящего окна ещё нет.
+  const splash = new BrowserWindow({
     width: 560,
     height: 560,
     show: false,
@@ -412,9 +420,14 @@ function createSplashWindow() {
     ...titleBarOptions(process.platform, overlayColors(undefined)),
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
   });
-  win.once("ready-to-show", () => win.show());
-  win.loadURL(SPLASH_HTML);
-  return win;
+  win = splash;
+  splash.once("ready-to-show", () => {
+    // Настоящее окно уже создано — заставке показываться незачем, её
+    // вот-вот закроют.
+    if (win === splash) splash.show();
+  });
+  splash.loadURL(SPLASH_HTML);
+  return splash;
 }
 
 async function createWindow({ compact = false } = {}) {
@@ -447,7 +460,10 @@ async function createWindow({ compact = false } = {}) {
     },
   });
 
-  win.once("ready-to-show", () => win.show());
+  // Та же оговорка, что у заставки: показываем именно это окно, а не то,
+  // на которое к тому времени будет указывать win.
+  const created = win;
+  created.once("ready-to-show", () => created.show());
 
   // Синхронизация перед закрытием — если она подключена (app/js/sync.js),
   // дать ей недолго доработать перед закрытием окна: закрыв TasteID,

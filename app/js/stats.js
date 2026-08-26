@@ -39,7 +39,7 @@ async function loadStats() {
     await fetchReviews();
     statsRender();
   } catch (err) {
-    box.innerHTML = `<div class="state-box">Ошибка: ${esc(err.message)}</div>`;
+    box.innerHTML = `<div class="state-box">${i18n("Ошибка:")} ${esc(err.message)}</div>`;
   } finally {
     loading.stats = false;
   }
@@ -182,7 +182,7 @@ function renderYearDigest(year, completed) {
 
   return `
     <div id="stats-digest" class="stat-grid">
-      ${isStatVisible("counters") ? renderCounters(counts, total, `Итоги ${year}`, siteLabel("stats", "completed", i18n("завершено"))) : ""}
+      ${isStatVisible("counters") ? renderCounters(counts, total, i18n("Итоги {year}", { year }), siteLabel("stats", "completed", i18n("завершено"))) : ""}
       ${isStatVisible("donut")    ? renderDonut(counts, total) : ""}
       ${isStatVisible("grades")   ? renderGradeChart(gradeCounts) : ""}
       ${isStatVisible("spotlight") ? renderTitleOfYear(spotlight, year) : ""}

@@ -281,6 +281,27 @@
   }
   .tab-row .main-radio-label input { width: auto; margin: 0; }
 
+  /* Телефон. В строке вкладки шесть вещей подряд: ручка перетаскивания,
+     глаз, имя, карандаш и подпись «Главная страница» с точкой. Глаз и
+     карандаш под пальцем становятся по 44px (см. style.css), «Главная
+     страница» не переносится (white-space: nowrap) и ужаться не может
+     (flex: none) — в 390px это не влезало, строка вылезала за экран, и
+     вместе с ней уезжала вбок вся страница настроек.
+     Пускаем подпись на вторую строку: места по ширине она больше не
+     просит, а сама радиокнопка (13px, растягивать её нельзя — станет
+     не похожа на радиокнопку) получает нормальную цель для пальца за
+     счёт отступов у своей подписи. */
+  @media (pointer: coarse) {
+    .tab-row { flex-wrap: wrap; }
+    .tab-row .tab-name, .tab-row input[type="text"] { flex: 1 1 40%; min-width: 0; }
+    .tab-row .main-radio-label {
+      flex: 1 0 100%;
+      order: 10;
+      min-height: 36px;
+      padding: 2px 0;
+    }
+  }
+
   .shelf-row {
     padding: 8px 0; border-bottom: 1px solid var(--border);
   }
@@ -769,8 +790,8 @@
     container.innerHTML = shelves.map((s, i) => `
       <div class="shelf-row">
         <div class="shelf-row-main">
-          <input type="color" value="${s.color}" onchange="shelves[${i}].color=this.value">
-          <input type="text" value="${s.name}" onchange="shelves[${i}].name=this.value" placeholder="${i18n("Название")}" data-i18n-placeholder="${i18n("Название")}">
+          <input type="color" value="${esc(s.color)}" onchange="shelves[${i}].color=this.value">
+          <input type="text" value="${esc(s.name)}" onchange="shelves[${i}].name=this.value" placeholder="${i18n("Название")}" data-i18n-placeholder="${i18n("Название")}">
           ${withRange ? `
             <span class="rng" data-i18n>от</span>
             <input type="number" value="${s.min}" onchange="shelves[${i}].min=Number(this.value)">
@@ -779,7 +800,7 @@
           ` : ""}
           <button class="icon-btn" onclick="removeShelfRow(${i}, '${containerId}', ${withRange})">✕</button>
         </div>
-        <input type="text" class="shelf-desc" value="${(s.desc || "").replace(/"/g, "&quot;")}"
+        <input type="text" class="shelf-desc" value="${esc(s.desc || "")}"
           onchange="shelves[${i}].desc=this.value" placeholder="${i18n("Описание — показывается подсказкой при наведении")}" data-i18n-placeholder="${i18n("Описание — показывается подсказкой при наведении")}">
       </div>
     `).join("");
@@ -1419,8 +1440,12 @@
   async function addVault(mode) {
     try {
       let path;
+      // promptDialog, а не window.prompt: в Electron последнего просто
+      // нет — вызов бросает «prompt() is not supported.», то есть на
+      // компьютере обе кнопки заканчивались ошибкой, а хранилище так и
+      // не заводилось (см. js/utils.js).
       if (mode === "mobile") {
-        const name = prompt(i18n("Имя нового хранилища:"), i18n("Новое хранилище"));
+        const name = await promptDialog(i18n("Имя нового хранилища:"), i18n("Новое хранилище"));
         if (name === null) return; // отмена
         await appApi("/api/app/add-vault", { name: name.trim() });
       } else {
@@ -1428,7 +1453,7 @@
         if (!picked.path) return; // отмена в системном диалоге выбора папки
         path = picked.path;
         const suggested = path.split(/[\\/]/).filter(Boolean).pop() || i18n("Хранилище");
-        const name = prompt(i18n("Имя для этого хранилища:"), suggested);
+        const name = await promptDialog(i18n("Имя для этого хранилища:"), suggested);
         if (name === null) return;
         await appApi("/api/app/use-vault", { path, name: name.trim() });
       }
@@ -1448,7 +1473,9 @@
     const warn = appInfo.mobile
       ? i18n("Хранилище и все его данные будут стёрты с телефона. Продолжить?")
       : i18n("Хранилище будет убрано из списка. Сама папка на диске никуда не денется — её можно будет открыть заново через «Открыть существующее».");
-    if (!confirm(warn)) return;
+    // confirmDialog, а не window.confirm: та же коробка в теме
+    // приложения, что и у остальных подтверждений (js/utils.js).
+    if (!(await confirmDialog(warn, i18n("Убрать")))) return;
     try {
       await appApi("/api/app/remove-vault", { id });
       appInfo.vaults = (appInfo.vaults || []).filter(v => v.id !== id);
@@ -1627,7 +1654,7 @@
   function syncConnectedHtml(config) {
     const state = getSyncState();
     const last = state.lastSyncAt
-      ? new Date(state.lastSyncAt).toLocaleString("ru-RU")
+      ? new Date(state.lastSyncAt).toLocaleString(dateLocale())
       : i18n("ещё не было");
     return `
       <p class="panel-intro">

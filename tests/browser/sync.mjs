@@ -15,6 +15,7 @@ import { createRequire } from "node:module";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { buildMobileBundle } from "../fixtures/mobile-bundle.js";
 
 const require = createRequire(import.meta.url);
 const { chromium } = (() => {
@@ -60,17 +61,9 @@ await new Promise((done, fail) => {
   server.stdout.on("data", (d) => String(d).includes("http") && (clearTimeout(timer), done()));
 });
 
-const bundleOut = join(mkdtempSync(join(tmpdir(), "tasteid-sync-bundle-")), "mobile.bundle.js");
-execFileSync("npx", [
-  "esbuild",
-  "mobile/src/main.js",
-  "--bundle",
-  "--format=iife",
-  "--alias:@capacitor/filesystem=./tests/fixtures/fake-filesystem.js",
-  "--alias:@capacitor/share=./tests/fixtures/fake-share.js",
-  "--alias:@capacitor/status-bar=./tests/fixtures/fake-status-bar.js",
-  `--outfile=${bundleOut}`,
-]);
+// Общая сборка на все проверки в браузере — см.
+// tests/fixtures/mobile-bundle.js.
+const bundleOut = buildMobileBundle("mobile.bundle.js");
 
 // ── Подставной GitHub ────────────────────────────
 // Не настоящий api.github.com, а его минимальный слепок: пользователь,

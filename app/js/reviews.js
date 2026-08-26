@@ -40,7 +40,7 @@ async function loadReviews() {
     document.getElementById("tab-reviews").innerHTML =
       `<div class="state-box">
         ${esc(siteLabel("empty", "reviews", i18n("Отзывов пока нет.")))}
-        ${isAdmin() ? `<div style="margin-top:1.5rem"><a href="/add.html" class="admin-add-btn">Добавить</a></div>` : ""}
+        ${isAdmin() ? `<div style="margin-top:1.5rem"><a href="/add.html" class="admin-add-btn">${i18n("Добавить")}</a></div>` : ""}
       </div>`;
   }
 }
@@ -233,7 +233,7 @@ function reviewModalBodyHtml(r) {
   const formatYear = [r.format, r.year].filter(Boolean).join(" · ");
   const dateRaw = r.date_end || r.date_start || r.date || null;
   const dateStr = dateRaw
-    ? new Date(dateRaw).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
+    ? new Date(dateRaw).toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" })
     : "";
 
   const btn1 = sourceBtnHtml(r.url, r.source);
@@ -244,7 +244,7 @@ function reviewModalBodyHtml(r) {
     ? `<div class="review-modal-fulltext">${esc(r.review_full).split("\n").map(p => p ? `<p>${p}</p>` : "").join("")}</div>`
     : `<div class="review-modal-fulltext">
         <p>${esc(r.preview || i18n("Пока без текста."))}</p>
-        ${(btn1 || btn2) ? `<p class="review-modal-nofull-hint">Развёрнутый текст пока не перенесён на сайт — полный отзыв можно почитать по ссылке ниже.</p>` : ""}
+        ${(btn1 || btn2) ? `<p class="review-modal-nofull-hint">${i18n("Развёрнутый текст сюда не перенесён — полный отзыв можно почитать по ссылке ниже.")}</p>` : ""}
       </div>`;
 
   // Карточка режет теги до CARD_TAGS_MAX (reviews.js: reviewCard) — тут,
@@ -259,7 +259,7 @@ function reviewModalBodyHtml(r) {
       <div>
         <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
         <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
-        ${dateStr ? `<div class="review-dateline">Ознакомился: <span>${esc(dateStr)}</span></div>` : ""}
+        ${dateStr ? `<div class="review-dateline">${i18n("Ознакомился:")} <span>${esc(dateStr)}</span></div>` : ""}
         ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
         ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(grade.name)}</div>` : ""}
       </div>
@@ -373,7 +373,7 @@ function reviewCard(r, i) {
 
   const dateRaw = r.date_end || r.date_start || r.date || null;
   const dateStr = dateRaw
-    ? new Date(dateRaw).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+    ? new Date(dateRaw).toLocaleDateString(dateLocale(), { day: "numeric", month: "short" })
     : "";
 
   const rewatchHtml = r.rewatch_count > 0

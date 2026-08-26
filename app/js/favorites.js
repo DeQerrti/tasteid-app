@@ -31,7 +31,7 @@ async function loadFavorites() {
     document.getElementById("tab-favorites").innerHTML =
       `<div class="state-box">
         <div style="font-size:2rem;margin-bottom:.75rem">⚠️</div>
-        Ошибка: ${esc(err.message)}
+        ${i18n("Ошибка:")} ${esc(err.message)}
       </div>`;
   } finally {
     loading.fav = false;
@@ -47,7 +47,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
   if (isFavSectionVisible("favTitles")) html += `<section class="group">
     <div class="section-header">
       <h2 class="section-title">${esc(siteLabel("sections", "favTitles", i18n("Тайтлы")))}</h2>
-      ${admin ? `<a href="/reviews-order.html" class="admin-add-btn">Порядок</a>` : ""}
+      ${admin ? `<a href="/reviews-order.html" class="admin-add-btn">${i18n("Порядок")}</a>` : ""}
     </div>
     <div class="grid-now">
       ${titles.length
@@ -60,7 +60,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
   if (isFavSectionVisible("favCharacters")) html += `<section class="group">
     <div class="section-header">
       <h2 class="section-title">${esc(siteLabel("sections", "favCharacters", i18n("Персонажи")))}</h2>
-      ${admin ? `<a href="/favorites-edit.html" class="admin-add-btn">Добавить</a>` : ""}
+      ${admin ? `<a href="/favorites-edit.html" class="admin-add-btn">${i18n("Добавить")}</a>` : ""}
     </div>
     <div class="grid-chars">
       ${characters.length
@@ -73,7 +73,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
   if (isFavSectionVisible("favPersons")) html += `<section class="group">
     <div class="section-header">
       <h2 class="section-title">${esc(siteLabel("sections", "favPersons", i18n("Персоны")))}</h2>
-      ${admin ? `<a href="/favorites-edit.html" class="admin-add-btn">Добавить</a>` : ""}
+      ${admin ? `<a href="/favorites-edit.html" class="admin-add-btn">${i18n("Добавить")}</a>` : ""}
     </div>
     <div class="grid-chars">
       ${persons.length
@@ -91,7 +91,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
     html += `<section class="group">
       <div class="section-header">
         <h2 class="section-title">${esc(c.label)}</h2>
-        ${admin ? `<a href="/favorites-edit.html" class="admin-add-btn">Добавить</a>` : ""}
+        ${admin ? `<a href="/favorites-edit.html" class="admin-add-btn">${i18n("Добавить")}</a>` : ""}
       </div>
       <div class="grid-chars">
         ${entries.length

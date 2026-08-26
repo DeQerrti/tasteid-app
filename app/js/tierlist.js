@@ -152,7 +152,7 @@ async function loadCharGames(collectionId) {
 
   if (games.length && !tlState.gameId) {
     tlState.gameId = games[0].id;
-    tlState.listId = games[0].tierlists[0]?.id || null;
+    tlState.listId = games[0].tierlists?.[0]?.id || null;
   }
 }
 
@@ -164,8 +164,13 @@ function tlRender() {
 }
 
 function tlModeToggleHtml() {
+  // c.label || c.id — как в tlCharsHtml и в обработчике переключения
+  // чуть ниже. Коллекция без подписи (запись, пришедшая из чужой
+  // резервной копии или поправленная руками в site-settings.json)
+  // давала пустую кнопку: нажимать вроде и есть на что, а что это —
+  // непонятно. Id хотя бы читается.
   const collectionBtns = visibleTierCollections().map(c =>
-    `<button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label)}</button>`
+    `<button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label || c.id)}</button>`
   ).join("");
   const addBtn = isAdmin()
     ? `<button class="tl-mode-add-btn" id="tl-add-collection-btn" type="button" title="${i18n("Новый тир-лист")}">${i18n("Создать")}</button>`
@@ -233,7 +238,7 @@ function tlTitlesHtml() {
     } else {
       for (let i = 0; i < items.length; i++) {
         const { review: r, poster, posterBackup } = items[i];
-        const placeholder = `https://placehold.co/72x108/111114/4a4540?text=${encodeURIComponent(r.title.slice(0, 2))}`;
+        const placeholder = imagePlaceholder(72, 108, r.title.slice(0, 2));
         const src = poster || posterBackup || placeholder;
         html += `<div class="tl-poster"
             data-tl-title="${esc(r.title)}"
@@ -315,28 +320,34 @@ function tlCharsHtml(collectionId) {
     const adminBtn = isAdmin()
       ? `<div style="margin-top:1.5rem"><a href="/chars-edit.html?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a></div>`
       : "";
-    return `<div class="state-box" style="padding-top:2rem">Ничего не найдено${adminBtn}</div>`;
+    return `<div class="state-box" style="padding-top:2rem">${esc(siteLabel("empty", "search", i18n("Ничего не найдено")))}${adminBtn}</div>`;
   }
 
   const games = state.games;
   const game = games.find(g => g.id === tlState.gameId) || games[0];
-  const list = game.tierlists.find(l => l.id === tlState.listId) || game.tierlists[0];
+  // ?? [] — файл коллекции открытый и правится руками (см. README), а
+  // ещё приезжает из чужих резервных копий: запись без tierlists роняла
+  // всю вкладку, вместо того чтобы просто показать пустую коллекцию.
+  const lists = Array.isArray(game.tierlists) ? game.tierlists : [];
+  const list = lists.find(l => l.id === tlState.listId) || lists[0];
 
   const gameButtons = games.map(g =>
     `<button class="tl-filter${g.id === game.id ? " active" : ""}" data-char-game="${esc(g.id)}">${esc(g.title)}</button>`
   ).join("");
 
-  const listButtons = game.tierlists.length > 1
+  const listButtons = lists.length > 1
     ? `<div class="tl-char-lists">
-        ${game.tierlists.map(l =>
-          `<button class="tl-list-btn${l.id === list.id ? " active" : ""}" data-char-list="${esc(l.id)}">${esc(l.label)}</button>`
+        ${lists.map(l =>
+          `<button class="tl-list-btn${l.id === list?.id ? " active" : ""}" data-char-list="${esc(l.id)}">${esc(l.label)}</button>`
         ).join("")}
       </div>`
     : "";
 
+  // list может не быть вовсе — у записи без tierlists (см. выше).
+  const tiers = Array.isArray(list?.tiers) ? list.tiers : [];
   let tiersHtml = `<div class="tl-rows" id="tl-chars-rows">`;
-  for (let ti = 0; ti < list.tiers.length; ti++) {
-    const tier  = list.tiers[ti];
+  for (let ti = 0; ti < tiers.length; ti++) {
+    const tier  = tiers[ti];
     const chars = tier.chars || [];
 
     tiersHtml += `<div class="tl-row" style="--tl-color:${esc(tier.color)};animation-delay:${ti * 50}ms">
@@ -361,7 +372,7 @@ function tlCharsHtml(collectionId) {
             data-tl-type="${esc(game.title)}"
             style="height:${tlCharHeight}px;animation-delay:${Math.min(i * 18, 400)}ms">
           <img src="${esc(ch.img || ch.img_backup || "")}" alt="${esc(ch.name)}" loading="lazy"
-            ${imgFallbackAttrs(ch.img, ch.img_backup, "https://placehold.co/100x150/111114/4a4540?text=?")}>
+            ${imgFallbackAttrs(ch.img, ch.img_backup, imagePlaceholder(100, 150))}>
         </div>`;
       }
     }
@@ -449,7 +460,7 @@ function tlBindAll() {
       tlState.gameId = btn.dataset.charGame;
       const games = tlState.collections[tlState.mode]?.games || [];
       const game = games.find(g => g.id === tlState.gameId);
-      tlState.listId = game?.tierlists[0]?.id || null;
+      tlState.listId = game?.tierlists?.[0]?.id || null;
       tlRender();
     });
   });
@@ -584,7 +595,16 @@ async function tlExport(rowsId, label) {
     const safeName = label.replace(/[^a-zA-Zа-яА-Я0-9_\- ]/g, "").trim() || "tierlist";
     link.download = `${safeName}-tierlist.png`;
     link.href = canvas.toDataURL("image/png");
+    // Ссылку обязательно вставить в документ, а не кликать по висящей в
+    // воздухе. На телефоне <a download> не скачивает ничего, поэтому
+    // нажатие перехватывает mobile/src/main.js — одним слушателем на
+    // document. До document событие доходит только от элемента, который
+    // в документе и находится: клик по неприсоединённой ссылке всплывать
+    // некуда, перехват не срабатывал, и «Сохранить как картинку» на
+    // Android молча не делало ничего.
+    document.body.appendChild(link);
     link.click();
+    link.remove();
 
   } catch (err) {
     alert("Не удалось создать картинку 😢\n" + err.message);

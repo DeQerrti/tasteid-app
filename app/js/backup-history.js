@@ -204,7 +204,7 @@
       const isCurrent = v.sha === "current";
       const dt = v.date ? new Date(v.date) : null;
       const dateStr = isCurrent ? i18n("сейчас") :
-        dt ? dt.toLocaleString("ru-RU", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
+        dt ? dt.toLocaleString(dateLocale(), { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
       const msg = firstLine(v.message);
       return `
       <div class="version-row">
@@ -240,8 +240,18 @@
       const link = document.createElement("a");
       link.href = url;
       link.download = `${path.replace(".json", "")}-${sha.slice(0, 7)}.json`;
+      // В документ, а не мимо: на телефоне <a download> не скачивает
+      // ничего, нажатие перехватывает mobile/src/main.js слушателем на
+      // document — а до document клик по неприсоединённой ссылке не
+      // доходит. Без этого «Скачать» в истории версий на Android молча
+      // не делало ничего. Отзыв blob-ссылки — следующим кадром, иначе
+      // перехватчик не успеет её прочитать (он и написан так, чтобы
+      // забрать содержимое сразу, но revoke в той же строке опережал
+      // даже его).
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
       backupToast("Не удалось скачать: " + e.message, false);
     }

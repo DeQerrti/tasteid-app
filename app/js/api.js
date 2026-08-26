@@ -13,7 +13,14 @@ async function fetchReviews() {
     const res = await fetch("/reviews.json");
     if (!res.ok) throw new Error(i18n("reviews.json не найден"));
     const data = await res.json();
-    data.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Сортировки здесь нет намеренно. Раньше стояла по r.date — поля,
+    // которого в записях не бывает: даты зовутся date_start/date_end
+    // (r.date — остаток от самого первого формата). Компаратор из-за
+    // этого возвращал NaN на каждой паре, то есть не делал ничего, и
+    // порядок держался только на том, что хранилище отдаёт файл уже
+    // отсортированным (core/api.js, sortReviews — свежее сверху).
+    // Так оно и есть: сортировать второй раз, да ещё по-другому,
+    // значит однажды разъехаться с ним.
     cache.reviews = data;
     return data;
   } catch {
