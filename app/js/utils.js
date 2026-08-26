@@ -330,6 +330,9 @@ function eyeButton(hidden, onclickExpr) {
 // подсказке. Один плавающий элемент вне потока страницы, позиционируемый
 // в JS, — тот же приём, что уже работает у тултипа тир-листа
 // (js/tierlist.js, .tl-tooltip): такому чужой overflow не мешает.
+//
+// Показывается и наведением мыши, и нажатием пальца — см. ниже, там же
+// про то, почему одного наведения оказалось мало.
 let dataTipEl = null;
 
 function dataTipEnsure() {
@@ -354,25 +357,111 @@ function dataTipPosition(target, tip) {
   tip.style.top = y + "px";
 }
 
-document.addEventListener("mouseover", (e) => {
-  const target = e.target.closest("[data-tip]");
-  if (!target || !target.getAttribute("data-tip")) return;
+function dataTipShow(target) {
+  const text = target.getAttribute("data-tip");
+  if (!text) return;
   const tip = dataTipEnsure();
-  tip.textContent = target.getAttribute("data-tip");
+  tip.textContent = text;
   tip.classList.toggle("data-tip-tooltip--grade", target.classList.contains("grade-chip"));
   tip.classList.remove("hidden");
   dataTipPosition(target, tip);
+}
+
+function dataTipHide() {
+  dataTipEl?.classList.add("hidden");
+}
+
+// ── Палец ──────────────────────────────────────
+// Наведения на телефоне нет, и подсказок там не было вовсе. Не потому,
+// что событие не приходило: после касания браузер сам шлёт «как будто
+// мышью» mouseover, а следом mouseout — подсказка успевала появиться и
+// пропасть в одном кадре, то есть мигала невидимо. Поэтому мало
+// добавить обработку касаний, надо ещё и заткнуть на это время
+// мышиные обработчики, иначе они гасят то, что только что показали.
+//
+// Само поведение — как у тултипа тир-листа (js/tierlist.js,
+// tlBindTooltip), чтобы в одном приложении не было двух разных
+// договорённостей: нажал — показалось, нажал ещё раз по тому же или
+// куда-то мимо — убралось.
+let dataTipTouchTarget = null;
+let dataTipTouchAt = 0;
+
+// Пока эта отметка свежая, mouseover/mouseout считаются отголоском
+// касания, а не настоящей мышью. Полсекунды с запасом: подставные
+// события приходят в те же миллисекунды, что и touchend.
+const DATA_TIP_TOUCH_ECHO = 800;
+const dataTipFromTouch = () => Date.now() - dataTipTouchAt < DATA_TIP_TOUCH_ECHO;
+
+document.addEventListener(
+  "touchstart",
+  (e) => {
+    dataTipTouchAt = Date.now();
+    const target = e.target.closest?.("[data-tip]");
+
+    // Мимо подсказки или повторно по той же — убрать.
+    if (!target || !target.getAttribute("data-tip") || target === dataTipTouchTarget) {
+      dataTipTouchTarget = null;
+      dataTipHide();
+      return;
+    }
+
+    // Подсказка внутри того, что само откроется по нажатию (карточка
+    // отзыва на вкладке «Отзывы» — это role="button"): пусть открывается
+    // карточка. Иначе одно нажатие и открывает отзыв, и вешает поверх
+    // него подсказку в случайном месте экрана. Ничего при этом не
+    // теряется: в самом отзыве те же теги и та же оценка лежат уже не
+    // внутри кнопки, и там подсказка показывается как надо.
+    if (target.closest('[role="button"], a[href], button')) {
+      dataTipTouchTarget = null;
+      dataTipHide();
+      return;
+    }
+
+    dataTipTouchTarget = target;
+    dataTipShow(target);
+  },
+  { passive: true }
+);
+
+// Отметку обновляем и на отпускании: подставные mouseover/mouseout
+// приходят после него, а от долгого нажатия touchstart успевает
+// состариться.
+document.addEventListener("touchend", () => (dataTipTouchAt = Date.now()), { passive: true });
+
+// Подсказка позиционируется относительно окна (position: fixed), так что
+// при прокрутке она осталась бы висеть на месте, оторвавшись от того, к
+// чему относится. Пальцем это первое, что делают после нажатия.
+//
+// capture: true обязателен: событие scroll не всплывает, и слушатель на
+// window ловит только прокрутку самой страницы. А прокручивают ещё и
+// то, внутри чего эти подсказки как раз и живут, — развёрнутый отзыв
+// (.review-modal-panel со своим overflow-y).
+document.addEventListener(
+  "scroll",
+  () => {
+    dataTipTouchTarget = null;
+    dataTipHide();
+  },
+  { passive: true, capture: true }
+);
+
+document.addEventListener("mouseover", (e) => {
+  if (dataTipFromTouch()) return; // отголосок касания, см. выше
+  const target = e.target.closest("[data-tip]");
+  if (!target) return;
+  dataTipShow(target);
 });
 
 document.addEventListener(
   "mouseout",
   (e) => {
+    if (dataTipFromTouch()) return;
     const target = e.target.closest("[data-tip]");
     if (!target || !dataTipEl) return;
     // relatedTarget внутри той же подсказки-цели — не уход, а переход
     // между дочерними узлами (например, счётчиком внутри .stat-tag).
     if (target.contains(e.relatedTarget)) return;
-    dataTipEl.classList.add("hidden");
+    dataTipHide();
   },
   true
 );
