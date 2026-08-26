@@ -748,6 +748,7 @@ let fromPassportModal = false;
 function toggleFavorite() {
   const cb = document.getElementById("f-favorite");
   cb.checked = !cb.checked;
+  markAddDirty();
   syncFavToggle();
 }
 
@@ -870,6 +871,7 @@ function renderGradeInput() {
       btn.classList.toggle("active", key === selectedGrade);
       btn.onclick = () => {
         selectedGrade = selectedGrade === key ? null : key;
+        markAddDirty();
         renderGradeInput();
       };
       gradesGrid.appendChild(btn);
@@ -884,7 +886,7 @@ function renderGradeInput() {
       const star = document.createElement("span");
       star.textContent = selectedGrade && i <= Number(selectedGrade) ? "★" : "☆";
       star.style.cssText = "cursor:pointer;font-size:1.6rem;color:var(--red);";
-      star.onclick = () => { selectedGrade = selectedGrade === i ? null : i; renderGradeInput(); };
+      star.onclick = () => { selectedGrade = selectedGrade === i ? null : i; markAddDirty(); renderGradeInput(); };
       wrap.appendChild(star);
     }
     gradesGrid.appendChild(wrap);
@@ -939,6 +941,7 @@ function renderTagsGrid() {
     btn.onclick = () => {
       if (selectedTags.has(tag)) { selectedTags.delete(tag); btn.classList.remove("active"); featuredCardTags.delete(tag); }
       else { selectedTags.add(tag); btn.classList.add("active"); }
+      markAddDirty();
       renderCardTagsList();
     };
     tagsGrid.appendChild(btn);
@@ -2408,6 +2411,10 @@ async function deleteReview() {
     const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
     setStatus("ok", i18n("«{name}» удалена.", { name: data.title }) + note);
     // Форма после удаления показывает то, чего уже нет, — уводим на главную.
+    // addDirty сбрасываем явно: иначе beforeunload спросил бы «уйти без
+    // сохранения», хотя запись только что удалена, а не брошена
+    // недописанной.
+    addDirty = false;
     document.getElementById("danger-zone").hidden = true;
     document.getElementById("btn-save").disabled = true;
     setTimeout(() => { location.href = "/"; }, 1800);
@@ -2646,6 +2653,7 @@ async function saveReview() {
       setStatus("ok", editingId !== null
         ? `«${title}» обновлён.${note}`
         : `«${title}» сохранён.${note}`);
+      addDirty = false;
       if (editingId === null) {
         if (fromPassportModal) {
           // Показываем «сохранён» на секунду — не исчезать мгновенно,
@@ -2671,6 +2679,33 @@ async function saveReview() {
 }
 
 enableEscapeToLeave(".src-type-dropdown:not(.hidden)");
+
+// ── Предупреждение о несохранённых изменениях ───
+// Форма отзыва — самое частое место, где реально теряют написанное:
+// набрал текст, отвлёкся, случайно закрыл вкладку или ушёл по ссылке в
+// шапке. Большинство полей — обычные input/textarea/select, их ловит
+// один делегированный слушатель на main. Оценка, теги и «Любимое» —
+// исключение: это кнопки, которые меняют состояние в JS напрямую
+// (selectedGrade, selectedTags, чекбокс без события change), поэтому
+// помечены отдельно, прямо в местах, где это состояние меняется.
+// var, а не let: closeAddFromPassportModal() в js/passports.js читает
+// этот флаг из родительского окна через iframe.contentWindow.addDirty —
+// let/const такого свойства на window не создают, только var (и
+// объявления function).
+var addDirty = false;
+function markAddDirty() { addDirty = true; }
+document.querySelector("main").addEventListener("input", (e) => {
+  if (!e.target.closest("[data-no-dirty]")) markAddDirty();
+});
+document.querySelector("main").addEventListener("change", (e) => {
+  if (!e.target.closest("[data-no-dirty]")) markAddDirty();
+});
+
+window.addEventListener("beforeunload", (e) => {
+  if (!addDirty) return;
+  e.preventDefault();
+  e.returnValue = "";
+});
 
 initPage();
 </script>

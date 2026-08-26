@@ -198,7 +198,7 @@
     const head = `
       <div class="version-list-head">
         <span class="version-list-count">${i18n("Версий: {n}", { n: pastCount })}</span>
-        ${pastCount ? `<button class="btn-mini danger" onclick="clearFileHistory('${path}')">${i18n("Удалить всю историю")}</button>` : ""}
+        ${pastCount ? `<button class="btn-mini danger" onclick="clearFileHistory('${path}')" title="${esc(i18n("Стереть все прошлые версии этого файла целиком, независимо от возраста — не только старые"))}">${i18n("Удалить всю историю")}</button>` : ""}
       </div>`;
     content.innerHTML = head + versions.map((v) => {
       const isCurrent = v.sha === "current";

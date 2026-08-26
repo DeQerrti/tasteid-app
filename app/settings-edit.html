@@ -461,7 +461,7 @@
       <h2 class="section-h" data-i18n>Разделы вкладки «Статусы»</h2>
       <div id="statusesList"></div>
       <div class="row" style="margin-top:14px;">
-        <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено"></div>
+        <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено"></div>
       </div>
       <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить статус</button>
       <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
@@ -470,7 +470,7 @@
       <div id="favSectionsList"></div>
       <div id="favCollectionsList"></div>
       <div class="row" style="margin-top:14px;">
-        <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги"></div>
+        <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги"></div>
       </div>
       <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
       <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
@@ -541,7 +541,7 @@
       <h2 class="section-h" data-i18n>Коллекции</h2>
       <div id="collectionsList"></div>
       <div class="row" style="margin-top:14px;">
-        <div><label data-i18n>Новая коллекция</label><input type="text" id="newCollectionName" placeholder="Например: Опенинги" data-i18n-placeholder="Например: Опенинги"></div>
+        <div><label data-i18n>Новая коллекция</label><input type="text" id="newCollectionName" data-no-dirty placeholder="Например: Опенинги" data-i18n-placeholder="Например: Опенинги"></div>
       </div>
       <button class="btn btn-ghost" onclick="addCollection()" data-i18n>Добавить коллекцию</button>
       <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
@@ -623,7 +623,7 @@
       <div class="row" style="gap:10px;flex-wrap:wrap;">
         <button class="btn btn-ghost" onclick="exportBackup()" data-i18n>Скачать резервную копию</button>
         <label class="btn btn-ghost file-btn">
-          <input type="file" id="backup-file" accept="application/json,.json" onchange="restoreBackup(this)">
+          <input type="file" id="backup-file" data-no-dirty accept="application/json,.json" onchange="restoreBackup(this)">
           <span data-i18n>Восстановить из файла…</span>
         </label>
       </div>
@@ -632,7 +632,7 @@
       <h2 class="section-h" data-i18n>Язык</h2>
       <div class="row">
         <div style="flex:0 0 220px;">
-          <select id="app-lang" onchange="setAppLanguage(this.value)"></select>
+          <select id="app-lang" data-no-dirty onchange="setAppLanguage(this.value)"></select>
         </div>
       </div>
 
@@ -643,7 +643,7 @@
       <div id="app-zoom-section">
         <h2 class="section-h" data-i18n>Масштаб</h2>
         <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="range" id="app-zoom-slider" class="app-zoom-slider"
+          <input type="range" id="app-zoom-slider" class="app-zoom-slider" data-no-dirty
             min="50" max="200" step="5" value="100"
             oninput="previewZoom(this.value)" onchange="setZoom(this.value)">
           <span class="app-zoom" id="app-zoom-value">100%</span>
@@ -683,8 +683,8 @@
       </p>
       <div class="history-retention">
         <label for="history-retention-select" data-i18n>Автоматически удалять версии старше:</label>
-        <select id="history-retention-select" onchange="saveHistoryRetention(this.value)"></select>
-        <button class="btn btn-ghost" onclick="pruneHistoryNow()" data-i18n>Почистить сейчас</button>
+        <select id="history-retention-select" data-no-dirty onchange="saveHistoryRetention(this.value)"></select>
+        <button class="btn btn-ghost" onclick="pruneHistoryNow()" title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки — по всем файлам сразу" data-i18n data-i18n-title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки — по всем файлам сразу">Почистить сейчас</button>
       </div>
       <div class="status-msg" id="status-history-retention"></div>
       <div class="file-tabs" id="fileTabs"></div>
@@ -736,27 +736,33 @@
   });
 
   // ── Сворачиваемые разделы настроек ──────────────
-  // Каждый h2.section-h внутри панели помечает начало раздела; всё, что
-  // идёт за ним до следующего h2.section-h (или до конца родителя) —
+  // Раньше это было общим для всех панелей — каждый h2.section-h на
+  // странице сворачивался. По отзыву после того, как это увидели живьём:
+  // в большинстве панелей содержимого немного, и сворачивание там только
+  // мешает — лишний клик, чтобы увидеть то, что и так уместилось бы на
+  // экране. Осталось только там, где родилась исходная просьба —
+  // «Вкладки»: там три отдельных раздела (сами вкладки, статусы,
+  // разделы «Любимого»), и пролистывать мимо двух неактуальных
+  // действительно приходилось. Остальные панели вернулись к обычному
+  // виду — просто уберите #panel-tabs из селектора ниже, если понадобится
+  // включить это где-то ещё.
+  //
+  // Каждый h2.section-h внутри #panel-tabs помечает начало раздела; всё,
+  // что идёт за ним до следующего h2.section-h (или до конца родителя) —
   // тело этого раздела. Оборачиваем обе части в .set-sec и вешаем клик
   // на заголовок — см. CSS у .set-sec выше по файлу.
   //
   // Работает по разметке, а не по данным, поэтому можно звать один раз
   // при загрузке страницы: списки внутри разделов (#tabsList,
-  // #catShelvesList и т.п.) заполняются позже через innerHTML их
+  // #statusesList и т.п.) заполняются позже через innerHTML их
   // контейнеров, а сами контейнеры к этому моменту уже переехали внутрь
   // .set-sec-body — id и ссылки на них не меняются при переносе узла.
   //
-  // Первый раздел каждой панели (до первого h2.section-h — товар,
-  // ради которого сюда и пришли: список вкладок, сетка тем и т.п.) не
-  // трогаем — так открыв панель, человек сразу видит главное, а не
-  // сплошные заголовки.
+  // Первый раздел (до первого h2.section-h — сам список вкладок, товар,
+  // ради которого сюда и пришли) не трогаем — так открыв панель,
+  // человек сразу видит главное, а не сплошные заголовки.
   function collapsibleizeSettingsSections() {
-    // idempotent: «Подписи» дорисовывает свои h2.section-h позже, после
-    // загрузки настроек (renderLabelsPanel), и зовёт эту функцию ещё
-    // раз — уже обёрнутые заголовки пропускаем, а не заворачиваем
-    // повторно (иначе .set-sec оказалась бы вложена сама в себя).
-    document.querySelectorAll("h2.section-h:not(.set-sec-toggle)").forEach((h2) => {
+    document.querySelectorAll("#panel-tabs h2.section-h:not(.set-sec-toggle)").forEach((h2) => {
       const parent = h2.parentNode;
       const body = document.createElement("div");
       body.className = "set-sec-body";
@@ -787,6 +793,44 @@
     });
   }
   collapsibleizeSettingsSections();
+
+  // ── Предупреждение о несохранённых изменениях ───
+  // Почти все панели настроек работают в два шага: правишь поля вживую
+  // (previewPalette(), локальные массивы вроде themeColors/statusBuckets),
+  // а на сервер это уходит только по нажатию «Сохранить» — общей
+  // saveSettings() ниже. Уйти со страницы между этими шагами раньше
+  // можно было незаметно для себя, потеряв всё немного что успел
+  // поменять. Ловим правки не по каждому полю отдельно (их десятки
+  // разных типов — цвет, текст, чекбокс, перетаскивание), а одним
+  // делегированным слушателем на весь #app: любой input/change внутри
+  // панелей настроек взводит флаг, панель saveSettings() его снимает.
+  //
+  // Поля, которые сами по себе ничего не готовят к сохранению — имя
+  // будущего статуса/раздела до нажатия «Добавить», строка поиска, если
+  // такая появится — помечены data-no-dirty прямо в разметке.
+  let settingsDirty = false;
+  document.getElementById("app").addEventListener("input", markSettingsDirty);
+  document.getElementById("app").addEventListener("change", markSettingsDirty);
+  function markSettingsDirty(e) {
+    if (e.target.closest("[data-no-dirty]")) return;
+    if (!e.target.closest(".panel")) return;
+    settingsDirty = true;
+  }
+
+  // Выбор темы в сетке (previewPalette()) обновляет данные, которые
+  // saveSettings() тоже уносит на сервер, — но это клик по кнопке, а не
+  // input/change, делегирование выше его не ловит.
+  const origPreviewPalette = previewPalette;
+  previewPalette = function (...args) {
+    settingsDirty = true;
+    return origPreviewPalette.apply(this, args);
+  };
+
+  window.addEventListener("beforeunload", (e) => {
+    if (!settingsDirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
 
   function flashStatus(id, ok, msg) {
     const el = document.getElementById(id);
@@ -2253,9 +2297,6 @@
 
     const labels = settings.labels || {};
     renderLabelsPanel(labels);
-    // «Подписи» рисует свои заголовки групп только сейчас — сворачиваем
-    // и их тоже (см. collapsibleizeSettingsSections()).
-    collapsibleizeSettingsSections();
     tabLabels = { ...(labels.nav || {}) };
     hiddenTabsState = new Set(settings.hiddenTabs || []);
     const savedOrder = Array.isArray(settings.tabOrder) ? settings.tabOrder.filter(id => TAB_DEFS_BY_ID[id]) : [];
@@ -2613,6 +2654,10 @@
       // на долю секунды мелькнула бы прошлая тема — applyTheme() сама
       // перечитает уже сохранённый site-settings.json и обновит кэш.
       if (data.ok) applyTheme();
+      // Всё, что копилось несохранённым (см. markSettingsDirty ниже),
+      // теперь на сервере — предупреждать при уходе со страницы больше
+      // не о чем, пока не появится новая правка.
+      if (data.ok) settingsDirty = false;
     } catch (e) {
       flashStatus(statusId, false, i18n("Ошибка: ") + e.message);
     }
