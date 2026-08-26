@@ -1111,6 +1111,8 @@ i18nRegister({
 i18nRegister({
   "Автоматически удалять версии старше:": "Automatically delete versions older than:",
   "Почистить сейчас": "Clean up now",
+  "Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки — по всем файлам сразу":
+    "Apply the selected age threshold right now instead of waiting for the automatic cleanup — across all files at once",
   "Не удалять автоматически": "Don't delete automatically",
   "Старше недели": "Older than a week",
   "Старше месяца": "Older than a month",
@@ -1119,6 +1121,8 @@ i18nRegister({
   "Удалено версий: {n}": "Deleted {n} versions",
   "Не удалось почистить: {msg}": "Couldn't clean up: {msg}",
   "Удалить всю историю": "Delete all history",
+  "Стереть все прошлые версии этого файла целиком, независимо от возраста — не только старые":
+    "Wipe every past version of this file entirely, regardless of age — not just the old ones",
   "Удалить всю историю файла «{file}»?\n\nТекущая версия не пострадает — удалятся только прошлые.":
     "Delete all history for “{file}”?\n\nThe current version is untouched — only past ones are removed.",
   "История очищена ✓": "History cleared ✓",
@@ -1167,4 +1171,11 @@ i18nRegister({
   "Название нового тир-листа:": "Name for the new tier list:",
   "Развёрнутый текст сюда не перенесён — полный отзыв можно почитать по ссылке ниже.":
     "The full text hasn’t been moved here — the complete review is available at the link below.",
+});
+
+// ── Предупреждение о несохранённых изменениях ──
+i18nRegister({
+  "Отзыв не сохранён — закрыть и потерять правки?": "This review isn’t saved — close and lose your changes?",
+  "Закрыть без сохранения": "Close without saving",
+  Остаться: "Stay",
 });

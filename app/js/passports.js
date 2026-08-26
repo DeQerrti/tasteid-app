@@ -81,10 +81,21 @@ function openAddFromPassportModal(url) {
   document.addEventListener("keydown", onAddFromPassportModalKey);
 }
 
-function closeAddFromPassportModal() {
+// Обычный ✕/Escape может закрыть модалку поверх недописанного отзыва —
+// та же проверка, что несохранённые правки где угодно ещё в приложении
+// (см. add.html, addDirty). Само add.html после успешного сохранения
+// сбрасывает свой addDirty перед вызовом этой функции, так что в этом
+// случае подтверждение не всплывает.
+async function closeAddFromPassportModal() {
   const overlay = document.getElementById("pp-add-modal-overlay");
   const frame = document.getElementById("pp-add-modal-frame");
   if (!overlay) return;
+  const dirty = frame?.contentWindow?.addDirty;
+  if (dirty && !(await confirmDialog(
+    i18n("Отзыв не сохранён — закрыть и потерять правки?"),
+    i18n("Закрыть без сохранения"),
+    i18n("Остаться")
+  ))) return;
   overlay.classList.add("hidden");
   if (frame) frame.src = "about:blank";
   document.removeEventListener("keydown", onAddFromPassportModalKey);

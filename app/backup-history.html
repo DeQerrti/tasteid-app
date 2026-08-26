@@ -78,7 +78,7 @@ main { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
     <div class="history-retention">
       <label for="history-retention-select" data-i18n>Автоматически удалять версии старше:</label>
       <select id="history-retention-select" onchange="saveHistoryRetention(this.value)"></select>
-      <button class="btn btn-ghost" onclick="pruneHistoryNow()" data-i18n>Почистить сейчас</button>
+      <button class="btn btn-ghost" onclick="pruneHistoryNow()" title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки — по всем файлам сразу" data-i18n data-i18n-title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки — по всем файлам сразу">Почистить сейчас</button>
     </div>
     <div class="status-msg" id="status-history-retention"></div>
 
