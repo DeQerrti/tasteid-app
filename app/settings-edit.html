@@ -64,6 +64,18 @@
     padding: 24px 0;
     position: sticky; top: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
   }
+  /* height: 100vh (а не auto/stretch по флексу) обязателен для sticky:
+     если высота колонки сравняется с высотой страницы, липнуть ей не за
+     что — контейнер и элемент одного размера, «стянуть» некуда, и
+     sticky превращается в обычный relative (проверено: без явной
+     высоты позиция колонки при скролле в точности повторяла -scrollY,
+     то есть просто уезжала вместе со страницей). overflow-y: auto здесь
+     ради редкого случая, когда список разделов (плюс «Синхронизация» /
+     «Приложение» в самом приложении, которых на сайте нет) всё-таки не
+     помещается в невысокое окно — тогда прокрутить его можно, но не
+     колесом мыши: см. onSidebarWheel ниже, он всегда отдаёт колесо
+     странице, а не этому внутреннему скроллу, — иначе список визуально
+     «прыгал» сам по себе, независимо от прокрутки страницы. */
   /* Растягивание мышью — см. js/utils.js, makeResizablePanel(); тот же
      приём, что и у рельсы на главной (app/index.html, .rail-resize). */
   .sidebar-resize {
@@ -762,7 +774,11 @@
   // ради которого сюда и пришли) не трогаем — так открыв панель,
   // человек сразу видит главное, а не сплошные заголовки.
   function collapsibleizeSettingsSections() {
-    document.querySelectorAll("#panel-tabs h2.section-h:not(.set-sec-toggle)").forEach((h2) => {
+    // idempotent: «Подписи» дорисовывает свои h2.section-h позже, после
+    // загрузки настроек (renderLabelsPanel), и эта функция вызывается
+    // ещё раз — уже обёрнутые заголовки пропускаем, а не заворачиваем
+    // повторно (иначе .set-sec оказалась бы вложена сама в себя).
+    document.querySelectorAll("#panel-tabs h2.section-h:not(.set-sec-toggle), #panel-labels h2.section-h:not(.set-sec-toggle)").forEach((h2) => {
       const parent = h2.parentNode;
       const body = document.createElement("div");
       body.className = "set-sec-body";
@@ -831,6 +847,41 @@
     e.preventDefault();
     e.returnValue = "";
   });
+
+  // beforeunload выше подстраховывает закрытие окна/вкладки целиком, но
+  // в приложении (Electron) он не показывает диалог сам — просто молча
+  // не даёт странице уйти, без единого намёка почему. Клик по «На
+  // главную» — самый частый способ уйти со страницы — поэтому его
+  // ловим отдельно и спрашиваем явно, тем же confirmDialog(), что и
+  // везде в приложении.
+  document.querySelectorAll('#sidebar a.back, #locked a').forEach((link) => {
+    link.addEventListener("click", async (e) => {
+      if (!settingsDirty) return;
+      e.preventDefault();
+      if (await confirmDialog(
+        i18n("Есть несохранённые изменения — уйти и потерять их?"),
+        i18n("Уйти без сохранения"),
+        i18n("Остаться")
+      )) {
+        settingsDirty = false;
+        location.href = link.href;
+      }
+    });
+  });
+
+  // Колесо мыши над #sidebar всегда крутит страницу, а не список
+  // разделов. #sidebar — position: sticky с overflow-y: auto (см. её
+  // же комментарий в CSS): без auto список не пролистать на невысоком
+  // окне, но браузер по умолчанию отдаёт колесо БЛИЖАЙШЕМУ скроллящемуся
+  // предку под курсором — то есть самому сайдбару, если курсор над ним.
+  // Внешне это выглядело как «список сам по себе прыгает вверх-вниз»:
+  // неподвижная (sticky) колонка на месте, а текст внутри нее едет то
+  // вверх, то вниз отдельно от прокрутки страницы. passive: false —
+  // иначе preventDefault() на колесе браузер молча игнорирует.
+  document.getElementById("sidebar")?.addEventListener("wheel", (e) => {
+    window.scrollBy(0, e.deltaY);
+    e.preventDefault();
+  }, { passive: false });
 
   function flashStatus(id, ok, msg) {
     const el = document.getElementById(id);
@@ -2297,6 +2348,9 @@
 
     const labels = settings.labels || {};
     renderLabelsPanel(labels);
+    // «Подписи» рисует свои заголовки групп только сейчас — сворачиваем
+    // и их тоже (см. collapsibleizeSettingsSections()).
+    collapsibleizeSettingsSections();
     tabLabels = { ...(labels.nav || {}) };
     hiddenTabsState = new Set(settings.hiddenTabs || []);
     const savedOrder = Array.isArray(settings.tabOrder) ? settings.tabOrder.filter(id => TAB_DEFS_BY_ID[id]) : [];

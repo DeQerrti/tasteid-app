@@ -2707,6 +2707,24 @@ window.addEventListener("beforeunload", (e) => {
   e.returnValue = "";
 });
 
+// beforeunload подстраховывает закрытие окна/вкладки целиком, но в
+// приложении (Electron) диалог сам не показывает — просто молча не
+// пускает со страницы. Ссылка «TasteID» в шапке — самый частый способ
+// уйти отсюда, ловим её отдельно и спрашиваем явно тем же
+// confirmDialog(), что и везде в приложении.
+document.querySelector(".app-topbar a.logo")?.addEventListener("click", async (e) => {
+  if (!addDirty) return;
+  e.preventDefault();
+  if (await confirmDialog(
+    i18n("Отзыв не сохранён — уйти и потерять правки?"),
+    i18n("Уйти без сохранения"),
+    i18n("Остаться")
+  )) {
+    addDirty = false;
+    location.href = e.currentTarget.href;
+  }
+});
+
 initPage();
 </script>
 <script src="/js/backup.js?v=12"></script>
