@@ -275,9 +275,12 @@ function renderPassports() {
 function passportIntroHtml() {
   const loaded = guestPassport
     ? `<div class="pp-loaded">
-         Загружен чужой паспорт: ${guestPassport.items.length}&nbsp;тайтлов${
+         ${i18n("Загружен чужой паспорт: {count}&nbsp;{unit}", {
+           count: guestPassport.items.length,
+           unit: plural(guestPassport.items.length, unitForms()),
+         })}${
            guestPassport.exportedAt
-             ? ` · выгружен ${esc(new Date(guestPassport.exportedAt).toLocaleDateString("ru-RU"))}`
+             ? ` · ${i18n("выгружен {date}", { date: esc(new Date(guestPassport.exportedAt).toLocaleDateString(dateLocale())) })}`
              : ""
          }
          <button class="pp-link" id="pp-forget" type="button">${i18n("забыть")}</button>

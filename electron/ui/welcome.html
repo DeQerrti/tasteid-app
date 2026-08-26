@@ -203,6 +203,19 @@ let shelves = []; // [{key, name, color, min?, max?}] — тот же вид, ч
 let busy = false;
 
 const $ = (id) => document.getElementById(id);
+
+// Своя, а не общая из app/js/utils.js: экран приветствия к сайту
+// отношения не имеет и его скриптов не подключает. Нужна ровно в одном
+// месте — имя полки едет в value="…", и кавычка в нём (а её вполне
+// можно напечатать: «Так себе», например) разваливала бы поле при
+// следующей перерисовке списка.
+const esc = (v) =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 const api = async (url, body) => {
   const res = await fetch(url, {
     method: body ? "POST" : "GET",
@@ -447,8 +460,8 @@ function renderShelvesList() {
   $("shelvesList").innerHTML = shelves.map((s, i) => `
     <div class="shelf-row">
       <div class="shelf-row-main">
-        <input type="color" value="${s.color}" data-i="${i}" data-f="color">
-        <input type="text" value="${s.name}" data-i="${i}" data-f="name" placeholder="${i18n("Название")}">
+        <input type="color" value="${esc(s.color)}" data-i="${i}" data-f="color">
+        <input type="text" value="${esc(s.name)}" data-i="${i}" data-f="name" placeholder="${i18n("Название")}">
         ${withRange ? `
           <span class="rng">${i18n("от")}</span>
           <input type="number" value="${s.min}" data-i="${i}" data-f="min">

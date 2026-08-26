@@ -40,7 +40,7 @@ async function loadNow() {
   } catch (err) {
     box.innerHTML = `<div class="state-box">
       <div style="font-size:2rem;margin-bottom:.75rem">⚠️</div>
-      Ошибка: ${esc(err.message)}
+      ${i18n("Ошибка:")} ${esc(err.message)}
     </div>`;
   } finally {
     loading.now = false;
@@ -56,7 +56,7 @@ function makeSection(id, title, items, collapsed) {
           ${esc(title)}
           <span class="section-count">${items.length}</span>
         </h2>
-        <span class="section-chevron${isCollapsed ? " collapsed" : ""}">▾</span>
+        <span class="section-chevron${isCollapsed ? " collapsed" : ""}" aria-hidden="true"></span>
       </div>
       <div class="now-section-body${isCollapsed ? " hidden" : ""}">
         <div class="grid-now" style="margin-top:1.5rem">
@@ -97,7 +97,6 @@ function renderNow({ buckets, completed }) {
       cursor: pointer;
     }
     .now-section-header:hover .section-title { color: var(--text-hi); }
-    .now-section-header:hover .section-chevron { color: var(--text); }
 
     .section-count {
       font-family: 'DM Sans', sans-serif;
@@ -111,14 +110,23 @@ function renderNow({ buckets, completed }) {
       padding-bottom: .1rem;
     }
 
+    /* Треугольник рисуется рамкой, а не берётся символом '▾' из шрифта:
+       ни один из самохостящихся шрифтов его не содержит (проверено по
+       cmap), и браузер подставлял системный запасной — на Android
+       вместо мелкой галочки выходил крупный сплошной ▼ вдвое больше
+       задуманного. Ровно тот же приём уже применён к стрелке у
+       выпадающих списков (.select-wrap::after в style.css) и к ромбу
+       над активной вкладкой (.tab-btn.active::before в index.html). */
     .section-chevron {
-      font-size: .85rem;
-      color: var(--text-dim);
-      transition: transform .22s ease, color .2s;
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--text-dim);
+      transition: transform .22s ease, border-top-color .2s;
       flex-shrink: 0;
-      line-height: 1;
-      padding-bottom: 2px;
+      margin-top: 2px;
     }
+    .now-section-header:hover .section-chevron { border-top-color: var(--text); }
     .section-chevron.collapsed { transform: rotate(-90deg); }
 
     .now-section-body.hidden { display: none; }
@@ -163,10 +171,10 @@ function renderNow({ buckets, completed }) {
       <section class="group now-section" data-section="archive">
         <div class="now-section-header" onclick="toggleSection('archive')">
           <h2 class="section-title" style="margin-bottom:0;cursor:pointer;user-select:none">
-            ${siteLabel("statuses", "archive", i18n("Архив"))}
+            ${esc(siteLabel("statuses", "archive", i18n("Архив")))}
             <span class="section-count">${completed.length}</span>
           </h2>
-          <span class="section-chevron${isCollapsed ? " collapsed" : ""}">▾</span>
+          <span class="section-chevron${isCollapsed ? " collapsed" : ""}" aria-hidden="true"></span>
         </div>
         <div class="now-section-body${isCollapsed ? " hidden" : ""}">
           ${archiveInner}

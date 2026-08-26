@@ -87,6 +87,34 @@ function imgFallbackAttrs(primarySrc, backupSrc, placeholder) {
   return parts.join(" ");
 }
 
+// ── Заглушка вместо картинки, которой нет ──────
+// Раньше это была ссылка на placehold.co — то есть на каждую запись без
+// обложки страница ходила в интернет за серым прямоугольником. В
+// приложении, которое всё остальное держит у себя (шрифты, html2canvas —
+// см. README), это единственное, что ломалось от отсутствия сети: без
+// интернета вместо заглушки показывался значок битой картинки, и хуже
+// всего на телефоне, где сети может не быть просто потому, что метро.
+// Заодно каждый такой показ сообщал стороннему сайту, что и когда
+// открывают.
+//
+// Рисуем сами: data:-ссылка ни за чем никуда не ходит, весит меньше
+// запроса и выглядит там же и так же.
+function imagePlaceholder(width, height, label = "?", { bg = "#111114", fg = "#4a4540" } = {}) {
+  // Внутрь SVG попадает начало названия — из данных, то есть что угодно.
+  // Угловые скобки и амперсанд сломали бы разметку самой картинки.
+  const text = String(label ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const size = Math.round(Math.min(width, height) * 0.34);
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    `<rect width="100%" height="100%" fill="${bg}"/>` +
+    `<text x="50%" y="50%" fill="${fg}" font-family="Georgia, serif" font-size="${size}"` +
+    ` text-anchor="middle" dominant-baseline="central">${text}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 // ── Склонение числительных ─────────────────────
 // plural(162, ["тайтл", "тайтла", "тайтлов"]) → "тайтла"
 // plural(11,  ["тайтл", "тайтла", "тайтлов"]) → "тайтлов"
@@ -167,6 +195,77 @@ function confirmDialog(message, okLabel = i18n("Удалить"), cancelLabel = 
   });
 }
 
+// ── Ввод строки — тоже своей коробкой, а не окном ОС ────────────────
+// window.prompt() в Electron не просто выглядит чужим, как confirm(), —
+// его там нет вовсе: вызов бросает «prompt() is not supported.». Из-за
+// этого в настольном приложении молча не работали «Создать новое
+// хранилище…» / «Открыть существующее…» (папку выбрал, а хранилище так
+// и не завелось — вместо него ошибка про prompt) и «+ тир-лист» в
+// редакторе персонажей. Ровно тот же диалог, что и confirmDialog, плюс
+// поле ввода.
+//
+// Возвращает строку или null (отмена) — как и prompt(), чтобы вызывающий
+// код отличал «оставил пустым» от «передумал».
+let promptDialogEl = null;
+
+function promptDialog(message, defaultValue = "", okLabel = i18n("Готово"), cancelLabel = i18n("Отмена")) {
+  if (!promptDialogEl) {
+    promptDialogEl = document.createElement("div");
+    promptDialogEl.id = "prompt-dialog-overlay";
+    promptDialogEl.className = "modal-overlay hidden";
+    promptDialogEl.innerHTML = `
+      <div class="modal confirm-dialog">
+        <div class="confirm-dialog-text"></div>
+        <input type="text" class="confirm-dialog-input" autocomplete="off">
+        <div class="confirm-dialog-actions">
+          <button type="button" class="btn btn-ghost" data-act="cancel"></button>
+          <button type="button" class="btn btn-primary" data-act="ok"></button>
+        </div>
+      </div>`;
+    document.body.appendChild(promptDialogEl);
+  }
+
+  const textEl = promptDialogEl.querySelector(".confirm-dialog-text");
+  const input = promptDialogEl.querySelector(".confirm-dialog-input");
+  const okBtn = promptDialogEl.querySelector('[data-act="ok"]');
+  const cancelBtn = promptDialogEl.querySelector('[data-act="cancel"]');
+  textEl.textContent = message;
+  okBtn.textContent = okLabel;
+  cancelBtn.textContent = cancelLabel;
+  input.value = defaultValue ?? "";
+  promptDialogEl.classList.remove("hidden");
+  input.focus();
+  input.select();
+
+  return new Promise((resolve) => {
+    const finish = (result) => {
+      promptDialogEl.classList.add("hidden");
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      promptDialogEl.onclick = null;
+      input.onkeydown = null;
+      document.removeEventListener("keydown", onKey);
+      resolve(result);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") finish(null);
+    };
+    // Enter прямо в поле — то же, что нажать «Готово»: иначе с
+    // клавиатуры до кнопки пришлось бы добираться Tab'ом.
+    input.onkeydown = (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      finish(input.value);
+    };
+    okBtn.onclick = () => finish(input.value);
+    cancelBtn.onclick = () => finish(null);
+    promptDialogEl.onclick = (e) => {
+      if (e.target === promptDialogEl) finish(null);
+    };
+    document.addEventListener("keydown", onKey);
+  });
+}
+
 // ── Растягиваемая боковая панель ────────────────
 // Тот же приём, что в Обсидиане: тонкая полоска у правого края панели
 // (#rail на главной, #sidebar в настройках), таскаешь мышью — ширина
@@ -217,7 +316,7 @@ function eyeIcon(hidden) {
     : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 }
 function eyeButton(hidden, onclickExpr) {
-  return `<button type="button" class="icon-btn" title="${hidden ? "Показать" : "Скрыть"}" onclick="${onclickExpr}">${eyeIcon(hidden)}</button>`;
+  return `<button type="button" class="icon-btn" title="${hidden ? i18n("Показать") : i18n("Скрыть")}" onclick="${onclickExpr}">${eyeIcon(hidden)}</button>`;
 }
 
 // ── Тултипы [data-tip] — общий JS, а не CSS ::after ────────────────

@@ -16,6 +16,7 @@ import { createRequire } from "node:module";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { buildMobileBundle } from "../fixtures/mobile-bundle.js";
 
 const require = createRequire(import.meta.url);
 const { chromium } = (() => {
@@ -43,19 +44,9 @@ await new Promise((done, fail) => {
   server.stdout.on("data", (d) => String(d).includes("http") && (clearTimeout(timer), done()));
 });
 
-// Мобильный бандл с подставными Capacitor-плагинами — та же сборка,
-// что и в tests/browser/mobile-bridge.mjs.
-const bundleOut = join(mkdtempSync(join(tmpdir(), "tasteid-backup-bundle-")), "mobile.bundle.js");
-execFileSync("npx", [
-  "esbuild",
-  "mobile/src/main.js",
-  "--bundle",
-  "--format=iife",
-  "--alias:@capacitor/filesystem=./tests/fixtures/fake-filesystem.js",
-  "--alias:@capacitor/share=./tests/fixtures/fake-share.js",
-  "--alias:@capacitor/status-bar=./tests/fixtures/fake-status-bar.js",
-  `--outfile=${bundleOut}`,
-]);
+// Мобильный бандл с подставными Capacitor-плагинами — общая сборка на
+// все проверки в браузере, см. tests/fixtures/mobile-bundle.js.
+const bundleOut = buildMobileBundle("mobile.bundle.js");
 
 const browser = await chromium.launch();
 const context = await browser.newContext({
@@ -103,16 +94,6 @@ await page.evaluate(async (webp) => {
 }, WEBP);
 await page.click('.side-tab[data-panel="app"]');
 await page.waitForTimeout(400);
-console.log(
-  "тест: панель приложения",
-  await page.evaluate(() => ({
-    panelActive: document.getElementById("panel-app")?.classList.contains("active"),
-    buttonExists: !!document.querySelector('#panel-app button[onclick="exportBackup()"]'),
-    buttonVisible:
-      document.querySelector('#panel-app button[onclick="exportBackup()"]')?.offsetParent !== null,
-  }))
-);
-
 await page.click('#panel-app button[onclick="exportBackup()"]');
 await page.waitForTimeout(400);
 const shared = await page.evaluate(() => window.__shared);

@@ -639,6 +639,26 @@ html:not(.kb-nav) *:focus {
   gap: .6rem;
 }
 
+/* Поле в диалоге ввода (utils.js: promptDialog). Отдельное правило, а не
+   общий вид input: диалог живёт на любой странице, в том числе там, где
+   свои поля описаны по-своему, — а выглядеть он должен одинаково везде. */
+.confirm-dialog-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: -.6rem 0 1.4rem;
+  padding: .6rem .7rem;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text-hi);
+  font-family: inherit;
+  font-size: .9rem;
+}
+.confirm-dialog-input:focus {
+  outline: none;
+  border-color: var(--accent-line);
+}
+
 /* ══ ПАЛЕЦ ВМЕСТО КУРСОРА ═════════════════════════
    Всё это рисовалось для мыши: кнопка высотой 23px курсором нажимается
    без промаха, а пальцем — нет. И Apple, и Google просят не меньше

@@ -12,15 +12,16 @@
 // браузер ради одного файла в общий набор проверок тянуть незачем —
 // тест запускают руками, когда правят mobile/src.
 //
-// Файловая система подменяется на этапе сборки (--alias), поэтому
-// @capacitor/core в тестовый бандл не попадает и window.Capacitor
-// задаётся здесь вручную. На устройстве его создаёт сам Capacitor.
+// Все плагины Capacitor подменяются на этапе сборки (--alias) — и
+// файловая система, и «поделиться», и полоса состояния, и само
+// приложение. Из-за этого @capacitor/core в тестовый бандл не попадает,
+// и window.Capacitor задаётся здесь вручную. На устройстве его создаёт
+// сам Capacitor.
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
+import { buildMobileBundle } from "../fixtures/mobile-bundle.js";
 
 // Свой playwright в зависимостях не держим, поэтому подходит и
 // глобальный: до него import по имени не достаёт, ищем руками.
@@ -40,17 +41,7 @@ const ok = (cond, msg) => {
   if (!cond) failures.push(msg);
 };
 
-const out = join(mkdtempSync(join(tmpdir(), "tasteid-bridge-")), "bundle.js");
-execFileSync("npx", [
-  "esbuild",
-  "mobile/src/main.js",
-  "--bundle",
-  "--format=iife",
-  "--alias:@capacitor/filesystem=./tests/fixtures/fake-filesystem.js",
-  "--alias:@capacitor/share=./tests/fixtures/fake-share.js",
-  "--alias:@capacitor/status-bar=./tests/fixtures/fake-status-bar.js",
-  `--outfile=${out}`,
-]);
+const out = buildMobileBundle();
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
