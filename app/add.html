@@ -734,6 +734,16 @@ let editingId     = null;
 // при сохранении не потерять то, что из ссылки уже не вывести.
 let editingIds    = {};
 
+// Добавление из чужого паспорта может открыть эту же страницу в iframe
+// поверх настроек (см. openAddFromPassportModal() в js/passports.js), а
+// не отдельной вкладкой — тогда сохранение должно закрыть модалку и
+// оставить человека там, где он был, а не сбрасывать форму под
+// следующую запись, как при обычном добавлении. Проверяем оба условия
+// (флаг из URL и то, что родитель правда наш и правда модалка) — так
+// прямое открытие ссылки с fromPassport=1 в обычной вкладке ведёт себя
+// по-старому.
+let fromPassportModal = false;
+
 // ── Чекбокс Любимое ────────────────────────────
 function toggleFavorite() {
   const cb = document.getElementById("f-favorite");
@@ -2315,6 +2325,20 @@ async function initPage() {
   // это делает только присвоение editingId ниже, в ветке edit=.
   const fromPassport = params.get("fromPassport");
   if (fromPassport) {
+    try {
+      fromPassportModal = window.parent !== window
+        && typeof window.parent.closeAddFromPassportModal === "function";
+    } catch {
+      // window.parent из другого origin бросил бы SecurityError — у нас
+      // такого не бывает (тот же сайт), но на всякий случай не рушим
+      // страницу из-за этой проверки.
+    }
+    // В модалке своя шапка ни к чему: логотип и «На главную» дублируют
+    // крестик самой модалки, а места странице и так отведено немного.
+    if (fromPassportModal) {
+      const topbar = document.querySelector(".app-topbar");
+      if (topbar) topbar.style.display = "none";
+    }
     fillForm({
       title: params.get("title") || "",
       type: params.get("type") || "",
@@ -2622,7 +2646,19 @@ async function saveReview() {
       setStatus("ok", editingId !== null
         ? `«${title}» обновлён.${note}`
         : `«${title}» сохранён.${note}`);
-      if (editingId === null) resetToNew();
+      if (editingId === null) {
+        if (fromPassportModal) {
+          // Показываем «сохранён» на секунду — не исчезать мгновенно,
+          // чтобы было видно, что сохранение вообще произошло, — и
+          // закрываем модалку сами: человек остаётся там же, где был,
+          // на чужом паспорте, а не на пустой форме, которую эта ветка
+          // больше не сбрасывает.
+          btn.disabled = true;
+          setTimeout(() => window.parent.closeAddFromPassportModal(), 900);
+          return;
+        }
+        resetToNew();
+      }
     } else {
       setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }

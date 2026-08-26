@@ -1168,6 +1168,20 @@ html[data-skin="brutal-dark"] h2 {
   --err: #c1546a;
 }
 
+/* Базовый шрифт страницы. Без этого правила гротеск темы доставался
+   только классам из списка ниже (.logo, .tab-btn, карточки…), а любой
+   текст без своего явного font-family — h1 и вводные абзацы в
+   settings-edit.html, .side-tab, ссылка «Настройки» в рельсе — молча
+   наследовал засечковый Cormorant Garamond из body в style.css. Тема
+   из-за этого выглядела наполовину применённой: цвета уже неоморфные,
+   шрифт — ещё от классической темы. body, а не *, — чтобы не перебить
+   font-family у явно заданных исключений (частично то же решение, что
+   у html[data-skin="brutal"] *, но через наследование, а не таранишь
+   специфичность). */
+[data-skin="neomorphism"] body {
+  font-family: "DM Sans", sans-serif;
+}
+
 /* Заголовки: курсивный засечковый шрифт базовой темы читается как
    «изящный», а не «мягкая пластиковая панель» — здесь везде гротеск,
    как в остальном интерфейсе темы. */
@@ -1175,6 +1189,8 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism"] .section-title,
 [data-skin="neomorphism"] .modal-title,
 [data-skin="neomorphism"] .tab-btn,
+[data-skin="neomorphism"] .side-tab,
+[data-skin="neomorphism"] #admin-settings-link,
 [data-skin="neomorphism"] .btn-save,
 [data-skin="neomorphism"] .card-title,
 [data-skin="neomorphism"] .review-title {
@@ -1489,10 +1505,18 @@ html[data-skin="brutal-dark"] h2 {
   --err: #e2687e;
 }
 
+/* См. комментарий у [data-skin="neomorphism"] body чуть выше по файлу —
+   тот же пробел, тёмный вариант унаследовал его вместе со светлым. */
+[data-skin="neomorphism-dark"] body {
+  font-family: "DM Sans", sans-serif;
+}
+
 [data-skin="neomorphism-dark"] .logo,
 [data-skin="neomorphism-dark"] .section-title,
 [data-skin="neomorphism-dark"] .modal-title,
 [data-skin="neomorphism-dark"] .tab-btn,
+[data-skin="neomorphism-dark"] .side-tab,
+[data-skin="neomorphism-dark"] #admin-settings-link,
 [data-skin="neomorphism-dark"] .btn-save,
 [data-skin="neomorphism-dark"] .card-title,
 [data-skin="neomorphism-dark"] .review-title {
@@ -1803,6 +1827,16 @@ html[data-skin="brutal-dark"] h2 {
   --err: #d1495b;
 }
 
+/* Базовый шрифт страницы — см. комментарий у [data-skin="neomorphism"]
+   body в этом же файле: тот же пробел, здесь он даже заметнее, потому
+   что рукописный Patrick Hand и засечковый Cormorant Garamond из
+   style.css выглядят совсем не похоже. Без этого правила заголовок
+   «Настройки», вводные абзацы и вкладки в settings-edit.html оставались
+   в шрифте классической темы, хотя цвета уже были в духе «рисованной». */
+[data-skin="doodle"] body {
+  font-family: "Patrick Hand", cursive;
+}
+
 /* Заголовки — крупный маркер, остальной интерфейс — разборчивый
    рукописный: Caveat читается только в больших кеглях, для кнопок и
    тегов нужен более прямой Patrick Hand, иначе мелкий текст плывёт. */
@@ -1810,6 +1844,8 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle"] .section-title,
 [data-skin="doodle"] .modal-title,
 [data-skin="doodle"] .tab-btn,
+[data-skin="doodle"] .side-tab,
+[data-skin="doodle"] #admin-settings-link,
 [data-skin="doodle"] .btn-save,
 [data-skin="doodle"] .card-title,
 [data-skin="doodle"] .review-title {
@@ -2187,10 +2223,17 @@ html[data-skin="brutal-dark"] h2 {
   --err: #e2707f;
 }
 
+/* См. комментарий у [data-skin="doodle"] body чуть выше по файлу. */
+[data-skin="doodle-dark"] body {
+  font-family: "Patrick Hand", cursive;
+}
+
 [data-skin="doodle-dark"] .logo,
 [data-skin="doodle-dark"] .section-title,
 [data-skin="doodle-dark"] .modal-title,
 [data-skin="doodle-dark"] .tab-btn,
+[data-skin="doodle-dark"] .side-tab,
+[data-skin="doodle-dark"] #admin-settings-link,
 [data-skin="doodle-dark"] .btn-save,
 [data-skin="doodle-dark"] .card-title,
 [data-skin="doodle-dark"] .review-title {
@@ -2537,5 +2580,22 @@ html[data-skin="brutal-dark"] h2 {
   [data-skin="soft"] body::after,
   [data-skin="soft-dark"] body::after {
     display: none;
+  }
+}
+
+/* На главной main — flex:1 с max-width: 1800px (index.html), то есть
+   сам разъезжается на всё свободное место вплоть до 1800px, а не
+   держит фиксированные 860px, как на остальных страницах. Поле для
+   лианы из-за этого никогда не пустовало по-настоящему: main всегда
+   дотягивался до самого края окна, и лиана оказывалась либо под ним
+   (не видна), либо наезжала на последние ~100px контента. Видна она
+   была только на мониторах шире rail + 1800px + сама лиана — то есть
+   почти никогда, разве что на широком экране в развёрнутом окне.
+   Ниже — та же ширина, что резервирует лиане body::after, отнята у
+   main явно, а не оставлена на волю флекса. */
+@media (min-width: 1401px) {
+  [data-skin="soft"] nav#rail ~ main,
+  [data-skin="soft-dark"] nav#rail ~ main {
+    padding-right: calc(2.5rem + 100px);
   }
 }
