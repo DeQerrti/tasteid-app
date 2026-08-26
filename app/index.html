@@ -144,6 +144,50 @@ nav#rail .logo {
 
 .rail-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
 
+/* ── Полное сворачивание рельсы ──────────────────
+   По просьбе из обратной связи: раздел можно свернуть целиком (место
+   отдаётся контенту), а вернуть его — наведением у левого края, как
+   автоскрытая панель задач Windows. Состояние живёт в localStorage —
+   см. скрипт в конце файла (initRailCollapse).
+
+   Приём: position: fixed снимает рельсу из flex-потока — main, будучи
+   единственным оставшимся flex-элементом, сам растягивается на всю
+   ширину, никакой отдельной правки под main не нужно. transform, а не
+   left/width — так поверх скольжение анимируется дёшево (GPU), а не
+   перекладкой макета на каждый кадр. */
+.rail-collapse-btn {
+  position: absolute; top: 16px; right: 10px;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 5px;
+  background: none; color: var(--text-dim);
+  cursor: pointer;
+}
+.rail-collapse-btn:hover { color: var(--text); background: var(--tint-hi); }
+.rail-collapse-btn svg { transition: transform .18s ease; }
+
+body.rail-collapsed nav#rail {
+  position: fixed; top: 0; left: 0;
+  transform: translateX(-100%);
+  z-index: 100;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, .25);
+  transition: transform .16s ease;
+}
+body.rail-collapsed nav#rail.rail-peek { transform: translateX(0); }
+body.rail-collapsed .rail-collapse-btn svg { transform: rotate(180deg); }
+
+/* Полоска-ловушка у самого края экрана: рельса, когда свёрнута, уезжает
+   за пределы окна transform'ом и наводить курсор больше не на что —
+   эта полоска остаётся на месте и ловит подход мыши. Видна только
+   свёрнутой рельсе; на телефоне сворачивания нет (см. медиа-запрос
+   ниже), поэтому там её тоже нет. */
+#rail-edge-trigger { display: none; }
+body.rail-collapsed #rail-edge-trigger {
+  display: block;
+  position: fixed; top: 0; left: 0; bottom: 0; width: 10px;
+  z-index: 99;
+}
+
 /* См. комментарий у #admin-settings-link в разметке ниже: без этого
    правила класс .hidden у ссылки ничего не делал. */
 .hidden { display: none; }
@@ -178,6 +222,13 @@ nav#rail .logo {
   }
   nav#rail .logo, .rail-sub, .rail-foot { display: none; }
   .rail-resize { display: none; }
+  /* Сворачивание рельсы — история про широкий экран (много вертикали,
+     мало горизонтали её жалко). На телефоне рельса и так превращается
+     в нижнюю панель — сворачивать там нечего, а .rail-collapse-btn при
+     невидимом логотипе была бы кнопкой в пустоте. */
+  .rail-collapse-btn { display: none; }
+  body.rail-collapsed nav#rail { position: fixed; transform: none; }
+  #rail-edge-trigger { display: none !important; }
 
   .rail-tabs { flex-direction: row; flex: 1; gap: 0; }
   .tab-btn {
@@ -1223,6 +1274,9 @@ section.group { margin-bottom: 3.5rem; }
 <body>
 
 <nav id="rail" aria-label="Боковая панель">
+  <button type="button" id="rail-collapse-btn" class="rail-collapse-btn" title="Свернуть панель" aria-label="Свернуть панель" aria-expanded="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+  </button>
   <a href="/" class="logo">TasteID</a>
   <div class="rail-sub" data-label="site.subtitle">Цифровой паспорт интересов</div>
   <div class="rail-tabs" role="tablist" aria-label="Разделы">
@@ -1237,6 +1291,7 @@ section.group { margin-bottom: 3.5rem; }
   </div>
   <div class="rail-resize" id="rail-resize" aria-hidden="true"></div>
 </nav>
+<div id="rail-edge-trigger" aria-hidden="true"></div>
 
 <script>
   // .hidden у ссылки настроек — обычный CSS-класс, а не HTML-атрибут
@@ -1250,6 +1305,53 @@ section.group { margin-bottom: 3.5rem; }
       document.getElementById("admin-settings-link").classList.remove("hidden");
     }
   });
+
+  // ── Сворачивание рельсы + автопоявление по наведению ──
+  // Кнопка сворачивает/разворачивает насовсем (запоминаем в
+  // localStorage). Пока свёрнута, рельса лежит за левым краем окна
+  // (transform в CSS) и выезжает как оверлей, стоит навести курсор на
+  // полоску-ловушку или на саму рельсу; убираем курсор — прячется
+  // обратно с небольшой задержкой, чтобы случайный перелёт мимо края
+  // не дёргал её туда-сюда.
+  (function initRailCollapse() {
+    const STORAGE_KEY = "tasteid-rail-collapsed";
+    const rail = document.getElementById("rail");
+    const btn = document.getElementById("rail-collapse-btn");
+    const edge = document.getElementById("rail-edge-trigger");
+    if (!rail || !btn || !edge) return;
+
+    let hideTimer = null;
+    const peek = () => {
+      clearTimeout(hideTimer);
+      rail.classList.add("rail-peek");
+    };
+    const unpeek = () => {
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => rail.classList.remove("rail-peek"), 250);
+    };
+
+    const setCollapsed = (collapsed) => {
+      document.body.classList.toggle("rail-collapsed", collapsed);
+      btn.setAttribute("aria-expanded", String(!collapsed));
+      btn.title = collapsed ? "Развернуть панель" : "Свернуть панель";
+      btn.setAttribute("aria-label", btn.title);
+      if (!collapsed) rail.classList.remove("rail-peek");
+      try { localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0"); } catch {}
+    };
+
+    btn.addEventListener("click", () => {
+      setCollapsed(!document.body.classList.contains("rail-collapsed"));
+    });
+
+    edge.addEventListener("mouseenter", peek);
+    edge.addEventListener("mouseleave", unpeek);
+    rail.addEventListener("mouseenter", peek);
+    rail.addEventListener("mouseleave", unpeek);
+
+    let restored = false;
+    try { restored = localStorage.getItem(STORAGE_KEY) === "1"; } catch {}
+    if (restored) setCollapsed(true);
+  })();
 </script>
 
 <main>

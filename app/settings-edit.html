@@ -219,8 +219,40 @@
 
   .status-msg { margin-top: 12px; font-size: .83rem; }
 
-  h2.section-h { font-size: 1.05rem; margin: 28px 0 12px; color: var(--text-hi); }
-  h2.section-h:first-child { margin-top: 0; }
+  h2.section-h { font-size: 1.05rem; color: var(--text-hi); }
+
+  /* ── Сворачиваемые разделы настроек ──────────────
+     Тот же приём, что у .sec/.sec-toggle в add.html: каждый h2.section-h
+     на странице и всё, что за ним следует до следующего заголовка,
+     оборачивается в .set-sec (см. collapsibleizeSettingsSections() в
+     конце файла) и по умолчанию сворачивается — открывается кликом по
+     заголовку. Раньше каждая панель настроек была одной длинной лентой
+     полей вне зависимости от того, что из этого человек вообще пришёл
+     менять; теперь видно только заголовки, пока не кликнешь нужный. */
+  .set-sec { margin-bottom: 6px; }
+  .set-sec .set-sec-toggle {
+    cursor: pointer;
+    display: flex; align-items: center; gap: .55rem;
+    user-select: none;
+    padding: 6px 4px;
+    margin: 22px -4px 0;
+    border-radius: 6px;
+  }
+  .set-sec:first-child .set-sec-toggle { margin-top: 0; }
+  .set-sec .set-sec-toggle:hover { background: var(--tint-hi); }
+  .set-sec .set-sec-toggle::before {
+    content: '';
+    flex-shrink: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 5px 0 5px 8px;
+    border-color: transparent transparent transparent var(--text-dim);
+    transition: transform .15s ease;
+  }
+  .set-sec:not(.collapsed) .set-sec-toggle::before { transform: rotate(90deg); }
+  .set-sec .set-sec-body { padding-top: 10px; }
+  .set-sec.collapsed .set-sec-body { display: none; }
+  .set-sec-toggle:focus-visible { outline: 2px solid var(--red-hi); outline-offset: 2px; }
 
   .list-row {
     display: flex; align-items: center; gap: 10px;
@@ -646,6 +678,59 @@
       if (btn.dataset.panel === "backup") initBackupHistoryPanel();
     });
   });
+
+  // ── Сворачиваемые разделы настроек ──────────────
+  // Каждый h2.section-h внутри панели помечает начало раздела; всё, что
+  // идёт за ним до следующего h2.section-h (или до конца родителя) —
+  // тело этого раздела. Оборачиваем обе части в .set-sec и вешаем клик
+  // на заголовок — см. CSS у .set-sec выше по файлу.
+  //
+  // Работает по разметке, а не по данным, поэтому можно звать один раз
+  // при загрузке страницы: списки внутри разделов (#tabsList,
+  // #catShelvesList и т.п.) заполняются позже через innerHTML их
+  // контейнеров, а сами контейнеры к этому моменту уже переехали внутрь
+  // .set-sec-body — id и ссылки на них не меняются при переносе узла.
+  //
+  // Первый раздел каждой панели (до первого h2.section-h — товар,
+  // ради которого сюда и пришли: список вкладок, сетка тем и т.п.) не
+  // трогаем — так открыв панель, человек сразу видит главное, а не
+  // сплошные заголовки.
+  function collapsibleizeSettingsSections() {
+    // idempotent: «Подписи» дорисовывает свои h2.section-h позже, после
+    // загрузки настроек (renderLabelsPanel), и зовёт эту функцию ещё
+    // раз — уже обёрнутые заголовки пропускаем, а не заворачиваем
+    // повторно (иначе .set-sec оказалась бы вложена сама в себя).
+    document.querySelectorAll("h2.section-h:not(.set-sec-toggle)").forEach((h2) => {
+      const parent = h2.parentNode;
+      const body = document.createElement("div");
+      body.className = "set-sec-body";
+      let next = h2.nextElementSibling;
+      while (next && !(next.tagName === "H2" && next.classList.contains("section-h"))) {
+        const toMove = next;
+        next = next.nextElementSibling;
+        body.appendChild(toMove);
+      }
+      const wrap = document.createElement("div");
+      wrap.className = "set-sec collapsed";
+      h2.classList.add("set-sec-toggle");
+      h2.setAttribute("tabindex", "0");
+      h2.setAttribute("role", "button");
+      h2.setAttribute("aria-expanded", "false");
+      parent.insertBefore(wrap, h2);
+      wrap.appendChild(h2);
+      wrap.appendChild(body);
+
+      const toggle = () => {
+        const open = wrap.classList.toggle("collapsed") === false;
+        h2.setAttribute("aria-expanded", String(open));
+      };
+      h2.addEventListener("click", toggle);
+      h2.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+    });
+  }
+  collapsibleizeSettingsSections();
 
   function flashStatus(id, ok, msg) {
     const el = document.getElementById(id);
@@ -2112,6 +2197,9 @@
 
     const labels = settings.labels || {};
     renderLabelsPanel(labels);
+    // «Подписи» рисует свои заголовки групп только сейчас — сворачиваем
+    // и их тоже (см. collapsibleizeSettingsSections()).
+    collapsibleizeSettingsSections();
     tabLabels = { ...(labels.nav || {}) };
     hiddenTabsState = new Set(settings.hiddenTabs || []);
     const savedOrder = Array.isArray(settings.tabOrder) ? settings.tabOrder.filter(id => TAB_DEFS_BY_ID[id]) : [];
