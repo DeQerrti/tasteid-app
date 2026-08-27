@@ -221,7 +221,7 @@ input::placeholder { color: var(--text-dim); }
 
   <div class="edit-banner" id="edit-banner" style="display:none">
     <div>Режим редактирования — <span class="edit-banner-title" id="edit-name-hint"></span></div>
-    <button class="btn-new" onclick="resetToNew()" data-i18n>Новая запись</button>
+    <button class="btn-new" onclick="resetFavToNew()" data-i18n>Новая запись</button>
   </div>
 
   <h2 class="section-title" data-i18n>Основное</h2>
@@ -278,7 +278,7 @@ input::placeholder { color: var(--text-dim); }
 
   <div class="list-header" id="list-header" style="display:none">
     <div class="divider-title" data-i18n>Персонажи</div>
-    <button class="btn-save-order" id="btn-save-order" onclick="saveOrder()" data-i18n>Сохранить порядок</button>
+    <button class="btn-save-order" id="btn-save-order" onclick="saveFavOrder()" data-i18n>Сохранить порядок</button>
   </div>
   <div class="entries-list" id="entries-list-character"></div>
 
@@ -292,13 +292,13 @@ input::placeholder { color: var(--text-dim); }
 </main>
 
 <script>
-let editingId  = null;
+let favEditingId  = null;
 let allEntries = [];   // все записи как есть (для поиска при редактировании)
 // Порядок записей по разделам — character/person встроенные, плюс
 // один ключ на каждый свой раздел из /settings-edit (id раздела).
 let groupLists = { character: [], person: [] };
 let orderDirty = false;
-let dragSrc    = null; // DOM-элемент, который сейчас тащим
+let favDragSrc    = null; // DOM-элемент, который сейчас тащим
 
 // Список ролей приходит из общего SUBTYPE_LABELS (js/config.js), куда
 // подмешиваются свои роли и переименования из /settings-edit. Тот же
@@ -561,14 +561,14 @@ async function backupImageNow() {
   }
 }
 
-function setStatus(type, text) {
+function setFavStatus(type, text) {
   const el = document.getElementById("status");
   el.className = "status-msg" + (type ? " " + type : "");
   el.textContent = text;
 }
 
-function resetToNew() {
-  editingId = null;
+function resetFavToNew() {
+  favEditingId = null;
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("page-subtitle").textContent = i18n("Персонажи и персоны");
   document.getElementById("btn-save").textContent = i18n("Сохранить");
@@ -584,10 +584,10 @@ function resetToNew() {
   document.getElementById("image-backup-status").textContent = "";
   document.getElementById("image-upload-status").textContent = "";
   document.getElementById("f-image-upload").value = "";
-  setStatus("", "");
+  setFavStatus("", "");
 }
 
-function fillForm(r) {
+function fillFavForm(r) {
   document.getElementById("f-name").value    = r.name    || "";
   document.getElementById("f-image").value   = r.image   || "";
   document.getElementById("f-image-backup").value = r.image_backup || "";
@@ -629,7 +629,7 @@ function renderGroup(type, list) {
       <button class="entry-edit" onclick="startEdit(${r.id})">${i18n("✎ Изменить")}</button>
     </div>`;
   }).join("");
-  bindDnd(container);
+  bindFavDnd(container);
 }
 
 // Свои разделы не живут в статичной разметке (как Персонажи/Персоны) —
@@ -658,20 +658,20 @@ function renderList() {
 }
 
 // ── Drag-and-drop внутри одного списка (персонажи ИЛИ персоны — раздельно) ──
-function bindDnd(container) {
+function bindFavDnd(container) {
   container.querySelectorAll(".entry-row").forEach(row => {
     row.addEventListener("dragstart", (e) => {
-      dragSrc = row;
+      favDragSrc = row;
       row.classList.add("dragging");
       e.dataTransfer.effectAllowed = "move";
     });
     row.addEventListener("dragend", () => {
       container.querySelectorAll(".entry-row").forEach(el => el.classList.remove("dragging", "drag-over"));
-      dragSrc = null;
+      favDragSrc = null;
     });
     row.addEventListener("dragover", (e) => {
       e.preventDefault();
-      if (!dragSrc || row === dragSrc || row.dataset.group !== dragSrc.dataset.group) return;
+      if (!favDragSrc || row === favDragSrc || row.dataset.group !== favDragSrc.dataset.group) return;
       container.querySelectorAll(".entry-row").forEach(el => el.classList.remove("drag-over"));
       row.classList.add("drag-over");
     });
@@ -679,12 +679,12 @@ function bindDnd(container) {
     row.addEventListener("drop", (e) => {
       e.preventDefault();
       row.classList.remove("drag-over");
-      if (!dragSrc || row === dragSrc || row.dataset.group !== dragSrc.dataset.group) return;
+      if (!favDragSrc || row === favDragSrc || row.dataset.group !== favDragSrc.dataset.group) return;
 
       const group = row.dataset.group;
       const list  = groupLists[group];
       if (!list) return;
-      const srcId = Number(dragSrc.dataset.id);
+      const srcId = Number(favDragSrc.dataset.id);
       const targetId = Number(row.dataset.id);
       const srcIdx = list.findIndex(r => r.id === srcId);
       let targetIdx = list.findIndex(r => r.id === targetId);
@@ -725,8 +725,8 @@ async function loadList() {
 async function startEdit(id) {
   const entry = allEntries.find(r => r.id === id);
   if (!entry) return;
-  editingId = entry.id;
-  fillForm(entry);
+  favEditingId = entry.id;
+  fillFavForm(entry);
   document.getElementById("edit-banner").style.display = "flex";
   document.getElementById("edit-name-hint").textContent = entry.name;
   document.getElementById("page-subtitle").textContent = i18n("Редактировать запись");
@@ -735,31 +735,31 @@ async function startEdit(id) {
 }
 
 // ── Сохранить порядок (всех разделов сразу) ─────
-async function saveOrder() {
+async function saveFavOrder() {
   const btn = document.getElementById("btn-save-order");
   btn.disabled = true;
   btn.textContent = i18n("Сохраняем…");
 
-  const newOrder = Object.values(groupLists).flat().map(r => r.id);
+  const favNewOrder = Object.values(groupLists).flat().map(r => r.id);
 
   try {
     const res  = await fetch("/api/save-favorite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ _reorder: newOrder }),
+      body: JSON.stringify({ _reorder: favNewOrder }),
     });
     const data = await res.json();
     if (res.ok) {
       orderDirty = false;
       btn.classList.remove("visible");
       document.getElementById("order-hint").classList.remove("visible");
-      setStatus("ok", i18n("Порядок сохранён.") + ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.")));
+      setFavStatus("ok", i18n("Порядок сохранён.") + ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.")));
     } else {
-      setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
+      setFavStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
   } catch (e) {
-    setStatus("err", i18n("Ошибка сети: ") + e.message);
+    setFavStatus("err", i18n("Ошибка сети: ") + e.message);
   }
 
   btn.disabled = false;
@@ -769,7 +769,7 @@ async function saveOrder() {
 async function saveEntry() {
   const btn  = document.getElementById("btn-save");
   const name = document.getElementById("f-name").value.trim();
-  if (!name) { setStatus("err", i18n("Заполни имя")); return; }
+  if (!name) { setFavStatus("err", i18n("Заполни имя")); return; }
 
   const type = document.getElementById("f-type").value;
 
@@ -779,7 +779,7 @@ async function saveEntry() {
   const imageUrl = document.getElementById("f-image").value.trim();
   if (imageUrl && imageUrl.startsWith("http") && !document.getElementById("f-image-backup").value) {
     clearTimeout(backupImageTimer);
-    setStatus("", i18n("Делаю резервную копию картинки перед сохранением..."));
+    setFavStatus("", i18n("Делаю резервную копию картинки перед сохранением..."));
     await backupImageNow();
   }
 
@@ -793,11 +793,11 @@ async function saveEntry() {
   if (type === "person") {
     entry.subtype = document.getElementById("f-subtype").value || null;
   }
-  if (editingId !== null) entry._editId = editingId;
+  if (favEditingId !== null) entry._editId = favEditingId;
 
   btn.disabled = true;
   btn.textContent = i18n("Сохраняем…");
-  setStatus("", "");
+  setFavStatus("", "");
 
   try {
     const res  = await fetch("/api/save-favorite", {
@@ -809,20 +809,20 @@ async function saveEntry() {
     const data = await res.json();
     if (res.ok) {
       const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
-      setStatus("ok", editingId !== null
+      setFavStatus("ok", favEditingId !== null
         ? `«${name}» обновлён.${note}`
         : `«${name}» сохранён.${note}`);
-      if (editingId === null) resetToNew();
+      if (favEditingId === null) resetFavToNew();
       setTimeout(loadList, 2000);
     } else {
-      setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
+      setFavStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
   } catch (e) {
-    setStatus("err", i18n("Ошибка сети: ") + e.message);
+    setFavStatus("err", i18n("Ошибка сети: ") + e.message);
   }
 
   btn.disabled = false;
-  btn.textContent = editingId !== null ? "Сохранить изменения" : i18n("Сохранить");
+  btn.textContent = favEditingId !== null ? "Сохранить изменения" : i18n("Сохранить");
 }
 
 enableEscapeToLeave(".src-type-dropdown:not(.hidden)");

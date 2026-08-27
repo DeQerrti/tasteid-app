@@ -329,7 +329,7 @@ let data         = [];
 let activeId     = null;
 let activeListId = null;
 let pendingTier  = null;
-let dragSrc      = null;
+let charsDragSrc      = null;
 let selectedGalleryImg = null;
 let galleryCache = {};
 let foldersCache = null;
@@ -384,7 +384,7 @@ document.addEventListener("site-labels-ready", () => {
 });
 
 // ══ ЗАГРУЗКА ═══════════════════════════════════
-async function init() {
+async function initCharsEdit() {
   try {
     const res = await fetch(`/${DATA_FILE}?_=` + Date.now());
     if (res.ok) data = await res.json();
@@ -1127,7 +1127,7 @@ async function confirmAddChar() {
 function bindDragDrop() {
   document.querySelectorAll(".char-card").forEach(card => {
     card.addEventListener("dragstart", e => {
-      dragSrc = {
+      charsDragSrc = {
         titleId: card.dataset.title, listId: card.dataset.list,
         tierIdx: parseInt(card.dataset.tier), charIdx: parseInt(card.dataset.char),
       };
@@ -1156,28 +1156,28 @@ function bindDragDrop() {
     zone.addEventListener("drop", e => {
       e.preventDefault();
       zone.classList.remove("drag-over");
-      if (!dragSrc) return;
+      if (!charsDragSrc) return;
 
       const insertIdx   = getInsertIndex(zone, e.clientX, e.clientY);
       const destTitleId = zone.dataset.title;
       const destListId  = zone.dataset.list;
       const destTierIdx = parseInt(zone.dataset.tier);
 
-      const srcTitle = data.find(t => t.id === dragSrc.titleId);
-      const srcList  = srcTitle?.tierlists.find(l => l.id === dragSrc.listId);
+      const srcTitle = data.find(t => t.id === charsDragSrc.titleId);
+      const srcList  = srcTitle?.tierlists.find(l => l.id === charsDragSrc.listId);
       if (!srcList) return;
 
-      const [moved] = srcList.tiers[dragSrc.tierIdx].chars.splice(dragSrc.charIdx, 1);
+      const [moved] = srcList.tiers[charsDragSrc.tierIdx].chars.splice(charsDragSrc.charIdx, 1);
 
       const destTitle = data.find(t => t.id === destTitleId);
       const destList  = destTitle?.tierlists.find(l => l.id === destListId);
       if (!destList) {
-        srcList.tiers[dragSrc.tierIdx].chars.splice(dragSrc.charIdx, 0, moved);
+        srcList.tiers[charsDragSrc.tierIdx].chars.splice(charsDragSrc.charIdx, 0, moved);
         return;
       }
 
       destList.tiers[destTierIdx].chars.splice(insertIdx, 0, moved);
-      dragSrc = null;
+      charsDragSrc = null;
       renderEditor();
     });
   });
@@ -1221,7 +1221,7 @@ document.addEventListener("keydown", e => {
   }
 });
 
-init();
+initCharsEdit();
 enableEscapeToLeave();
 </script>
 <script src="/js/backup.js?v=12"></script>
