@@ -55,8 +55,12 @@ if (foucByPage.size < htmlFiles.length) {
 }
 
 // ── 2. Версии общих /js/*.js и *.css — одна и та же везде ──
-const REF =
-  /<(?:script src|link rel="stylesheet" href)="\/((?:js\/)?[\w.-]+\.(?:js|css))\?v=(\d+)"/g;
+// [\w./-]+ (со слэшем), а не только [\w.-]+ — иначе, например,
+// js/routes/reviews-order.js (см. фазу 2, роут #/reviews-order)
+// молча выпадал бы из проверки: слэш внутри пути не совпадал с
+// прежним классом символов, регулярка на таком src просто не
+// срабатывала целиком.
+const REF = /<(?:script src|link rel="stylesheet" href)="\/([\w./-]+\.(?:js|css))\?v=(\d+)"/g;
 const versionsByFile = new Map(); // имя -> Map(версия -> [страницы])
 
 for (const page of htmlFiles) {
