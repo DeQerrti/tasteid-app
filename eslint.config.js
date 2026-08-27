@@ -117,6 +117,7 @@ const sharedBrowserGlobals = [
   "importStyles",
   "impStat",
   "indexByKeys",
+  "initBackupHistoryPanel",
   "isAdmin",
   "isAppContext",
   "isFavSectionVisible",

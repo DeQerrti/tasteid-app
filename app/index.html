@@ -1608,6 +1608,13 @@ section.group { margin-bottom: 3.5rem; }
 .order-hint.visible { display: block; }
 
 .entries-empty { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim); padding: 1rem .85rem; border: 1px dashed var(--border); border-radius: 2px; }
+
+/* Маршрут #/backup-history (см. план перехода, фаза 3.5) — .bh-view
+   вместо голого main, та же причина, что у .ro-view/.ce-view/.fe-view
+   выше: не задевать <main> самой рельсы. Остального CSS для этого
+   маршрута не требуется — .file-tabs/.history-retention/.state-box/
+   .spinner уже общие (admin.css/style.css). */
+.bh-view { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
 </style>
 </head>
 <body>
@@ -1749,10 +1756,12 @@ section.group { margin-bottom: 3.5rem; }
 <script src="/js/reviews.js?v=17"></script>
 <script src="/js/stats.js?v=15"></script>
 <script src="/js/tierlist.js?v=13"></script>
+<script src="/js/backup-history.js?v=2"></script>
 <script src="/js/router.js?v=1"></script>
 <script src="/js/routes/reviews-order.js?v=1"></script>
 <script src="/js/routes/chars-edit.js?v=1"></script>
 <script src="/js/routes/favorites-edit.js?v=1"></script>
+<script src="/js/routes/backup-history.js?v=1"></script>
 
 <script>
 let _navInit = true;

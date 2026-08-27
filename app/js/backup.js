@@ -63,7 +63,11 @@
       "20px"
     );
     historyBtn.addEventListener("click", () => {
-      location.href = "/backup-history.html";
+      // Хэш-маршрут (см. план перехода на SPA), а не файл напрямую —
+      // отсюда (add.html/chars-edit.html/… — отдельные документы) это
+      // всё равно полная навигация, но landing теперь на index.html,
+      // который эту историю версий понимает сам, без отдельного файла.
+      location.href = "/#/backup-history";
     });
   }
 
