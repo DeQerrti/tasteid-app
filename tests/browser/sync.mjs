@@ -107,7 +107,7 @@ async function handleGithub(route) {
   return respond(404, { message: "не подставлено в тесте: " + p });
 }
 
-const browser = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: { width: 393, height: 851 },
   hasTouch: true,
