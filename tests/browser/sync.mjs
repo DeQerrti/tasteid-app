@@ -33,19 +33,12 @@ const ok = (cond, msg) => {
 };
 
 console.log("sync.js подключён на всех страницах приложения");
-// Автосинхронизация ловит сохранения через fetch — а сохраняют не
-// только на settings-edit.html, но и на add.html, index.html и т.д.
-// Если файл забудут подключить на новой странице, сохранённое там
-// просто не попадёт в синхронизацию, и заметить это будет нечем.
-for (const page of [
-  "index",
-  "add",
-  "favorites-edit",
-  "chars-edit",
-  "reviews-order",
-  "backup-history",
-  "settings-edit",
-]) {
+// Автосинхронизация ловит сохранения через fetch. После перехода на SPA
+// (см. план перехода, фаза 4) сохраняют только два отдельных документа —
+// index.html (все маршруты) и add.html (он же в iframe-модалке паспорта).
+// Если файл забудут подключить на одном из них, сохранённое там просто
+// не попадёт в синхронизацию, и заметить это будет нечем.
+for (const page of ["index", "add"]) {
   const html = readFileSync(new URL(`../../app/${page}.html`, import.meta.url), "utf8");
   ok(html.includes('src="/js/sync.js'), `app/${page}.html подключает sync.js`);
 }
@@ -114,7 +107,7 @@ async function handleGithub(route) {
   return respond(404, { message: "не подставлено в тесте: " + p });
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
 const context = await browser.newContext({
   viewport: { width: 393, height: 851 },
   hasTouch: true,
