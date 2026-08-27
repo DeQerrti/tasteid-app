@@ -40,7 +40,7 @@ async function loadReviews() {
     document.getElementById("tab-reviews").innerHTML =
       `<div class="state-box">
         ${esc(siteLabel("empty", "reviews", i18n("Отзывов пока нет.")))}
-        ${isAdmin() ? `<div style="margin-top:1.5rem"><a href="/add.html" class="admin-add-btn">${i18n("Добавить")}</a></div>` : ""}
+        ${isAdmin() ? `<div style="margin-top:1.5rem"><a href="#/add" class="admin-add-btn">${i18n("Добавить")}</a></div>` : ""}
       </div>`;
   }
 }
@@ -65,7 +65,7 @@ function renderReviews(reviews) {
   )], SOURCE_FILTER_ORDER);
 
   const adminBtn = isAdmin()
-    ? `<a href="/add.html" class="admin-add-btn">${i18n("Добавить")}</a>`
+    ? `<a href="#/add" class="admin-add-btn">${i18n("Добавить")}</a>`
     : "";
 
   const box = document.getElementById("tab-reviews");
@@ -385,7 +385,7 @@ function reviewCard(r, i) {
 
   const editId  = r.id ?? encodeURIComponent(r.title);
   const editBtn = isAdmin()
-    ? `<a href="/add.html?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
+    ? `<a href="#/add?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
   // Ромб рисуется через ту же технику, что и активная вкладка в
