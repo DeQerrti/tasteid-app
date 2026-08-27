@@ -47,7 +47,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
   if (isFavSectionVisible("favTitles")) html += `<section class="group">
     <div class="section-header">
       <h2 class="section-title">${esc(siteLabel("sections", "favTitles", i18n("Тайтлы")))}</h2>
-      ${admin ? `<a href="/reviews-order.html" class="admin-add-btn">${i18n("Порядок")}</a>` : ""}
+      ${admin ? `<a href="#/reviews-order" class="admin-add-btn">${i18n("Порядок")}</a>` : ""}
     </div>
     <div class="grid-now">
       ${titles.length

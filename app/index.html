@@ -35,6 +35,11 @@
 <meta name="theme-color" content="#0a0a0c">
 <link rel="stylesheet" href="/fonts.css?v=1">
 <link rel="stylesheet" href="/style.css?v=22">
+<!-- admin.css — раньше только у страниц редактирования (настройки,
+     add.html и т.д.), теперь ещё и для маршрутов SPA-роутера: у
+     #/reviews-order (js/routes/reviews-order.js) собственная шапка
+     .app-topbar, которая до сих пор жила только там. -->
+<link rel="stylesheet" href="/admin.css?v=14">
 <link rel="stylesheet" href="/themes.css?v=17">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
@@ -1270,10 +1275,87 @@ section.group { margin-bottom: 3.5rem; }
   background: var(--surface);
 }
 .tl-char-poster:hover img { filter: grayscale(0) brightness(.98); }
+
+/* ══ РОУТЕР SPA (см. план перехода, фаза 2) ═══════
+   #shell-root — рельса и вкладки, всё, что было в этом файле раньше.
+   #view-root — куда роутер (js/router.js) подставляет содержимое
+   отдельных маршрутов вроде #/reviews-order, вместо полной перезагрузки
+   на отдельный HTML-файл. display: contents у #shell-root, а не просто
+   div, — иначе рельса и <main> перестанут быть прямыми flex-детьми body
+   (body { display: flex } выше) и раскладка сломается. */
+#shell-root { display: contents; }
+/* #shell-root.hidden, а не только .hidden — специфичность id-селектора
+   (#shell-root) выше специфичности класса (.hidden) сама по себе, и
+   правило display: contents выше побеждало бы обычный .hidden{display:
+   none} независимо от порядка в файле: рельса оставалась в раскладке
+   (просто «прозрачным» контейнером) поверх/рядом с показанным
+   маршрутом — заметно на мобильной ширине, где рельса становится
+   нижней панелью вкладок и никак не перекрывается видом маршрута. */
+#shell-root.hidden { display: none; }
+#view-root { flex: 1; min-width: 0; }
+
+/* Маршрут #/reviews-order — та же вёрстка/CSS, что раньше жили в
+   app/reviews-order.html (файл пока не удалён, см. её же комментарий
+   в js/routes/reviews-order.js). .ro-view вместо голого main — иначе
+   правило ниже задело бы <main> самой рельсы тоже, он остаётся в DOM
+   (просто скрыт через #shell-root.hidden), пока активен другой маршрут. */
+.ro-view { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
+
+.dnd-grid {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  margin-bottom: 2.5rem;
+  min-height: 60px;
+}
+.dnd-item {
+  position: relative;
+  cursor: grab;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s, opacity .2s;
+  user-select: none;
+}
+.dnd-item:active { cursor: grabbing; }
+.dnd-item.dragging { opacity: .4; }
+.dnd-item.drag-over { border-color: var(--red); box-shadow: 0 0 0 1px var(--red-dim); }
+.dnd-item img {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+  display: block;
+  filter: brightness(.88);
+  pointer-events: none;
+}
+.dnd-item-body { padding: .45rem .5rem .55rem; }
+.dnd-item-title {
+  font-family: 'Cormorant Garamond', serif; font-size: .85rem; font-weight: 600;
+  color: var(--text-hi); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.dnd-item-type {
+  font-family: 'DM Sans', sans-serif; font-size: .6rem; color: var(--text-dim);
+  margin-top: .2rem; text-transform: uppercase; letter-spacing: .08em;
+}
+.dnd-item-num {
+  position: absolute; top: 4px; left: 4px; background: var(--poster-scrim);
+  color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: .6rem;
+  padding: .15rem .4rem; border-radius: 1px; pointer-events: none;
+}
+.save-bar { display: flex; align-items: center; gap: 1.5rem; margin-top: 1rem; }
+.save-status { font-family: 'DM Sans', sans-serif; font-size: .78rem; }
+.save-status.ok  { color: var(--green-hi); }
+.save-status.err { color: var(--err); }
 </style>
 </head>
 <body>
 
+<!-- #shell-root — рельса, вкладки и их модалки; всё, что раньше было
+     прямо тут. Роутер (js/router.js) прячет её целиком, пока активен
+     маршрут вроде #/reviews-order (#view-root ниже, после </main>). -->
+<div id="shell-root">
 <nav id="rail" aria-label="Боковая панель">
   <button type="button" id="rail-collapse-btn" class="rail-collapse-btn" title="Свернуть панель" aria-label="Свернуть панель" aria-expanded="true">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
@@ -1392,6 +1474,12 @@ section.group { margin-bottom: 3.5rem; }
     <div id="shortcuts-modal-list"></div>
   </div>
 </div>
+</div><!-- /#shell-root -->
+
+<!-- #view-root — сюда роутер подставляет содержимое отдельных
+     маршрутов (см. #shell-root выше и js/router.js). Пусто и скрыто,
+     пока хэш адреса пустой — то есть почти всегда. -->
+<div id="view-root" class="hidden"></div>
 
 <script src="/js/config.js?v=14"></script>
 <script src="/js/api.js?v=12"></script>
@@ -1401,6 +1489,8 @@ section.group { margin-bottom: 3.5rem; }
 <script src="/js/reviews.js?v=17"></script>
 <script src="/js/stats.js?v=15"></script>
 <script src="/js/tierlist.js?v=13"></script>
+<script src="/js/router.js?v=1"></script>
+<script src="/js/routes/reviews-order.js?v=1"></script>
 
 <script>
 let _navInit = true;
@@ -1535,14 +1625,20 @@ document.addEventListener("mousedown", (e) => {
 // без обёртки здесь падал бы весь блок, и страница навсегда осталась
 // бы на надписи «Загружаем…». Теперь в худшем случае просто откроется
 // первая доступная вкладка.
+// Если адрес открыт сразу на маршруте (#/reviews-order и т.п. —
+// прямая ссылка/обновление страницы), рельса всё равно скрыта
+// роутером (см. js/router.js), но кликать по вкладке под ней смысла
+// нет — она всё равно не видна, а её loadNow()/loadFavorites()/…
+// сходят в сеть впустую.
 Promise.resolve(window.themeReady).then(() => {
+  _navInit = false;
+  if (location.hash) return;
   const wanted = window.SITE_INITIAL_TAB;
   const btn =
     (wanted && document.querySelector(`[data-label="nav.${wanted}"]`)) ||
     document.querySelector(".tab-btn:not([hidden])");
 
   if (btn) btn.click();
-  _navInit = false;
 });
 
 // Клик по логотипу на самой же главной — это переход "/" -> "/", то
@@ -1560,6 +1656,15 @@ Promise.resolve(window.themeReady).then(() => {
 document.querySelector(".logo")?.addEventListener("click", (e) => {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault();
+  // Активен маршрут роутера (#/reviews-order и т.п.) — сначала просто
+  // уходим с него (leaveRoute() из js/router.js), тем же приёмом, что
+  // раньше был переходом на "/". Вкладку саму по себе трогать не надо:
+  // она и так осталась открытой под скрытой рельсой (см. renderRoute()).
+  if (location.hash) {
+    leaveRoute();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
   const wanted = window.SITE_INITIAL_TAB;
   const btn =
