@@ -125,7 +125,7 @@ const idsOf = (sel, attr) =>
   );
 
 console.log("Порядок отзывов");
-await page.goto(`http://127.0.0.1:${port}/reviews-order.html`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://127.0.0.1:${port}/#/reviews-order`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".dnd-item");
 await page.waitForTimeout(600);
 
@@ -143,7 +143,7 @@ ok(
 ok(after.includes(before[0]), "перетащенная карточка осталась в списке");
 
 console.log("Список избранного");
-await page.goto(`http://127.0.0.1:${port}/favorites-edit.html`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://127.0.0.1:${port}/#/favorites-edit`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".entry-row");
 await page.waitForTimeout(600);
 const favBefore = await idsOf(".entry-row", "data-id");
@@ -158,7 +158,7 @@ if (favBefore.length > 2) {
 }
 
 console.log("Тайтлы в редакторе персонажей");
-await page.goto(`http://127.0.0.1:${port}/chars-edit.html`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://127.0.0.1:${port}/#/chars-edit`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".title-item");
 await page.waitForTimeout(600);
 const titlesBefore = await idsOf(".title-item", "data-title-id");
@@ -168,7 +168,8 @@ ok(titlesAfter[0] !== titlesBefore[0], "тайтл переехал");
 ok(new Set(titlesAfter).size === titlesBefore.length, "список тайтлов цел");
 
 console.log("Обычное нажатие не сломалось");
-await page.goto(`http://127.0.0.1:${port}/settings-edit.html`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://127.0.0.1:${port}/#/settings-edit`, { waitUntil: "domcontentloaded" });
+await page.waitForSelector(".side-tab");
 await page.waitForTimeout(600);
 const tabBox = await centerOf(".side-tab", 1);
 await touch("touchStart", tabBox.x, tabBox.y);
