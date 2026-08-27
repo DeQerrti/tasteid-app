@@ -45,7 +45,7 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=2"></script>
 <script src="/js/sync.js?v=1"></script>
-<script src="/js/utils.js?v=25"></script>
+<script src="/js/utils.js?v=26"></script>
 <script src="/js/theme.js?v=16"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
@@ -1919,6 +1919,404 @@ section.group { margin-bottom: 3.5rem; }
    менять поведение кнопки на других маршрутах. */
 .add-view .btn-save::before, .add-view .btn-save::after { transition: border-color .2s; }
 .add-view .btn-save:hover::before, .add-view .btn-save:hover::after { border-color: var(--red-hi); }
+
+/* Маршрут #/settings-edit (см. план перехода, фаза 3.4) — та же
+   вёрстка, что раньше жила в app/settings-edit.html (файл пока не
+   удалён, см. её же комментарий в js/routes/settings-edit.js).
+   :where(.set-view) вместо голых селекторов — та же причина, что у .add-view
+   выше: у настроек «label», «input, select», «h1» и «.row» были
+   глобальными правилами отдельного документа и никого не задевали, а
+   здесь задели бы вообще все поля ввода приложения.
+   Селекторы по id (#app/#main/#sidebar/#locked) оставлены как были,
+   БЕЗ префикса :where(.set-view) — нарочно: themes.css красит #sidebar через
+   [data-skin="…"] #sidebar, и префикс поднял бы специфичность до той
+   же, а этот <style> идёт в <head> позже темы — сайдбар в «Брутализме»
+   потерял бы свою рамку. Эти id всё равно есть только внутри маршрута. */
+.set-view { display: flex; }
+
+#locked { width: 100%; }
+#locked a { color: var(--red-hi); }
+/* Утилитарный класс должен побеждать любые другие правила отображения
+   (в т.ч. #app { display:flex } ниже) — иначе элемент с id может
+   остаться видимым несмотря на добавленный класс .hidden (баг:
+   настройки на миг показывались разлогиненным пользователям).
+   В отличие от исходной страницы правило прицелено внутрь .set-view:
+   общий .hidden { display: none } у index.html трогать нельзя. */
+:where(.set-view) .hidden { display: none !important; }
+
+/* padding-left держит место под #sidebar (position: fixed, вне потока
+   — см. её комментарий ниже) так, чтобы #main центрировался в
+   ОСТАВШЕЙСЯ после сайдбара ширине, а не прилипал прямо к его краю.
+   Значение по умолчанию — 220px, дефолтная ширина колонки; при
+   resize мышью его пересчитывает тот же скрипт, что раньше двигал
+   margin-left у #main напрямую (см. ResizeObserver у #sidebar). */
+#app { display: flex; width: 100%; padding-left: 220px; }
+
+#sidebar {
+  width: 220px; flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
+  background: var(--bg);
+  z-index: 2;
+}
+/* Раньше здесь был position: sticky с явной height: 100vh (вместо
+   auto/stretch по флексу — тот вариант ломал sticky совсем: контейнер
+   и колонка одной высоты, «стянуть» некуда). Но и sticky с явной
+   высотой всё равно уезжала вместе со страницей — воспроизвелось у
+   пользователя на видео, хотя в этой же вёрстке без масштабирования
+   страницы всё было на месте. Причина — в Chromium известно ломается
+   расчёт position: sticky, когда масштаб страницы (webContents.
+   setZoomFactor в electron/main.js, ползунок «Масштаб» в этой же
+   панели) отличается от 100%. Sticky тут вообще не нужен: колонка
+   всегда занимает весь экран по высоте — fixed делает ровно то же
+   самое визуально, но не зависит от этого расчёта. #app получает
+   соответствующий padding-left по скрипту (см. ResizeObserver у
+   #sidebar в js/routes/settings-edit.js), а overflow-y: auto здесь по
+   прежней причине: список разделов может не поместиться в невысокое
+   окно — тогда его можно прокрутить, но не колесом мыши (см.
+   обработчик wheel там же). */
+/* Растягивание мышью — см. js/utils.js, makeResizablePanel(); тот же
+   приём, что и у рельсы на главной (.rail-resize выше). */
+:where(.set-view) .sidebar-resize {
+  position: absolute; top: 0; right: -3px; bottom: 0; width: 7px;
+  cursor: col-resize; z-index: 5;
+}
+#sidebar a.back {
+  display: block; margin: 0 20px 20px;
+  color: var(--text); text-decoration: none; font-size: .95rem; font-weight: 600;
+  padding: 6px 10px 6px 4px;
+  position: sticky; top: 0; z-index: 1; background: var(--bg);
+}
+#sidebar a.back:hover { color: var(--text-hi); }
+:where(.set-view) .side-tab {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; margin: 0;
+  padding: 10px 20px; font-size: .85rem;
+  color: var(--text-dim); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+:where(.set-view) .side-tab:hover { color: var(--text); background: var(--surface2); }
+:where(.set-view) .side-tab.active { color: var(--text-hi); border-left-color: var(--red); background: var(--surface2); }
+
+/* «История версий» — раньше была ссылкой на отдельную страницу
+   (backup-history.html), теперь такая же панель, как остальные, но
+   визуально отделена от них: это не часть настроек одной темы, а
+   отдельная функция сбоку. */
+:where(.set-view) .side-tab.side-tab-divider { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 18px; }
+@media (max-width: 720px) {
+  :where(.set-view) .side-tab.side-tab-divider { margin-top: 0; padding-top: 8px; border-top: none; border-left: 1px solid var(--border); }
+}
+
+/* min-width: 0 — иначе колонка не даёт себе стать уже содержимого,
+   и на узком экране за край уезжает вся страница, а не отдельный
+   широкий блок внутри. margin: 0 auto центрирует узкую (max-width:
+   680px) колонку в пространстве, которое #app оставляет под неё —
+   то есть во всей ширине ЗА ВЫЧЕТОМ padding-left под #sidebar. */
+#main { flex: 1; min-width: 0; max-width: 680px; padding: 40px 32px; margin: 0 auto; }
+:where(.set-view) h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 0 0 24px; }
+
+/* Телефон. Сайдбар в 220px тут съедал больше половины ширины, и на
+   содержимое оставалось около сотни пикселей — уезжали все панели
+   без исключения. Кладём меню сверху отдельной прокручиваемой
+   полосой, как вкладки на главной. */
+@media (max-width: 720px) {
+  #app { flex-direction: column; padding-left: 0; }
+  #sidebar {
+    width: auto; height: auto; position: static;
+    border-right: none; border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    display: flex; align-items: center;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  #sidebar::-webkit-scrollbar { display: none; }
+  :where(.set-view) .sidebar-resize { display: none; }
+  #sidebar a.back {
+    margin: 0 8px 0 12px; white-space: nowrap; flex-shrink: 0;
+    position: sticky; left: 0; z-index: 1; background: var(--bg);
+  }
+  :where(.set-view) .side-tab {
+    width: auto; white-space: nowrap; flex-shrink: 0;
+    padding: 8px 14px;
+    border-left: none; border-bottom: 2px solid transparent;
+  }
+  :where(.set-view) .side-tab.active { border-left-color: transparent; border-bottom-color: var(--red); }
+  #main { max-width: none; padding: 24px 16px 64px; }
+}
+:where(.set-view) .panel { display: none; }
+:where(.set-view) .panel.active { display: block; }
+:where(.set-view) .panel-intro { color: var(--text-dim); font-size: .9rem; margin-bottom: 20px; }
+:where(.set-view) .panel-intro a { color: var(--red-hi); text-decoration: none; }
+:where(.set-view) .panel-intro a:hover { text-decoration: underline; }
+/* --text-dim в классической, мягкой ботанической, неоморфизме и
+   рисованной темах слишком близок к фону — рядом с обычным текстом
+   (.sync-intro, тот же по сути пояснительный абзац, просто другого
+   класса) читается заметно тусклее. В брутализме та же пара цветов
+   на предельно чёрно-белом фоне ещё держит контраст, там не трогаем. */
+[data-skin="classic"] :where(.set-view) .panel-intro,
+[data-skin="soft"] :where(.set-view) .panel-intro,
+[data-skin="soft-dark"] :where(.set-view) .panel-intro,
+[data-skin="neomorphism"] :where(.set-view) .panel-intro,
+[data-skin="neomorphism-dark"] :where(.set-view) .panel-intro,
+[data-skin="doodle"] :where(.set-view) .panel-intro,
+[data-skin="doodle-dark"] :where(.set-view) .panel-intro {
+  color: var(--text);
+}
+
+:where(.set-view) .sync-intro { color: var(--text); font-size: .9rem; margin-bottom: 20px; }
+:where(.set-view) .sync-intro a { color: var(--red-hi); text-decoration: none; }
+:where(.set-view) .sync-intro a:hover { text-decoration: underline; }
+
+:where(.set-view) .theme-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+:where(.set-view) .theme-option {
+  border: 1px solid var(--border2); border-radius: 2px; padding: 10px 14px;
+  cursor: pointer; font-size: .85rem; background: var(--surface); color: var(--text);
+  font-family: 'DM Sans', sans-serif; transition: all .15s;
+}
+:where(.set-view) .theme-option:hover { border-color: var(--red-dim); color: var(--text-hi); }
+:where(.set-view) .theme-option.selected { border-color: var(--red); color: var(--text-hi); background: var(--accent-wash); }
+
+/* Попап выбора тёмная/светлая под пилюлей стиля. Позиционируется от
+   .theme-group, а не от самой пилюли, — так рамка попапа не скачет,
+   если пилюля меняет ширину (например, у неё появляется подпись
+   "— тёмная" после выбора). */
+:where(.set-view) .theme-group { position: relative; }
+:where(.set-view) .theme-popover {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+  display: flex; flex-direction: column; gap: 2px; min-width: 150px;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 2px;
+  padding: 5px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+:where(.set-view) .theme-popover.hidden { display: none; }
+:where(.set-view) .theme-popover button {
+  background: none; border: none; text-align: left; padding: 8px 10px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: .82rem; color: var(--text);
+  border-radius: 1px; transition: background .12s, color .12s;
+}
+:where(.set-view) .theme-popover button:hover { background: var(--surface2); color: var(--text-hi); }
+:where(.set-view) .theme-popover button.current { color: var(--red-hi); }
+
+:where(.set-view) label { display: block; font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim);
+  letter-spacing: .12em; text-transform: uppercase; margin: 16px 0 6px; }
+/* Голый input, а не input[type="text"]: у [data-skin="…"] input в
+   themes.css специфичность выше (добавлен атрибутный селектор), и
+   он спокойно перебивает эту строку в темах, которые сами её не
+   задают. Префикс :where(.set-view) поднимает специфичность на один класс —
+   ровно столько же добавляет и .add-view выше, и там это уже
+   проверено: тема по-прежнему побеждает (у неё атрибут + элемент). */
+:where(.set-view) input, :where(.set-view) select {
+  background: var(--surface2); border: 1px solid var(--border2); color: var(--text-hi);
+  border-radius: 2px; padding: 8px 10px; font-size: .9rem; font-family: 'Cormorant Garamond', serif;
+  outline: none; transition: border-color .2s, background .2s;
+}
+:where(.set-view) input[type="text"]:focus, :where(.set-view) input[type="number"]:focus { border-color: var(--red); background: var(--bg2); }
+:where(.set-view) input[type="color"] { width: 60px; height: 34px; padding: 2px; cursor: pointer; }
+:where(.set-view) input[type="text"] { width: 100%; box-sizing: border-box; }
+
+:where(.set-view) .row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 4px; }
+:where(.set-view) .row > div { flex: 1; min-width: 160px; }
+
+/* Кнопки — .btn/.btn-primary/.btn-ghost/.btn-save/.icon-btn общие
+   (style.css), уголки .btn-save::before/::after уже описаны выше в
+   этом же файле (фаза #/add) — дублировать не нужно. */
+
+/* Фон/рамка/радиус — уже в общем правиле input, select выше;
+   здесь только то, что нужно именно select. */
+:where(.set-view) select {
+  width: 100%; box-sizing: border-box; font-size: .95rem;
+}
+:where(.set-view) select:focus { border-color: var(--red); }
+
+:where(.set-view) .status-msg { margin-top: 12px; font-size: .83rem; }
+
+:where(.set-view) h2.section-h { font-size: 1.05rem; color: var(--text-hi); }
+
+/* ── Сворачиваемые разделы настроек ──────────────
+   Тот же приём, что у .sec/.sec-toggle в редакторе отзыва: каждый
+   h2.section-h в «Вкладках» и «Подписях» и всё, что следует за ним до
+   следующего заголовка, оборачивается в .set-sec (см.
+   collapsibleizeSettingsSections() в js/routes/settings-edit.js) и по
+   умолчанию сворачивается — открывается кликом по заголовку. */
+:where(.set-view) .set-sec { margin-bottom: 6px; }
+:where(.set-view) .set-sec .set-sec-toggle {
+  cursor: pointer;
+  display: flex; align-items: center; gap: .55rem;
+  user-select: none;
+  padding: 6px 4px;
+  margin: 22px -4px 0;
+  border-radius: 6px;
+}
+:where(.set-view) .set-sec:first-child .set-sec-toggle { margin-top: 0; }
+:where(.set-view) .set-sec .set-sec-toggle:hover { background: var(--tint-hi); }
+:where(.set-view) .set-sec .set-sec-toggle::before {
+  content: '';
+  flex-shrink: 0;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent var(--text-dim);
+  transition: transform .15s ease;
+}
+:where(.set-view) .set-sec:not(.collapsed) .set-sec-toggle::before { transform: rotate(90deg); }
+:where(.set-view) .set-sec .set-sec-body { padding-top: 10px; }
+:where(.set-view) .set-sec.collapsed .set-sec-body { display: none; }
+:where(.set-view) .set-sec-toggle:focus-visible { outline: 2px solid var(--red-hi); outline-offset: 2px; }
+
+/* ── Модалка «добавить себе» из чужого паспорта ──
+   Тот же приём, что у .review-modal-overlay выше: затемнение на весь
+   экран плюс панель по центру. Внутри — iframe с обычным
+   add.html?fromPassport=1..., просто в рамке, а не отдельной
+   страницей — см. js/passports.js. Имя анимации своё (setFadeUp): в
+   этом файле уже есть @keyframes fadeUp с другим сдвигом. */
+:where(.set-view) .pp-add-modal-overlay {
+  position: fixed; inset: 0;
+  background: var(--scrim);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+  padding: 24px;
+}
+:where(.set-view) .pp-add-modal-overlay.hidden { display: none; }
+@keyframes setFadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+:where(.set-view) .pp-add-modal-panel {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  width: 100%;
+  max-width: 720px;
+  height: 90vh;
+  position: relative;
+  animation: setFadeUp .25s ease both;
+}
+:where(.set-view) .pp-add-modal-close {
+  position: absolute; top: 10px; right: 10px;
+  z-index: 1;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%;
+  background: var(--surface2); color: var(--text-dim);
+  cursor: pointer;
+}
+:where(.set-view) .pp-add-modal-close:hover { color: var(--text); background: var(--tint-hi); }
+:where(.set-view) .pp-add-modal-frame {
+  width: 100%; height: 100%;
+  border: none; border-radius: 4px;
+}
+@media (max-width: 720px) {
+  :where(.set-view) .pp-add-modal-overlay { padding: 0; }
+  :where(.set-view) .pp-add-modal-panel { max-width: none; height: 100vh; border-radius: 0; }
+  :where(.set-view) .pp-add-modal-frame { border-radius: 0; }
+}
+
+:where(.set-view) .list-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+:where(.set-view) .list-row .name { flex: 1; font-size: .88rem; }
+:where(.set-view) .list-row .tag-note { color: var(--text-dim); font-size: .78rem; }
+:where(.set-view) .vault-current { color: var(--text-dim); font-size: .78rem; white-space: nowrap; }
+
+:where(.set-view) .app-path { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim);
+  word-break: break-all; border: 1px dashed var(--border2); border-radius: 4px; padding: 9px 12px; }
+:where(.set-view) .app-zoom { font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text-hi);
+  min-width: 4rem; text-align: center; }
+
+/* Ползунок масштаба — тот же минимализм, что у остальных полей:
+   тонкий трек, квадратный бегунок без родных стрелок браузера. */
+:where(.set-view) .app-zoom-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 200px; max-width: 100%; height: 3px;
+  background: var(--border2); border-radius: 2px; outline: none;
+}
+:where(.set-view) .app-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 2px;
+  background: var(--red); cursor: pointer;
+}
+:where(.set-view) .app-zoom-slider::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 2px; border: none;
+  background: var(--red); cursor: pointer;
+}
+
+:where(.set-view) .fav-restore { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 10px; font-size: .78rem; color: var(--text-dim); }
+:where(.set-view) .fav-restore-btn { background: none; border: 1px dashed var(--border2); color: var(--text-dim);
+  border-radius: 4px; padding: 3px 9px; font-size: .78rem; cursor: pointer; font-family: inherit; }
+:where(.set-view) .fav-restore-btn:hover { color: var(--text-hi); border-color: var(--text-dim); }
+
+:where(.set-view) .tab-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  transition: opacity .15s, border-color .15s;
+}
+:where(.set-view) .tab-row input[type="checkbox"] { width: auto; margin: 0; }
+:where(.set-view) .tab-row .tab-name { flex: 1; font-size: .9rem; }
+:where(.set-view) .tab-row input[type="text"] { flex: 1; display: none; }
+:where(.set-view) .tab-row.editing .tab-name { display: none; }
+:where(.set-view) .tab-row.editing input[type="text"] { display: block; }
+:where(.set-view) .tab-row .drag-handle {
+  flex: none; cursor: grab; color: var(--text-dim); font-size: .95rem;
+  line-height: 1; padding: 2px 4px; user-select: none;
+}
+:where(.set-view) .tab-row .drag-handle:active { cursor: grabbing; }
+:where(.set-view) .tab-row.dragging { opacity: .4; }
+:where(.set-view) .tab-row.drag-over { border-color: var(--red); box-shadow: 0 -1px 0 var(--red); }
+:where(.set-view) .tab-row .main-radio-label {
+  display: flex; align-items: center; gap: 5px; flex: none;
+  font-size: .72rem; color: var(--text-dim); cursor: pointer; white-space: nowrap;
+}
+:where(.set-view) .tab-row .main-radio-label input { width: auto; margin: 0; }
+
+/* Телефон. В строке вкладки шесть вещей подряд: ручка перетаскивания,
+   глаз, имя, карандаш и подпись «Главная страница» с точкой. Глаз и
+   карандаш под пальцем становятся по 44px (см. style.css), «Главная
+   страница» не переносится (white-space: nowrap) и ужаться не может
+   (flex: none) — в 390px это не влезало, строка вылезала за экран, и
+   вместе с ней уезжала вбок вся страница настроек.
+   Пускаем подпись на вторую строку: места по ширине она больше не
+   просит, а сама радиокнопка (13px, растягивать её нельзя — станет
+   не похожа на радиокнопку) получает нормальную цель для пальца за
+   счёт отступов у своей подписи. */
+@media (pointer: coarse) {
+  :where(.set-view) .tab-row { flex-wrap: wrap; }
+  :where(.set-view) .tab-row .tab-name, :where(.set-view) .tab-row input[type="text"] { flex: 1 1 40%; min-width: 0; }
+  :where(.set-view) .tab-row .main-radio-label {
+    flex: 1 0 100%;
+    order: 10;
+    min-height: 36px;
+    padding: 2px 0;
+  }
+}
+
+:where(.set-view) .shelf-row {
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+:where(.set-view) .shelf-row-main { display: flex; align-items: center; gap: 8px; }
+:where(.set-view) .shelf-row input[type="text"] { flex: 1.4; }
+:where(.set-view) .shelf-row input[type="number"] { width: 64px; flex: none; }
+:where(.set-view) .shelf-row input[type="color"] { width: 34px; height: 34px; flex: none; }
+:where(.set-view) .shelf-row .rng { color: var(--text-dim); font-size: .8rem; }
+:where(.set-view) .shelf-row .shelf-desc {
+  width: 100%; margin-top: 6px; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 2px; color: var(--text);
+  font-size: .78rem; padding: 6px 8px; box-sizing: border-box;
+}
+
+/* Палитра темы */
+:where(.set-view) .pal-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+:where(.set-view) .pal-row input[type="color"] { width: 40px; height: 32px; flex: none; }
+:where(.set-view) .pal-text { flex: 1; min-width: 0; }
+:where(.set-view) .pal-name { font-size: .88rem; color: var(--text-hi); }
+:where(.set-view) .pal-hint { font-size: .74rem; color: var(--text-dim); margin-top: 1px; }
+:where(.set-view) .pal-reset {
+  flex: none; background: none; border: none; cursor: pointer; padding: 0;
+  font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+:where(.set-view) .pal-reset:hover { color: var(--text-hi); }
+:where(.set-view) .pal-foot { display: flex; align-items: center; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -1941,7 +2339,7 @@ section.group { margin-bottom: 3.5rem; }
     <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-tierlist" data-label="nav.tierlist" onclick="switchTab('tab-tierlist', this)">Тир-лист</button>
   </div>
   <div class="rail-foot">
-    <a href="/settings-edit.html" id="admin-settings-link" class="hidden admin-link" data-i18n>Настройки</a>
+    <a href="#/settings-edit" id="admin-settings-link" class="hidden admin-link" data-i18n>Настройки</a>
   </div>
   <div class="rail-resize" id="rail-resize" aria-hidden="true"></div>
 </nav>
@@ -2067,12 +2465,32 @@ section.group { margin-bottom: 3.5rem; }
 <script src="/js/stats.js?v=15"></script>
 <script src="/js/tierlist.js?v=13"></script>
 <script src="/js/backup-history.js?v=2"></script>
+<!-- passports.js / import-formats.js / import.js — панели «Паспорта» и
+     «Импорт» маршрута #/settings-edit (js/routes/settings-edit.js).
+     Раньше их подключала только сама settings-edit.html; в общей
+     оболочке они нужны здесь. passports.js заодно приносит
+     openAddFromPassportModal()/closeAddFromPassportModal() — модалку с
+     iframe add.html?fromPassport=1, хост которой живёт в том же
+     маршруте (см. её же комментарий там). Версии те же, что и на
+     странице, — проверяет scripts/check-shared-head.js. -->
+<script src="/js/passports.js?v=14"></script>
+<script src="/js/import-formats.js?v=14"></script>
+<script src="/js/import.js?v=17"></script>
+<!-- touch-drag.js — перетаскивание пальцем. Браузер рождает события
+     drag только от мыши, и без этого моста порядок вкладок в
+     #/settings-edit (как и списки в #/reviews-order, #/chars-edit,
+     #/favorites-edit) на телефоне не двигался бы вовсе. Файл —
+     самозапускающийся IIFE, который на устройстве с мышью сразу
+     выходит, а на сенсорном слушает только [draggable="true"]; в самой
+     оболочке таких узлов нет. -->
+<script src="/js/touch-drag.js?v=1" defer></script>
 <script src="/js/router.js?v=1"></script>
 <script src="/js/routes/reviews-order.js?v=1"></script>
 <script src="/js/routes/chars-edit.js?v=1"></script>
 <script src="/js/routes/favorites-edit.js?v=1"></script>
 <script src="/js/routes/backup-history.js?v=1"></script>
 <script src="/js/routes/add.js?v=1"></script>
+<script src="/js/routes/settings-edit.js?v=1"></script>
 
 <script>
 let _navInit = true;

@@ -273,8 +273,15 @@ function promptDialog(message, defaultValue = "", okLabel = i18n("Готово")
 // следующем открытии остаётся та же. На телефоне полоски нет вовсе
 // (см. CSS, display:none в мобильном брейкпоинте) — там подгонять
 // нечего, ширина и так на весь экран.
+// Возвращает функцию «отписаться»: два слушателя ниже висят на
+// document, а не на самой панели, и переживают её. Для #rail на главной
+// это неважно — панель одна и живёт столько же, сколько документ, — но
+// маршрут #/settings-edit (js/routes/settings-edit.js) монтируется и
+// размонтируется сколько угодно раз за сессию, и без снятия слушателей
+// они копились бы на каждый заход в настройки. Возвращаемое значение
+// можно спокойно игнорировать, как это и делает index.html.
 function makeResizablePanel(panel, handle, storageKey, min, max) {
-  if (!panel || !handle) return;
+  if (!panel || !handle) return () => {};
   const saved = parseInt(localStorage.getItem(storageKey), 10);
   if (saved && saved >= min && saved <= max) panel.style.width = saved + "px";
 
@@ -290,18 +297,24 @@ function makeResizablePanel(panel, handle, storageKey, min, max) {
     document.body.style.cursor = "col-resize";
     e.preventDefault();
   });
-  document.addEventListener("mousemove", (e) => {
+  const onMove = (e) => {
     if (!dragging) return;
     const w = Math.max(min, Math.min(max, startWidth + (e.clientX - startX)));
     panel.style.width = w + "px";
-  });
-  document.addEventListener("mouseup", () => {
+  };
+  const onUp = () => {
     if (!dragging) return;
     dragging = false;
     document.body.style.userSelect = "";
     document.body.style.cursor = "";
     localStorage.setItem(storageKey, Math.round(panel.getBoundingClientRect().width));
-  });
+  };
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onUp);
+  return () => {
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+  };
 }
 
 // ── Глаз вместо галочки ─────────────────────────
