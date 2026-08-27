@@ -1530,6 +1530,84 @@ section.group { margin-bottom: 3.5rem; }
 
 @keyframes ceFadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 .editor-empty { text-align: center; padding: 4rem 2rem; color: var(--text-dim); font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-style: italic; border: 1px dashed var(--border); border-radius: 2px; }
+
+/* Маршрут #/favorites-edit (см. план перехода, фаза 3.2) — та же
+   вёрстка, что раньше жила в app/favorites-edit.html. .fe-view input,
+   .fe-view select, а не голые input/select — на исходной странице это
+   была вся страница целиком, а тут — общий документ, и без прицела
+   правило задело бы вообще все поля ввода приложения, вплоть до
+   поиска в «Отзывах». */
+.fe-view input, .fe-view select {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 2px; padding: .65rem .85rem; color: var(--text-hi);
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem; outline: none;
+  transition: border-color .2s, background .2s; appearance: none; -webkit-appearance: none;
+}
+.fe-view input:focus, .fe-view select:focus { border-color: var(--red); background: var(--bg2); }
+.fe-view input::placeholder { color: var(--text-dim); }
+
+.field-subtype { display: none; }
+.field-subtype.visible { display: block; }
+#field-from.hidden-field { display: none; }
+
+.avatar-preview {
+  width: 80px; height: 80px; object-fit: cover; border-radius: 50%;
+  border: 1px solid var(--border2); margin-top: .6rem; display: none;
+}
+
+.btn-save::before { content: ''; position: absolute; top: 0; left: 0; width: 10px; height: 10px; border-top: 1px solid var(--red-dim); border-left: 1px solid var(--red-dim); }
+.btn-save::after  { content: ''; position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-bottom: 1px solid var(--red-dim); border-right: 1px solid var(--red-dim); }
+
+.divider-title {
+  font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic; font-size: 1.15rem;
+  color: var(--text-hi); margin: 3rem 0 1.25rem; display: flex; align-items: center; gap: .8rem;
+}
+.divider-title::before { content: ''; display: inline-block; width: 16px; height: 1px; background: var(--red); }
+.divider-title::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
+
+.list-header { display: flex; align-items: center; justify-content: space-between; margin: 3rem 0 1.25rem; gap: 1rem; }
+.list-header .divider-title { margin: 0; flex: 1; }
+
+.btn-save-order {
+  font-family: 'DM Sans', sans-serif; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--green-hi); background: var(--ok-wash); border: 1px solid var(--ok-line); border-radius: 2px;
+  padding: .35rem .85rem; cursor: pointer; transition: all .15s; white-space: nowrap; display: none;
+}
+.btn-save-order:hover { background: var(--ok-fill); border-color: var(--green-hi); }
+.btn-save-order.visible { display: block; }
+.btn-save-order:disabled { opacity: .4; cursor: not-allowed; }
+
+.entries-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 2rem; }
+
+.entry-row {
+  display: flex; align-items: center; gap: .85rem; padding: .6rem .85rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
+  transition: border-color .15s, opacity .15s, box-shadow .15s;
+}
+.entry-row:hover { border-color: var(--border2); }
+.entry-row.dragging { opacity: .4; }
+.entry-row.drag-over { border-color: var(--red); box-shadow: 0 -1px 0 var(--red); }
+
+.entry-drag-handle { flex-shrink: 0; cursor: grab; color: var(--text-dim); font-size: 1rem; line-height: 1; padding: 0 2px; user-select: none; }
+.entry-drag-handle:active { cursor: grabbing; }
+
+.entry-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border2); flex-shrink: 0; background: var(--surface2); }
+.entry-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 600; color: var(--text-hi);
+  flex: 1; min-width: 0; overflow-wrap: anywhere;
+}
+.entry-type { font-family: 'DM Sans', sans-serif; font-size: .62rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .1em; }
+.entry-edit {
+  font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); background: none;
+  border: 1px solid var(--border2); border-radius: 2px; padding: .25rem .6rem; cursor: pointer;
+  transition: all .15s; white-space: nowrap;
+}
+.entry-edit:hover { border-color: var(--red-dim); color: var(--red-hi); }
+
+.order-hint { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim); text-align: center; margin-top: .75rem; display: none; }
+.order-hint.visible { display: block; }
+
+.entries-empty { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim); padding: 1rem .85rem; border: 1px dashed var(--border); border-radius: 2px; }
 </style>
 </head>
 <body>
@@ -1674,6 +1752,7 @@ section.group { margin-bottom: 3.5rem; }
 <script src="/js/router.js?v=1"></script>
 <script src="/js/routes/reviews-order.js?v=1"></script>
 <script src="/js/routes/chars-edit.js?v=1"></script>
+<script src="/js/routes/favorites-edit.js?v=1"></script>
 
 <script>
 let _navInit = true;
