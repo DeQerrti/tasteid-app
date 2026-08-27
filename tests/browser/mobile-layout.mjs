@@ -27,14 +27,21 @@ const { chromium } = (() => {
 const PHONE = { width: 390, height: 844 }; // примерно iPhone 14 / средний Android
 const TAP = 40; // ниже этого в кнопку трудно попасть пальцем
 
+// После перехода на SPA (фаза 4) отдельных файлов у редакторов нет:
+// это хэш-маршруты внутри index.html. Отдельным документом остался
+// только add.html — его открывает iframe модалки «Добавить из
+// паспорта», и вёрстку там надо проверять именно как отдельную
+// страницу. Смена одного лишь хэша перезагрузкой не считается —
+// оболочка остаётся та же, маршрут перерисовывается по hashchange,
+// поэтому ниже после перехода всё равно ждём (waitForTimeout).
 const PAGES = [
   ["/", "паспорт"],
   ["/add.html", "правка отзыва"],
-  ["/settings-edit.html", "настройки"],
-  ["/chars-edit.html", "персонажи"],
-  ["/favorites-edit.html", "избранное"],
-  ["/reviews-order.html", "порядок"],
-  ["/backup-history.html", "история версий"],
+  ["/#/settings-edit", "настройки"],
+  ["/#/chars-edit", "персонажи"],
+  ["/#/favorites-edit", "избранное"],
+  ["/#/reviews-order", "порядок"],
+  ["/#/backup-history", "история версий"],
 ];
 
 const vaultDir = process.argv[2] || mkdtempSync(join(tmpdir(), "tasteid-layout-"));

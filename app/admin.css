@@ -68,10 +68,12 @@
 }
 
 /* ══ ИСТОРИЯ ВЕРСИЙ ════════════════════════════
-   Общее между backup-history.html (отдельная страница — открывается,
-   например, с плавающей кнопки «История» на формах) и панелью
-   «История версий» в settings-edit.html — один и тот же JS
-   (js/backup-history.js) рисует один и тот же список в оба места. */
+   Общее между маршрутом #/backup-history (открывается, например, с
+   плавающей кнопки «История» на add.html) и панелью «История версий»
+   маршрута #/settings-edit — один и тот же JS (js/backup-history.js)
+   рисует один и тот же список в оба места. Раньше первым из двух мест
+   была отдельная страница backup-history.html; в фазе 4 она удалена,
+   но два места остались, поэтому общий CSS здесь и нужен. */
 .history-retention {
   display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
   margin-bottom: 1.6rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--border);

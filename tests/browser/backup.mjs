@@ -77,7 +77,10 @@ await page.route(`**/js/mobile.bundle.js**`, (route) =>
 );
 
 console.log("Скачивание (мобильный путь: fetch → «поделиться»)");
-await page.goto(`http://127.0.0.1:${port}/settings-edit.html`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://127.0.0.1:${port}/#/settings-edit`, { waitUntil: "domcontentloaded" });
+// Маршрут монтируется асинхронно (см. js/router.js), поэтому ждём не
+// загрузку документа, а появление самой вкладки настроек.
+await page.waitForSelector('.side-tab[data-panel="app"]');
 await page.waitForTimeout(600);
 const WEBP = "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==";
 await page.evaluate(async (webp) => {

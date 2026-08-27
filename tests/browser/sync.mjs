@@ -145,7 +145,9 @@ await page.route(`**/js/mobile.bundle.js**`, (route) =>
 );
 await page.route("https://api.github.com/**", handleGithub);
 
-await page.goto(`http://127.0.0.1:${port}/settings-edit.html`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://127.0.0.1:${port}/#/settings-edit`, { waitUntil: "domcontentloaded" });
+// Маршрут монтируется асинхронно (см. js/router.js).
+await page.waitForSelector(".side-tab");
 await page.waitForTimeout(600);
 ok(
   await page.evaluate(() => typeof window.__syncBeforeQuit === "function"),

@@ -381,8 +381,8 @@ select option { background: var(--bg2); }
    хоткея — кликнул вкладку мышью, потом нажал что угодно с клавиатуры,
    и вокруг неё расцветает рамка, хотя человек ничего не «нажимал» в
    смысле навигации. Список собран по всем местам с похожим
-   переключателем — index.html, settings-edit.html, backup-history.html,
-   chars-edit.html, add.html. */
+   переключателем — index.html (включая маршруты #/settings-edit,
+   #/backup-history, #/chars-edit) и add.html. */
 .tab-btn:focus-visible, .side-tab:focus-visible, .file-tab:focus-visible,
 .tl-filter:focus-visible, .rv-filter-btn:focus-visible, .tl-mode-btn:focus-visible,
 .tl-list-btn:focus-visible, .list-tab:focus-visible, .tag-toggle:focus-visible,

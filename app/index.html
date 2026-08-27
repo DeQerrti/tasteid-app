@@ -1295,8 +1295,9 @@ section.group { margin-bottom: 3.5rem; }
 #view-root { flex: 1; min-width: 0; }
 
 /* Маршрут #/reviews-order — та же вёрстка/CSS, что раньше жили в
-   app/reviews-order.html (файл пока не удалён, см. её же комментарий
-   в js/routes/reviews-order.js). .ro-view вместо голого main — иначе
+   app/reviews-order.html (файл удалён в фазе 4 — вся его вёрстка и
+   логика теперь здесь и в js/routes/reviews-order.js). .ro-view
+   вместо голого main — иначе
    правило ниже задело бы <main> самой рельсы тоже, он остаётся в DOM
    (просто скрыт через #shell-root.hidden), пока активен другой маршрут. */
 .ro-view { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem 6rem; }
@@ -1921,8 +1922,8 @@ section.group { margin-bottom: 3.5rem; }
 .add-view .btn-save:hover::before, .add-view .btn-save:hover::after { border-color: var(--red-hi); }
 
 /* Маршрут #/settings-edit (см. план перехода, фаза 3.4) — та же
-   вёрстка, что раньше жила в app/settings-edit.html (файл пока не
-   удалён, см. её же комментарий в js/routes/settings-edit.js).
+   вёрстка, что раньше жила в app/settings-edit.html (файл удалён в
+   фазе 4, см. js/routes/settings-edit.js).
    :where(.set-view) вместо голых селекторов — та же причина, что у .add-view
    выше: у настроек «label», «input, select», «h1» и «.row» были
    глобальными правилами отдельного документа и никого не задевали, а
@@ -2348,8 +2349,9 @@ section.group { margin-bottom: 3.5rem; }
 <script>
   // .hidden у ссылки настроек — обычный CSS-класс, а не HTML-атрибут
   // hidden, и на этой странице ни разу не был описан отдельным
-  // правилом (в отличие от backup-history.html и settings-edit.html,
-  // где .hidden{display:none} есть). Ссылка была видна всем, а не
+  // правилом (в отличие от удалённых теперь backup-history.html и
+  // settings-edit.html, где .hidden{display:none} был свой на
+  // страницу). Ссылка была видна всем, а не
   // только владельцу — простое дополнение, раз уж элемент и так
   // переносится в боковую панель.
   document.addEventListener("DOMContentLoaded", () => {
@@ -2471,8 +2473,10 @@ section.group { margin-bottom: 3.5rem; }
      оболочке они нужны здесь. passports.js заодно приносит
      openAddFromPassportModal()/closeAddFromPassportModal() — модалку с
      iframe add.html?fromPassport=1, хост которой живёт в том же
-     маршруте (см. её же комментарий там). Версии те же, что и на
-     странице, — проверяет scripts/check-shared-head.js. -->
+     маршруте (см. её же комментарий там) — это единственное место,
+     где отдельный документ ещё нужен, поэтому add.html и пережил
+     фазу 4. Согласованность версий ?v=N проверяет
+     scripts/check-shared-head.js. -->
 <script src="/js/passports.js?v=14"></script>
 <script src="/js/import-formats.js?v=14"></script>
 <script src="/js/import.js?v=17"></script>
