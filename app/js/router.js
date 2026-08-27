@@ -11,22 +11,31 @@
 // pushState-адрес получил бы 404. Работает одинаково в Electron, на
 // телефоне и на сайте — без единой правки на стороне сервера.
 //
-// Каждый вид — объект { mount(container), unmount() }, подключаемый
-// через registerRoute(hash, view) из своего <script> (например,
-// js/routes/reviews-order.js). mount может быть async и получает DOM-
-// узел #view-root — весь дальнейший html вида уходит внутрь него.
-// unmount() зовётся ПЕРЕД уходом на другой маршрут или на пустой хэш
-// (то есть обратно к рельсе/вкладкам) — вид обязан снять там все свои
-// слушатели событий и таймеры, иначе они продолжат работать поверх
-// того, что откроется дальше (см. пример в js/routes/reviews-order.js —
-// там же общий приём для этого, on()/cleanup()).
+// Каждый вид — объект { mount(container, params), unmount() },
+// подключаемый через registerRoute(hash, view) из своего <script>
+// (например, js/routes/reviews-order.js). mount может быть async и
+// получает DOM-узел #view-root (весь дальнейший html вида уходит
+// внутрь него) и params — URLSearchParams с тем, что шло после «?» в
+// хэше (#/chars-edit?collection=X — сама страница раньше читала это
+// из location.search, но общий документ на всё приложение адрес не
+// меняет, только хэш; параметры пробрасывает роутер). unmount()
+// зовётся ПЕРЕД уходом на другой маршрут или на пустой хэш (то есть
+// обратно к рельсе/вкладкам) — вид обязан снять там все свои слушатели
+// событий и таймеры, иначе они продолжат работать поверх того, что
+// откроется дальше (см. пример в js/routes/reviews-order.js — там же
+// общий приём для этого, on()/cleanup()).
 //
-// Собственные top-level имена вида НЕ должны становиться глобальными
-// переменными страницы — вид должен быть замкнут в свою IIFE и
-// объявлять registerRoute() единственным, что видно снаружи. Так он
-// не может столкнуться с чем-то из общей области видимости index.html
-// (rail, вкладки, js/now.js и т.д.) просто по совпадению имени
-// (см. её же предупреждение в scripts/check-duplicate-functions.js).
+// По возможности верхнеуровневые имена вида не должны становиться
+// постоянными глобальными переменными страницы — вид лучше замыкать в
+// свою IIFE и объявлять registerRoute() единственным, что видно
+// снаружи (см. js/routes/reviews-order.js). Когда это неоправданно
+// дорого (десятки инлайновых onclick="..." в разметке, как у
+// js/routes/chars-edit.js — см. её же комментарий там, почему для неё
+// сделано исключение), верхнеуровневые объявления допустимы, но тогда
+// единственная страховка от совпадения имён с остальным index.html —
+// scripts/check-duplicate-functions.js (npm run check), и её нужно
+// реально гонять после любых таких правок, а не полагаться на «и так
+// сойдёт».
 
 const ROUTES = new Map();
 let activeCleanup = null;
@@ -36,7 +45,10 @@ function registerRoute(hash, view) {
 }
 
 async function renderRoute() {
-  const hash = location.hash || "";
+  const raw = location.hash || "";
+  const qIdx = raw.indexOf("?");
+  const hash = qIdx === -1 ? raw : raw.slice(0, qIdx);
+  const params = new URLSearchParams(qIdx === -1 ? "" : raw.slice(qIdx + 1));
   const view = ROUTES.get(hash);
 
   if (activeCleanup) {
@@ -63,7 +75,7 @@ async function renderRoute() {
   shell.classList.add("hidden");
   viewRoot.classList.remove("hidden");
   viewRoot.innerHTML = "";
-  const result = await view.mount(viewRoot);
+  const result = await view.mount(viewRoot, params);
   activeCleanup = typeof result === "function" ? result : view.unmount || null;
 }
 
