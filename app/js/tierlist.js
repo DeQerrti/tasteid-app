@@ -492,12 +492,37 @@ function tlBindTooltip() {
   const tip = document.getElementById("tl-tooltip");
   if (!tip) return;
 
+  // Тап отличаем от прокрутки не на старте, а на отпускании: если бы
+  // preventDefault звучал уже на touchstart, палец не смог бы листать
+  // список, начав движение с обложки, — браузер отменял прокрутку для
+  // всего касания сразу. Порог совпадает с touch-drag.js.
+  const TAP_SLIP = 12; // px: палец уехал — прокрутка, а не тап
+  const TAP_TIME = 260; // мс: дольше — долгое нажатие, не тап
+
   document.querySelectorAll(".tl-poster, .tl-char-poster").forEach(card => {
     card.addEventListener("mouseenter", e => { tlShowTip(card, tip); tlMoveTip(e, tip); });
     card.addEventListener("mousemove",  e => tlMoveTip(e, tip));
     card.addEventListener("mouseleave", () => tip.classList.remove("visible"));
 
+    let touchStart = null;
+
     card.addEventListener("touchstart", e => {
+      const p = e.touches[0];
+      touchStart = { x: p.clientX, y: p.clientY, time: Date.now() };
+    }, { passive: true });
+
+    card.addEventListener("touchmove", e => {
+      if (!touchStart) return;
+      const p = e.touches[0];
+      if (Math.hypot(p.clientX - touchStart.x, p.clientY - touchStart.y) > TAP_SLIP) {
+        touchStart = null; // палец уехал — не тап, дальше это уже прокрутка
+      }
+    }, { passive: true });
+
+    card.addEventListener("touchend", e => {
+      const wasTap = touchStart && Date.now() - touchStart.time <= TAP_TIME;
+      touchStart = null;
+      if (!wasTap) return;
       e.preventDefault();
       const already = tip.classList.contains("visible") && tip.dataset.activeCard === card.dataset.tlTitle;
       tip.classList.remove("visible");
@@ -514,13 +539,15 @@ function tlBindTooltip() {
         tip.style.position = "absolute";
       }
     }, { passive: false });
+
+    card.addEventListener("touchcancel", () => { touchStart = null; });
   });
 
   document.addEventListener("touchstart", e => {
     if (!e.target.closest(".tl-poster") && !e.target.closest(".tl-char-poster") && !e.target.closest(".tl-tooltip")) {
       tip.classList.remove("visible");
     }
-  });
+  }, { passive: true });
 }
 
 function tlShowTip(card, tip) {
