@@ -147,13 +147,6 @@
   margin: 0.5rem 0.15rem;
   padding: 0.55rem 1.25rem;
 }
-@media (max-width: 700px) {
-  [data-skin="soft"] .tab-btn {
-    font-size: 0.64rem;
-    margin: 0;
-    padding: 0.5rem 0.2rem;
-  }
-}
 [data-skin="soft"] .tab-btn.active {
   color: var(--text-hi);
   background: rgba(125, 143, 95, 0.24);
@@ -391,18 +384,6 @@
   border-bottom: none;
   margin: 0.5rem 0.15rem;
   padding: 0.55rem 1.25rem;
-}
-/* font-size/margin/padding выше рассчитаны на вертикальную рельсу
-   стола. В мобильной строке (index.html, .tab-btn на max-width: 700px)
-   это же — 1.05rem вместо .64rem и лишние 40+px на кнопку разом, из-за
-   которых вкладки не помещались и уезжали за край экрана: rail-tabs на
-   телефоне — flex-строка без прокрутки, а не копия десктопной колонки. */
-@media (max-width: 700px) {
-  [data-skin="soft-dark"] .tab-btn {
-    font-size: 0.64rem;
-    margin: 0;
-    padding: 0.5rem 0.2rem;
-  }
 }
 [data-skin="soft-dark"] .tab-btn.active {
   color: var(--text-hi);
@@ -674,15 +655,24 @@ html[data-skin="brutal"] h2 {
   padding: 0.5rem 1.1rem;
   background: var(--surface);
 }
-/* Настольные margin/padding/border задуманы для вертикальной рельсы —
-   в мобильной строке (index.html, .tab-btn на max-width: 700px) это
-   лишние 40+px на кнопку, из-за которых часть вкладок вылезала за
-   экран, а прокрутки для них не было (rail-tabs — flex, не scroll). */
 @media (max-width: 700px) {
+  /* На телефоне это уже не боковая рельса с кучей свободного места по
+     высоте, а тесная горизонтальная полоска на 5 вкладок сразу (см.
+     .tab-btn в index.html) — тот же приём, что уже применён чуть выше
+     к #rail/#sidebar (там же по border). Обычные для brutal толстая
+     рамка, отступы 0.5rem/1.1rem и заглавные буквы моноширинным
+     шрифтом (см. правило выше) в сумме не влезали в свою долю строки —
+     самое длинное слово («Статистика») обрезалось эллипсисом. Рамка,
+     поля и сам шрифт тут уже, а не просто мельче на тот же процент,
+     что и остальные темы (см. общий .tab-btn в index.html): заглавные
+     буквы в моноширинном шрифте шире строчных пропорциональных, так
+     что этой вкладке нужен запас, которого у остальных тем нет. */
   [data-skin="brutal"] .tab-btn {
+    margin: 0.2rem 0.05rem;
+    padding: 0.4rem 0.15rem;
     border-width: 2px;
-    margin: 0;
-    padding: 0.5rem 0.2rem;
+    font-size: clamp(0.46rem, 2.15vw, 0.58rem);
+    letter-spacing: -0.02em;
   }
 }
 [data-skin="brutal"] .tab-btn.active {
@@ -961,13 +951,6 @@ html[data-skin="brutal-dark"] h2 {
   margin: 0.5rem 0.2rem;
   padding: 0.5rem 1.1rem;
   background: var(--surface);
-}
-@media (max-width: 700px) {
-  [data-skin="brutal-dark"] .tab-btn {
-    border-width: 2px;
-    margin: 0;
-    padding: 0.5rem 0.2rem;
-  }
 }
 [data-skin="brutal-dark"] .tab-btn.active {
   background: #fff;
@@ -1263,12 +1246,6 @@ html[data-skin="brutal-dark"] h2 {
   border-radius: var(--radius-btn);
   margin: 0.5rem 0.2rem;
   padding: 0.55rem 1.2rem;
-}
-@media (max-width: 700px) {
-  [data-skin="neomorphism"] .tab-btn {
-    margin: 0;
-    padding: 0.5rem 0.2rem;
-  }
 }
 [data-skin="neomorphism"] .tab-btn.active {
   color: var(--text-hi);
@@ -1592,15 +1569,6 @@ html[data-skin="brutal-dark"] h2 {
   border-radius: var(--radius-btn);
   margin: 0.5rem 0.2rem;
   padding: 0.55rem 1.2rem;
-}
-/* Настольные margin/padding — для вертикальной рельсы; в мобильной
-   строке (index.html, .tab-btn на max-width: 700px) это лишние
-   40+px на кнопку, из-за которых часть вкладок вылезала за экран. */
-@media (max-width: 700px) {
-  [data-skin="neomorphism-dark"] .tab-btn {
-    margin: 0;
-    padding: 0.5rem 0.2rem;
-  }
 }
 [data-skin="neomorphism-dark"] .tab-btn.active {
   color: var(--text-hi);
@@ -1963,11 +1931,7 @@ html[data-skin="brutal-dark"] h2 {
    (index.html, .tab-btn на max-width: 700px) — тот же почерк там
    мельче, но не такой же мелкий, как у прямого начертания рядом. */
 @media (max-width: 700px) {
-  [data-skin="doodle"] .tab-btn {
-    font-size: 0.9rem;
-    margin: 0;
-    padding: 0.5rem 0.2rem;
-  }
+  [data-skin="doodle"] .tab-btn { font-size: 0.9rem; }
 }
 [data-skin="doodle"] .tab-btn.active {
   color: var(--text-hi);
@@ -2348,15 +2312,7 @@ html[data-skin="brutal-dark"] h2 {
   text-align: center;
 }
 @media (max-width: 700px) {
-  [data-skin="doodle-dark"] .tab-btn {
-    font-size: 0.9rem;
-    /* Настольные margin/padding задуманы для вертикальной колонки
-       рельсы — в мобильной строке (index.html, .tab-btn на
-       max-width: 700px) это же лишние 40+px на каждую вкладку,
-       которые в сумме и выталкивали часть кнопок за экран. */
-    margin: 0;
-    padding: 0.5rem 0.2rem;
-  }
+  [data-skin="doodle-dark"] .tab-btn { font-size: 0.9rem; }
 }
 [data-skin="doodle-dark"] .tab-btn.active {
   color: var(--text-hi);
