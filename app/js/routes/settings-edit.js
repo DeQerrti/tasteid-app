@@ -77,23 +77,101 @@ function settingsViewHtml() {
   <div id="app" class="hidden">
     <nav id="sidebar">
       <a href="#" class="back" id="se-back" data-i18n>На главную</a>
-      <button class="side-tab active" data-panel="appearance" data-i18n>Оформление</button>
-      <button class="side-tab" data-panel="tabs" data-i18n>Вкладки</button>
-      <button class="side-tab" data-panel="shortcuts" data-i18n>Горячие клавиши</button>
-      <button class="side-tab" data-panel="stats" data-i18n>Статистика</button>
-      <button class="side-tab" data-panel="grades" data-i18n>Оценки и статусы</button>
-      <button class="side-tab" data-panel="collections" data-i18n>Тир-листы</button>
-      <button class="side-tab" data-panel="labels" data-i18n>Подписи</button>
-      <button class="side-tab" data-panel="passports" data-i18n>Паспорта</button>
-      <button class="side-tab hidden" data-panel="sync" id="tab-sync" data-i18n>Синхронизация</button>
-      <button class="side-tab" data-panel="import" data-i18n>Импорт</button>
-      <button class="side-tab hidden" data-panel="vaults" id="tab-vaults" data-i18n>Хранилища</button>
-      <button class="side-tab hidden" data-panel="app" id="tab-app" data-i18n>Приложение</button>
-      <button class="side-tab side-tab-divider" data-panel="backup" data-i18n>История версий</button>
+      <button class="side-tab active" data-panel="appearance">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c4 4.3 6 7.5 6 9.8a6 6 0 1 1-12 0C6 10.5 8 7.3 12 3z"></path></svg>
+        <span class="side-tab-label" data-i18n>Оформление</span>
+        <span class="side-tab-value" id="side-tab-value-appearance"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="tabs">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16M15 4v16"></path></svg>
+        <span class="side-tab-label" data-i18n>Вкладки</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="shortcuts">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"></path></svg>
+        <span class="side-tab-label" data-i18n>Горячие клавиши</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="stats">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M12 20V4M20 20v-7"></path></svg>
+        <span class="side-tab-label" data-i18n>Статистика</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="grades">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 3.1 1-6.1-4.4-4.3 6.1-.9z"></path></svg>
+        <span class="side-tab-label" data-i18n>Оценки и статусы</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="collections">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h11"></path></svg>
+        <span class="side-tab-label" data-i18n>Тир-листы</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="labels">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9z"></path><circle cx="7.5" cy="7.5" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+        <span class="side-tab-label" data-i18n>Подписи</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="passports">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"></rect><circle cx="8" cy="12" r="2"></circle><path d="M13 10h6M13 14h4"></path></svg>
+        <span class="side-tab-label" data-i18n>Паспорта</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab hidden" data-panel="sync" id="tab-sync">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14.5-4.6M20 12a8 8 0 0 1-14.5 4.6"></path><path d="M18 4v4h-4M6 20v-4h4"></path></svg>
+        <span class="side-tab-label" data-i18n>Синхронизация</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab" data-panel="import">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4"></path><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
+        <span class="side-tab-label" data-i18n>Импорт</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab hidden" data-panel="vaults" id="tab-vaults">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1"></rect><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"></path><path d="M10 13h4"></path></svg>
+        <span class="side-tab-label" data-i18n>Хранилища</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab hidden" data-panel="app" id="tab-app">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1"></rect><path d="M8 20h8M12 16v4"></path></svg>
+        <span class="side-tab-label" data-i18n>Приложение</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="side-tab side-tab-divider" data-panel="backup">
+        <svg class="side-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.2 3.2"></path></svg>
+        <span class="side-tab-label" data-i18n>История версий</span>
+        <span class="side-tab-value"></span>
+        <svg class="side-tab-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
       <div class="sidebar-resize" id="sidebar-resize" aria-hidden="true"></div>
     </nav>
 
     <main id="main">
+      <!-- Бар «‹ Настройки» — виден только на телефоне, только в режиме
+           подэкрана (см. #app.detail-open в index.html, CSS маршрута
+           #/settings-edit). На столе #mobile-set-topbar скрыт правилом
+           там же, h1 ниже всегда на месте. Заголовок раздела
+           (#mobile-set-topbar-title) заполняется в mount() по клику на
+           .side-tab — тем же текстом, что в .side-tab-label. -->
+      <div class="mobile-set-topbar" id="mobile-set-topbar">
+        <button class="mobile-set-back" id="mobile-set-back" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+          <span data-i18n>Настройки</span>
+        </button>
+        <span class="mobile-set-topbar-title" id="mobile-set-topbar-title"></span>
+      </div>
       <h1 data-i18n>Настройки</h1>
 
       <div class="panel active" id="panel-appearance">
@@ -463,7 +541,21 @@ async function mount(container) {
       if (btn.dataset.panel === "vaults") renderVaultsPanel();
       if (btn.dataset.panel === "app") loadAppPanel();
       if (btn.dataset.panel === "backup") initBackupHistoryPanel();
+      // Провал в подэкран (вариант А) — актуально только на телефоне,
+      // но класс безобиден и на столе: там #sidebar и #main видны
+      // одновременно независимо от него (см. CSS в index.html). Текст
+      // заголовка подэкрана берём готовым из .side-tab-label — он уже
+      // прошёл applyI18n, второй раз переводить не нужно.
+      document.getElementById("app").classList.add("detail-open");
+      document.getElementById("mobile-set-topbar-title").textContent =
+        btn.querySelector(".side-tab-label")?.textContent || "";
+      document.getElementById("main").scrollTop = 0;
     });
+  });
+
+  const mobileBack = document.getElementById("mobile-set-back");
+  seOn(mobileBack, "click", () => {
+    document.getElementById("app").classList.remove("detail-open");
   });
 
   collapsibleizeSettingsSections();
@@ -1252,6 +1344,19 @@ function renderThemeGrid() {
       </div>`;
     })
     .join("");
+
+  // Подпись справа от «Оформление» в мобильном списке разделов
+  // (вариант А, см. index.html) — единственная из пунктов, где само
+  // «текущее значение» и однозначно, и коротко: у остальных панелей
+  // либо нет одного главного значения (Вкладки, Ярлыки), либо оно
+  // длинное (список тир-листов). ?. — на случай если этот блок
+  // сработает до первой вставки разметки маршрута в DOM.
+  const activeGroup = groups.find((g) => [g.light, g.dark].some((v) => v && v.id === selectedTheme));
+  const valueEl = document.getElementById("side-tab-value-appearance");
+  if (valueEl && activeGroup) {
+    const isDark = activeGroup.dark && activeGroup.dark.id === selectedTheme;
+    valueEl.textContent = activeGroup.label + (isDark ? i18n(" — тёмная") : i18n(" — светлая"));
+  }
 
   grid.querySelectorAll(".theme-option").forEach((el) => {
     el.onclick = (e) => {
