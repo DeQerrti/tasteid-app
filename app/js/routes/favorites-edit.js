@@ -22,6 +22,8 @@ let groupLists = { character: [], person: [] };
 let orderDirty = false;
 let favDragSrc = null;
 let subtypePickerOpen = false;
+let favTypePickerOpen = false;
+const FAV_TYPE_BUILTINS = ["character", "person"];
 let backupImageTimer = null;
 const SUBTYPE_BUILTINS = ["actor", "director", "author", "seiyuu", "artist", "composer"];
 
@@ -41,6 +43,7 @@ async function mount(container) {
   orderDirty = false;
   favDragSrc = null;
   subtypePickerOpen = false;
+  favTypePickerOpen = false;
 
   container.innerHTML = `
     <header class="app-topbar">
@@ -61,12 +64,13 @@ async function mount(container) {
         </div>
         <div class="field">
           <label>${i18n("Тип")}</label>
-          <div class="select-wrap">
-            <select id="f-type" onchange="onTypeChange()">
-              <option value="character">${i18n("Персонаж")}</option>
-              <option value="person">${i18n("Персона")}</option>
-            </select>
+          <div class="src-type-wrap" style="width:100%;">
+            <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleFavTypePickerDropdown()">
+              <span id="fav-type-picker-label">${i18n("Персонаж")}</span><span class="src-caret"></span>
+            </button>
+            <div class="src-type-dropdown hidden" id="fav-type-picker-dropdown"></div>
           </div>
+          <input type="hidden" id="f-type" value="character">
         </div>
         <div class="field full field-subtype" id="field-subtype">
           <label>${i18n("Роль персоны")}</label>
@@ -127,13 +131,18 @@ async function mount(container) {
   syncSubtypePickerLabel();
   feOn(document, "tags-map-updated", syncSubtypePickerLabel);
   feOn(document, "site-labels-ready", () => {
-    populateTypeOptions();
+    syncFavTypePickerLabel();
     loadList();
   });
   feOn(document, "click", (e) => {
     if (!subtypePickerOpen) return;
     const wrap = document.getElementById("subtype-picker-dropdown")?.closest(".src-type-wrap");
     if (wrap && !wrap.contains(e.target)) closeSubtypePickerDropdown();
+  });
+  feOn(document, "click", (e) => {
+    if (!favTypePickerOpen) return;
+    const wrap = document.getElementById("fav-type-picker-dropdown")?.closest(".src-type-wrap");
+    if (wrap && !wrap.contains(e.target)) closeFavTypePickerDropdown();
   });
   // Esc, открыт ли дропдаун роли — тогда ничего не делаем (тот же выбор,
   // что раньше был в enableEscapeToLeave(".src-type-dropdown:not(.hidden)")
@@ -155,7 +164,7 @@ async function mount(container) {
   // задолго до того, как этот маршрут вообще замонтировался, и одной
   // лишь подписки выше недостаточно. Вызываем явно; подписка остаётся
   // на случай, если настройки правда поменяются, пока маршрут открыт.
-  populateTypeOptions();
+  syncFavTypePickerLabel();
   await loadList();
 }
 
@@ -170,6 +179,7 @@ function unmount() {
   orderDirty = false;
   favDragSrc = null;
   subtypePickerOpen = false;
+  favTypePickerOpen = false;
 }
 
 function subtypeLabel(key) {
@@ -299,19 +309,153 @@ function favCustomCollections() {
   return window.SITE_FAV_COLLECTIONS || [];
 }
 
-function populateTypeOptions() {
-  const select = document.getElementById("f-type");
-  if (!select) return;
-  const current = select.value;
-  select.querySelectorAll("option[data-custom]").forEach((o) => o.remove());
-  favCustomCollections().forEach((c) => {
-    const opt = document.createElement("option");
-    opt.value = c.id;
-    opt.textContent = c.label;
-    opt.dataset.custom = "1";
-    select.appendChild(opt);
-  });
-  if ([...select.options].some((o) => o.value === current)) select.value = current;
+// ── Тип записи («Персонаж»/«Персона» + свои разделы) — тот же паттерн
+//    выпадающего списка с инлайн-добавлением, что у роли персоны
+//    (см. блок «Роль персоны» выше). Свои типы — это те же разделы
+//    «Любимого» (favCollections), что заводятся в /settings-edit;
+//    добавленный отсюда сразу появляется там и наоборот. Встроенные
+//    типы (character/person) не переименовываются и не удаляются
+//    отсюда — это сделано бы затронуло сами карточки «Персонажи»/
+//    «Персоны» на вкладке «Любимое», а не только запись в форме.
+function favTypePickerOptionLabel(id) {
+  if (id === "character") return i18n("Персонаж");
+  if (id === "person") return i18n("Персона");
+  return (favCustomCollections().find((c) => c.id === id) || {}).label || id;
+}
+
+function syncFavTypePickerLabel() {
+  const el = document.getElementById("f-type");
+  if (!el) return;
+  document.getElementById("fav-type-picker-label").textContent = favTypePickerOptionLabel(el.value || "character");
+}
+
+function renderFavTypePickerDropdown() {
+  const dd = document.getElementById("fav-type-picker-dropdown");
+  const current = document.getElementById("f-type").value || "character";
+  const items = [
+    { id: "character", label: i18n("Персонаж") },
+    { id: "person", label: i18n("Персона") },
+    ...favCustomCollections(),
+  ];
+  const options = items
+    .map(
+      ({ id, label }) => `
+    <div class="src-type-option${id === current ? " active" : ""}" onclick="selectFavTypePicker('${id}')">
+      <span>${esc(label)}</span>
+      ${!FAV_TYPE_BUILTINS.includes(id) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeFavTypePicker('${id}')">✕</span>` : ""}
+    </div>`
+    )
+    .join("");
+  dd.innerHTML = `
+    <div class="src-type-list">${options}</div>
+    <div class="src-type-add-row">
+      <button type="button" class="btn-new src-type-add-btn" onclick="showAddFavTypeForm()">${i18n("Добавить тип")}</button>
+    </div>
+    <div class="src-type-add-form hidden" id="fav-type-picker-add-form">
+      <input type="text" id="fav-type-picker-new-name" placeholder="${i18n("Например: Локации")}">
+      <button type="button" class="btn-new" onclick="confirmAddFavType()">${i18n("Ок")}</button>
+    </div>
+    <div class="status-msg src-type-status" id="fav-type-picker-status"></div>`;
+}
+
+function toggleFavTypePickerDropdown() {
+  const dd = document.getElementById("fav-type-picker-dropdown");
+  const isOpen = !dd.classList.contains("hidden");
+  closeFavTypePickerDropdown();
+  if (!isOpen) {
+    renderFavTypePickerDropdown();
+    dd.classList.remove("hidden");
+    favTypePickerOpen = true;
+  }
+}
+
+function closeFavTypePickerDropdown() {
+  if (!favTypePickerOpen) return;
+  document.getElementById("fav-type-picker-dropdown")?.classList.add("hidden");
+  favTypePickerOpen = false;
+}
+
+function selectFavTypePicker(id) {
+  document.getElementById("f-type").value = id;
+  syncFavTypePickerLabel();
+  closeFavTypePickerDropdown();
+  onTypeChange();
+}
+
+function showAddFavTypeForm() {
+  const dd = document.getElementById("fav-type-picker-dropdown");
+  dd.querySelector(".src-type-list").style.display = "none";
+  dd.querySelector(".src-type-add-row").style.display = "none";
+  document.getElementById("fav-type-picker-add-form").classList.remove("hidden");
+  document.getElementById("fav-type-picker-new-name").focus();
+}
+
+async function confirmAddFavType() {
+  const input = document.getElementById("fav-type-picker-new-name");
+  const statusEl = document.getElementById("fav-type-picker-status");
+  const name = input.value.trim();
+
+  if (!name) {
+    statusEl.textContent = i18n("Введи название типа");
+    statusEl.className = "status-msg src-type-status err";
+    return;
+  }
+  const existingLabels = [i18n("Персонаж"), i18n("Персона"), ...favCustomCollections().map((c) => c.label)];
+  const exists = existingLabels.some((l) => l.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    statusEl.textContent = i18n("Такой тип уже есть");
+    statusEl.className = "status-msg src-type-status err";
+    return;
+  }
+
+  // slugify() — из js/routes/settings-edit.js, тот же формат id, что
+  // и у раздела, заведённого через "+ Добавить раздел" в настройках
+  // (см. addFavCollection там же): нижний регистр + метка времени,
+  // чтобы совпадение с уже удалённым разделом было исключено.
+  const id = slugify(name);
+  statusEl.textContent = i18n("Сохраняем…");
+  statusEl.className = "status-msg src-type-status";
+  try {
+    await patchSiteSettings((settings) => {
+      settings.favCollections = settings.favCollections || [];
+      settings.favCollections.push({ id, label: name });
+    });
+    window.SITE_FAV_COLLECTIONS = [...favCustomCollections(), { id, label: name }];
+    groupLists[id] = [];
+    document.dispatchEvent(new CustomEvent("tags-map-updated"));
+    selectFavTypePicker(id);
+    renderList();
+  } catch (err) {
+    statusEl.textContent = err.message || i18n("Ошибка сохранения");
+    statusEl.className = "status-msg src-type-status err";
+  }
+}
+
+async function removeFavTypePicker(id) {
+  const label = favTypePickerOptionLabel(id);
+  if (
+    !(await confirmDialog(
+      i18n(
+        "Удалить раздел «{name}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.",
+        { name: label }
+      )
+    ))
+  ) {
+    return;
+  }
+  try {
+    await patchSiteSettings((settings) => {
+      settings.favCollections = (settings.favCollections || []).filter((c) => c.id !== id);
+    });
+    window.SITE_FAV_COLLECTIONS = favCustomCollections().filter((c) => c.id !== id);
+    delete groupLists[id];
+    document.dispatchEvent(new CustomEvent("tags-map-updated"));
+    if (favTypePickerOpen) renderFavTypePickerDropdown();
+    if (document.getElementById("f-type").value === id) selectFavTypePicker("character");
+    renderList();
+  } catch (err) {
+    alert(err.message || i18n("Ошибка удаления"));
+  }
 }
 
 function onTypeChange() {
@@ -458,6 +602,8 @@ function resetFavToNew() {
   ["f-name", "f-image", "f-from", "f-image-backup"].forEach((id) => (document.getElementById(id).value = ""));
   document.getElementById("f-type").value = "character";
   document.getElementById("f-subtype").value = "actor";
+  syncFavTypePickerLabel();
+  closeFavTypePickerDropdown();
   syncSubtypePickerLabel();
   closeSubtypePickerDropdown();
   document.getElementById("avatar-img").style.display = "none";
@@ -476,6 +622,8 @@ function fillFavForm(r) {
   document.getElementById("f-from").value = r.from || "";
   document.getElementById("f-type").value = r.type || "character";
   document.getElementById("f-subtype").value = r.subtype || "actor";
+  syncFavTypePickerLabel();
+  closeFavTypePickerDropdown();
   syncSubtypePickerLabel();
   closeSubtypePickerDropdown();
   document.getElementById("image-backup-status").textContent = "";
