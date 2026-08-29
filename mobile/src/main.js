@@ -463,59 +463,81 @@ function isNewerVersion(latest, current) {
   return false;
 }
 
+// Диалог обновления — та же коробка, что и everywhere ещё (см.
+// confirmDialog/promptDialog в js/utils.js): классы .modal-overlay/.modal
+// берут цвета из :root, который выставляет js/theme.js, поэтому тему
+// подхватывают сами, без своих цветов здесь. Раньше это была отдельная
+// строка внизу экрана с зашитыми hex-цветами (#2b2318 и т.д.) — она не
+// менялась вместе с темой сайта и, что важнее, висела в самом людном
+// месте экрана: над нижней панелью вкладок и рядом с плавающей кнопкой
+// «Добавить» (#mobile-fab-add, см. index.html). Обычным confirmDialog()
+// здесь не обойтись — тому после клика по кнопке нечем показать
+// «Загрузка…» на самой кнопке (диалог закрывается сразу же), поэтому
+// коробка собирается вручную, но теми же классами и той же вёрсткой
+// действий (.confirm-dialog-actions), что и у него.
+let updateDialogEl = null;
+
 function showUpdateBanner(version, url) {
   const ru = currentLang() !== "en";
-  const bar = document.createElement("div");
-  bar.style.cssText =
-    "position:fixed;left:0;right:0;bottom:0;z-index:99999;display:flex;align-items:center;" +
-    "justify-content:space-between;gap:.6rem;padding:.7rem 1rem;background:#2b2318;" +
-    "color:#f0e6d2;font:14px system-ui,sans-serif;box-shadow:0 -2px 10px rgba(0,0,0,.3);";
 
-  const text = document.createElement("span");
-  text.textContent = ru ? `Доступна версия ${version}` : `Version ${version} available`;
+  if (!updateDialogEl) {
+    updateDialogEl = document.createElement("div");
+    updateDialogEl.id = "update-dialog-overlay";
+    updateDialogEl.className = "modal-overlay hidden";
+    updateDialogEl.innerHTML =
+      '<div class="modal confirm-dialog">' +
+      '<div class="confirm-dialog-text" id="update-dialog-text"></div>' +
+      '<div class="confirm-dialog-actions">' +
+      '<button type="button" class="btn btn-ghost" id="update-dialog-later"></button>' +
+      '<button type="button" class="btn btn-primary" id="update-dialog-update"></button>' +
+      "</div></div>";
+    document.body.appendChild(updateDialogEl);
+    // Ни клика по подложке, ни Escape — тот же «strict», что у
+    // confirmDialog() для этого же случая (см. её же комментарий в
+    // utils.js): диалог о доступном обновлении может всплыть прямо
+    // посреди клика по чему-то другому на экране, и такой клик не
+    // должен молча посчитаться отказом от обновления.
+  }
 
-  const updateBtn = document.createElement("button");
+  const textEl = updateDialogEl.querySelector("#update-dialog-text");
+  const updateBtn = updateDialogEl.querySelector("#update-dialog-update");
+  const laterBtn = updateDialogEl.querySelector("#update-dialog-later");
+
+  textEl.textContent = ru ? `Доступна версия ${version}` : `Version ${version} available`;
+  updateBtn.disabled = false;
   updateBtn.textContent = ru ? "Обновить" : "Update";
-  updateBtn.style.cssText =
-    "padding:.4rem .8rem;border:none;border-radius:.4rem;background:#c8a24a;" +
-    "color:#241d12;font-weight:600;";
+  laterBtn.textContent = ru ? "Позже" : "Later";
+
+  const close = () => updateDialogEl.classList.add("hidden");
+
   updateBtn.onclick = async () => {
     // Ссылка на страницу релиза (а не сам apk) добавлением через
     // приложение не скачать осмысленно — сразу уходим в браузер,
     // как раньше.
     if (!/\.apk(\?|$)/i.test(url)) {
       Share.share({ title: "TasteID", url }).catch(() => {});
-      bar.remove();
+      close();
       return;
     }
     updateBtn.disabled = true;
     updateBtn.textContent = ru ? "Загрузка…" : "Downloading…";
     try {
       await downloadAndInstall(url);
-      bar.remove();
+      close();
     } catch {
       // Не вышло скачать или открыть в приложении (нет сети, отказал
       // плагин) — старый путь остаётся запасным.
       Share.share({ title: "TasteID", url }).catch(() => {});
-      bar.remove();
+      close();
     }
   };
 
-  const laterBtn = document.createElement("button");
-  laterBtn.textContent = ru ? "Позже" : "Later";
-  laterBtn.style.cssText =
-    "padding:.4rem .8rem;border:1px solid #6b5e4a;border-radius:.4rem;" +
-    "background:transparent;color:#f0e6d2;";
   laterBtn.onclick = () => {
     localStorage.setItem(UPDATE_DISMISSED_KEY, `v${version}`);
-    bar.remove();
+    close();
   };
 
-  const actions = document.createElement("div");
-  actions.style.cssText = "display:flex;gap:.5rem;flex-shrink:0;";
-  actions.append(updateBtn, laterBtn);
-  bar.append(text, actions);
-  document.body.appendChild(bar);
+  updateDialogEl.classList.remove("hidden");
 }
 
 // force — кнопка «Проверить обновления» в настройках: снимает прошлый
