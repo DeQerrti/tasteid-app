@@ -222,6 +222,7 @@ const sharedBrowserGlobals = [
   "saveCollapsed",
   "saveTmdbKey",
   "scoresInFile",
+  "setLeaveGuard",
   "siteLabel",
   "slugify",
   "sortByOrder",
