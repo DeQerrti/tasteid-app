@@ -565,6 +565,7 @@ i18nRegister({
   "Например: Артбук": "For example: Artbook",
   "Например: Дзен": "For example: Zen",
   "Например: Крутой саундтрек": "For example: Great soundtrack",
+  "Например: Локации": "For example: Locations",
   "Например: Опенинги": "For example: Openings",
   "Например: Пейринги": "For example: Pairings",
   "Например: Перечитываю": "For example: Rereading",
