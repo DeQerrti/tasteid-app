@@ -199,9 +199,10 @@ function renderSubtypePickerDropdown() {
   const options = Object.entries(SUBTYPE_LABELS)
     .map(
       ([key, label]) => `
-    <div class="src-type-option${key === current ? " active" : ""}" onclick="selectSubtypePicker('${key}')">
-      <span>${esc(label)}</span>
-      ${!SUBTYPE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSubtypePicker('${key}')">✕</span>` : ""}
+    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSubtypePicker('${key}')">
+      <span class="src-type-option-label">${esc(label)}</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSubtypePicker('${key}')">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSubtypePicker('${key}')">✕</span>
     </div>`
     )
     .join("");
@@ -290,18 +291,98 @@ async function confirmAddSubtype() {
 }
 
 async function removeSubtypePicker(key) {
+  if (Object.keys(SUBTYPE_LABELS).length <= 1) {
+    alert(i18n("Должна остаться хотя бы одна роль"));
+    return;
+  }
   if (!(await confirmDialog(i18n("Удалить роль «{name}»?", { name: SUBTYPE_LABELS[key] })))) return;
+  const isBuiltin = SUBTYPE_BUILTINS.includes(key);
   try {
     await patchSiteSettings((settings) => {
-      settings.customSubtypes = settings.customSubtypes || {};
-      delete settings.customSubtypes[key];
+      if (isBuiltin) {
+        settings.hiddenSubtypes = settings.hiddenSubtypes || [];
+        if (!settings.hiddenSubtypes.includes(key)) settings.hiddenSubtypes.push(key);
+      } else {
+        settings.customSubtypes = settings.customSubtypes || {};
+        delete settings.customSubtypes[key];
+      }
     });
     delete SUBTYPE_LABELS[key];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     if (subtypePickerOpen) renderSubtypePickerDropdown();
-    if (document.getElementById("f-subtype").value === key) selectSubtypePicker("actor");
+    if (document.getElementById("f-subtype").value === key) selectSubtypePicker(Object.keys(SUBTYPE_LABELS)[0]);
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
+  }
+}
+
+// Переименование роли — тот же приём, что у типа тайтла в add.html
+// (startRenameTypePicker): клик по ✎ подменяет подпись на текстовое
+// поле прямо в строке списка, Enter/уход фокуса сохраняют, Esc
+// отменяет. Встроенная роль переименовывается через labels.subtypes
+// (оверрайд подписи, ключ в SUBTYPE_BUILTINS не меняется), своя —
+// через сам customSubtypes[key].
+let subtypeRenamePending = null;
+
+function startRenameSubtypePicker(key) {
+  const dd = document.getElementById("subtype-picker-dropdown");
+  const row = dd?.querySelector(`.src-type-option[data-type-key="${CSS.escape(key)}"]`);
+  const labelEl = row?.querySelector(".src-type-option-label");
+  if (!labelEl) return;
+
+  subtypeRenamePending = key;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "src-type-rename-input";
+  input.value = SUBTYPE_LABELS[key];
+  input.onclick = (e) => e.stopPropagation();
+  input.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+    else if (e.key === "Escape") { e.preventDefault(); subtypeRenamePending = null; renderSubtypePickerDropdown(); }
+  };
+  input.onblur = () => {
+    if (subtypeRenamePending !== key) return;
+    subtypeRenamePending = null;
+    confirmRenameSubtypePicker(key, input.value);
+  };
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function confirmRenameSubtypePicker(key, rawName) {
+  const name = rawName.trim();
+  const oldName = SUBTYPE_LABELS[key];
+  if (!name || name === oldName) {
+    if (subtypePickerOpen) renderSubtypePickerDropdown();
+    return;
+  }
+  const exists = Object.entries(SUBTYPE_LABELS).some(([k, l]) => k !== key && l.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    alert(i18n("Такая роль уже есть"));
+    if (subtypePickerOpen) renderSubtypePickerDropdown();
+    return;
+  }
+
+  const isBuiltin = SUBTYPE_BUILTINS.includes(key);
+  try {
+    await patchSiteSettings((settings) => {
+      if (isBuiltin) {
+        settings.labels = settings.labels || {};
+        settings.labels.subtypes = settings.labels.subtypes || {};
+        settings.labels.subtypes[key] = name;
+      } else {
+        settings.customSubtypes = settings.customSubtypes || {};
+        settings.customSubtypes[key] = name;
+      }
+    });
+    SUBTYPE_LABELS[key] = name;
+    document.dispatchEvent(new CustomEvent("tags-map-updated"));
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  } finally {
+    if (subtypePickerOpen) { syncSubtypePickerLabel(); renderSubtypePickerDropdown(); }
   }
 }
 
@@ -314,12 +395,23 @@ function favCustomCollections() {
 //    (см. блок «Роль персоны» выше). Свои типы — это те же разделы
 //    «Любимого» (favCollections), что заводятся в /settings-edit;
 //    добавленный отсюда сразу появляется там и наоборот. Встроенные
-//    типы (character/person) не переименовываются и не удаляются
-//    отсюда — это сделано бы затронуло сами карточки «Персонажи»/
-//    «Персоны» на вкладке «Любимое», а не только запись в форме.
+//    типы (character/person) теперь тоже переименовываются и
+//    скрываются — тем же приёмом, что источники в add.html и роли
+//    выше: подпись живёт в labels.favTypes, скрытие — в
+//    hiddenFavTypes. Скрытие built-in типа — НЕ то же самое, что
+//    удаление своего раздела: раздел «Персонажи»/«Персоны» на вкладке
+//    «Любимое» устроен отдельным, всегда существующим блоком
+//    разметки (js/favorites.js), а не циклом по favCollections, и
+//    прячется своим отдельным тумблером (hiddenFavSections, тот же
+//    глазок, что и у остальных секций, в /settings-edit). Скрытие
+//    типа здесь означает только «нельзя выбрать/создать новую запись
+//    этого типа» — уже существующие персонажи/персоны никуда не
+//    денутся с вкладки. Формулировка диалога подтверждения ниже это
+//    и объясняет, чтобы не пугать несуществующей потерей данных.
 function favTypePickerOptionLabel(id) {
-  if (id === "character") return i18n("Персонаж");
-  if (id === "person") return i18n("Персона");
+  const overrides = window.SITE_LABEL_OVERRIDES?.favTypes || {};
+  if (id === "character") return overrides.character || i18n("Персонаж");
+  if (id === "person") return overrides.person || i18n("Персона");
   return (favCustomCollections().find((c) => c.id === id) || {}).label || id;
 }
 
@@ -332,17 +424,19 @@ function syncFavTypePickerLabel() {
 function renderFavTypePickerDropdown() {
   const dd = document.getElementById("fav-type-picker-dropdown");
   const current = document.getElementById("f-type").value || "character";
+  const hidden = window.SITE_HIDDEN_FAV_TYPES || [];
   const items = [
-    { id: "character", label: i18n("Персонаж") },
-    { id: "person", label: i18n("Персона") },
+    { id: "character", label: favTypePickerOptionLabel("character") },
+    { id: "person", label: favTypePickerOptionLabel("person") },
     ...favCustomCollections(),
-  ];
+  ].filter((it) => !hidden.includes(it.id) || it.id === current);
   const options = items
     .map(
       ({ id, label }) => `
-    <div class="src-type-option${id === current ? " active" : ""}" onclick="selectFavTypePicker('${id}')">
-      <span>${esc(label)}</span>
-      ${!FAV_TYPE_BUILTINS.includes(id) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeFavTypePicker('${id}')">✕</span>` : ""}
+    <div class="src-type-option${id === current ? " active" : ""}" data-type-key="${esc(id)}" onclick="selectFavTypePicker('${id}')">
+      <span class="src-type-option-label">${esc(label)}</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameFavTypePicker('${id}')">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeFavTypePicker('${id}')">✕</span>
     </div>`
     )
     .join("");
@@ -400,7 +494,7 @@ async function confirmAddFavType() {
     statusEl.className = "status-msg src-type-status err";
     return;
   }
-  const existingLabels = [i18n("Персонаж"), i18n("Персона"), ...favCustomCollections().map((c) => c.label)];
+  const existingLabels = [favTypePickerOptionLabel("character"), favTypePickerOptionLabel("person"), ...favCustomCollections().map((c) => c.label)];
   const exists = existingLabels.some((l) => l.toLowerCase() === name.toLowerCase());
   if (exists) {
     statusEl.textContent = i18n("Такой тип уже есть");
@@ -433,6 +527,40 @@ async function confirmAddFavType() {
 
 async function removeFavTypePicker(id) {
   const label = favTypePickerOptionLabel(id);
+  const hidden = window.SITE_HIDDEN_FAV_TYPES || [];
+  const visibleCount = 2 + favCustomCollections().length - hidden.length;
+  if (visibleCount <= 1) {
+    alert(i18n("Должен остаться хотя бы один тип"));
+    return;
+  }
+
+  if (FAV_TYPE_BUILTINS.includes(id)) {
+    if (
+      !(await confirmDialog(
+        i18n(
+          "Скрыть тип «{name}» из списка?\n\nУже добавленные персонажи и персоны останутся на вкладке «Любимое» как есть — пропадёт только возможность выбрать этот тип для новой или редактируемой записи. Вернуть можно здесь же.",
+          { name: label }
+        )
+      ))
+    ) {
+      return;
+    }
+    try {
+      await patchSiteSettings((settings) => {
+        settings.hiddenFavTypes = settings.hiddenFavTypes || [];
+        if (!settings.hiddenFavTypes.includes(id)) settings.hiddenFavTypes.push(id);
+      });
+      window.SITE_HIDDEN_FAV_TYPES = [...hidden, id];
+      if (favTypePickerOpen) renderFavTypePickerDropdown();
+      if (document.getElementById("f-type").value === id) {
+        selectFavTypePicker(FAV_TYPE_BUILTINS.find((t) => t !== id) || "character");
+      }
+    } catch (err) {
+      alert(err.message || i18n("Ошибка удаления"));
+    }
+    return;
+  }
+
   if (
     !(await confirmDialog(
       i18n(
@@ -455,6 +583,85 @@ async function removeFavTypePicker(id) {
     renderList();
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
+  }
+}
+
+// Переименование — тот же инлайн-приём, что у роли персоны
+// (startRenameSubtypePicker). Встроенный тип пишет подпись в
+// labels.favTypes (ключ character/person не меняется), свой раздел
+// правит label прямо в объекте внутри favCollections — та же запись,
+// что редактируется и в /settings-edit (toggleFavCollectionEdit),
+// только сохраняется сразу, а не по общей кнопке «Сохранить».
+let favTypeRenamePending = null;
+
+function startRenameFavTypePicker(id) {
+  const dd = document.getElementById("fav-type-picker-dropdown");
+  const row = dd?.querySelector(`.src-type-option[data-type-key="${CSS.escape(id)}"]`);
+  const labelEl = row?.querySelector(".src-type-option-label");
+  if (!labelEl) return;
+
+  favTypeRenamePending = id;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "src-type-rename-input";
+  input.value = favTypePickerOptionLabel(id);
+  input.onclick = (e) => e.stopPropagation();
+  input.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+    else if (e.key === "Escape") { e.preventDefault(); favTypeRenamePending = null; renderFavTypePickerDropdown(); }
+  };
+  input.onblur = () => {
+    if (favTypeRenamePending !== id) return;
+    favTypeRenamePending = null;
+    confirmRenameFavTypePicker(id, input.value);
+  };
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function confirmRenameFavTypePicker(id, rawName) {
+  const name = rawName.trim();
+  const oldName = favTypePickerOptionLabel(id);
+  if (!name || name === oldName) {
+    if (favTypePickerOpen) renderFavTypePickerDropdown();
+    return;
+  }
+  const existingItems = [
+    { id: "character", label: favTypePickerOptionLabel("character") },
+    { id: "person", label: favTypePickerOptionLabel("person") },
+    ...favCustomCollections(),
+  ];
+  const exists = existingItems.some((it) => it.id !== id && it.label.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    alert(i18n("Такой тип уже есть"));
+    if (favTypePickerOpen) renderFavTypePickerDropdown();
+    return;
+  }
+
+  try {
+    if (FAV_TYPE_BUILTINS.includes(id)) {
+      await patchSiteSettings((settings) => {
+        settings.labels = settings.labels || {};
+        settings.labels.favTypes = settings.labels.favTypes || {};
+        settings.labels.favTypes[id] = name;
+      });
+      window.SITE_LABEL_OVERRIDES = window.SITE_LABEL_OVERRIDES || {};
+      window.SITE_LABEL_OVERRIDES.favTypes = { ...(window.SITE_LABEL_OVERRIDES.favTypes || {}), [id]: name };
+    } else {
+      await patchSiteSettings((settings) => {
+        settings.favCollections = settings.favCollections || [];
+        const c = settings.favCollections.find((x) => x.id === id);
+        if (c) c.label = name;
+      });
+      window.SITE_FAV_COLLECTIONS = favCustomCollections().map((c) => (c.id === id ? { ...c, label: name } : c));
+    }
+    document.dispatchEvent(new CustomEvent("tags-map-updated"));
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  } finally {
+    if (favTypePickerOpen) { syncFavTypePickerLabel(); renderFavTypePickerDropdown(); }
   }
 }
 
@@ -634,8 +841,9 @@ function fillFavForm(r) {
 }
 
 function favTypeLabel(type, subtype) {
-  if (type === "person") return SUBTYPE_LABELS[subtype] || i18n("Персона");
-  if (type === "character") return i18n("Персонаж");
+  const overrides = window.SITE_LABEL_OVERRIDES?.favTypes || {};
+  if (type === "person") return SUBTYPE_LABELS[subtype] || overrides.person || i18n("Персона");
+  if (type === "character") return overrides.character || i18n("Персонаж");
   return (favCustomCollections().find((c) => c.id === type) || {}).label || type;
 }
 
@@ -657,6 +865,7 @@ function renderGroup(type, list) {
       ${r.from ? `<div class="entry-type">${esc(r.from)}</div>` : ""}
       <div class="entry-type">${esc(typeLabel)}</div>
       <button class="entry-edit" onclick="startEdit(${r.id})">${i18n("✎ Изменить")}</button>
+      <button class="entry-del" title="${i18n("Удалить")}" onclick="event.stopPropagation(); deleteFavEntry(${r.id})">✕</button>
     </div>`;
     })
     .join("");
@@ -766,6 +975,34 @@ async function startEdit(id) {
   document.getElementById("page-subtitle").textContent = i18n("Редактировать запись");
   document.getElementById("btn-save").textContent = i18n("Сохранить изменения");
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// Удаление самой записи (персонажа/персоны) — прямо из строки списка,
+// тем же приёмом, что у ✕ на карточках чар-листа (char-card-del) и
+// у тайтлов (title-item-del) в /chars-edit: без похода в форму
+// редактирования. Бэкенд уже это умел (saveFavorite → body._delete в
+// core/api.js) — не хватало только кнопки и обработчика здесь.
+async function deleteFavEntry(id) {
+  const entry = allEntries.find((r) => r.id === id);
+  const name = entry?.name || i18n("эту запись");
+  if (!(await confirmDialog(i18n("Удалить «{name}»?", { name })))) return;
+  try {
+    const res = await fetch("/api/save-favorite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ _delete: id }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || i18n("неизвестная"));
+    // Если удалили ту самую запись, что сейчас открыта в форме —
+    // форма показывала бы то, чего уже нет.
+    if (favEditingId === id) resetFavToNew();
+    await loadList();
+    setFavStatus("ok", i18n("«{name}» удалена.", { name }));
+  } catch (err) {
+    setFavStatus("err", i18n("Не удалось удалить: ") + err.message);
+  }
 }
 
 async function saveFavOrder() {
