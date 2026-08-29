@@ -223,6 +223,7 @@ const sharedBrowserGlobals = [
   "saveTmdbKey",
   "scoresInFile",
   "siteLabel",
+  "slugify",
   "sortByOrder",
   "SOURCE_FILTER_ORDER",
   "SOURCE_LABELS",
