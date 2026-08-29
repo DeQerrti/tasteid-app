@@ -38,4 +38,10 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Без этого Android не даст напрямую открыть скачанный apk через
+         системный установщик — придётся уходить в настройки вручную
+         каждый раз. С разрешением тот же вопрос «разрешить установку
+         из этого источника» система задаёт прямо внутри самого
+         диалога установки. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>
