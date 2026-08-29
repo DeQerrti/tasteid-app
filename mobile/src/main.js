@@ -412,6 +412,19 @@ function closeVisibleModal() {
 function installBackButton() {
   App.addListener("backButton", ({ canGoBack }) => {
     if (closeVisibleModal()) return;
+    // Если открыт маршрут с несохранёнными правками (см. setLeaveGuard()
+    // в js/router.js — регистрируют js/routes/add.js и
+    // js/routes/settings-edit.js), спрашиваем как и кнопка "назад" внутри
+    // самого маршрута на ПК, вместо того чтобы сразу дёргать историю в
+    // обход этой проверки — иначе жест "назад" на телефоне терял правки
+    // молча там, где клик по той же кнопке на ПК их сохраняет.
+    if (typeof window.getActiveLeaveGuard === "function") {
+      const guard = window.getActiveLeaveGuard();
+      if (typeof guard === "function") {
+        guard();
+        return;
+      }
+    }
     if (canGoBack) window.history.back();
     else App.exitApp();
   });
