@@ -237,6 +237,24 @@ async function applyTheme() {
   window.SITE_HIDDEN_TYPES = settings.hiddenTypes || [];
   window.SITE_CUSTOM_TYPE_PLURAL = settings.customTypePlural || {};
   window.SITE_CUSTOM_SOURCES = settings.customSources || {};
+  // Скрытые встроенные источники (Teletype/Другое) — тот же приём, что
+  // и у типов/ролей ниже: вырезать встроенный ключ из SOURCE_LABELS в
+  // коде нельзя, поэтому «удаление» складывается сюда (config.js).
+  window.SITE_HIDDEN_SOURCES = settings.hiddenSources || [];
+  // customSubtypes/hiddenSubtypes уже год как пишутся из /settings-edit
+  // (панель «Типы» → роли персон) и из инлайн-редактора в
+  // favorites-edit.js, но нигде не читались обратно — правки роли
+  // молча оседали в site-settings.json и нигде не применялись, кроме
+  // самой панели настроек. Без этих двух строк SUBTYPE_LABELS в
+  // config.js всегда видел пустые customSubtypes/hiddenSubtypes.
+  window.SITE_CUSTOM_SUBTYPES = settings.customSubtypes || {};
+  window.SITE_HIDDEN_SUBTYPES = settings.hiddenSubtypes || [];
+  // Тип записи в «Любимом» (Персонаж/Персона) — та же история: два
+  // встроенных ключа, вырезать их из кода нельзя (на них завязана
+  // логика полей формы в favorites-edit.js), поэтому скрытие — сюда,
+  // а переименование идёт через общий settings.labels (уже читается
+  // выше в SITE_LABEL_OVERRIDES, отдельная глобальная не нужна).
+  window.SITE_HIDDEN_FAV_TYPES = settings.hiddenFavTypes || [];
   window.SITE_CUSTOM_CATEGORIES = settings.customCategories || {};
   window.SITE_HIDDEN_CATEGORIES = settings.hiddenCategories || [];
   window.SITE_CATEGORY_COLORS = settings.categoryColors || {};
