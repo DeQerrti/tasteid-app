@@ -389,6 +389,11 @@ async function mount(container) {
   // let'ы живут столько же, сколько документ, а не столько, сколько
   // открыт маршрут (см. шапку файла).
   settingsDirty = false;
+  // Та же leaveSettingsRoute(), что ниже висит на клике по кнопке
+  // "назад" — но теперь ещё и на аппаратной/жестовой кнопке "назад" на
+  // телефоне (см. installBackButton() в mobile/src/main.js): раньше она
+  // обходила эту проверку, дёргая историю напрямую.
+  setLeaveGuard(leaveSettingsRoute);
   appInfo = null;
   reviewsForCount = null;
   rawSettings = {};
@@ -553,6 +558,7 @@ async function mount(container) {
 }
 
 function unmount() {
+  setLeaveGuard(null);
   seCleanupFns.forEach((fn) => fn());
   seCleanupFns = [];
   if (seSidebarObserver) {
