@@ -252,8 +252,7 @@ async function mount(container, params) {
           </div>
           <div class="field">
             <label>${i18n("Превью — показывается на карточке")}</label>
-            <textarea id="f-preview" placeholder="${i18n("Пара предложений — что это и о чём…")}" oninput="updatePreview()"></textarea>
-            <div class="preview-box" id="preview-out">${i18n("Здесь появится превью…")}</div>
+            <textarea id="f-preview" placeholder="${i18n("Пара предложений — что это и о чём…")}"></textarea>
           </div>
           <div class="field" style="margin-bottom:0;">
             <label>${i18n("Полный текст — необязательно")}</label>
@@ -1448,6 +1447,11 @@ async function tmCatDeleteCommit(key) {
 //    в settings.customSources (SOURCE_LABELS приходит из config.js) ──
 const SOURCE_BUILTINS = ["teletype", "other"];
 let openSourceDropdown = null; // 1 | 2 | null — какое меню типа сейчас открыто
+// Ключ источника, у которого сейчас открыто инлайн-переименование
+// (см. startRenameSourceType) — тот же приём, что у typeRenamePending
+// в пикере типа тайтла: не даёт Enter (сам вызывает blur) и
+// естественному blur сработать дважды подряд.
+let sourceRenamePending = null;
 
 function sourceLabel(key) {
   return SOURCE_LABELS[key] || SOURCE_LABELS.teletype;
@@ -1506,13 +1510,15 @@ function renderTypeDropdown(n) {
   const dd = document.getElementById(`src-type-dropdown-${n}`);
   const current = document.getElementById(ids.source).value || "teletype";
   const options = Object.entries(SOURCE_LABELS)
-    .map(
-      ([key, label]) => `
-    <div class="src-type-option${key === current ? " active" : ""}" onclick="selectSourceType(${n}, '${key}')">
-      <span>${esc(label)}</span>
-      ${!SOURCE_BUILTINS.includes(key) ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>` : ""}
-    </div>`
-    )
+    .map(([key, label]) => {
+      const custom = !SOURCE_BUILTINS.includes(key);
+      return `
+    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSourceType(${n}, '${key}')">
+      <span class="src-type-option-label">${esc(label)}</span>
+      ${custom ? `<span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSourceType(${n}, '${key}')">✎</span>` : ""}
+      ${custom ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>` : ""}
+    </div>`;
+    })
     .join("");
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
@@ -1618,6 +1624,77 @@ async function removeSourceType(key) {
     });
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
+  }
+}
+
+// Переименование своего источника — тот же приём, что у типа тайтла
+// (startRenameTypePicker ниже): клик по ✎ подменяет подпись на
+// текстовое поле прямо в строке списка, Enter/уход фокуса сохраняют,
+// Esc отменяет. Встроенные источники (Teletype/Другое) не
+// переименовываются — как и не удаляются (SOURCE_BUILTINS).
+function startRenameSourceType(n, key) {
+  const dd = document.getElementById(`src-type-dropdown-${n}`);
+  const row = dd?.querySelector(`.src-type-option[data-type-key="${CSS.escape(key)}"]`);
+  const labelEl = row?.querySelector(".src-type-option-label");
+  if (!labelEl) return;
+
+  sourceRenamePending = key;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "src-type-rename-input";
+  input.value = SOURCE_LABELS[key];
+  input.onclick = (e) => e.stopPropagation();
+  input.onkeydown = (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      sourceRenamePending = null;
+      renderTypeDropdown(n);
+    }
+  };
+  input.onblur = () => {
+    if (sourceRenamePending !== key) return;
+    sourceRenamePending = null;
+    confirmRenameSourceType(n, key, input.value);
+  };
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+async function confirmRenameSourceType(n, key, rawName) {
+  const name = rawName.trim();
+  const oldName = SOURCE_LABELS[key];
+  if (!name || name === oldName) {
+    if (openSourceDropdown !== null) renderTypeDropdown(openSourceDropdown);
+    return;
+  }
+  const exists = Object.entries(SOURCE_LABELS).some(([k, l]) => k !== key && l.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    alert(i18n("Такой источник уже есть"));
+    if (openSourceDropdown !== null) renderTypeDropdown(openSourceDropdown);
+    return;
+  }
+
+  try {
+    await patchSiteSettings((settings) => {
+      settings.customSources = settings.customSources || {};
+      settings.customSources[key] = name;
+    });
+    SOURCE_LABELS[key] = name;
+    document.dispatchEvent(new CustomEvent("tags-map-updated"));
+    [1, 2].forEach((m) => {
+      if (document.getElementById(srcIds(m).source).value === key) {
+        document.getElementById(`src-type-label-${m}`).textContent = name;
+      }
+    });
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  } finally {
+    if (openSourceDropdown !== null) renderTypeDropdown(openSourceDropdown);
   }
 }
 
@@ -2190,7 +2267,6 @@ function fillForm(r) {
   if (rewatchEl) rewatchEl.value = r.rewatch_count || 0;
   if (endEl) endEl.value = r.date_end || today;
 
-  updatePreview();
   previewCover(r.cover || "");
 
   selectedGrade = r.grade !== undefined && r.grade !== null ? r.grade : null;
@@ -2243,7 +2319,6 @@ function resetToNew() {
   // Новый отзыв начинается с компактной формы
   collapseAllSections();
 
-  document.getElementById("preview-out").textContent = i18n("Здесь появится превью…");
   document.getElementById("cover-img").style.display = "none";
   selectedGrade = null;
   selectedTags.clear();
@@ -2342,11 +2417,6 @@ async function deleteReview() {
   } catch (e) {
     setStatus("err", i18n("Не удалось удалить: ") + e.message);
   }
-}
-
-function updatePreview() {
-  const val = document.getElementById("f-preview").value;
-  document.getElementById("preview-out").textContent = val || i18n("Здесь появится превью…");
 }
 
 function previewCover(url) {
@@ -2520,8 +2590,12 @@ async function saveReview() {
 
   const title = document.getElementById("f-title").value.trim();
   const url = document.getElementById("f-url").value.trim();
-  const preview = document.getElementById("f-preview").value.trim();
   const reviewFull = document.getElementById("f-review-full").value.trim();
+  // Превью необязательно: если заполнили только полный текст, само
+  // превью (короткий текст-заглушка для карточек/списков и признак
+  // «отзыв не пустой» в фильтрах — js/reviews.js, js/now.js, js/stats.js)
+  // подтягивается из полного текста, а не остаётся пустым.
+  const preview = document.getElementById("f-preview").value.trim() || reviewFull;
   const status = document.getElementById("f-status").value;
 
   if (!title) {
