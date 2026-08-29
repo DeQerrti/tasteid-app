@@ -621,9 +621,11 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
   </div>
 
   <!-- Сохранить -->
-  <div class="divider"></div>
-  <button class="btn-save" id="btn-save" onclick="saveReview()" data-i18n>Сохранить отзыв</button>
-  <div class="status-msg" id="status"></div>
+  <div class="save-dock" id="save-dock">
+    <div class="divider"></div>
+    <button class="btn-save" id="btn-save" onclick="saveReview()" data-i18n>Сохранить отзыв</button>
+    <div class="status-msg" id="status"></div>
+  </div>
 
   <!-- Удаление: только в режиме правки. Ссылкой, а не кнопкой, и внизу —
        чтобы не оказаться под пальцем рядом с «Сохранить». -->
