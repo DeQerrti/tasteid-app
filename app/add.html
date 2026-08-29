@@ -1548,7 +1548,19 @@ let openSourceDropdown = null; // 1 | 2 | null — какое меню типа 
 let sourceRenamePending = null;
 
 function sourceLabel(key) {
-  return SOURCE_LABELS[key] || SOURCE_LABELS.teletype;
+  // .teletype жёстко зашитым фолбэком больше не годится: этот самый
+  // ключ теперь можно скрыть через removeSourceType. Если это
+  // случилось, а старая запись всё ещё ссылается на него — берём
+  // первый оставшийся источник, лишь бы не показать label = undefined.
+  return SOURCE_LABELS[key] || SOURCE_LABELS[defaultSourceKey()];
+}
+
+// Ключ источника по умолчанию для новых/сброшенных полей — раньше был
+// жёстко "teletype"; если его скрыли (см. removeSourceType), берём
+// первый ещё существующий встроенный, а если скрыли оба — вообще
+// первый ключ из SOURCE_LABELS, какой найдётся.
+function defaultSourceKey() {
+  return SOURCE_BUILTINS.find(k => SOURCE_LABELS[k]) || Object.keys(SOURCE_LABELS)[0];
 }
 
 function srcIds(n) {
@@ -1564,7 +1576,7 @@ function srcIds(n) {
 function syncSourcePanel(n) {
   const ids = srcIds(n);
   const hasUrl = document.getElementById(ids.url).value.trim().length > 0;
-  const srcKey = document.getElementById(ids.source).value || "teletype";
+  const srcKey = document.getElementById(ids.source).value || defaultSourceKey();
   document.getElementById(`src-type-label-${n}`).textContent = sourceLabel(srcKey);
 
   if (n === 2) {
@@ -1581,7 +1593,7 @@ function syncSourcePanel(n) {
 function openSourcePanel(n) {
   const ids = srcIds(n);
   const srcInput = document.getElementById(ids.source);
-  if (!srcInput.value) srcInput.value = "teletype";
+  if (!srcInput.value) srcInput.value = defaultSourceKey();
   document.getElementById(`src-type-label-${n}`).textContent = sourceLabel(srcInput.value);
   document.getElementById(`src-add-btn-${n}`).classList.add("hidden");
   document.getElementById(`src-panel-${n}`).classList.remove("hidden");
@@ -1604,14 +1616,13 @@ function onSourceUrlChange(n) {
 function renderTypeDropdown(n) {
   const ids = srcIds(n);
   const dd = document.getElementById(`src-type-dropdown-${n}`);
-  const current = document.getElementById(ids.source).value || "teletype";
+  const current = document.getElementById(ids.source).value || defaultSourceKey();
   const options = Object.entries(SOURCE_LABELS).map(([key, label]) => {
-    const custom = !SOURCE_BUILTINS.includes(key);
     return `
     <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSourceType(${n}, '${key}')">
       <span class="src-type-option-label">${esc(label)}</span>
-      ${custom ? `<span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSourceType(${n}, '${key}')">✎</span>` : ""}
-      ${custom ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>` : ""}
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSourceType(${n}, '${key}')">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>
     </div>`;
   }).join("");
   dd.innerHTML = `
@@ -1690,30 +1701,42 @@ async function confirmAddSourceType(n) {
 }
 
 async function removeSourceType(key) {
+  if (Object.keys(SOURCE_LABELS).length <= 1) {
+    alert(i18n("Должен остаться хотя бы один источник"));
+    return;
+  }
   if (!(await confirmDialog(i18n("Удалить источник «{name}»?", { name: SOURCE_LABELS[key] })))) return;
+  const isBuiltin = SOURCE_BUILTINS.includes(key);
   try {
     await patchSiteSettings((settings) => {
-      settings.customSources = settings.customSources || {};
-      delete settings.customSources[key];
+      if (isBuiltin) {
+        settings.hiddenSources = settings.hiddenSources || [];
+        if (!settings.hiddenSources.includes(key)) settings.hiddenSources.push(key);
+      } else {
+        settings.customSources = settings.customSources || {};
+        delete settings.customSources[key];
+      }
     });
     delete SOURCE_LABELS[key];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     if (openSourceDropdown !== null) renderTypeDropdown(openSourceDropdown);
-    // если удалённый тип был выбран в одном из полей — сбрасываем на Teletype
+    // если удалённый тип был выбран в одном из полей — сбрасываем на первый оставшийся
+    const fallback = Object.keys(SOURCE_LABELS)[0];
     [1, 2].forEach(n => {
       const el = document.getElementById(srcIds(n).source);
-      if (el.value === key) { el.value = "teletype"; syncSourcePanel(n); }
+      if (el.value === key) { el.value = fallback; syncSourcePanel(n); }
     });
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
   }
 }
 
-// Переименование своего источника — тот же приём, что у типа тайтла
-// (startRenameTypePicker ниже): клик по ✎ подменяет подпись на
-// текстовое поле прямо в строке списка, Enter/уход фокуса сохраняют,
-// Esc отменяет. Встроенные источники (Teletype/Другое) не
-// переименовываются — как и не удаляются (SOURCE_BUILTINS).
+// Переименование источника — тот же приём, что у типа тайтла
+// (startRenameTypePicker): клик по ✎ подменяет подпись на текстовое
+// поле прямо в строке списка, Enter/уход фокуса сохраняют, Esc
+// отменяет. Встроенный источник (Teletype/Другое) переименовывается
+// через labels.sources (оверрайд подписи, ключ в SOURCE_BUILTINS не
+// меняется), свой — через сам customSources[key].
 function startRenameSourceType(n, key) {
   const dd = document.getElementById(`src-type-dropdown-${n}`);
   const row = dd?.querySelector(`.src-type-option[data-type-key="${CSS.escape(key)}"]`);
@@ -1763,8 +1786,14 @@ async function confirmRenameSourceType(n, key, rawName) {
 
   try {
     await patchSiteSettings((settings) => {
-      settings.customSources = settings.customSources || {};
-      settings.customSources[key] = name;
+      if (SOURCE_BUILTINS.includes(key)) {
+        settings.labels = settings.labels || {};
+        settings.labels.sources = settings.labels.sources || {};
+        settings.labels.sources[key] = name;
+      } else {
+        settings.customSources = settings.customSources || {};
+        settings.customSources[key] = name;
+      }
     });
     SOURCE_LABELS[key] = name;
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
@@ -1783,7 +1812,7 @@ async function confirmRenameSourceType(n, key, rawName) {
 document.addEventListener("tags-map-updated", () => {
   [1, 2].forEach(n => {
     const label = document.getElementById(`src-type-label-${n}`);
-    if (label) label.textContent = sourceLabel(document.getElementById(srcIds(n).source).value || "teletype");
+    if (label) label.textContent = sourceLabel(document.getElementById(srcIds(n).source).value || defaultSourceKey());
   });
 });
 
@@ -2290,7 +2319,7 @@ function fillForm(r) {
   document.getElementById("f-url").value       = r.url       || "";
   document.getElementById("f-preview").value   = r.preview   || "";
   document.getElementById("f-review-full").value = r.review_full || "";
-  document.getElementById("f-source").value    = r.source    || "teletype";
+  document.getElementById("f-source").value    = r.source    || defaultSourceKey();
   document.getElementById("f-type").value      = r.type      || "anime";
   document.getElementById("f-status").value    = r.status    || "completed";
   document.getElementById("f-url2").value      = r.url2      || "";
@@ -2344,7 +2373,7 @@ function resetToNew() {
 
   ["f-title","f-year","f-format","f-cover","f-url","f-preview","f-url2","f-review-full","f-cover-backup"]
     .forEach(id => document.getElementById(id).value = "");
-  document.getElementById("f-source").value  = "teletype";
+  document.getElementById("f-source").value  = defaultSourceKey();
   document.getElementById("f-source2").value = "";
   document.getElementById("f-type").value    = "anime";
   document.getElementById("f-status").value  = "planning";
