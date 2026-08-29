@@ -537,8 +537,19 @@ document.addEventListener("site-labels-ready", () => {
 
   // Свои источники ссылок (добавляются прямо из редактора отзыва, add.html) —
   // подмешиваются в SOURCE_LABELS, как только настройки подгрузятся.
+  // Порядок — как у типов выше: сперва добавляем свои, потом вырезаем
+  // скрытые встроенные, потом накатываем переименования (для скрытого
+  // ключа override уже не найдёт его в SOURCE_LABELS и просто ничего
+  // не сделает — проверка `!== undefined` ниже).
+  const sourceOverrides = overrides.sources || {};
   const customSources = window.SITE_CUSTOM_SOURCES || {};
+  const hiddenSources = window.SITE_HIDDEN_SOURCES || [];
+
   Object.assign(SOURCE_LABELS, customSources);
+  for (const key of hiddenSources) delete SOURCE_LABELS[key];
+  for (const [key, label] of Object.entries(sourceOverrides)) {
+    if (SOURCE_LABELS[key] !== undefined && label) SOURCE_LABELS[key] = label;
+  }
 
   // Роли персон (в «Любимом») — тот же паттерн, что и у типов: свои
   // роли подмешиваются, скрытые убираются, переименования встроенных
