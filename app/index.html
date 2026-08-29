@@ -258,9 +258,26 @@ body.rail-collapsed #rail-edge-trigger {
   body.rail-collapsed nav#rail { position: fixed; transform: none; }
   #rail-edge-trigger { display: none !important; }
 
-  .rail-tabs { flex-direction: row; flex: 1; gap: 0; }
+  .rail-tabs {
+    flex-direction: row; flex: 1; gap: 0;
+    /* Раньше вкладки только ужимались (flex:1 + min-width:0) и никогда
+       не переполняли строку — но при длинной подписи (своя, из
+       /settings-edit) или на совсем узком экране им попросту некуда
+       сжиматься дальше нечитаемого, а прокрутки не было вовсе: палец
+       по полоске просто ничего не делал. Тот же приём, что у
+       .side-tab в settings-edit (см. #sidebar на телефоне) — своя
+       прокрутка, скрытая полоса прокрутки, минимальная ширина вкладки
+       ниже которой она не ужимается, а строка начинает скроллиться.
+       Когда всё и так помещается (обычный случай — 5 коротких
+       подписей), поведение не меняется: flex-grow растягивает вкладки
+       на всю ширину ровно как раньше. .rail-foot (иконка настроек)
+       в эту прокрутку не входит — он вне .rail-tabs, свой flex-элемент
+       ряда, и остаётся на месте. */
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .rail-tabs::-webkit-scrollbar { display: none; }
   .tab-btn {
-    flex: 1; min-width: 0;
+    flex: 1 0 64px; min-width: 64px;
     display: flex; flex-direction: column; align-items: center;
     gap: 2px;
     font-size: .64rem; letter-spacing: .01em;
@@ -1223,6 +1240,24 @@ section.group { margin-bottom: 3.5rem; }
   display: flex;
   gap: .5rem;
   margin-bottom: 1.8rem;
+}
+@media (max-width: 700px) {
+  /* На телефоне тут может оказаться несколько своих тир-листов
+     (см. tl-mode-add-btn) плюс "Тайтлы" — без переноса и без
+     прокрутки лишние кнопки просто уезжали бы за край экрана
+     (body { overflow-x: hidden } прячет уехавшее, а не показывает
+     по свайпу). Тот же приём, что у .rail-tabs на телефоне и у
+     .side-tab в settings-edit: своя прокрутка со скрытой полосой,
+     кнопки не сжимаются. */
+  .tl-mode-toggle {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .tl-mode-toggle::-webkit-scrollbar { display: none; }
+  .tl-mode-btn, .tl-mode-add-btn { flex-shrink: 0; }
 }
 .tl-mode-btn {
   font-family: 'Cormorant Garamond', serif;
