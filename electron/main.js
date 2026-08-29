@@ -573,6 +573,13 @@ function openWelcome() {
 // для обоих путей.
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = false;
+// Дельта-загрузка по .blockmap — самый частый источник зависаний
+// electron-updater на Windows: при скачке через несколько версий сразу
+// (или просто по случайному сбою совпадения блоков) откат на обычную
+// полную закачку у него сам иногда ломается, и всё виснет молча,
+// без единой ошибки. Полная закачка (~105 МБ) чуть медленнее, зато
+// не зависит от этого механизма вообще.
+if (process.platform === "win32") autoUpdater.disableDifferentialDownload = true;
 
 // Раньше здесь стоял dialog.showMessageBox — системная коробка Windows
 // поверх тёмной страницы приложения, безо всякой связи с выбранной
@@ -633,6 +640,14 @@ async function promptRestart(info) {
   if (restart) autoUpdater.quitAndInstall(false, true);
   else await saveConfig({ dismissedUpdate: info.version });
 }
+
+// Раньше ошибка закачки (упавший блокмап, оборванная сеть, что угодно)
+// не слушалась вообще: интерфейс так и оставался на «качаем, предложим
+// установить» навсегда, без единого признака, что что-то пошло не так.
+autoUpdater.on("error", (err) => {
+  pendingUpdateInfo = null;
+  console.error("[updater]", err);
+});
 
 autoUpdater.on("update-downloaded", async (info) => {
   pendingUpdateInfo = info;
