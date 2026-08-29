@@ -619,6 +619,8 @@ i18nRegister({
   "Развёрнутый отзыв — откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник.":
     "The full review — opens when the card is clicked. If left empty, the click shows the preview with a link to the source.",
   "Разделы вкладки «Любимое»": "Sections of the “Favorites” tab",
+  "Скрыть тип «{name}» из списка?\n\nУже добавленные персонажи и персоны останутся на вкладке «Любимое» как есть — пропадёт только возможность выбрать этот тип для новой или редактируемой записи. Вернуть можно здесь же.":
+    "Hide the “{name}” type from the list?\n\nCharacters and people already added stay on the “Favorites” tab as is — only the ability to pick this type for a new or edited entry disappears. You can bring it back the same way.",
   "Разделы вкладки «Статусы»": "Sections of the “Statuses” tab",
   "Редактор порядка": "Order editor",
   "Редактор тир-листов персонажей": "Character tier list editor",
@@ -1082,10 +1084,12 @@ i18nRegister({
   "Закрыть окно": "Close window",
 });
 
-// ── Переименование типа (add.html) ─────────────
+// ── Ограничения: должен остаться хотя бы один ──
 i18nRegister({
   "Переименовать": "Rename",
   "Должен остаться хотя бы один тип": "At least one type must remain",
+  "Должен остаться хотя бы один источник": "At least one source must remain",
+  "Должна остаться хотя бы одна роль": "At least one role must remain",
 });
 
 // ── Поддержать автора (App panel) ──────────────
