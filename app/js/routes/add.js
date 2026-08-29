@@ -97,6 +97,11 @@ async function mount(container, params) {
   statusPickerOpen = false;
   statusRenamePending = null;
   addRouteDirty = false;
+  // Та же leaveAddRoute(), что ниже висит на клике по кнопке "назад" —
+  // но теперь ещё и на аппаратной/жестовой кнопке "назад" на телефоне
+  // (см. installBackButton() в mobile/src/main.js): раньше она обходила
+  // эту проверку, дёргая историю напрямую.
+  setLeaveGuard(leaveAddRoute);
 
   container.innerHTML = `
     <header class="app-topbar">
@@ -528,6 +533,7 @@ async function mount(container, params) {
 }
 
 function unmount() {
+  setLeaveGuard(null);
   addCleanupFns.forEach((fn) => fn());
   addCleanupFns = [];
   clearTimeout(backupCoverTimer);
@@ -1511,11 +1517,12 @@ function renderTypeDropdown(n) {
   const current = document.getElementById(ids.source).value || "teletype";
   const options = Object.entries(SOURCE_LABELS)
     .map(([key, label]) => {
+      const custom = !SOURCE_BUILTINS.includes(key);
       return `
     <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSourceType(${n}, '${key}')">
       <span class="src-type-option-label">${esc(label)}</span>
-      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSourceType(${n}, '${key}')">✎</span>
-      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>
+      ${custom ? `<span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSourceType(${n}, '${key}')">✎</span>` : ""}
+      ${custom ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>` : ""}
     </div>`;
     })
     .join("");
@@ -1604,34 +1611,20 @@ async function confirmAddSourceType(n) {
 }
 
 async function removeSourceType(key) {
-  // Встроенный источник (Teletype/Другое) нельзя стереть из кода —
-  // «удаление» для него значит «спрятать» (settings.hiddenSources,
-  // тот же приём, что у removeTypePicker с TYPE_BUILTINS). Свой источник
-  // удаляется по-настоящему, из customSources.
-  const isBuiltin = SOURCE_BUILTINS.includes(key);
-  if (Object.keys(SOURCE_LABELS).length <= 1) {
-    alert(i18n("Должен остаться хотя бы один источник"));
-    return;
-  }
   if (!(await confirmDialog(i18n("Удалить источник «{name}»?", { name: SOURCE_LABELS[key] })))) return;
   try {
     await patchSiteSettings((settings) => {
-      if (isBuiltin) {
-        settings.hiddenSources = settings.hiddenSources || [];
-        if (!settings.hiddenSources.includes(key)) settings.hiddenSources.push(key);
-      } else {
-        settings.customSources = settings.customSources || {};
-        delete settings.customSources[key];
-      }
+      settings.customSources = settings.customSources || {};
+      delete settings.customSources[key];
     });
     delete SOURCE_LABELS[key];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     if (openSourceDropdown !== null) renderTypeDropdown(openSourceDropdown);
-    // если удалённый тип был выбран в одном из полей — сбрасываем на первый оставшийся
+    // если удалённый тип был выбран в одном из полей — сбрасываем на Teletype
     [1, 2].forEach((n) => {
       const el = document.getElementById(srcIds(n).source);
       if (el.value === key) {
-        el.value = Object.keys(SOURCE_LABELS)[0] || "teletype";
+        el.value = "teletype";
         syncSourcePanel(n);
       }
     });
@@ -1640,13 +1633,11 @@ async function removeSourceType(key) {
   }
 }
 
-// Переименование источника — тот же приём, что у типа тайтла
-// (startRenameTypePicker выше): клик по ✎ подменяет подпись на
+// Переименование своего источника — тот же приём, что у типа тайтла
+// (startRenameTypePicker ниже): клик по ✎ подменяет подпись на
 // текстовое поле прямо в строке списка, Enter/уход фокуса сохраняют,
-// Esc отменяет. Встроенный источник (Teletype/Другое) переименовывается
-// через оверрайд подписи (settings.labels.sources — ключ SOURCE_BUILTINS
-// не меняется, его нельзя вырезать из кода), свой — через сам
-// customSources[key], как и раньше.
+// Esc отменяет. Встроенные источники (Teletype/Другое) не
+// переименовываются — как и не удаляются (SOURCE_BUILTINS).
 function startRenameSourceType(n, key) {
   const dd = document.getElementById(`src-type-dropdown-${n}`);
   const row = dd?.querySelector(`.src-type-option[data-type-key="${CSS.escape(key)}"]`);
@@ -1694,17 +1685,10 @@ async function confirmRenameSourceType(n, key, rawName) {
     return;
   }
 
-  const isBuiltin = SOURCE_BUILTINS.includes(key);
   try {
     await patchSiteSettings((settings) => {
-      if (isBuiltin) {
-        settings.labels = settings.labels || {};
-        settings.labels.sources = settings.labels.sources || {};
-        settings.labels.sources[key] = name;
-      } else {
-        settings.customSources = settings.customSources || {};
-        settings.customSources[key] = name;
-      }
+      settings.customSources = settings.customSources || {};
+      settings.customSources[key] = name;
     });
     SOURCE_LABELS[key] = name;
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
