@@ -431,7 +431,15 @@ function applyNavLabels() {
     const path = el.getAttribute("data-label").split(".");
     let value = window.SITE_LABELS;
     for (const key of path) value = value && value[key];
-    if (value) el.textContent = value;
+    if (!value) return;
+    // Раньше el.textContent = value стирал ВСЕХ детей элемента — для
+    // .rail-sub (голый текст) это безобидно, но у вкладок .tab-btn
+    // внутри теперь лежит иконка (svg.tab-icon) и подпись
+    // (span.tab-label): textContent на самой кнопке стирал их разом,
+    // иконка пропадала быстрее, чем успевала отрисоваться. Пишем в
+    // .tab-label, если он есть, иначе — как раньше, в сам элемент.
+    const target = el.querySelector(".tab-label") || el;
+    target.textContent = value;
   });
 }
 
