@@ -207,6 +207,14 @@ body.rail-collapsed #rail-edge-trigger {
   border-radius: 7px;
 }
 #admin-settings-link:hover { color: var(--text); background: var(--tint-hi); }
+/* #admin-settings-link задаёт свой display (нужен для паддингов —
+   голая <a> строчная, паддинг сверху/снизу на ней визуально не
+   работает), а это ID-селектор — специфичнее класса .hidden выше.
+   Без явного переопределения тут .hidden ничего не скрывал бы на
+   этой конкретной ссылке, специфичность есть специфичность: тот же
+   приём, что уже применён к #mobile-fab-add.hidden ниже. */
+#admin-settings-link.hidden { display: none; }
+.admin-link-icon { display: none; }
 
 /* Иконки вкладок и сама FAB скрыты на столе намеренно: в рельсе и так
    достаточно места под подпись целиком, а рисованный значок рядом с
@@ -234,7 +242,13 @@ body.rail-collapsed #rail-edge-trigger {
     backdrop-filter: blur(20px);
     z-index: 50;
   }
-  nav#rail .logo, .rail-sub, .rail-foot { display: none; }
+  /* .rail-foot больше не в этом списке: раньше вся нижняя часть
+     рельсы (а с ней и единственная ссылка на /settings-edit) на
+     телефоне пряталась целиком, и владелец сайта не мог попасть в
+     настройки со своего телефона вообще никаким путём — CSS ниже
+     превращает её в компактную иконку-кнопку с краю нижней панели,
+     рядом с обычными вкладками, вместо того чтобы прятать. */
+  nav#rail .logo, .rail-sub { display: none; }
   .rail-resize { display: none; }
   /* Сворачивание рельсы — история про широкий экран (много вертикали,
      мало горизонтали её жалко). На телефоне рельса и так превращается
@@ -271,6 +285,31 @@ body.rail-collapsed #rail-edge-trigger {
     top: 1px; left: 50%;
     transform: translateX(-50%) rotate(45deg);
   }
+
+  /* ── Настройки в нижней панели ──────────────────
+     .rail-foot больше не растягивается на всю высоту рельсы и не
+     прижимается к низу через margin-top: auto (это было нужно только
+     в вертикальной раскладке стола) — здесь это просто ещё один
+     flex-элемент в общем ряду с вкладками, той же высоты, что и они,
+     но flex: 0 0 auto — под одну иконку, не делит пространство
+     поровну с пятью содержательными вкладками. */
+  .rail-foot {
+    margin-top: 0; padding-top: 0; border-top: none;
+    flex: 0 0 auto;
+    display: flex; align-items: stretch;
+  }
+  #admin-settings-link {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px;
+    padding: .5rem .2rem;
+    border-radius: 8px;
+  }
+  #admin-settings-link.hidden { display: none; }
+  /* Подпись прячем — по одной иконке в вытянутый квадрат текст уже
+     не вписать так, чтобы он не наезжал на соседнюю вкладку. aria-label
+     на самой ссылке (см. разметку) остаётся для скринридера. */
+  .admin-link-label { display: none; }
+  .admin-link-icon { display: block; width: 20px; height: 20px; }
 
   /* ── Плавающая кнопка «Добавить» ──────────────────
      Висит над нижней панелью, а не внутри неё — шестой вкладкой она
@@ -2394,7 +2433,7 @@ section.group { margin-bottom: 3.5rem; }
     <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-tierlist" data-label="nav.tierlist" onclick="switchTab('tab-tierlist', this)"><svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h11"></path></svg><span class="tab-label">Тир-лист</span></button>
   </div>
   <div class="rail-foot">
-    <a href="#/settings-edit" id="admin-settings-link" class="hidden admin-link" data-i18n>Настройки</a>
+    <a href="#/settings-edit" id="admin-settings-link" class="hidden admin-link" aria-label="Настройки"><svg class="admin-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82A1.65 1.65 0 003 13.09H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg><span class="admin-link-label" data-i18n>Настройки</span></a>
   </div>
   <div class="rail-resize" id="rail-resize" aria-hidden="true"></div>
 </nav>
