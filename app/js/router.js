@@ -39,9 +39,31 @@
 
 const ROUTES = new Map();
 let activeCleanup = null;
+// Проверка «можно ли уйти» для маршрута с несохранёнными правками —
+// сам маршрут кладёт сюда свою leaveXRoute() (см. её же в js/routes/add.js
+// и js/routes/settings-edit.js: спрашивает confirmDialog, если правки
+// есть, и сама вызывает leaveRoute() при согласии) и убирает за собой в
+// unmount(). Нужна не самому роутеру, а аппаратной кнопке/жесту «назад»
+// на телефоне (см. installBackButton() в mobile/src/main.js) — она правит
+// историю напрямую (window.history.back()), в обход того «назад»/лого
+// внутри самого маршрута, которым единственно и проверялось на ПК.
+let activeLeaveGuard = null;
 
 function registerRoute(hash, view) {
   ROUTES.set(hash, view);
+}
+
+function setLeaveGuard(fn) {
+  activeLeaveGuard = fn;
+}
+
+// Геттер, а не сам activeLeaveGuard — mobile/src/main.js собран
+// esbuild'ом отдельным IIFE (см. build:mobile) и не видит чужой
+// верхнеуровневый let по имени, только то, что реально висит на
+// window; function-объявления вроде этого туда попадают сами, let —
+// нет.
+function getActiveLeaveGuard() {
+  return activeLeaveGuard;
 }
 
 async function renderRoute() {
@@ -50,6 +72,11 @@ async function renderRoute() {
   const hash = qIdx === -1 ? raw : raw.slice(0, qIdx);
   const params = new URLSearchParams(qIdx === -1 ? "" : raw.slice(qIdx + 1));
   const view = ROUTES.get(hash);
+
+  // Сброс на каждый переход — своя защита живёт ровно между mount() и
+  // unmount() одного и того же маршрута; если следующий вид её не
+  // выставит явно, здесь не должно остаться устаревшей чужой.
+  activeLeaveGuard = null;
 
   if (activeCleanup) {
     try {
