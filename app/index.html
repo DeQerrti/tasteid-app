@@ -2132,9 +2132,11 @@ section.group { margin-bottom: 3.5rem; }
    визуально отделена от них: это не часть настроек одной темы, а
    отдельная функция сбоку. */
 :where(.set-view) .side-tab.side-tab-divider { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 18px; }
-@media (max-width: 720px) {
-  :where(.set-view) .side-tab.side-tab-divider { margin-top: 0; padding-top: 8px; border-top: none; border-left: 1px solid var(--border); }
-}
+/* Правило для телефона (граница-слева вместо сверху) теперь живёт в
+   основном мобильном блоке ниже (@media max-width:720px, рядом с
+   остальной вёрсткой списка разделов), вместе со всем остальным
+   переездом на вариант «список → подэкран» — здесь отдельно уже не
+   нужно. */
 
 /* min-width: 0 — иначе колонка не даёт себе стать уже содержимого,
    и на узком экране за край уезжает вся страница, а не отдельный
@@ -2153,24 +2155,74 @@ section.group { margin-bottom: 3.5rem; }
   #sidebar {
     width: auto; height: auto; position: static;
     border-right: none; border-bottom: 1px solid var(--border);
-    padding: 8px 0;
-    display: flex; align-items: center;
-    overflow-x: auto; scrollbar-width: none;
+    padding: 0;
+    display: flex; align-items: stretch; flex-direction: column;
+    overflow: hidden;
   }
-  #sidebar::-webkit-scrollbar { display: none; }
   :where(.set-view) .sidebar-resize { display: none; }
   #sidebar a.back {
-    margin: 0 8px 0 12px; white-space: nowrap; flex-shrink: 0;
-    position: sticky; left: 0; z-index: 1; background: var(--bg);
+    margin: 0; white-space: normal; flex-shrink: 0;
+    position: static; background: none;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    font-size: .95rem;
   }
+  /* Вариант А — список с провалом в подэкран (как в Настройках iOS,
+     Telegram, WhatsApp), а не горизонтальная лента вкладок, как было.
+     #sidebar теперь ДВА разных экрана в одном контейнере, между
+     которыми переключает класс .detail-open на #app:
+       — без класса: сайдбар = вертикальный список разделов на весь
+         экран, #main спрятан;
+       — с классом (после тапа по разделу — см. обработчик клика в
+         mount(), settings-edit.js): сайдбар прячется, #main
+         показывается, в нём — свой заголовок «‹ Настройки» с кнопкой
+         назад (#mobile-set-topbar, инжектится туда же в mount()).
+     На столе (вне этого медиа-запроса) класс ни на что не влияет —
+     там #sidebar и #main всегда показаны рядом, как и раньше. */
   :where(.set-view) .side-tab {
-    width: auto; white-space: nowrap; flex-shrink: 0;
-    padding: 8px 14px;
-    border-left: none; border-bottom: 2px solid transparent;
+    display: flex; align-items: center; gap: 12px;
+    width: auto; white-space: normal; flex-shrink: 0;
+    padding: 13px 16px;
+    border-left: none; border-bottom: 1px solid var(--border);
+    text-align: left; font-size: .88rem;
   }
-  :where(.set-view) .side-tab.active { border-left-color: transparent; border-bottom-color: var(--red); }
-  #main { max-width: none; padding: 24px 16px 64px; }
+  :where(.set-view) .side-tab.active { border-left-color: transparent; border-bottom-color: var(--border); background: none; }
+  :where(.set-view) .side-tab-icon { width: 19px; height: 19px; flex-shrink: 0; color: var(--text-dim); }
+  :where(.set-view) .side-tab-label { flex: 1; min-width: 0; }
+  :where(.set-view) .side-tab-value {
+    color: var(--text-dim); font-size: .78rem; max-width: 40%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;
+  }
+  :where(.set-view) .side-tab-chevron { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-dim); opacity: .6; }
+  :where(.set-view) .side-tab.side-tab-divider { margin-top: 10px; border-top: 1px solid var(--border); border-left: none; padding-top: 13px; }
+
+  #main { max-width: none; padding: 0 16px 64px; display: none; }
+  #app.detail-open #sidebar { display: none; }
+  #app.detail-open #main { display: block; }
+  :where(.set-view) #app.detail-open h1 { display: none; }
+
+  :where(.set-view) .mobile-set-topbar {
+    display: flex; align-items: center; gap: 4px;
+    margin: 0 -16px 18px; padding: 12px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 3;
+  }
+  :where(.set-view) .mobile-set-back {
+    display: flex; align-items: center; gap: 2px;
+    background: none; border: none; padding: 4px;
+    color: var(--red-hi); font-family: 'DM Sans', sans-serif; font-size: .85rem;
+    cursor: pointer; flex-shrink: 0;
+  }
+  :where(.set-view) .mobile-set-back svg { width: 18px; height: 18px; }
+  :where(.set-view) .mobile-set-topbar-title {
+    flex: 1; text-align: center; margin-right: 26px;
+    font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--text-hi);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 }
+/* Бар «‹ Назад» нужен только на телефоне (см. блок выше) — на столе
+   #sidebar и #main видны одновременно, отдельный заголовок раздела
+   там ни к чему. */
+:where(.set-view) .mobile-set-topbar { display: none; }
 :where(.set-view) .panel { display: none; }
 :where(.set-view) .panel.active { display: block; }
 :where(.set-view) .panel-intro { color: var(--text-dim); font-size: .9rem; margin-bottom: 20px; }
