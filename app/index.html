@@ -2250,7 +2250,15 @@ section.group { margin-bottom: 3.5rem; }
 }
 @media (max-width: 720px) {
   :where(.set-view) .pp-add-modal-overlay { padding: 0; }
-  :where(.set-view) .pp-add-modal-panel { max-width: none; height: 100vh; border-radius: 0; }
+  /* height: 100vh — запасной вариант для браузеров без dvh (см. ниже);
+     100dvh — «динамический» vh, который пересчитывается вместе с
+     панелью адреса телефона. Обычный vh на телефоне считается по
+     максимальной высоте экрана (когда панель адреса скрыта), а
+     модалка на весь экран открывается ДО того, как она успевает
+     спрятаться — нижний край панели в этот момент оказывается под
+     ней, обрезанным. dvh пересчитывает высоту по актуальному
+     состоянию панели адреса, а не по максимуму. */
+  :where(.set-view) .pp-add-modal-panel { max-width: none; height: 100vh; height: 100dvh; border-radius: 0; }
   :where(.set-view) .pp-add-modal-frame { border-radius: 0; }
 }
 
