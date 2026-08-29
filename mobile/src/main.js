@@ -23,6 +23,7 @@ import { Filesystem, Directory } from "@capacitor/filesystem";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { Share } from "@capacitor/share";
 import { App } from "@capacitor/app";
+import { FileOpener } from "@capawesome-team/capacitor-file-opener";
 import { ROUTES, ApiError } from "../../core/api.js";
 import { MobileVault } from "./vault.js";
 // Версию спрашиваем у самого приложения, а не вшиваем из package.json
@@ -419,12 +420,37 @@ function installBackButton() {
 // ── Проверка обновлений ─────────────────────────
 // Тот же принцип, что и на компьютере (electron/update.js): спрашиваем
 // GitHub, какой релиз последний, и если он новее — показываем полоску
-// внизу экрана. В один клик здесь не поставить: Android всё равно
-// попросит подтверждение при установке файла поверх старой версии,
-// поэтому кнопка открывает системный шаринг на apk, откуда его удобно
-// сохранить и открыть через браузер или «Файлы».
+// внизу экрана. Подтверждение установки Android всё равно спросит
+// сам поверх старой версии — это его дело, не наше, но до этого шага
+// теперь доводим сами: качаем apk внутри приложения и сразу открываем
+// системным установщиком, а не выгружаем ссылку в «Поделиться» —
+// раньше человеку приходилось самому открывать её в браузере, ждать
+// скачивания и потом ещё находить файл в «Загрузках».
 const UPDATE_REPO = "DeQerrti/tasteid-app";
 const UPDATE_DISMISSED_KEY = "tasteid_update_dismissed";
+const UPDATE_APK_NAME = "tasteid-update.apk";
+
+// btoa от всей строки разом на файле в несколько мегабайт может
+// упереться в предел одного вызова String.fromCharCode — переводим
+// кусками.
+function bufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const CHUNK = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+async function downloadAndInstall(url) {
+  const res = await window.fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = bufferToBase64(await res.arrayBuffer());
+  await Filesystem.writeFile({ path: UPDATE_APK_NAME, directory: Directory.Cache, data });
+  const { uri } = await Filesystem.getUri({ path: UPDATE_APK_NAME, directory: Directory.Cache });
+  await FileOpener.openFile({ path: uri, mimeType: "application/vnd.android.package-archive" });
+}
 
 function isNewerVersion(latest, current) {
   const a = latest.replace(/^v/i, "").split(".").map(Number);
@@ -453,9 +479,26 @@ function showUpdateBanner(version, url) {
   updateBtn.style.cssText =
     "padding:.4rem .8rem;border:none;border-radius:.4rem;background:#c8a24a;" +
     "color:#241d12;font-weight:600;";
-  updateBtn.onclick = () => {
-    Share.share({ title: "TasteID", url }).catch(() => {});
-    bar.remove();
+  updateBtn.onclick = async () => {
+    // Ссылка на страницу релиза (а не сам apk) добавлением через
+    // приложение не скачать осмысленно — сразу уходим в браузер,
+    // как раньше.
+    if (!/\.apk(\?|$)/i.test(url)) {
+      Share.share({ title: "TasteID", url }).catch(() => {});
+      bar.remove();
+      return;
+    }
+    updateBtn.disabled = true;
+    updateBtn.textContent = ru ? "Загрузка…" : "Downloading…";
+    try {
+      await downloadAndInstall(url);
+      bar.remove();
+    } catch {
+      // Не вышло скачать или открыть в приложении (нет сети, отказал
+      // плагин) — старый путь остаётся запасным.
+      Share.share({ title: "TasteID", url }).catch(() => {});
+      bar.remove();
+    }
   };
 
   const laterBtn = document.createElement("button");
