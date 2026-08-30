@@ -163,6 +163,18 @@ function settingsViewHtml() {
           <button type="button" class="btn btn-ghost" onclick="applyTextScale(100, true)" data-i18n>Сбросить</button>
         </div>
 
+        <h2 class="section-h" data-i18n>Теги на карточках</h2>
+        <div class="row" style="align-items:center;gap:.6rem;">
+          <input type="checkbox" id="hide-all-card-tags" style="width:auto;margin:0;">
+          <label for="hide-all-card-tags" style="margin:0;cursor:pointer;" data-i18n>Не показывать теги ни на одной карточке</label>
+        </div>
+        <p class="panel-intro" data-i18n>
+          Разом для всех отзывов, в том числе уже сохранённых — сами теги
+          никуда не пропадают, они по-прежнему видны внутри отзыва. Настройка
+          конкретного отзыва («Какие теги показывать на карточке» в
+          редакторе) при включённой галочке не действует.
+        </p>
+
         <h2 class="section-h" data-i18n>Палитра</h2>
         <div id="paletteList"></div>
         <div class="pal-foot">
@@ -2391,6 +2403,7 @@ async function loadCurrentSettings() {
   rawSettings = settings;
 
   applyTextScale(Number(settings.textScale) || 100, false);
+  document.getElementById("hide-all-card-tags").checked = !!settings.hideAllCardTags;
 
   selectedTheme = settings.theme || "classic";
   themeColors = JSON.parse(JSON.stringify(settings.themeColors || {}));
@@ -2724,6 +2737,7 @@ async function saveSettings() {
   const payload = {
     ...rawSettings,
     textScale,
+    hideAllCardTags: document.getElementById("hide-all-card-tags").checked,
     theme: selectedTheme,
     themeColors: prunePalette(),
     customTags,
@@ -2793,6 +2807,10 @@ async function saveSettings() {
     // на долю секунды мелькнула бы прошлая тема — applyTheme() сама
     // перечитает уже сохранённый site-settings.json и обновит кэш.
     if (data.ok) applyTheme();
+    // Тот же кэш, что и у отзывов (js/api.js: fetchReviews / fetchSiteSettings) —
+    // без сброса вкладка «Отзывы» ещё один заход показывала бы старое
+    // значение hideAllCardTags и того, что рядом с ним появится позже.
+    if (data.ok) cache.siteSettings = null;
     // Сохранённая тема — это и есть «настоящая» тема документа:
     // откатывать предпросмотр при уходе с маршрута больше не к чему
     // (см. revertPalettePreview()).
