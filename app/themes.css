@@ -151,12 +151,17 @@
   /* Тот же приём, что у brutal ниже по файлу: свои отступы/кегль темы
      (0.5rem/1.25rem/1.05rem) считались под боковую рельсу с запасом по
      высоте, а не под тесную нижнюю полоску на 5 вкладок сразу (см.
-     общий .tab-btn в index.html) — без уменьшения самое длинное слово
-     («Статистика») обрезалось. */
+     общий .tab-btn в index.html). Раньше здесь уже был clamp() поменьше
+     обычного (до 0.72rem) — этого хватило не на всех экранах: у Playfair
+     Display даже курсивом буквы шире, чем у прямого шрифта той же
+     обычной темы, так что «Статистика» всё ещё обрезалась там, где
+     остальные темы уже помещались. Порог сейчас ощутимо ниже, чем у
+     обычного .tab-btn (0.56rem) — с запасом на именно этот шрифт. */
   [data-skin="soft"] .tab-btn {
-    margin: 0.15rem 0.05rem;
-    padding: 0.4rem 0.15rem;
-    font-size: clamp(0.56rem, 2.5vw, 0.72rem);
+    margin: 0.1rem 0.02rem;
+    padding: 0.35rem 0.05rem;
+    font-size: clamp(0.44rem, 2.1vw, 0.56rem);
+    letter-spacing: -0.01em;
   }
 }
 [data-skin="soft"] .tab-btn.active {
@@ -400,9 +405,10 @@
 @media (max-width: 700px) {
   /* См. её же комментарий у [data-skin="soft"] .tab-btn выше по файлу. */
   [data-skin="soft-dark"] .tab-btn {
-    margin: 0.15rem 0.05rem;
-    padding: 0.4rem 0.15rem;
-    font-size: clamp(0.56rem, 2.5vw, 0.72rem);
+    margin: 0.1rem 0.02rem;
+    padding: 0.35rem 0.05rem;
+    font-size: clamp(0.44rem, 2.1vw, 0.56rem);
+    letter-spacing: -0.01em;
   }
 }
 [data-skin="soft-dark"] .tab-btn.active {
