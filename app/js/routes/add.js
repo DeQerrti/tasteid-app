@@ -2442,6 +2442,7 @@ async function deleteReview() {
     // выкладки нет, файл на диске уже переписан.
     const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
     setStatus("ok", i18n("«{name}» удалена.", { name: data.title }) + note);
+    cache.reviews = null; // тот же сброс, что и после сохранения — запись пропала, кэш об этом не знает
     // Форма после удаления показывает то, чего уже нет, — уходим с
     // маршрута. Флаг «есть несохранённое» сбрасываем явно: иначе уход
     // спросил бы «уйти без сохранения», хотя запись только что удалена,
@@ -2708,6 +2709,10 @@ async function saveReview() {
       const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
       setStatus("ok", editingId !== null ? `«${title}» обновлён.${note}` : `«${title}» сохранён.${note}`);
       addRouteDirty = false;
+      // Список отзывов в памяти (js/api.js: fetchReviews) не знает про
+      // эту правку — без сброса карточка на вкладке «Отзывы» показывала
+      // бы старые теги/оценку/что угодно ещё до перезагрузки страницы.
+      cache.reviews = null;
       if (editingId === null) resetToNew();
     } else {
       setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
