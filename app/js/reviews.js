@@ -356,13 +356,17 @@ function reviewCard(r, i) {
   // этого отзыва. Пусто/нет поля — человек ничего не выбрал, тогда
   // просто первые из массива (старое поведение); hidden_tags_on_card —
   // более старое поле (список того, что скрыть, а не что показать),
-  // ещё встречается в несохранённых заново отзывах. Все теги
-  // по-прежнему видны в модалке при клике (см. reviewModalBodyHtml).
+  // ещё встречается в несохранённых заново отзывах. no_tags_on_card —
+  // отдельный флаг «теги на карточке не нужны вовсе», перекрывает всё
+  // остальное. Все теги по-прежнему видны в модалке при клике (см.
+  // reviewModalBodyHtml).
   const featuredOnCard = (r.featured_tags_on_card || []).filter(tag => (r.tags || []).includes(tag));
   const hiddenOnCard = new Set(r.hidden_tags_on_card || []);
-  const cardTags = featuredOnCard.length
-    ? featuredOnCard
-    : (r.tags || []).filter(tag => !hiddenOnCard.has(tag));
+  const cardTags = r.no_tags_on_card
+    ? []
+    : (featuredOnCard.length
+        ? featuredOnCard
+        : (r.tags || []).filter(tag => !hiddenOnCard.has(tag)));
   const tagsHtml = cardTags.length
     ? `<div class="card-tags">${cardTags.slice(0, 4).map(tag => tagHtml(tag)).join("")}</div>`
     : "";
