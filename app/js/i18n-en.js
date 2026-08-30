@@ -682,6 +682,7 @@ i18nRegister({
   Всё: "Everything",
   "Всё время": "All time",
   "Все года": "All years",
+  "Все настройки": "All settings",
   всего: "in total",
   "Выбери тип Developer, прими условия и заполни короткую анкету (в поле о цели использования достаточно написать, что ведёшь личный список просмотренного).":
     "Pick the Developer type, accept the terms and fill in the short form (for the purpose field, “keeping a personal watch list” is enough).",
