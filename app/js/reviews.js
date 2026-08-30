@@ -32,7 +32,7 @@ document.addEventListener("tags-map-updated", () => {
 });
 
 async function loadReviews() {
-  const data = await fetchReviews();
+  const [data] = await Promise.all([fetchReviews(), fetchSiteSettings()]);
   const withReview = data.filter(r => r.preview || r.grade);
   if (withReview.length) {
     renderReviews(withReview);
@@ -357,12 +357,15 @@ function reviewCard(r, i) {
   // просто первые из массива (старое поведение); hidden_tags_on_card —
   // более старое поле (список того, что скрыть, а не что показать),
   // ещё встречается в несохранённых заново отзывах. no_tags_on_card —
-  // отдельный флаг «теги на карточке не нужны вовсе», перекрывает всё
-  // остальное. Все теги по-прежнему видны в модалке при клике (см.
-  // reviewModalBodyHtml).
+  // флаг конкретного отзыва «теги на карточке не нужны вовсе».
+  // hideAllCardTags — тот же самый флаг, но глобальный, из настроек
+  // (site-settings.json, «Оформление»): стоит выше любого per-review
+  // выбора, поэтому проверяется первым. Все теги по-прежнему видны в
+  // модалке при клике (см. reviewModalBodyHtml) — оба флага гасят
+  // только карточку.
   const featuredOnCard = (r.featured_tags_on_card || []).filter(tag => (r.tags || []).includes(tag));
   const hiddenOnCard = new Set(r.hidden_tags_on_card || []);
-  const cardTags = r.no_tags_on_card
+  const cardTags = (cache.siteSettings?.hideAllCardTags || r.no_tags_on_card)
     ? []
     : (featuredOnCard.length
         ? featuredOnCard
