@@ -502,7 +502,12 @@ async function mount(container) {
   syncAppPadding();
 
   container.querySelectorAll(".side-tab").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
+      // Клик по уже открытой вкладке ничего не переключает — не повод
+      // спрашивать про несохранённое там, где никакого ухода с панели
+      // не происходит.
+      if (btn.classList.contains("active")) return;
+      if (!(await confirmLeavePanel())) return;
       container.querySelectorAll(".side-tab").forEach((b) => b.classList.remove("active"));
       container.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
@@ -524,12 +529,13 @@ async function mount(container) {
   });
 
   // «Все настройки» — видна только на телефоне (см. .settings-panel-back
-  // в index.html), просто закрывает панель и возвращает к списку
-  // разделов. Без вопроса про несохранённое — так же не спрашивает и
-  // клик по ДРУГОЙ вкладке рядом на ПК, это тот же уровень навигации,
-  // а не уход с маршрута (тот только через #se-back/аппаратную «назад»,
-  // см. settingsBackAction()).
-  container.querySelector("#settings-panel-back")?.addEventListener("click", closeMobileSettingsPanel);
+  // в index.html), закрывает панель и возвращает к списку разделов —
+  // с тем же вопросом про несохранённое, что и переключение на другую
+  // вкладку (confirmLeavePanel(), см. её же комментарий выше).
+  container.querySelector("#settings-panel-back")?.addEventListener("click", async () => {
+    if (!(await confirmLeavePanel())) return;
+    closeMobileSettingsPanel();
+  });
 
   collapsibleizeSettingsSections();
 
@@ -648,26 +654,37 @@ function unmount() {
   reviewsForCount = null;
 }
 
+// Общая проверка при уходе с ТЕКУЩЕЙ панели — неважно, на другую
+// вкладку (клик по .side-tab), назад к списку на телефоне
+// (#settings-panel-back / settingsBackAction()) или совсем с маршрута
+// (leaveSettingsRoute()). Раньше про несохранённое спрашивала только
+// последняя — переключаться между разделами можно было свободно, и
+// правки в открытой панели терялись незаметно: узнать об этом (если
+// вообще) получалось только в момент ухода из настроек целиком, когда
+// уже не вспомнить, в какой конкретно панели что забыл сохранить.
+async function confirmLeavePanel() {
+  if (!settingsDirty) return true;
+  const go = await confirmDialog(
+    i18n("Есть несохранённые изменения — уйти и потерять их?"),
+    i18n("Уйти без сохранения"),
+    i18n("Остаться")
+  );
+  if (go) settingsDirty = false;
+  return go;
+}
+
 // Уйти с маршрута — с тем же вопросом, что раньше задавала ссылка «На
 // главную» при несохранённых правках (beforeunload между маршрутами не
 // срабатывает: документ не меняется).
 async function leaveSettingsRoute() {
-  if (settingsDirty) {
-    const go = await confirmDialog(
-      i18n("Есть несохранённые изменения — уйти и потерять их?"),
-      i18n("Уйти без сохранения"),
-      i18n("Остаться")
-    );
-    if (!go) return;
-    settingsDirty = false;
-  }
+  if (!(await confirmLeavePanel())) return;
   leaveRoute();
 }
 
 // Закрыть открытую на телефоне панель и вернуться к списку разделов
-// (см. .mobile-panel-open в index.html) — тот же уровень навигации,
-// что клик по ДРУГОЙ вкладке сайдбара на ПК, поэтому без вопроса про
-// несохранённое (см. её же комментарий у клика по .side-tab выше).
+// (см. .mobile-panel-open в index.html). Вызывающий уже сам спросил
+// confirmLeavePanel() — здесь только сама смена вида, без второго
+// вопроса.
 function closeMobileSettingsPanel() {
   document.getElementById("app")?.classList.remove("mobile-panel-open");
   seMobilePanelOpen = false;
@@ -681,6 +698,7 @@ function closeMobileSettingsPanel() {
 // как и было.
 async function settingsBackAction() {
   if (seMobilePanelOpen) {
+    if (!(await confirmLeavePanel())) return;
     closeMobileSettingsPanel();
     return;
   }
