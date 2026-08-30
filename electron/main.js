@@ -478,6 +478,18 @@ async function createWindow({ compact = false } = {}) {
   let closingForReal = false;
   closingWin.on("close", (e) => {
     if (closingForReal || closingWin.webContents.isDestroyed()) return;
+    // quitAndInstall() тоже закрывает это окно (это первый шаг его
+    // собственной последовательности «закрыться → поставить →
+    // перезапуститься») — и раньше натыкался на этот же самый
+    // preventDefault. До 6 секунд задержки ради синхронизации, которую
+    // мы сами тут устраиваем, ломали (не всегда, не на всех машинах,
+    // поэтому и не было явной ошибки в логах) внутренний расчёт
+    // electron-updater на то, что происходит именно быстрый выход —
+    // готовый инсталлятор запускался, а обратно приложение сам не
+    // поднимал, отсюда и «просто закрывается». Синхронизация перед
+    // обновлением не нужна и без того: следом всё равно другой процесс
+    // того же приложения на тех же файлах, ничего не теряется.
+    if (quittingForUpdate) return;
     e.preventDefault();
     const finish = () => {
       closingForReal = true;
@@ -624,6 +636,10 @@ async function showThemedUpdateDialog(message, actionLabel) {
 // диалог можно показать заново сразу, не дожидаясь следующего цикла
 // autoUpdater.
 let pendingUpdateInfo = null;
+// См. closingWin.on("close", ...) выше по файлу — снимает там
+// задержку ради синхронизации, когда закрытие окна вызвал сам
+// quitAndInstall(), а не человек крестиком.
+let quittingForUpdate = false;
 
 async function promptRestart(info) {
   const restart = await showThemedUpdateDialog(
@@ -637,8 +653,10 @@ async function promptRestart(info) {
   // Второй аргумент — isForceRunAfter: без него electron-updater не
   // гарантирует перезапуск после тихой (oneClick) установки на Windows,
   // и приложение просто закрывалось, не открываясь обратно само.
-  if (restart) autoUpdater.quitAndInstall(false, true);
-  else await saveConfig({ dismissedUpdate: info.version });
+  if (restart) {
+    quittingForUpdate = true;
+    autoUpdater.quitAndInstall(false, true);
+  } else await saveConfig({ dismissedUpdate: info.version });
 }
 
 // Раньше ошибка закачки (упавший блокмап, оборванная сеть, что угодно)
