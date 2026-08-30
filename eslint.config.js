@@ -70,6 +70,7 @@ const sharedBrowserGlobals = [
   "fetchAnilistMeta",
   "fetchAnilistUserList",
   "fetchReviews",
+  "fetchSiteSettings",
   "fetchTmdbMeta",
   "findReviewForTitle",
   "fmtDateStr",
