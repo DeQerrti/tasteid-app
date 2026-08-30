@@ -2524,6 +2524,7 @@ async function deleteReview() {
     // этом и так спрашивают isAppContext() — тут просто забыли.
     const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
     setStatus("ok", i18n("«{name}» удалена.", { name: data.title }) + note);
+    cache.reviews = null;
     // Форма после удаления показывает то, чего уже нет, — уводим на главную.
     // addDirty сбрасываем явно: иначе beforeunload спросил бы «уйти без
     // сохранения», хотя запись только что удалена, а не брошена
@@ -2768,6 +2769,7 @@ async function saveReview() {
         ? `«${title}» обновлён.${note}`
         : `«${title}» сохранён.${note}`);
       addDirty = false;
+      cache.reviews = null; // тот же кэш, что и в SPA-версии (js/api.js) — сбрасываем, чтобы список отзывов перечитался заново
       if (editingId === null) {
         if (fromPassportModal) {
           // Показываем «сохранён» на секунду — не исчезать мгновенно,
