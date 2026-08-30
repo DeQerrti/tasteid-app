@@ -86,6 +86,7 @@ async function mount(container, params) {
   editingId = null;
   editingIds = {};
   featuredCardTags = new Set();
+  noTagsOnCard = false;
   tmTagEdit = null;
   tmCatEdit = null;
   tmCatColorSet = true;
@@ -287,6 +288,10 @@ async function mount(container, params) {
           <div class="field" id="card-tags-field" style="margin-top:1.25rem;" hidden>
             <label>${i18n("Какие теги показывать на карточке")}</label>
             <p class="card-tags-hint">${i18n("На карточке помещается немного — выбери, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.")}</p>
+            <div class="card-tag-row card-tags-none-row" id="card-tags-none-row" onclick="toggleNoTagsOnCard()">
+              <span class="tm-row-check"></span>
+              <span class="card-tag-row-name">${i18n("Не показывать теги на карточке")}</span>
+            </div>
             <div id="card-tags-list"></div>
             <p class="card-tags-count" id="card-tags-count"></p>
           </div>
@@ -553,6 +558,7 @@ function unmount() {
   tmBulkSelected = new Set();
   selectedTags = new Set();
   featuredCardTags = new Set();
+  noTagsOnCard = false;
   editingId = null;
   editingIds = {};
   addRouteDirty = false;
@@ -793,16 +799,32 @@ function renderTagsGrid() {
 // показывает все выбранные теги отзыва — кликом отмечаешь до
 // CARD_TAGS_MAX «избранных». Ничего не отмечено — карточка сама берёт
 // первые по порядку (старое поведение, не нужно ничего решать вручную).
+// noTagsOnCard — отдельный режим поверх этого: теги на карточке не
+// нужны вовсе, список избранных при этом не трогаем и не теряем —
+// он просто не используется, пока переключатель включён.
 const CARD_TAGS_MAX = 4;
 let featuredCardTags = new Set();
+let noTagsOnCard = false;
 
 function renderCardTagsList() {
   const field = document.getElementById("card-tags-field");
   const box = document.getElementById("card-tags-list");
   const count = document.getElementById("card-tags-count");
+  const noneRow = document.getElementById("card-tags-none-row");
   const tags = [...selectedTags];
   field.hidden = !tags.length;
   if (!tags.length) return;
+
+  noneRow.classList.toggle("selected", noTagsOnCard);
+
+  if (noTagsOnCard) {
+    box.innerHTML = "";
+    box.classList.add("disabled");
+    count.textContent = i18n("Теги не будут показаны на карточке — только внутри отзыва.");
+    return;
+  }
+  box.classList.remove("disabled");
+
   const atCap = featuredCardTags.size >= CARD_TAGS_MAX;
   box.innerHTML = tags
     .map((tag) => {
@@ -823,6 +845,12 @@ function renderCardTagsList() {
 function toggleCardTagFeatured(tag) {
   if (featuredCardTags.has(tag)) featuredCardTags.delete(tag);
   else if (featuredCardTags.size < CARD_TAGS_MAX) featuredCardTags.add(tag);
+  renderCardTagsList();
+}
+
+function toggleNoTagsOnCard() {
+  noTagsOnCard = !noTagsOnCard;
+  markAddDirty();
   renderCardTagsList();
 }
 
@@ -2283,6 +2311,7 @@ function fillForm(r) {
     .querySelectorAll(".tag-toggle")
     .forEach((b) => b.classList.toggle("active", selectedTags.has(b.dataset.tag)));
   featuredCardTags = new Set(r.featured_tags_on_card || []);
+  noTagsOnCard = !!r.no_tags_on_card;
   renderCardTagsList();
 }
 
@@ -2329,6 +2358,7 @@ function resetToNew() {
   selectedGrade = null;
   selectedTags.clear();
   featuredCardTags.clear();
+  noTagsOnCard = false;
   renderGradeInput();
   document.querySelectorAll(".tag-toggle").forEach((b) => b.classList.remove("active"));
   renderCardTagsList();
@@ -2655,6 +2685,7 @@ async function saveReview() {
     grade: selectedGrade,
     tags: [...selectedTags],
     featured_tags_on_card: [...featuredCardTags].filter((t) => selectedTags.has(t)),
+    no_tags_on_card: noTagsOnCard,
   };
 
   if (Object.keys(ids).length) review.ids = ids;
