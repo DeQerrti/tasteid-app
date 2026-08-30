@@ -2132,11 +2132,6 @@ section.group { margin-bottom: 3.5rem; }
    визуально отделена от них: это не часть настроек одной темы, а
    отдельная функция сбоку. */
 :where(.set-view) .side-tab.side-tab-divider { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 18px; }
-/* Правило для телефона (граница-слева вместо сверху) теперь живёт в
-   основном мобильном блоке ниже (@media max-width:720px, рядом с
-   остальной вёрсткой списка разделов), вместе со всем остальным
-   переездом на вариант «список → подэкран» — здесь отдельно уже не
-   нужно. */
 
 /* min-width: 0 — иначе колонка не даёт себе стать уже содержимого,
    и на узком экране за край уезжает вся страница, а не отдельный
@@ -2145,84 +2140,77 @@ section.group { margin-bottom: 3.5rem; }
    то есть во всей ширине ЗА ВЫЧЕТОМ padding-left под #sidebar. */
 #main { flex: 1; min-width: 0; max-width: 680px; padding: 40px 32px; margin: 0 auto; }
 :where(.set-view) h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 0 0 24px; }
+/* Видна только на телефоне (см. её же правило в самом низу мобильного
+   блока ниже) — на ПК сайдбар и так открыт целиком, возвращаться
+   в список неоткуда и незачем. */
+.settings-panel-back { display: none; }
 
 /* Телефон. Сайдбар в 220px тут съедал больше половины ширины, и на
    содержимое оставалось около сотни пикселей — уезжали все панели
-   без исключения. Кладём меню сверху отдельной прокручиваемой
-   полосой, как вкладки на главной. */
+   без исключения. Раньше вместо колонки делали прокручиваемую пальцем
+   строку сверху, как вкладки на главной — но 12+ разделов в одну
+   строку то же самое узкое место просто сдвигали в другую сторону:
+   часть подписей всё равно приходилось обрезать или листать вбок
+   вслепую. Вместо этого — тот же приём, что у iOS/Telegram/большинства
+   мобильных приложений: список разделов и открытая панель показываются
+   по очереди, не одновременно. #app.mobile-panel-open — единственный
+   переключатель между двумя состояниями (ставит/снимает его клик по
+   .side-tab и «Все настройки», см. js/routes/settings-edit.js), а не
+   отдельные видимость+ширина+padding, как было при горизонтальной
+   строке. */
 @media (max-width: 720px) {
   #app { flex-direction: column; padding-left: 0; }
+  #app.mobile-panel-open #sidebar { display: none; }
+  #app:not(.mobile-panel-open) #main { display: none; }
+
   #sidebar {
     width: auto; height: auto; position: static;
-    border-right: none; border-bottom: 1px solid var(--border);
-    padding: 0;
-    display: flex; align-items: stretch; flex-direction: column;
-    overflow: hidden;
+    border-right: none;
+    padding: 4px 0 24px;
+    display: block;
   }
   :where(.set-view) .sidebar-resize { display: none; }
   #sidebar a.back {
-    margin: 0; white-space: normal; flex-shrink: 0;
-    position: static; background: none;
-    padding: 14px 16px; border-bottom: 1px solid var(--border);
-    font-size: .95rem;
+    margin: 0; position: static; background: none;
+    padding: 16px; font-size: 1rem;
   }
-  /* Вариант А — список с провалом в подэкран (как в Настройках iOS,
-     Telegram, WhatsApp), а не горизонтальная лента вкладок, как было.
-     #sidebar теперь ДВА разных экрана в одном контейнере, между
-     которыми переключает класс .detail-open на #app:
-       — без класса: сайдбар = вертикальный список разделов на весь
-         экран, #main спрятан;
-       — с классом (после тапа по разделу — см. обработчик клика в
-         mount(), settings-edit.js): сайдбар прячется, #main
-         показывается, в нём — свой заголовок «‹ Настройки» с кнопкой
-         назад (#mobile-set-topbar, инжектится туда же в mount()).
-     На столе (вне этого медиа-запроса) класс ни на что не влияет —
-     там #sidebar и #main всегда показаны рядом, как и раньше. */
   :where(.set-view) .side-tab {
     display: flex; align-items: center; gap: 12px;
-    width: auto; white-space: normal; flex-shrink: 0;
+    width: 100%; white-space: normal; text-align: left;
     padding: 13px 16px;
     border-left: none; border-bottom: 1px solid var(--border);
-    text-align: left; font-size: .88rem;
+    font-size: .95rem;
   }
-  :where(.set-view) .side-tab.active { border-left-color: transparent; border-bottom-color: var(--border); background: none; }
-  :where(.set-view) .side-tab-icon { width: 19px; height: 19px; flex-shrink: 0; color: var(--text-dim); }
-  :where(.set-view) .side-tab-label { flex: 1; min-width: 0; }
-  :where(.set-view) .side-tab-value {
-    color: var(--text-dim); font-size: .78rem; max-width: 40%;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0;
+  :where(.set-view) .side-tab-icon {
+    display: block; width: 20px; height: 20px; flex-shrink: 0;
+    color: var(--text-dim);
   }
-  :where(.set-view) .side-tab-chevron { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-dim); opacity: .6; }
-  :where(.set-view) .side-tab.side-tab-divider { margin-top: 10px; border-top: 1px solid var(--border); border-left: none; padding-top: 13px; }
+  :where(.set-view) .side-tab.active { border-left-color: transparent; background: var(--surface2); }
+  :where(.set-view) .side-tab.active .side-tab-icon { color: var(--red); }
+  /* Шеврон списка — тот же смысл, что «>» в iOS Settings: пункт
+     открывает подэкран, а не просто выделяется как вкладка. */
+  :where(.set-view) .side-tab::after {
+    content: "›"; margin-left: auto; padding-left: 8px; flex-shrink: 0;
+    font-size: 1.3rem; line-height: 1; color: var(--text-dim); opacity: .6;
+  }
 
-  #main { max-width: none; padding: 0 16px 64px; display: none; }
-  #app.detail-open #sidebar { display: none; }
-  #app.detail-open #main { display: block; }
-  :where(.set-view) #app.detail-open h1 { display: none; }
-
-  :where(.set-view) .mobile-set-topbar {
-    display: flex; align-items: center; gap: 4px;
-    margin: 0 -16px 18px; padding: 12px 12px;
-    border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; background: var(--bg); z-index: 3;
+  #main { max-width: none; padding: 0 16px 64px; }
+  .settings-panel-back {
+    display: flex; align-items: center; gap: 8px;
+    width: calc(100% + 32px); margin: 0 -16px 8px; padding: 16px;
+    background: none; border: none; border-bottom: 1px solid var(--border);
+    color: var(--text); font-size: .95rem; font-weight: 600;
+    cursor: pointer;
   }
-  :where(.set-view) .mobile-set-back {
-    display: flex; align-items: center; gap: 2px;
-    background: none; border: none; padding: 4px;
-    color: var(--red-hi); font-family: 'DM Sans', sans-serif; font-size: .85rem;
-    cursor: pointer; flex-shrink: 0;
-  }
-  :where(.set-view) .mobile-set-back svg { width: 18px; height: 18px; }
-  :where(.set-view) .mobile-set-topbar-title {
-    flex: 1; text-align: center; margin-right: 26px;
-    font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--text-hi);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  .settings-panel-back svg { width: 18px; height: 18px; flex-shrink: 0; }
 }
-/* Бар «‹ Назад» нужен только на телефоне (см. блок выше) — на столе
-   #sidebar и #main видны одновременно, отдельный заголовок раздела
-   там ни к чему. */
-:where(.set-view) .mobile-set-topbar { display: none; }
+@media (min-width: 721px) {
+  /* Иконки пунктов списка — только часть телефонной раскладки (см.
+     выше): на ПК сайдбар открыт целиком, иконка рядом с текстом только
+     сузила бы и без того тесную колонку. */
+  :where(.set-view) .side-tab-icon { display: none; }
+}
+
 :where(.set-view) .panel { display: none; }
 :where(.set-view) .panel.active { display: block; }
 :where(.set-view) .panel-intro { color: var(--text-dim); font-size: .9rem; margin-bottom: 20px; }
