@@ -1041,6 +1041,9 @@ i18nRegister({
   "Ничего не выбрано — покажутся первые теги по порядку.": "Nothing selected — the first tags in order will show.",
   "Не показывать теги на карточке": "Don't show tags on the card",
   "Теги не будут показаны на карточке — только внутри отзыва.": "Tags won't show on the card — only inside the review.",
+  "Теги на карточках": "Tags on cards",
+  "Не показывать теги ни на одной карточке": "Don't show tags on any card",
+  "Разом для всех отзывов, в том числе уже сохранённых — сами теги никуда не пропадают, они по-прежнему видны внутри отзыва. Настройка конкретного отзыва («Какие теги показывать на карточке» в редакторе) при включённой галочке не действует.": "Applies to every review at once, including ones already saved — the tags themselves aren't lost, they're still visible inside the review. The per-review setting (\"Which tags to show on the card\" in the editor) has no effect while this is checked.",
 });
 
 // ── Массовое удаление тегов (add.html) ─────────
