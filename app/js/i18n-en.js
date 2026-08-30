@@ -1039,6 +1039,8 @@ i18nRegister({
     "The card only fits a few — pick which of the selected tags matter most. The rest stay visible inside the review.",
   "Выбрано: {n}/{max}": "Selected: {n}/{max}",
   "Ничего не выбрано — покажутся первые теги по порядку.": "Nothing selected — the first tags in order will show.",
+  "Не показывать теги на карточке": "Don't show tags on the card",
+  "Теги не будут показаны на карточке — только внутри отзыва.": "Tags won't show on the card — only inside the review.",
 });
 
 // ── Массовое удаление тегов (add.html) ─────────
