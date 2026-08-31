@@ -203,6 +203,28 @@ test("переименование тега проходит по всем от�
   });
 });
 
+test("скрытие тегов на всех карточках разом ставит флаг каждому отзыву и не трогает уже скрытые", async () => {
+  await withServer(async ({ api, base }) => {
+    await api("POST", "/api/save-review", { title: "A", type: "anime", tags: ["Тег"] });
+    await api("POST", "/api/save-review", {
+      title: "B",
+      type: "anime",
+      tags: ["Тег"],
+      no_tags_on_card: true,
+    });
+
+    const { data } = await api("POST", "/api/save-review", { _hide_all_card_tags: true });
+    assert.equal(data.touched, 1, "у B флаг уже стоял — трогать было нечего");
+
+    const list = await (await fetch(`${base}/reviews.json`)).json();
+    assert.equal(list.find((r) => r.title === "A").no_tags_on_card, true);
+    assert.equal(list.find((r) => r.title === "B").no_tags_on_card, true);
+
+    const again = await api("POST", "/api/save-review", { _hide_all_card_tags: true });
+    assert.equal(again.data.touched, 0, "повторный вызов ничего не меняет");
+  });
+});
+
 // ── Импорт ─────────────────────────────────────
 
 test("импорт узнаёт своих по номерам и не плодит дубли", async () => {
