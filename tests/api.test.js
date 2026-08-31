@@ -225,6 +225,32 @@ test("скрытие тегов на всех карточках разом ст
   });
 });
 
+test("выключение скрытия тегов снимает флаг у всех, включая выставленный вручную", async () => {
+  await withServer(async ({ api, base }) => {
+    await api("POST", "/api/save-review", { title: "A", type: "anime", tags: ["Тег"] });
+    // У B флаг стоит не от массовой кнопки, а как будто его отметили
+    // вручную в редакторе конкретного отзыва — выключение обязано снять
+    // его и здесь тоже, отдельного учёта "чьих" галочек нет.
+    await api("POST", "/api/save-review", {
+      title: "B",
+      type: "anime",
+      tags: ["Тег"],
+      no_tags_on_card: true,
+    });
+
+    await api("POST", "/api/save-review", { _hide_all_card_tags: true });
+    const { data } = await api("POST", "/api/save-review", { _hide_all_card_tags: false });
+    assert.equal(data.touched, 2, "флаг сняли у обоих");
+
+    const list = await (await fetch(`${base}/reviews.json`)).json();
+    assert.equal(list.find((r) => r.title === "A").no_tags_on_card, false);
+    assert.equal(list.find((r) => r.title === "B").no_tags_on_card, false);
+
+    const again = await api("POST", "/api/save-review", { _hide_all_card_tags: false });
+    assert.equal(again.data.touched, 0, "повторное выключение ничего не меняет");
+  });
+});
+
 // ── Импорт ─────────────────────────────────────
 
 test("импорт узнаёт своих по номерам и не плодит дубли", async () => {
