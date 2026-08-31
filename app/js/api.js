@@ -28,3 +28,22 @@ async function fetchReviews() {
     return [];
   }
 }
+
+// После любой правки, которая сбрасывает cache.reviews (сохранение,
+// удаление, импорт — все места ищи по "cache.reviews = null"), вкладка
+// под #shell-root сама не перечитается: её рельса не разбирается, пока
+// открыт отдельный маршрут (router.js) поверх неё, она просто спрятана
+// через .hidden и обновится только по новому клику (switchTab() в
+// index.html). Раньше это чинилось в одном settings-edit.js (там же,
+// где обнаружилось) — с переносом сюда используют все места, что
+// сбрасывают cache.reviews из своего собственного маршрута, а не
+// только «Внешний вид» в настройках.
+function refreshOpenReviewsTab() {
+  const active = document.querySelector("#shell-root .tab-content:not(.hidden)");
+  if (!active) return;
+  if (active.id === "tab-now") loadNow();
+  if (active.id === "tab-favorites") loadFavorites();
+  if (active.id === "tab-reviews") loadReviews();
+  if (active.id === "tab-stats") loadStats();
+  if (active.id === "tab-tierlist") loadTierlist();
+}
