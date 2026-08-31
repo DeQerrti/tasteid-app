@@ -4,8 +4,17 @@
 // ══════════════════════════════════════════════
 
 // ── reviews.json ───────────────────────────────
+// Раньше здесь стоял кэш (if (cache.reviews) return cache.reviews) —
+// имело смысл на сайте, где reviews.json тянется по сети и весит
+// четверть мегабайта. В десктопном приложении это локальный файл на
+// диске: перечитать его — копейки, а не "лишний запрос в интернет".
+// Поэтому теперь fetchReviews() всегда читает заново, без кэша и без
+// инвалидации — целый класс багов "забыли сбросить кэш" в местах,
+// которые меняют reviews.json, этим просто снят. cache.reviews ниже
+// остаётся не как кэш, а как последний прочитанный список — на него
+// синхронно смотрят между вызовами (cards.js, stats.js и т.п.), пока
+// свежий await fetchReviews() не перезапишет его снова.
 async function fetchReviews() {
-  if (cache.reviews) return cache.reviews;
   try {
     // Абсолютный путь — та же причина, что у site-settings.json в
     // theme.js: перехватчик fetch на телефоне ловит только запросы,
@@ -29,37 +38,20 @@ async function fetchReviews() {
   }
 }
 
-// После любой правки, которая сбрасывает cache.reviews (сохранение,
-// удаление, импорт — все места ищи по "cache.reviews = null"), вкладка
-// под #shell-root сама не перечитается: её рельса не разбирается, пока
-// открыт отдельный маршрут (router.js) поверх неё, она просто спрятана
-// через .hidden и обновится только по новому клику (switchTab() в
-// index.html). Раньше это чинилось в одном settings-edit.js (там же,
-// где обнаружилось) — с переносом сюда используют все места, что
-// сбрасывают cache.reviews из своего собственного маршрута, а не
-// только «Внешний вид» в настройках.
-//
-// Мало дёрнуть loadNow()/loadFavorites()/loadTierlist() — они сами по
-// себе не перечитывают cache.reviews каждый раз: now.js держит готовый
-// результат в cache.now, favorites.js — в cache.fav, tierlist.js — в
-// tlState.loaded, и при уже выставленном кэше просто перерисовывают
-// то же самое старое (см. их же "if (cache.now)"/"if (cache.fav)"/
-// "if (!tlState.loaded)" в начале). Без сброса этих трёх ниже вкладки
-// «Сейчас», «Любимое» и «Тир-лист» (режим «Тайтлы») выглядели бы
-// обновлёнными, а на деле показывали бы то же, что и до правки — в
-// отличие от «Отзывы» и «Статистика», которые сами всегда идут за
-// свежим fetchReviews() и это не нужно.
+// Вкладка под #shell-root сама не перечитается, пока открыт отдельный
+// маршрут (router.js) поверх неё: её рельса не разбирается, она
+// просто спрятана через .hidden и обновится только по новому клику
+// (switchTab() в index.html). Поэтому после любой правки, которая
+// меняет reviews.json/favorites.json где-то в своём маршруте (add.js,
+// settings-edit.js, import.js и т.д.), нужно явно дёрнуть load-функцию
+// текущей открытой вкладки — она сама пойдёт за свежими данными,
+// кэшировать сброс уже нечего.
 function refreshOpenReviewsTab() {
   const active = document.querySelector("#shell-root .tab-content:not(.hidden)");
   if (!active) return;
-  cache.now = null;
-  cache.fav = null;
   if (active.id === "tab-now") loadNow();
   if (active.id === "tab-favorites") loadFavorites();
   if (active.id === "tab-reviews") loadReviews();
   if (active.id === "tab-stats") loadStats();
-  if (active.id === "tab-tierlist") {
-    tlState.loaded = false;
-    loadTierlist();
-  }
+  if (active.id === "tab-tierlist") loadTierlist();
 }
