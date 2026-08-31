@@ -165,15 +165,17 @@ function settingsViewHtml() {
 
         <h2 class="section-h" data-i18n>Теги на карточках</h2>
         <p class="panel-intro" data-i18n>
-          Разово ставит «Не показывать теги на карточке» сразу во всех
-          отзывах — то же самое, что открыть каждый и отметить эту галочку
-          вручную. Сами теги никуда не пропадают, они по-прежнему видны
-          внутри отзыва. Захочешь вернуть теги на карточку для конкретного
-          тайтла — сними галочку в его собственном редакторе, эта кнопка
-          дальше ни на что не влияет.
+          Ставит «Не показывать теги на карточке» сразу во всех отзывах —
+          то же самое, что открыть каждый и отметить эту галочку вручную.
+          Сами теги никуда не пропадают, они по-прежнему видны внутри
+          отзыва. Выключение возвращает теги на карточки всех отзывов
+          разом, включая те, где галочку поставили вручную в редакторе
+          конкретного отзыва.
         </p>
-        <button type="button" class="btn-save" onclick="hideAllCardTags()" data-i18n>
-          Скрыть теги на всех карточках
+        <button type="button" class="btn btn-ghost hide-tags-toggle" id="hide-tags-toggle"
+                aria-pressed="false" onclick="toggleHideAllCardTags()">
+          <span class="hide-tags-toggle-icon" id="hide-tags-toggle-icon">${eyeIcon(false)}</span>
+          <span id="hide-tags-toggle-label" data-i18n>Скрыть теги на всех карточках</span>
         </button>
         <p class="status-msg" id="status-hide-all-card-tags"></p>
 
@@ -462,6 +464,7 @@ async function mount(container) {
   setLeaveGuard(settingsBackAction);
   appInfo = null;
   reviewsForCount = null;
+  hideTagsAllOn = false;
   rawSettings = {};
   openThemeGroup = null;
   tabDragSrc = null;
@@ -666,6 +669,7 @@ function unmount() {
   tabDragSrc = null;
   appInfo = null;
   reviewsForCount = null;
+  hideTagsAllOn = false;
 }
 
 // Общая проверка при уходе с ТЕКУЩЕЙ панели — неважно, на другую
@@ -804,36 +808,66 @@ function flashStatus(id, ok, msg) {
 }
 
 // ── Скрыть теги на всех карточках разом ──
-// Не отдельная настройка — разовое массовое действие поверх обычного
-// поля отзыва (no_tags_on_card, то же самое, что чекбокс «Не
-// показывать теги на карточке» в редакторе одного отзыва, add.js).
-// core/api.js (saveReview, _hide_all_card_tags) расставляет флаг сразу
-// во всех отзывах одной записью в reviews.json — быстрее и надёжнее,
-// чем гонять каждый отзыв через отдельное сохранение. Дальше это
-// обычное поле каждой записи: захочешь вернуть теги на карточку для
-// одного тайтла — снимаешь галочку в его же редакторе, как обычно,
-// эта кнопка больше ни на что не влияет.
-async function hideAllCardTags() {
+// Переключатель (по образцу .fav-toggle из редактора отзыва, см. CSS в
+// index.html) поверх обычного поля отзыва — no_tags_on_card, то же
+// самое, что чекбокс «Не показывать теги на карточке» в редакторе
+// одного отзыва (add.js). core/api.js (saveReview, _hide_all_card_tags)
+// расставляет или снимает этот флаг сразу во всех отзывах одной записью
+// в reviews.json — оба направления симметричны: включение и выключение
+// действуют на всех одинаково, включая отзывы, где галочку поставили
+// вручную через редактор конкретного отзыва.
+//
+// Кнопка не тянет reviews.json, чтобы при каждом заходе в настройки
+// узнать, стоит ли флаг уже у всех, — файл четверть мегабайта, а
+// «Внешний вид» открывается чаще любой другой панели (тот же довод, что
+// у reviewsForCount ниже, про подсчёт по статусам). Поэтому при каждом
+// заходе кнопка открывается в состоянии «выключено» и просто делает то,
+// что показывает; если на самом деле уже всё скрыто (или уже всё
+// видно), сервер честно вернёт touched: 0, и сообщение об этом скажет.
+let hideTagsAllOn = false;
+
+function syncHideTagsToggle() {
+  const btn = document.getElementById("hide-tags-toggle");
+  if (!btn) return;
+  btn.classList.toggle("on", hideTagsAllOn);
+  btn.setAttribute("aria-pressed", String(hideTagsAllOn));
+  document.getElementById("hide-tags-toggle-icon").innerHTML = eyeIcon(hideTagsAllOn);
+  document.getElementById("hide-tags-toggle-label").textContent = hideTagsAllOn
+    ? i18n("Теги скрыты на всех карточках")
+    : i18n("Скрыть теги на всех карточках");
+}
+
+async function toggleHideAllCardTags() {
   const statusId = "status-hide-all-card-tags";
-  if (!confirm(i18n("Скрыть теги на карточках всех отзывов? Отменить разом будет нельзя — только по одному, через редактор каждого отзыва."))) {
-    return;
-  }
+  const next = !hideTagsAllOn;
+  const question = next
+    ? i18n("Скрыть теги на карточках всех отзывов?")
+    : i18n(
+        "Вернуть теги на карточки всех отзывов? Тоже разом — включая те, что скрывали вручную по одному, через редактор конкретного отзыва."
+      );
+  if (!confirm(question)) return;
   try {
     const res = await fetch("/api/save-review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ _hide_all_card_tags: true }),
+      body: JSON.stringify({ _hide_all_card_tags: next }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `Сервер ответил ${res.status}`);
     cache.reviews = null; // reviews.json поменялся мимо add.js — тот же сброс, что и после обычного сохранения отзыва
+    hideTagsAllOn = next;
+    syncHideTagsToggle();
     flashStatus(
       statusId,
       true,
       data.touched
-        ? i18n("Готово — теги скрыты на {n} карточках.", { n: data.touched })
-        : i18n("У всех отзывов теги на карточке уже были скрыты.")
+        ? next
+          ? i18n("Готово — теги скрыты на {n} карточках.", { n: data.touched })
+          : i18n("Готово — теги возвращены на {n} карточках.", { n: data.touched })
+        : next
+          ? i18n("У всех отзывов теги на карточке уже были скрыты.")
+          : i18n("У всех отзывов теги на карточке уже были видны.")
     );
   } catch (e) {
     flashStatus(statusId, false, i18n("Ошибка сети: ") + e.message);
