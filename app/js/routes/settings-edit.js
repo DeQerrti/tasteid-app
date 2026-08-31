@@ -164,16 +164,18 @@ function settingsViewHtml() {
         </div>
 
         <h2 class="section-h" data-i18n>Теги на карточках</h2>
-        <div class="row" style="align-items:center;gap:.6rem;">
-          <input type="checkbox" id="hide-all-card-tags" style="width:auto;margin:0;">
-          <label for="hide-all-card-tags" style="margin:0;cursor:pointer;" data-i18n>Не показывать теги ни на одной карточке</label>
-        </div>
         <p class="panel-intro" data-i18n>
-          Разом для всех отзывов, в том числе уже сохранённых — сами теги
-          никуда не пропадают, они по-прежнему видны внутри отзыва. Настройка
-          конкретного отзыва («Какие теги показывать на карточке» в
-          редакторе) при включённой галочке не действует.
+          Разово ставит «Не показывать теги на карточке» сразу во всех
+          отзывах — то же самое, что открыть каждый и отметить эту галочку
+          вручную. Сами теги никуда не пропадают, они по-прежнему видны
+          внутри отзыва. Захочешь вернуть теги на карточку для конкретного
+          тайтла — сними галочку в его собственном редакторе, эта кнопка
+          дальше ни на что не влияет.
         </p>
+        <button type="button" class="btn-save" onclick="hideAllCardTags()" data-i18n>
+          Скрыть теги на всех карточках
+        </button>
+        <p class="status-msg" id="status-hide-all-card-tags"></p>
 
         <h2 class="section-h" data-i18n>Палитра</h2>
         <div id="paletteList"></div>
@@ -799,6 +801,43 @@ function flashStatus(id, ok, msg) {
   if (!el) return;
   el.textContent = msg;
   el.style.color = ok ? "var(--green)" : "var(--red-hi)";
+}
+
+// ── Скрыть теги на всех карточках разом ──
+// Не отдельная настройка — разовое массовое действие поверх обычного
+// поля отзыва (no_tags_on_card, то же самое, что чекбокс «Не
+// показывать теги на карточке» в редакторе одного отзыва, add.js).
+// core/api.js (saveReview, _hide_all_card_tags) расставляет флаг сразу
+// во всех отзывах одной записью в reviews.json — быстрее и надёжнее,
+// чем гонять каждый отзыв через отдельное сохранение. Дальше это
+// обычное поле каждой записи: захочешь вернуть теги на карточку для
+// одного тайтла — снимаешь галочку в его же редакторе, как обычно,
+// эта кнопка больше ни на что не влияет.
+async function hideAllCardTags() {
+  const statusId = "status-hide-all-card-tags";
+  if (!confirm(i18n("Скрыть теги на карточках всех отзывов? Отменить разом будет нельзя — только по одному, через редактор каждого отзыва."))) {
+    return;
+  }
+  try {
+    const res = await fetch("/api/save-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ _hide_all_card_tags: true }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Сервер ответил ${res.status}`);
+    cache.reviews = null; // reviews.json поменялся мимо add.js — тот же сброс, что и после обычного сохранения отзыва
+    flashStatus(
+      statusId,
+      true,
+      data.touched
+        ? i18n("Готово — теги скрыты на {n} карточках.", { n: data.touched })
+        : i18n("У всех отзывов теги на карточке уже были скрыты.")
+    );
+  } catch (e) {
+    flashStatus(statusId, false, i18n("Ошибка сети: ") + e.message);
+  }
 }
 
 // ── Глаз вместо галочки ──
@@ -2403,7 +2442,6 @@ async function loadCurrentSettings() {
   rawSettings = settings;
 
   applyTextScale(Number(settings.textScale) || 100, false);
-  document.getElementById("hide-all-card-tags").checked = !!settings.hideAllCardTags;
 
   selectedTheme = settings.theme || "classic";
   themeColors = JSON.parse(JSON.stringify(settings.themeColors || {}));
@@ -2737,7 +2775,6 @@ async function saveSettings() {
   const payload = {
     ...rawSettings,
     textScale,
-    hideAllCardTags: document.getElementById("hide-all-card-tags").checked,
     theme: selectedTheme,
     themeColors: prunePalette(),
     customTags,
@@ -2804,10 +2841,6 @@ async function saveSettings() {
     // на долю секунды мелькнула бы прошлая тема — applyTheme() сама
     // перечитает уже сохранённый site-settings.json и обновит кэш.
     if (data.ok) applyTheme();
-    // Тот же кэш, что и у отзывов (js/api.js: fetchReviews / fetchSiteSettings) —
-    // без сброса вкладка «Отзывы» ещё один заход показывала бы старое
-    // значение hideAllCardTags и того, что рядом с ним появится позже.
-    if (data.ok) cache.siteSettings = null;
     // Сохранённая тема — это и есть «настоящая» тема документа:
     // откатывать предпросмотр при уходе с маршрута больше не к чему
     // (см. revertPalettePreview()).
