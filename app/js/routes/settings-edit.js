@@ -981,10 +981,18 @@ let typeColors = {};
 function renderTypeColorsList() {
   const box = document.getElementById("typeColorsList");
   if (!box) return;
-  box.innerHTML = Object.keys(TYPE_COLOR_DEFAULTS)
+  // Раньше список строился из TYPE_COLOR_DEFAULTS — 11 фиксированных
+  // встроенных ключей, — и свои типы (settings.customTypes) в эту
+  // панель не попадали вообще: назначить им цвет было негде, и
+  // typeColor() в stats.js для них всегда возвращала запасной серый
+  // #666. typeLabels уже держит и встроенные, и свои типы (см. их
+  // сборку при монтировании выше) — строим список из него, так что
+  // новый тип получает свою строку сразу, как только его завели в
+  // «Оценки и статусы», без правки этого файла.
+  box.innerHTML = Object.keys(typeLabels)
     .map((key) => {
       const label = typeLabels[key] || key;
-      const color = typeColors[key] || TYPE_COLOR_DEFAULTS[key];
+      const color = typeColors[key] || TYPE_COLOR_DEFAULTS[key] || "#666666";
       return `<div class="pal-row">
         <input type="color" data-type-color="${key}" value="${color}">
         <div class="pal-text"><div class="pal-name">${esc(label)}</div></div>
