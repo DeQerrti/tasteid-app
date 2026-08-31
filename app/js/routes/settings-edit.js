@@ -660,6 +660,7 @@ function unmount() {
   document.removeEventListener("keydown", onAddFromPassportModalKey);
 
   revertPalettePreview();
+  sePrevSkin = null;
 
   document.title = sePrevTitle || document.title;
   settingsDirty = false;
@@ -685,7 +686,20 @@ async function confirmLeavePanel() {
     i18n("Уйти без сохранения"),
     i18n("Остаться")
   );
-  if (go) settingsDirty = false;
+  if (go) {
+    settingsDirty = false;
+    // Уходим с открытой панели, отказавшись от правок, — если это была
+    // «Внешний вид», previewPalette() успела покрасить весь документ
+    // инлайновым стилем поверх сохранённой темы (см. комментарий у
+    // revertPalettePreview() ниже). Раньше откат случался только в
+    // unmount(), то есть при уходе с маршрута целиком, — список
+    // разделов и любая другая открытая следом панель оставались в
+    // непросмотренной теме до конца сессии настроек. Здесь тот же
+    // откат, но при уходе с ЛЮБОЙ панели, а не только при закрытии
+    // всего маршрута; на панелях без предпросмотра темы вызов ничего
+    // не меняет.
+    revertPalettePreview();
+  }
   return go;
 }
 
@@ -701,8 +715,19 @@ async function leaveSettingsRoute() {
 // (см. .mobile-panel-open в index.html). Вызывающий уже сам спросил
 // confirmLeavePanel() — здесь только сама смена вида, без второго
 // вопроса.
+//
+// Класс .active на .side-tab снимаем тоже здесь: на ПК он не мешает
+// (сайдбар виден всегда, и обработчик клика по .side-tab специально
+// игнорирует клик по уже активной кнопке — открывать нечего, панель и
+// так на экране). А вот на телефоне после возврата к списку разделов
+// кнопка оставалась визуально выделенной и «активной» для того же
+// обработчика — повторный тап по ней проваливался в тот самый ранний
+// выход и панель было не открыть снова. Раздел, в который заходили
+// последним, при следующем открытии настроек с нуля подсветится через
+// разметку по умолчанию («Внешний вид»), а не через этот класс.
 function closeMobileSettingsPanel() {
   document.getElementById("app")?.classList.remove("mobile-panel-open");
+  document.querySelectorAll(".side-tab.active").forEach((btn) => btn.classList.remove("active"));
   seMobilePanelOpen = false;
 }
 
@@ -728,13 +753,19 @@ async function settingsBackAction() {
 // applyTheme() (см. js/theme.js) с настоящими, сохранёнными значениями,
 // так что откат мгновенный и без вспышки. saveSettings() при успехе сам
 // зовёт applyTheme() и обновляет sePrevSkin — тогда откатывать нечего.
+//
+// Зовётся не только при закрытии маршрута целиком (unmount()), но и при
+// уходе с каждой отдельной панели (confirmLeavePanel()) — поэтому сам
+// sePrevSkin здесь не обнуляем: он хранит тему на момент открытия
+// настроек и должен пережить несколько заходов в «Внешний вид» и
+// откатов подряд в рамках одной сессии. Обнуляет его только unmount(),
+// когда сессия настроек и правда закончилась.
 function revertPalettePreview() {
   const root = document.documentElement;
   for (const { key } of PALETTE_TOKENS) root.style.removeProperty(key);
   for (const key of Object.keys(accentVariants(DEFAULT_ACCENT))) root.style.removeProperty(key);
   root.style.removeProperty("--text-scale");
   if (sePrevSkin) root.setAttribute("data-skin", sePrevSkin);
-  sePrevSkin = null;
 }
 
 // ── Сворачиваемые разделы настроек ──────────────
