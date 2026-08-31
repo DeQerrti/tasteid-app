@@ -5,8 +5,16 @@
 // ══════════════════════════════════════════════
 const loading = {};
 
+// Раньше здесь стояла проверка cache.now — если "Сейчас" успела
+// отрисоваться до того, как подгрузились подписи/цвета, перерисовать
+// готовый кэш заново. Кэша больше нет, но гонка та же: эта вкладка
+// открыта по умолчанию при старте и могла отрендериться раньше, чем
+// сюда пришло событие. Признак "уже отрисована" теперь — что вкладка
+// сейчас видна; loadNow() просто перечитает reviews.json (это дёшево)
+// и перерисует уже с правильными подписями.
 document.addEventListener("site-labels-ready", () => {
-  if (cache.now) renderNow(cache.now);
+  const tab = document.getElementById("tab-now");
+  if (tab && !tab.classList.contains("hidden")) loadNow();
 });
 
 // ── Сохранение состояния секций ────────────────
@@ -20,7 +28,6 @@ function saveCollapsed(set) {
 }
 
 async function loadNow() {
-  if (cache.now)   { renderNow(cache.now); return; }
   if (loading.now) return;
   loading.now = true;
   const box = document.getElementById("tab-now");
@@ -35,8 +42,7 @@ async function loadNow() {
     const completed = reviews.filter(r =>
       r.status === "completed" || (!r.status && (r.preview || r.grade))
     );
-    cache.now = { buckets, completed };
-    renderNow(cache.now);
+    renderNow({ buckets, completed });
   } catch (err) {
     box.innerHTML = `<div class="state-box">
       <div style="font-size:2rem;margin-bottom:.75rem">⚠️</div>
