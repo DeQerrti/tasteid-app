@@ -1161,7 +1161,7 @@ async function saveAll() {
     const resp = await res.json();
     if (res.ok) {
       status.className = "status-msg ok";
-      status.textContent = i18n("Сохранено.") + ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд."));
+      status.textContent = i18n("Сохранено.");
     } else {
       status.className = "status-msg err";
       status.textContent = i18n("Ошибка: ") + (resp.error || i18n("неизвестная"));
