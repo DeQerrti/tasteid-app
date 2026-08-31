@@ -1041,9 +1041,6 @@ i18nRegister({
     "Turns on \"Don't show tags on the card\" for every review at once — the same as opening each one and checking that box by hand. The tags themselves aren't lost, they're still visible inside the review. Turning it off brings tags back on every card at once, including ones where the box was checked by hand in that review's own editor.",
   "Скрыть теги на всех карточках": "Hide tags on all cards",
   "Теги скрыты на всех карточках": "Tags hidden on all cards",
-  "Скрыть теги на карточках всех отзывов?": "Hide tags on the cards of every review?",
-  "Вернуть теги на карточки всех отзывов? Тоже разом — включая те, что скрывали вручную по одному, через редактор конкретного отзыва.":
-    "Bring tags back on the cards of every review? Also all at once — including ones hidden by hand, one at a time, through that review's own editor.",
   "Готово — теги скрыты на {n} карточках.": "Done — tags hidden on {n} cards.",
   "Готово — теги возвращены на {n} карточках.": "Done — tags brought back on {n} cards.",
   "У всех отзывов теги на карточке уже были скрыты.": "Every review already had its card tags hidden.",
