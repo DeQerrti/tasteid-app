@@ -1702,6 +1702,20 @@ function zoomPercent(percent) {
   return Math.round(percent) + "%";
 }
 
+// process.platform называется "win32" у Electron/Node на Windows
+// вообще всегда — даже на 64-битной и ARM64 системе: это имя унаследовано
+// от старого Win32 API и разрядность в нём никогда не была закодирована.
+// Показывать его как есть в «О программе» вводит в заблуждение (человек
+// решает, что приложение 32-битное) — поэтому здесь расшифровываем
+// платформу и разрядность (process.arch) в отдельности.
+const PLATFORM_OS_NAMES = { win32: "Windows", darwin: "macOS", linux: "Linux", android: "Android" };
+const PLATFORM_ARCH_NAMES = { x64: "64-bit", ia32: "32-bit", arm64: "ARM64" };
+function platformLabel(platform, arch) {
+  const os = PLATFORM_OS_NAMES[platform] || platform || "";
+  const archLabel = PLATFORM_ARCH_NAMES[arch] || arch || "";
+  return [os, archLabel].filter(Boolean).join(" ");
+}
+
 function renderAppPanel() {
   if (!appInfo) return;
   const langSel = document.getElementById("app-lang");
@@ -1713,7 +1727,8 @@ function renderAppPanel() {
   document.getElementById("app-vault-path").textContent = appInfo.vaultPath || i18n("не выбрана");
   document.getElementById("app-zoom-value").textContent = zoomPercent(appInfo.zoom || 100);
   document.getElementById("app-zoom-slider").value = appInfo.zoom || 100;
-  document.getElementById("app-version").textContent = `TasteID ${appInfo.version || ""} · ${appInfo.platform || ""}`;
+  document.getElementById("app-version").textContent =
+    `TasteID ${appInfo.version || ""} · ${platformLabel(appInfo.platform, appInfo.arch)}`;
 
   // На телефоне нет ни проводника, ни понятия масштаба окна — вместо
   // неработающих кнопок показываем то, что там правда можно сделать.
