@@ -141,7 +141,7 @@ function settingsViewHtml() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
         <span data-i18n>Все настройки</span>
       </button>
-      <h1 data-i18n>Настройки</h1>
+      <h1 id="settings-panel-title" data-i18n>Настройки</h1>
 
       <div class="panel active" id="panel-appearance">
         <div class="theme-grid" id="themeGrid"></div>
@@ -497,6 +497,8 @@ async function mount(container) {
     appEl.classList.remove("hidden");
   }
 
+  const mainEl = container.querySelector("#main");
+
   const sidebar = container.querySelector("#sidebar");
   seCleanupFns.push(
     makeResizablePanel(sidebar, container.querySelector("#sidebar-resize"), "tasteid-sidebar-width", 180, 380)
@@ -517,17 +519,40 @@ async function mount(container) {
   seOn(window, "resize", syncAppPadding);
   syncAppPadding();
 
+  // Заголовок над панелью — раньше везде висело общее «Настройки»
+  // независимо от того, какой раздел открыт; здесь ставим название
+  // самого раздела, взятое из подписи под тем же .side-tab (она уже
+  // переведена — applyI18n() выше отработал раньше этой строки).
+  const settingsPanelTitleEl = container.querySelector("#settings-panel-title");
+  function updateSettingsPanelTitle(btn) {
+    if (!settingsPanelTitleEl) return;
+    const label = btn?.querySelector(".side-tab-label")?.textContent;
+    settingsPanelTitleEl.textContent = label || i18n("Настройки");
+  }
+
   container.querySelectorAll(".side-tab").forEach((btn) => {
     btn.addEventListener("click", async () => {
       // Клик по уже открытой вкладке ничего не переключает — не повод
       // спрашивать про несохранённое там, где никакого ухода с панели
-      // не происходит.
-      if (btn.classList.contains("active")) return;
+      // не происходит. Но «уже открытой» проверяем не по классу
+      // .active — он стоит на «Оформлении» уже в исходной разметке,
+      // для ПК, где сайдбар и панель видны всегда вместе. На телефоне
+      // же список разделов и открытая панель показываются по очереди
+      // (#app.mobile-panel-open, см. index.html), и при первом заходе
+      // в настройки панель по этому классу ещё не показана — старая
+      // проверка на .active тут же выходила, и «Оформление» не
+      // открывалось вообще ничем, кроме как через другой раздел и
+      // обратно. Поэтому смотрим, действительно ли #main сейчас на
+      // экране, а не на класс, который может остаться от разметки по
+      // умолчанию или от прошлого показа.
+      const panelAlreadyVisible = getComputedStyle(mainEl).display !== "none";
+      if (btn.classList.contains("active") && panelAlreadyVisible) return;
       if (!(await confirmLeavePanel())) return;
       container.querySelectorAll(".side-tab").forEach((b) => b.classList.remove("active"));
       container.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(`panel-${btn.dataset.panel}`).classList.add("active");
+      updateSettingsPanelTitle(btn);
       // На ПК ничего не меняет (сайдбар виден всегда), а на телефоне —
       // тот самый переход от списка разделов к открытой панели (см.
       // .mobile-panel-open в index.html).
@@ -543,6 +568,24 @@ async function mount(container) {
       if (btn.dataset.panel === "backup") initBackupHistoryPanel();
     });
   });
+
+  // «Оформление» помечено активным прямо в разметке — так проще для
+  // ПК, где сайдбар и панель видны сразу вместе и подсветку незачем
+  // проставлять отдельным кодом. На телефоне же список разделов виден
+  // без открытой панели (#main скрыт), и тот же класс просто подсвечивал
+  // «Оформление» в списке ещё до того, как в него вообще заходили —
+  // вместе со старой проверкой на .active в клике это и не пускало
+  // внутрь при первом же заходе в настройки. Саму проверку в клике
+  // починили выше; здесь снимаем то, что осталось чисто визуально —
+  // список на телефоне должен открываться без единого выбранного
+  // пункта.
+  if (getComputedStyle(mainEl).display === "none") {
+    container.querySelector(".side-tab.active")?.classList.remove("active");
+  }
+  // И в любом случае заголовок над панелью для раздела по умолчанию —
+  // он получает активный класс в обход обработчика клика выше, значит,
+  // и заголовок под него нужно проставить здесь же.
+  updateSettingsPanelTitle(container.querySelector(".side-tab.active"));
 
   // «Все настройки» — видна только на телефоне (см. .settings-panel-back
   // в index.html), закрывает панель и возвращает к списку разделов —
