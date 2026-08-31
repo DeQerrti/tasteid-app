@@ -1037,8 +1037,13 @@ i18nRegister({
   "Не показывать теги на карточке": "Don't show tags on the card",
   "Теги не будут показаны на карточке — только внутри отзыва.": "Tags won't show on the card — only inside the review.",
   "Теги на карточках": "Tags on cards",
-  "Не показывать теги ни на одной карточке": "Don't show tags on any card",
-  "Разом для всех отзывов, в том числе уже сохранённых — сами теги никуда не пропадают, они по-прежнему видны внутри отзыва. Настройка конкретного отзыва («Какие теги показывать на карточке» в редакторе) при включённой галочке не действует.": "Applies to every review at once, including ones already saved — the tags themselves aren't lost, they're still visible inside the review. The per-review setting (\"Which tags to show on the card\" in the editor) has no effect while this is checked.",
+  "Разово ставит «Не показывать теги на карточке» сразу во всех отзывах — то же самое, что открыть каждый и отметить эту галочку вручную. Сами теги никуда не пропадают, они по-прежнему видны внутри отзыва. Захочешь вернуть теги на карточку для конкретного тайтла — сними галочку в его собственном редакторе, эта кнопка дальше ни на что не влияет.":
+    "A one-off action that checks \"Don't show tags on the card\" on every review at once — the same as opening each one and checking that box by hand. The tags themselves aren't lost, they're still visible inside the review. Want tags back on the card for one specific title? Uncheck it in that review's own editor — this button has no further effect after that.",
+  "Скрыть теги на всех карточках": "Hide tags on all cards",
+  "Скрыть теги на карточках всех отзывов? Отменить разом будет нельзя — только по одному, через редактор каждого отзыва.":
+    "Hide tags on the cards of every review? This can't be undone all at once — only one at a time, through each review's editor.",
+  "Готово — теги скрыты на {n} карточках.": "Done — tags hidden on {n} cards.",
+  "У всех отзывов теги на карточке уже были скрыты.": "Every review already had its card tags hidden.",
 });
 
 // ── Массовое удаление тегов (add.html) ─────────
