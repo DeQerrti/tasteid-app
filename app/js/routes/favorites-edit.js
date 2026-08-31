@@ -1024,7 +1024,7 @@ async function saveFavOrder() {
       orderDirty = false;
       btn.classList.remove("visible");
       document.getElementById("order-hint").classList.remove("visible");
-      setFavStatus("ok", i18n("Порядок сохранён.") + ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.")));
+      setFavStatus("ok", i18n("Порядок сохранён."));
     } else {
       setFavStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
@@ -1078,8 +1078,7 @@ async function saveEntry() {
     });
     const data = await res.json();
     if (res.ok) {
-      const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
-      setFavStatus("ok", favEditingId !== null ? `«${name}» обновлён.${note}` : `«${name}» сохранён.${note}`);
+      setFavStatus("ok", favEditingId !== null ? `«${name}» обновлён.` : `«${name}» сохранён.`);
       if (favEditingId === null) resetFavToNew();
       setTimeout(loadList, 2000);
     } else {
