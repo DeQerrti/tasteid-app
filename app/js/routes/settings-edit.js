@@ -815,7 +815,9 @@ function flashStatus(id, ok, msg) {
 // расставляет или снимает этот флаг сразу во всех отзывах одной записью
 // в reviews.json — оба направления симметричны: включение и выключение
 // действуют на всех одинаково, включая отзывы, где галочку поставили
-// вручную через редактор конкретного отзыва.
+// вручную через редактор конкретного отзыва. Без подтверждения — это
+// переключатель, а не разовое необратимое действие, как раньше: щёлкнул
+// не туда, щёлкнул обратно.
 //
 // Кнопка не тянет reviews.json, чтобы при каждом заходе в настройки
 // узнать, стоит ли флаг уже у всех, — файл четверть мегабайта, а
@@ -837,15 +839,26 @@ function syncHideTagsToggle() {
     : i18n("Скрыть теги на всех карточках");
 }
 
+// Настройки — отдельный маршрут (router.js): пока он открыт, рельса с
+// вкладками (#shell-root) не разбирается, просто прячется через
+// .hidden — та вкладка, что была открыта до захода сюда, всё ещё сидит
+// в DOM со старыми карточками. Сама по себе она обновится только по
+// новому клику на вкладку (switchTab() в index.html), а измениться
+// должно сразу — поэтому дёргаем загрузчик той вкладки, что сейчас под
+// настройками, вручную, тем же кодом, каким её обновляет обычный клик.
+function refreshOpenTabAfterReviewsChange() {
+  const active = document.querySelector("#shell-root .tab-content:not(.hidden)");
+  if (!active) return;
+  if (active.id === "tab-now") loadNow();
+  if (active.id === "tab-favorites") loadFavorites();
+  if (active.id === "tab-reviews") loadReviews();
+  if (active.id === "tab-stats") loadStats();
+  if (active.id === "tab-tierlist") loadTierlist();
+}
+
 async function toggleHideAllCardTags() {
   const statusId = "status-hide-all-card-tags";
   const next = !hideTagsAllOn;
-  const question = next
-    ? i18n("Скрыть теги на карточках всех отзывов?")
-    : i18n(
-        "Вернуть теги на карточки всех отзывов? Тоже разом — включая те, что скрывали вручную по одному, через редактор конкретного отзыва."
-      );
-  if (!confirm(question)) return;
   try {
     const res = await fetch("/api/save-review", {
       method: "POST",
@@ -856,6 +869,7 @@ async function toggleHideAllCardTags() {
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `Сервер ответил ${res.status}`);
     cache.reviews = null; // reviews.json поменялся мимо add.js — тот же сброс, что и после обычного сохранения отзыва
+    refreshOpenTabAfterReviewsChange();
     hideTagsAllOn = next;
     syncHideTagsToggle();
     flashStatus(
