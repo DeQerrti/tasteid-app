@@ -365,14 +365,4 @@ export default [
     },
     rules: commonRules,
   },
-  {
-    // Service worker — свой набор глобальных (self, clients, caches)
-    files: ["app/sw.js"],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: "script",
-      globals: globals.serviceworker,
-    },
-    rules: commonRules,
-  },
 ];
