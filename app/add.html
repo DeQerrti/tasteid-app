@@ -2519,11 +2519,9 @@ async function deleteReview() {
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `Сервер ответил ${res.status}`);
 
-    // Про «сайт обновится» здесь говорить нечего: в приложении никакой
-    // выкладки нет, файл на диске уже переписан. Соседние сообщения об
-    // этом и так спрашивают isAppContext() — тут просто забыли.
-    const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
-    setStatus("ok", i18n("«{name}» удалена.", { name: data.title }) + note);
+    // В приложении никакой выкладки нет: файл на диске уже переписан,
+    // ждать нечего.
+    setStatus("ok", i18n("«{name}» удалена.", { name: data.title }));
     cache.reviews = null;
     // Форма после удаления показывает то, чего уже нет, — уводим на главную.
     // addDirty сбрасываем явно: иначе beforeunload спросил бы «уйти без
@@ -2764,10 +2762,7 @@ async function saveReview() {
     });
     const data = await res.json();
     if (res.ok) {
-      const note = (await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд.");
-      setStatus("ok", editingId !== null
-        ? `«${title}» обновлён.${note}`
-        : `«${title}» сохранён.${note}`);
+      setStatus("ok", editingId !== null ? `«${title}» обновлён.` : `«${title}» сохранён.`);
       addDirty = false;
       cache.reviews = null; // тот же кэш, что и в SPA-версии (js/api.js) — сбрасываем, чтобы список отзывов перечитался заново
       if (editingId === null) {
