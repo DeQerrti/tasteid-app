@@ -31,7 +31,6 @@ const tlState = {
   listId:      null,
   items:       [],
   collections: {}, // { [collectionId]: { games: [...], loaded: bool } }
-  loaded:      false,
 };
 
 // Список коллекций (кроме "Тайтлы") — по умолчанию только встроенная
@@ -119,14 +118,17 @@ async function loadTierlist() {
   loading.tierlist = true;
   const box = document.getElementById("tab-tierlist");
   try {
-    if (!tlState.loaded) {
-      box.innerHTML = `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем…")}</div>`;
-      await fetchReviews();
-      const reviews  = (cache.reviews || []).filter(r => r.grade);
-      tlState.items  = reviews.map(r => ({ review: r, poster: r.cover || null, posterBackup: r.cover_backup || null }));
-      tlState.loaded = true;
-      tlEnsureVisibleMode();
-    }
+    // Раньше режим "Тайтлы" держался за tlState.loaded и не перечитывал
+    // reviews.json при повторном заходе на вкладку. loadTierlist()
+    // вызывается только при переключении на саму вкладку (switchTab в
+    // index.html) — не при смене режима внутри неё (та идёт через
+    // tlBindAll → tlRender, без повторного fetch), так что перечитывать
+    // тут каждый раз безопасно и дёшево (локальный файл).
+    box.innerHTML = `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем…")}</div>`;
+    await fetchReviews();
+    const reviews = (cache.reviews || []).filter(r => r.grade);
+    tlState.items = reviews.map(r => ({ review: r, poster: r.cover || null, posterBackup: r.cover_backup || null }));
+    tlEnsureVisibleMode();
     if (tlState.mode !== "titles" && !tlState.collections[tlState.mode]?.loaded) {
       await loadCharGames(tlState.mode);
     }
