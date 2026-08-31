@@ -735,6 +735,7 @@ async function runImport() {
     importData.untouched = importData.items.length - (data.added ?? 0) - (data.updated ?? 0);
     importStep = "done";
     cache.reviews = null; // список изменился — перечитаем при следующем обращении
+    refreshOpenReviewsTab(); // /settings-edit «Импорт» — та же спрятанная-не-разобранная вкладка, что и в js/api.js
     renderImport();
   } catch (err) {
     status.className = "status-msg err";
