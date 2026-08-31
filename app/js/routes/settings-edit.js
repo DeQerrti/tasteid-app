@@ -851,7 +851,6 @@ async function toggleHideAllCardTags() {
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `Сервер ответил ${res.status}`);
-    cache.reviews = null; // reviews.json поменялся мимо add.js — тот же сброс, что и после обычного сохранения отзыва
     refreshOpenReviewsTab();
     hideTagsAllOn = next;
     syncHideTagsToggle();
