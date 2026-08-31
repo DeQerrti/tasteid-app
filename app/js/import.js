@@ -734,7 +734,6 @@ async function runImport() {
     importData.updated = data.updated ?? 0;
     importData.untouched = importData.items.length - (data.added ?? 0) - (data.updated ?? 0);
     importStep = "done";
-    cache.reviews = null; // список изменился — перечитаем при следующем обращении
     refreshOpenReviewsTab(); // /settings-edit «Импорт» — та же спрятанная-не-разобранная вкладка, что и в js/api.js
     renderImport();
   } catch (err) {
@@ -815,9 +814,9 @@ function bindImport() {
 
 // Разобранный список — из файла ли, из сети ли — дальше идёт одним путём.
 async function startMapping(parsed) {
-  // Перечитываем свои отзывы перед разбором: после предыдущего импорта
-  // кэш сброшен, а без него «уже есть» посчиталось бы нулём и вторая
-  // пачка приехала бы дублями.
+  // Перечитываем свои отзывы перед разбором: fetchReviews() не кэширует,
+  // так что это всегда актуальный список — без этого «уже есть»
+  // посчиталось бы по устаревшим данным и вторая пачка приехала бы дублями.
   await fetchReviews();
   importData = parsed;
   importStatusMap = defaultStatusMap();
