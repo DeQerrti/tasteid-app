@@ -463,7 +463,6 @@ async function mount(container) {
   // если панель и так закрыта — спрашивает и уходит с маршрута.
   setLeaveGuard(settingsBackAction);
   appInfo = null;
-  reviewsForCount = null;
   hideTagsAllOn = false;
   rawSettings = {};
   openThemeGroup = null;
@@ -668,7 +667,6 @@ function unmount() {
   openThemeGroup = null;
   tabDragSrc = null;
   appInfo = null;
-  reviewsForCount = null;
   hideTagsAllOn = false;
 }
 
@@ -819,13 +817,11 @@ function flashStatus(id, ok, msg) {
 // переключатель, а не разовое необратимое действие, как раньше: щёлкнул
 // не туда, щёлкнул обратно.
 //
-// Кнопка не тянет reviews.json, чтобы при каждом заходе в настройки
-// узнать, стоит ли флаг уже у всех, — файл четверть мегабайта, а
-// «Внешний вид» открывается чаще любой другой панели (тот же довод, что
-// у reviewsForCount ниже, про подсчёт по статусам). Поэтому при каждом
-// заходе кнопка открывается в состоянии «выключено» и просто делает то,
-// что показывает; если на самом деле уже всё скрыто (или уже всё
-// видно), сервер честно вернёт touched: 0, и сообщение об этом скажет.
+// Кнопка открывается в состоянии «выключено» и просто делает то, что
+// показывает — включение и выключение работают симметрично, а не как
+// переключатель с реальным состоянием: если на самом деле уже всё
+// скрыто (или уже всё видно), сервер честно вернёт touched: 0, и
+// сообщение об этом скажет.
 let hideTagsAllOn = false;
 
 function syncHideTagsToggle() {
@@ -2327,17 +2323,9 @@ function addStatusBucket() {
   renderStatusesList();
 }
 
-// reviews.json тянем только когда он действительно нужен — в момент
-// удаления статуса. Настройки открывают часто, а файл на четверть
-// мегабайта; грузить его на каждый заход ради одной цифры незачем.
-let reviewsForCount = null;
-
 async function countReviewsByStatus(key) {
-  if (!reviewsForCount) {
-    const res = await fetch("/reviews.json?_=" + Date.now());
-    reviewsForCount = await res.json();
-  }
-  return reviewsForCount.filter((r) => r.status === key).length;
+  const reviews = await fetchReviews();
+  return reviews.filter((r) => r.status === key).length;
 }
 
 // Удалить статус, которым что-то помечено, — не поломка, но записи
