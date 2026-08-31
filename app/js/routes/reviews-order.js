@@ -204,9 +204,7 @@
       const data = await res.json();
       if (res.ok) {
         status.className = "save-status ok";
-        status.textContent =
-          i18n("Порядок сохранён.") +
-          ((await isAppContext()) ? "" : i18n(" Сайт обновится через ~30 секунд."));
+        status.textContent = i18n("Порядок сохранён.");
       } else {
         status.className = "save-status err";
         status.textContent = i18n("Ошибка: ") + (data.error || i18n("неизвестная"));
