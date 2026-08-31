@@ -28,21 +28,3 @@ async function fetchReviews() {
     return [];
   }
 }
-
-// ── site-settings.json (для чтения на лету — не путать с
-// currentSiteSettings() в config.js, та всегда идёт в сеть заново,
-// потому что нужна экрану настроек перед записью поверх свежего
-// файла; здесь, наоборот, кэш уместен — вкладка «Отзывы» открывается
-// куда чаще, чем меняются настройки) ──
-async function fetchSiteSettings() {
-  if (cache.siteSettings) return cache.siteSettings;
-  try {
-    const res = await fetch("/site-settings.json");
-    if (!res.ok) throw new Error();
-    cache.siteSettings = await res.json();
-    return cache.siteSettings;
-  } catch {
-    cache.siteSettings = {};
-    return cache.siteSettings;
-  }
-}
