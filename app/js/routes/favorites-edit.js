@@ -999,6 +999,12 @@ async function deleteFavEntry(id) {
     // форма показывала бы то, чего уже нет.
     if (favEditingId === id) resetFavToNew();
     await loadList();
+    // cache.fav (js/favorites.js) держит персонажей/персон из старого
+    // favorites.json — без сброса вкладка «Любимое» под этим маршрутом
+    // ещё показывала бы удалённую запись, пока по ней не щёлкнуть
+    // заново (см. тот же приём в js/api.js: refreshOpenReviewsTab).
+    cache.fav = null;
+    refreshOpenReviewsTab();
     setFavStatus("ok", i18n("«{name}» удалена.", { name }));
   } catch (err) {
     setFavStatus("err", i18n("Не удалось удалить: ") + err.message);
@@ -1025,6 +1031,11 @@ async function saveFavOrder() {
       btn.classList.remove("visible");
       document.getElementById("order-hint").classList.remove("visible");
       setFavStatus("ok", i18n("Порядок сохранён."));
+      // Тот же сброс, что и при удалении выше — cache.fav иначе
+      // держит старый порядок персонажей/персон до следующего захода
+      // на вкладку.
+      cache.fav = null;
+      refreshOpenReviewsTab();
     } else {
       setFavStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
@@ -1080,6 +1091,11 @@ async function saveEntry() {
     if (res.ok) {
       setFavStatus("ok", favEditingId !== null ? `«${name}» обновлён.` : `«${name}» сохранён.`);
       if (favEditingId === null) resetFavToNew();
+      // Тот же сброс, что при удалении и смене порядка выше — иначе
+      // «Любимое» под этим маршрутом ещё показывало бы старое имя/
+      // картинку до следующего захода на вкладку.
+      cache.fav = null;
+      refreshOpenReviewsTab();
       setTimeout(loadList, 2000);
     } else {
       setFavStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
