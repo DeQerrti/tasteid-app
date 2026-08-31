@@ -830,7 +830,6 @@ i18nRegister({
 i18nRegister({
   "— светлая": " — light",
   "— тёмная": " — dark",
-  "[sw] не зарегистрировался:": "[sw] failed to register:",
   "Блок оценок": "Ratings block",
   "Блок пересмотров": "Rewatches block",
   "Блок тегов": "Tags block",
@@ -841,7 +840,6 @@ i18nRegister({
   "Введи название статуса": "Enter a status name",
   "Введи название тега": "Enter a tag name",
   "Введи название типа": "Enter a type name",
-  "Восстановлено ✓ (сайт обновится через ~30 секунд)": "Restored ✓ (the site updates in ~30 seconds)",
   "Восстановлено ✓": "Restored ✓",
   "Выбери папку выше.": "Pick a folder above.",
   "Выбери файл": "Choose a file",
@@ -898,11 +896,8 @@ i18nRegister({
   "Редактировать отзыв": "Edit review",
   "Резервная копия сохранена ✓": "Backup saved ✓",
   "Резервную копию сделать не удалось:": "Couldn’t make a backup:",
-  "Сайт обновится через ~30 секунд.": "The site updates in ~30 seconds.",
   Слабо: "Weak",
   "Сначала выбери папку выше": "Pick a folder above first",
-  "Сохранено ✓ (обнови страницу на сайте, чтобы увидеть изменения)":
-    "Saved ✓ (reload the site page to see the changes)",
   "Сохранено ✓": "Saved ✓",
   "Сохранено.": "Saved.",
   "Сохранить изменения": "Save changes",
