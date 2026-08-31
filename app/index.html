@@ -2300,6 +2300,30 @@ section.group { margin-bottom: 3.5rem; }
 
 :where(.set-view) h2.section-h { font-size: 1.05rem; color: var(--text-hi); }
 
+/* ── ПЕРЕКЛЮЧАТЕЛЬ «Скрыть теги на всех карточках» ──
+   Тот же приём, что у .fav-toggle в редакторе отзыва (add-view: кнопка
+   на всю ширину вместо системного чекбокса), но свои правила здесь, а
+   не переиспользование класса .fav-toggle — это две разные страницы,
+   и .add-view/.set-view нарочно не делят классы между собой (см. шапку
+   этого файла про :where()). Глаз — та же svg из eyeIcon() (js/utils.js),
+   что и у остальных «скрыть/показать» на этой же странице. */
+:where(.set-view) .btn.hide-tags-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .7rem .85rem;
+  text-transform: none;
+  font-size: .75rem;
+  letter-spacing: .05em;
+  user-select: none;
+  margin-top: 4px;
+}
+:where(.set-view) .hide-tags-toggle-icon { flex-shrink: 0; }
+:where(.set-view) .btn.hide-tags-toggle.on { border-color: var(--accent-line); background: var(--accent-fill); color: var(--red-hi); }
+:where(.set-view) .btn.hide-tags-toggle.on:hover { background: var(--accent-fill-hi); color: var(--red-hi); }
+
 /* ── Сворачиваемые разделы настроек ──────────────
    Тот же приём, что у .sec/.sec-toggle в редакторе отзыва: каждый
    h2.section-h в «Вкладках» и «Подписях» и всё, что следует за ним до
