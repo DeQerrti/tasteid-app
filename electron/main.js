@@ -232,6 +232,7 @@ function appRoutes() {
       zoom: config.zoom ?? 100,
       lang: appLanguage(),
       platform: process.platform,
+      arch: process.arch,
       version: app.getVersion(),
     }),
 
