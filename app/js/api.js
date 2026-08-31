@@ -38,12 +38,28 @@ async function fetchReviews() {
 // где обнаружилось) — с переносом сюда используют все места, что
 // сбрасывают cache.reviews из своего собственного маршрута, а не
 // только «Внешний вид» в настройках.
+//
+// Мало дёрнуть loadNow()/loadFavorites()/loadTierlist() — они сами по
+// себе не перечитывают cache.reviews каждый раз: now.js держит готовый
+// результат в cache.now, favorites.js — в cache.fav, tierlist.js — в
+// tlState.loaded, и при уже выставленном кэше просто перерисовывают
+// то же самое старое (см. их же "if (cache.now)"/"if (cache.fav)"/
+// "if (!tlState.loaded)" в начале). Без сброса этих трёх ниже вкладки
+// «Сейчас», «Любимое» и «Тир-лист» (режим «Тайтлы») выглядели бы
+// обновлёнными, а на деле показывали бы то же, что и до правки — в
+// отличие от «Отзывы» и «Статистика», которые сами всегда идут за
+// свежим fetchReviews() и это не нужно.
 function refreshOpenReviewsTab() {
   const active = document.querySelector("#shell-root .tab-content:not(.hidden)");
   if (!active) return;
+  cache.now = null;
+  cache.fav = null;
   if (active.id === "tab-now") loadNow();
   if (active.id === "tab-favorites") loadFavorites();
   if (active.id === "tab-reviews") loadReviews();
   if (active.id === "tab-stats") loadStats();
-  if (active.id === "tab-tierlist") loadTierlist();
+  if (active.id === "tab-tierlist") {
+    tlState.loaded = false;
+    loadTierlist();
+  }
 }
