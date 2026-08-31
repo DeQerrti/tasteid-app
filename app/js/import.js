@@ -35,16 +35,6 @@ const TMDB_KEY_STORAGE = "tasteid_tmdb_key";
 // нельзя: разобранный файл живёт в памяти страницы и при уходе пропадёт.
 const NEW_STATUS_VALUE = "__new__";
 
-// Приложение это или сайт. isAppContext() отвечает промисом, а
-// renderImport() собирает разметку сразу — поэтому ответ запоминаем
-// один раз при загрузке и дальше читаем синхронно. К последнему шагу
-// импорта он заведомо готов: до него ещё выбирать файл и сверять
-// оценки.
-let importInAppContext = false;
-isAppContext().then((yes) => {
-  importInAppContext = yes;
-});
-
 let importData = null; // разобранная выгрузка
 let importStep = "file"; // file | map | done
 let importBusy = false;
@@ -416,12 +406,8 @@ function importMapHtml() {
 }
 
 function importDoneHtml() {
-  // «Сайт обновится» — про сайт, а не про приложение: здесь записи уже
-  // лежат в reviews.json на диске. Строку показываем только когда это
-  // правда сайт, как это делают все остальные подобные сообщения.
-  const note = importInAppContext ? "" : i18n(" Сайт обновится через ~30 секунд.");
   return `
-    <p class="panel-intro">${i18n("Готово.")}${note}</p>
+    <p class="panel-intro">${i18n("Готово.")}</p>
     <div class="imp-summary">
       ${impStat(importData.added, i18n("добавлено"))}
       ${impStat(importData.updated, i18n("обновлено"))}
