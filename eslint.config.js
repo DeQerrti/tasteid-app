@@ -197,6 +197,7 @@ const sharedBrowserGlobals = [
   "ppStat",
   "proxyImagesToDataUrls",
   "rebuildGradesFromScale",
+  "refreshOpenReviewsTab",
   "registerRoute",
   "renderAllTimeStats",
   "renderCounters",
