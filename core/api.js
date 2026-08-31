@@ -104,6 +104,25 @@ async function saveReview({ vault, body }) {
     return { ok: true, touched };
   }
 
+  // Массово поставить «не показывать теги на карточке» сразу во всех
+  // отзывах — кнопка в настройках (js/routes/settings-edit.js). Пишет
+  // тот же флаг (no_tags_on_card), что и чекбокс в редакторе одного
+  // отзыва (add.js): это разовое действие, а не отдельная настройка —
+  // дальше каждый отзыв просто хранит своё значение, и снять галочку
+  // для одного конкретного тайтла можно как обычно, через его же
+  // редактор, ничего сверху не перекрывает.
+  if (body._hide_all_card_tags === true) {
+    const list = await vault.readJson("reviews.json", []);
+    let touched = 0;
+    for (const r of list) {
+      if (r.no_tags_on_card === true) continue;
+      r.no_tags_on_card = true;
+      touched++;
+    }
+    if (touched) await vault.writeJson("reviews.json", list);
+    return { ok: true, touched };
+  }
+
   if (!body.title) throw new ApiError("Нужно название");
 
   const list = await vault.readJson("reviews.json", []);
