@@ -1165,8 +1165,7 @@ async function saveAll() {
       // tlState.collections[COLLECTION] (js/tierlist.js) держит уже
       // загруженный набор персонажей/игр этой коллекции с флагом
       // loaded: true — без сброса «Тир-лист» под этим маршрутом ещё
-      // показывал бы старую версию, пока по нему не щёлкнуть заново
-      // (тот же приём, что у cache.now/cache.fav в js/api.js).
+      // показывал бы старую версию, пока по нему не щёлкнуть заново.
       delete tlState.collections[COLLECTION];
       refreshOpenReviewsTab();
     } else {
