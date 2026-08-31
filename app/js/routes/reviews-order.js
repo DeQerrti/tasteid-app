@@ -205,6 +205,13 @@
       if (res.ok) {
         status.className = "save-status ok";
         status.textContent = i18n("Порядок сохранён.");
+        // fav_order живёт прямо в записях отзывов (reviews.json), так
+        // что старый порядок остаётся в cache.reviews/cache.fav ровно
+        // по той же причине, что и в js/api.js: сброс здесь и вкладка
+        // «Любимое» под этим маршрутом подхватят новый порядок сами,
+        // без выхода на другую вкладку и обратно.
+        cache.reviews = null;
+        refreshOpenReviewsTab();
       } else {
         status.className = "save-status err";
         status.textContent = i18n("Ошибка: ") + (data.error || i18n("неизвестная"));
