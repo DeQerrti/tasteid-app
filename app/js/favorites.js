@@ -6,7 +6,6 @@
 // ══════════════════════════════════════════════
 
 async function loadFavorites() {
-  if (cache.fav) { renderFavorites(cache.fav); return; }
   if (loading.fav) return;
   loading.fav = true;
 
@@ -24,8 +23,7 @@ async function loadFavorites() {
     const characters = favData.filter(r => r.type === "character");
     const persons    = favData.filter(r => r.type === "person");
 
-    cache.fav = { titles, characters, persons, favData };
-    renderFavorites(cache.fav);
+    renderFavorites({ titles, characters, persons, favData });
 
   } catch (err) {
     document.getElementById("tab-favorites").innerHTML =
