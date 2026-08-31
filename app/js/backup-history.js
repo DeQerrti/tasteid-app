@@ -23,7 +23,6 @@
   let FILES = BASE_FILES.slice();
   let currentPath = FILES[0].path;
   const versionsCache = {}; // path -> versions[]
-  let inApp = false; // приложение публикует правки сразу, сайту нужны ~30с на выкладку
   let busy = false;
 
   async function initBackupHistoryPanel() {
@@ -37,8 +36,6 @@
         return;
       }
       if (app) app.classList.remove("hidden");
-
-      inApp = await isAppContext();
 
       // Свои коллекции тир-листа — из настроек, не зашиты списком: список
       // однажды бы разъехался с тем, что человек сам завёл на вкладке
@@ -271,7 +268,7 @@
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
       delete versionsCache[path];
-      backupToast(inApp ? "Восстановлено ✓" : i18n("Восстановлено ✓ (сайт обновится через ~30 секунд)"), true);
+      backupToast("Восстановлено ✓", true);
       loadVersions(path);
     } catch (e) {
       backupToast("Не удалось восстановить: " + e.message, false);
