@@ -1037,13 +1037,17 @@ i18nRegister({
   "Не показывать теги на карточке": "Don't show tags on the card",
   "Теги не будут показаны на карточке — только внутри отзыва.": "Tags won't show on the card — only inside the review.",
   "Теги на карточках": "Tags on cards",
-  "Разово ставит «Не показывать теги на карточке» сразу во всех отзывах — то же самое, что открыть каждый и отметить эту галочку вручную. Сами теги никуда не пропадают, они по-прежнему видны внутри отзыва. Захочешь вернуть теги на карточку для конкретного тайтла — сними галочку в его собственном редакторе, эта кнопка дальше ни на что не влияет.":
-    "A one-off action that checks \"Don't show tags on the card\" on every review at once — the same as opening each one and checking that box by hand. The tags themselves aren't lost, they're still visible inside the review. Want tags back on the card for one specific title? Uncheck it in that review's own editor — this button has no further effect after that.",
+  "Ставит «Не показывать теги на карточке» сразу во всех отзывах — то же самое, что открыть каждый и отметить эту галочку вручную. Сами теги никуда не пропадают, они по-прежнему видны внутри отзыва. Выключение возвращает теги на карточки всех отзывов разом, включая те, где галочку поставили вручную в редакторе конкретного отзыва.":
+    "Turns on \"Don't show tags on the card\" for every review at once — the same as opening each one and checking that box by hand. The tags themselves aren't lost, they're still visible inside the review. Turning it off brings tags back on every card at once, including ones where the box was checked by hand in that review's own editor.",
   "Скрыть теги на всех карточках": "Hide tags on all cards",
-  "Скрыть теги на карточках всех отзывов? Отменить разом будет нельзя — только по одному, через редактор каждого отзыва.":
-    "Hide tags on the cards of every review? This can't be undone all at once — only one at a time, through each review's editor.",
+  "Теги скрыты на всех карточках": "Tags hidden on all cards",
+  "Скрыть теги на карточках всех отзывов?": "Hide tags on the cards of every review?",
+  "Вернуть теги на карточки всех отзывов? Тоже разом — включая те, что скрывали вручную по одному, через редактор конкретного отзыва.":
+    "Bring tags back on the cards of every review? Also all at once — including ones hidden by hand, one at a time, through that review's own editor.",
   "Готово — теги скрыты на {n} карточках.": "Done — tags hidden on {n} cards.",
+  "Готово — теги возвращены на {n} карточках.": "Done — tags brought back on {n} cards.",
   "У всех отзывов теги на карточке уже были скрыты.": "Every review already had its card tags hidden.",
+  "У всех отзывов теги на карточке уже были видны.": "Every review already had its card tags visible.",
 });
 
 // ── Массовое удаление тегов (add.html) ─────────
