@@ -65,6 +65,7 @@ const sharedBrowserGlobals = [
   "exportMyPassport",
   "extractIdsFromCover",
   "eyeButton",
+  "eyeIcon",
   "favPersonCard",
   "favTitleCard",
   "fetchAnilistMeta",
