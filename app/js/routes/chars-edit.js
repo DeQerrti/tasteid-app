@@ -1162,6 +1162,13 @@ async function saveAll() {
     if (res.ok) {
       status.className = "status-msg ok";
       status.textContent = i18n("Сохранено.");
+      // tlState.collections[COLLECTION] (js/tierlist.js) держит уже
+      // загруженный набор персонажей/игр этой коллекции с флагом
+      // loaded: true — без сброса «Тир-лист» под этим маршрутом ещё
+      // показывал бы старую версию, пока по нему не щёлкнуть заново
+      // (тот же приём, что у cache.now/cache.fav в js/api.js).
+      delete tlState.collections[COLLECTION];
+      refreshOpenReviewsTab();
     } else {
       status.className = "status-msg err";
       status.textContent = i18n("Ошибка: ") + (resp.error || i18n("неизвестная"));
