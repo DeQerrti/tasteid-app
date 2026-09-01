@@ -140,7 +140,7 @@ function settingsViewHtml() {
       <button class="side-tab" data-panel="grades">${sideTabIcon("grades")}${sideTabLabel("Оценки и статусы")}</button>
       <button class="side-tab" data-panel="collections">${sideTabIcon("collections")}${sideTabLabel("Тир-листы")}</button>
       <button class="side-tab" data-panel="labels">${sideTabIcon("labels")}${sideTabLabel("Подписи")}</button>
-      <button class="side-tab" data-panel="passports">${sideTabIcon("passports")}${sideTabLabel("Паспорта")}</button>
+      <button class="side-tab" data-panel="passports">${sideTabIcon("passports")}${sideTabLabel("Обмен")}</button>
       <button class="side-tab hidden" data-panel="sync" id="tab-sync">${sideTabIcon("sync")}${sideTabLabel("Синхронизация")}</button>
       <button class="side-tab" data-panel="import">${sideTabIcon("import")}${sideTabLabel("Импорт")}</button>
       <button class="side-tab hidden" data-panel="vaults" id="tab-vaults">${sideTabIcon("vaults")}${sideTabLabel("Хранилища")}</button>

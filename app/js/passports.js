@@ -495,14 +495,14 @@ function compareResultHtml() {
       ${ppStat(argued.length, i18n("заметных споров"))}
       ${ppStat(onlyTheirs.length, i18n("можно забрать себе"))}
     </div>
-    ${comparePairsHtml(i18n("Где разошлись"), i18n("Чем выше, тем сильнее спор."), argued, mine, theirs, i18n("Полное согласие – спорить не о чем."))}
-    ${comparePairsHtml(i18n("Где сошлись"), i18n("Одна и та же полка или соседние."), agreed, mine, theirs, i18n("Общих оценок не нашлось."))}
-    ${compareOneSidedHtml(i18n("Стоит забрать себе"), i18n("Он оценил, а у тебя этого нет."), onlyTheirs, theirs, true)}
-    ${compareOneSidedHtml(i18n("Только у тебя"), i18n("Ты оценил, а у него этого нет."), onlyMine, mine)}
+    ${comparePairsHtml(i18n("Где разошлись"), argued, mine, theirs, i18n("Полное согласие – спорить не о чем."))}
+    ${comparePairsHtml(i18n("Где сошлись"), agreed, mine, theirs, i18n("Общих оценок не нашлось."))}
+    ${compareOneSidedHtml(i18n("Стоит забрать себе"), onlyTheirs, theirs, true)}
+    ${compareOneSidedHtml(i18n("Только у вас"), onlyMine, mine)}
   </div>`;
 }
 
-function comparePairsHtml(title, sub, pairs, mine, theirs, emptyText) {
+function comparePairsHtml(title, pairs, mine, theirs, emptyText) {
   const rows = pairs.map((pair) => `
     <div class="pp-row${pair.gap > DISAGREE_THRESHOLD ? " pp-row-argued" : ""}">
       ${ppPoster(pair.mine)}
@@ -511,16 +511,16 @@ function comparePairsHtml(title, sub, pairs, mine, theirs, emptyText) {
         ${ppMeta(pair.mine)}
       </div>
       <div class="pp-grades">
-        <div class="pp-side"><div class="pp-who">${i18n("ты")}</div>${ppChip(mine, pair.mine.grade)}</div>
+        <div class="pp-side"><div class="pp-who">${i18n("вы")}</div>${ppChip(mine, pair.mine.grade)}</div>
         <div class="pp-vs">${pair.gap > DISAGREE_THRESHOLD ? (pair.iRatedHigher ? "&gt;" : "&lt;") : "="}</div>
         <div class="pp-side"><div class="pp-who">${i18n("он")}</div>${ppChip(theirs, pair.theirs.grade)}</div>
       </div>
     </div>`).join("");
 
-  return ppSection(title, sub, rows, emptyText);
+  return ppSection(title, rows, emptyText);
 }
 
-function compareOneSidedHtml(title, sub, items, info, showAdd) {
+function compareOneSidedHtml(title, items, info, showAdd) {
   // Сначала то, что оценено выше: если это список «забрать себе»,
   // сверху должно оказаться лучшее, а не случайное.
   const sorted = [...items].sort((a, b) => {
@@ -542,13 +542,12 @@ function compareOneSidedHtml(title, sub, items, info, showAdd) {
         : ""}
     </div>`).join("");
 
-  return ppSection(title, sub, rows, i18n("Пусто"));
+  return ppSection(title, rows, i18n("Пусто"));
 }
 
-function ppSection(title, sub, rows, emptyText) {
+function ppSection(title, rows, emptyText) {
   return `<section class="pp-section">
     <h2 class="section-h">${esc(title)}</h2>
-    <p class="panel-intro">${esc(sub)}</p>
     ${rows || `<p class="pp-empty">${esc(emptyText)}</p>`}
   </section>`;
 }
