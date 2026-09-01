@@ -5,6 +5,8 @@
 //  Персонажи и персоны – из favorites.json
 // ══════════════════════════════════════════════
 
+let favExportData = null;
+
 async function loadFavorites() {
   if (loading.fav) return;
   loading.fav = true;
@@ -40,6 +42,11 @@ function renderFavorites({ titles, characters, persons, favData }) {
   const box   = document.getElementById("tab-favorites");
   const admin = isAdmin();
   let html    = "";
+
+  favExportData = { titles, characters, persons, favData };
+  html += `<div class="fav-export-bar">
+    <button class="admin-add-btn" onclick="openFavExportModal()">${i18n("Сохранить как картинку")}</button>
+  </div>`;
 
   // ── Тайтлы ──────────────────────────────────
   if (isFavSectionVisible("favTitles")) html += `<section class="group">
@@ -103,14 +110,14 @@ function renderFavorites({ titles, characters, persons, favData }) {
 }
 
 // Карточка тайтла (из reviews.json с favorite: true)
-function favTitleCard(r, index) {
+function favTitleCard(r, index, forExport) {
   const info     = findReviewForTitle(r.title, r.type);
   const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
   const tagClass = ["anime","manga","novel","movie","show"].includes(r.type)
     ? `tag-${r.type}` : "tag-manual";
 
   const editId  = r.id ?? encodeURIComponent(r.title);
-  const editBtn = isAdmin()
+  const editBtn = isAdmin() && !forExport
     ? `<a href="#/add?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
@@ -153,4 +160,140 @@ function favPersonCard(r, index) {
       ${sub}
     </div>
   </div>`;
+}
+
+// ══ ЭКСПОРТ «ЛЮБИМОГО» В КАРТИНКУ ═══════════════════════
+// Тот же приём, что у тир-листа персонажей (js/tierlist.js, tlExport):
+// офскрин-контейнер с готовой вёрсткой отдаётся html2canvas, картинки
+// сперва проксируются в data:-URL (см. config.js). Отличие – выбор,
+// что именно попадёт на картинку: только тайтлы, только персонажи и
+// персоны (вместе со своими разделами – они те же карточки), или всё
+// сразу. Карточка тайтла – без карандаша редактирования (см. параметр
+// forExport у favTitleCard выше): владелец видит его на самой
+// странице, а не на картинке, которой делятся.
+let favExportModalEl = null;
+
+function favExportModalEnsure() {
+  if (favExportModalEl) return favExportModalEl;
+  favExportModalEl = document.createElement("div");
+  favExportModalEl.id = "fav-export-overlay";
+  favExportModalEl.className = "modal-overlay hidden";
+  favExportModalEl.innerHTML = `
+    <div class="modal confirm-dialog fav-export-modal">
+      <div class="confirm-dialog-text">${i18n("Что показать на картинке?")}</div>
+      <label class="fav-export-option"><input type="radio" name="fav-export-mode" value="titles" checked>${i18n("Только тайтлы")}</label>
+      <label class="fav-export-option"><input type="radio" name="fav-export-mode" value="chars">${i18n("Только персонажи и персоны")}</label>
+      <label class="fav-export-option"><input type="radio" name="fav-export-mode" value="all">${i18n("Всё вместе")}</label>
+      <div class="confirm-dialog-actions">
+        <button type="button" class="btn btn-ghost" data-act="cancel">${i18n("Отмена")}</button>
+        <button type="button" class="btn btn-primary" data-act="ok">${i18n("Сохранить")}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(favExportModalEl);
+  favExportModalEl.querySelector('[data-act="cancel"]').onclick = closeFavExportModal;
+  favExportModalEl.onclick = (e) => {
+    if (e.target === favExportModalEl) closeFavExportModal();
+  };
+  favExportModalEl.querySelector('[data-act="ok"]').onclick = () => {
+    const mode = favExportModalEl.querySelector('input[name="fav-export-mode"]:checked')?.value || "all";
+    closeFavExportModal();
+    favExport(mode);
+  };
+  return favExportModalEl;
+}
+
+function openFavExportModal() {
+  if (!favExportData) return;
+  favExportModalEnsure().classList.remove("hidden");
+}
+
+function closeFavExportModal() {
+  favExportModalEl?.classList.add("hidden");
+}
+
+async function favExport(mode) {
+  const { titles, characters, persons, favData } = favExportData;
+  const customCollections = window.SITE_FAV_COLLECTIONS || [];
+
+  let html = "";
+  if (mode !== "chars" && titles.length) {
+    html += `<section class="group">
+      <h2 class="section-title">${esc(siteLabel("sections", "favTitles", i18n("Тайтлы")))}</h2>
+      <div class="grid-now">${titles.map((r, i) => favTitleCard(r, i, true)).join("")}</div>
+    </section>`;
+  }
+  if (mode !== "titles") {
+    if (characters.length) {
+      html += `<section class="group">
+        <h2 class="section-title">${esc(siteLabel("sections", "favCharacters", i18n("Персонажи")))}</h2>
+        <div class="grid-chars">${characters.map((r, i) => favPersonCard(r, i)).join("")}</div>
+      </section>`;
+    }
+    if (persons.length) {
+      html += `<section class="group">
+        <h2 class="section-title">${esc(siteLabel("sections", "favPersons", i18n("Персоны")))}</h2>
+        <div class="grid-chars">${persons.map((r, i) => favPersonCard(r, i)).join("")}</div>
+      </section>`;
+    }
+    customCollections.forEach((c) => {
+      const entries = favData.filter((r) => r.type === c.id);
+      if (!entries.length) return;
+      html += `<section class="group">
+        <h2 class="section-title">${esc(c.label)}</h2>
+        <div class="grid-chars">${entries.map((r, i) => favPersonCard(r, i)).join("")}</div>
+      </section>`;
+    });
+  }
+
+  if (!html) {
+    alert(i18n("Нечего показывать – в этой группе пока пусто."));
+    return;
+  }
+
+  const btn = document.querySelector(".fav-export-bar .admin-add-btn");
+  if (btn) { btn.textContent = i18n("⏳ Создаём…"); btn.disabled = true; }
+
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:900px;padding:1.5rem;";
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+
+  let restoreImages = () => {};
+  try {
+    if (typeof html2canvas === "undefined") {
+      if (btn) btn.textContent = i18n("⏳ Загружаем библиотеку…");
+      await loadHtml2Canvas();
+      if (btn) btn.textContent = i18n("⏳ Создаём…");
+    }
+
+    const imgs = Array.from(wrap.querySelectorAll("img"));
+    await Promise.all(
+      imgs.map((img) => (img.complete ? Promise.resolve() : new Promise((res) => { img.onload = img.onerror = res; })))
+    );
+
+    restoreImages = await proxyImagesToDataUrls(wrap);
+
+    const canvas = await html2canvas(wrap, {
+      backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+    });
+
+    const link = document.createElement("a");
+    link.download = "favorites.png";
+    link.href = canvas.toDataURL("image/png");
+    // Ссылку обязательно вставить в документ – см. тот же комментарий у
+    // tlExport() в js/tierlist.js про перехват на Android.
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    alert("Не удалось создать картинку 😢\n" + err.message);
+  } finally {
+    restoreImages();
+    wrap.remove();
+    if (btn) { btn.textContent = i18n("Сохранить как картинку"); btn.disabled = false; }
+  }
 }
