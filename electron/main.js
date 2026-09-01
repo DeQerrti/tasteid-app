@@ -141,7 +141,7 @@ const NATIVE_EN = {
   "Сначала переключись на другое хранилище.": "Switch to another vault first.",
   "Доступно обновление": "Update available",
   "Обновление готово": "Update ready",
-  Перезапустить: "Restart",
+  "Обновить сейчас": "Update now",
   Скачать: "Download",
   Позже: "Later",
 };
@@ -647,20 +647,29 @@ let pendingUpdateInfo = null;
 let quittingForUpdate = false;
 
 async function promptRestart(info) {
+  // Кнопка называется «Обновить сейчас», а не «Перезапустить»: нажатие
+  // не просто закрывает и снова открывает то же самое окно — оно ставит
+  // скачанный файл и запускает уже новую версию. «Перезапустить» звучит
+  // так, будто ничего, кроме самого перезапуска, не произойдёт.
   const restart = await showThemedUpdateDialog(
     `${tr("Обновление готово")}: ${info.version}`,
-    tr("Перезапустить")
+    tr("Обновить сейчас")
   );
   // null — спросить не вышло; молчим и не запоминаем отказ, которого не
   // было. Файл уже скачан и лежит в pendingUpdateInfo, так что предложим
   // снова при следующем запуске или по кнопке в настройках.
   if (restart === null) return;
-  // Второй аргумент — isForceRunAfter: без него electron-updater не
-  // гарантирует перезапуск после тихой (oneClick) установки на Windows,
-  // и приложение просто закрывалось, не открываясь обратно само.
   if (restart) {
     quittingForUpdate = true;
-    autoUpdater.quitAndInstall(false, true);
+    // isSilent=true, а не false: у electron-updater isForceRunAfter
+    // (второй аргумент) официально игнорируется, если isSilent=false —
+    // именно поэтому обновление ставилось, а окно само не открывалось:
+    // приложение оставалось закрытым, а в диспетчере задач всё ещё
+    // висел не до конца завершившийся старый процесс. oneClick-инсталлятор
+    // (package.json: build.nsis.oneClick) и так не показывает мастер
+    // установки, поэтому isSilent=true ничего не меняет по картинке —
+    // только чинит автозапуск после установки.
+    autoUpdater.quitAndInstall(true, true);
   } else await saveConfig({ dismissedUpdate: info.version });
 }
 

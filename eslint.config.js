@@ -242,6 +242,7 @@ const sharedBrowserGlobals = [
   "statsYearFiltersHtml",
   "submitNewCollection",
   "SUBTYPE_LABELS",
+  "syncHideTagsToggle",
   "syncInFlight",
   "tabSwitchBindingsHtml",
   "TAG_CAT_CLASS",

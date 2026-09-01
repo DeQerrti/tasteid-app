@@ -277,7 +277,7 @@ function renderTabsList() {
         <label class="main-radio-label" title="${i18n("Открывать эту вкладку первой")}">
           <input type="radio" name="mainTabRadio" value="${id}" ${mainTabState === id ? "checked" : ""}
             onchange="mainTabState = '${id}'">
-          ${i18n("Главная страница")}
+          ${i18n("Открывать первой")}
         </label>
       </div>
     `;

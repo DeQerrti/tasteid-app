@@ -2309,6 +2309,10 @@ function fillForm(r) {
   document.getElementById("f-url2").value = r.url2 || "";
   document.getElementById("f-source2").value = r.source2 || "";
   syncTypePickerLabel();
+  // Без этого кнопка статуса всегда оставалась на подписи по умолчанию
+  // ("Завершено"/Архив, см. разметку в mount()) — сам f-status.value
+  // проставлялся выше верно, а подпись на кнопке с ним не сверялась.
+  syncStatusPickerLabel();
 
   // Инлайн-панели источников и обложки — раскрыть/свернуть по наличию значения
   syncSourcePanel(1);

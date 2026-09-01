@@ -78,7 +78,17 @@ function tagHtml(tag) {
 
 // Карточка из reviews.json (главная, архив)
 function manualCard(r, index) {
-  const info     = findReviewForTitle(r.title, r.type);
+  // Оценка — из собственного r.grade, а не через findReviewForTitle():
+  // та ищет по названию+типу заново по всему кэшу и предназначена для
+  // карточек избранного (favorites.js), у которых своей оценки вообще
+  // нет. Здесь r — уже сам отзыв; при поиске по названию два разных
+  // отзыва с одинаковым названием (например, обзор на 1-2 и отдельно на
+  // 3 сезон одного тайтла — намеренно разрешённый дубль, см. reviews.js)
+  // находили один и тот же первый попавшийся отзыв и показывали чужую
+  // оценку на обеих карточках.
+  const shelf    = gradeToShelf(r.grade);
+  const grade    = GRADES[shelf] || null;
+  const info     = grade ? { grade, score: gradeScore(shelf) } : null;
   const tagLabel = TYPE_LABELS[r.type] || r.type || "—";
 
   let watchBadge = "";

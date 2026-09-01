@@ -62,6 +62,16 @@ async function loadCurrentSettings() {
   renderThemeGrid();
   renderPalette();
 
+  // «Скрыть теги на всех карточках» — реальное состояние по данным, а
+  // не всегда «выключено»: раньше hideTagsAllOn сбрасывался в false при
+  // каждом монтировании и никогда не пересчитывался, поэтому уже
+  // спрятанные везде теги при повторном заходе в настройки снова
+  // предлагали спрятать, а глазик никогда не показывал перечёркнутым.
+  const reviewsForTagsToggle = await fetchReviews();
+  hideTagsAllOn =
+    reviewsForTagsToggle.length > 0 && reviewsForTagsToggle.every((r) => r.no_tags_on_card === true);
+  syncHideTagsToggle();
+
   const labels = settings.labels || {};
   renderLabelsPanel(labels);
   // «Подписи» рисует свои заголовки групп только сейчас — сворачиваем
