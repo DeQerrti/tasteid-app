@@ -125,7 +125,7 @@ async function mount(container) {
 
   feOn(document.getElementById("fe-back"), "click", (e) => {
     e.preventDefault();
-    leaveRoute();
+    leaveFavoritesEdit();
   });
 
   syncSubtypePickerLabel();
@@ -151,7 +151,7 @@ async function mount(container) {
   feOn(document, "keydown", (e) => {
     if (e.key !== "Escape") return;
     if (document.querySelector(".src-type-dropdown:not(.hidden)")) return;
-    leaveRoute();
+    leaveFavoritesEdit();
   });
 
   document.title = `TasteID – ${i18n("Персонажи и персоны")}`;
@@ -166,6 +166,14 @@ async function mount(container) {
   // на случай, если настройки правда поменяются, пока маршрут открыт.
   syncFavTypePickerLabel();
   await loadList();
+}
+
+async function leaveFavoritesEdit() {
+  const canLeave = await confirmLeaveIfDirty({
+    isDirty: () => orderDirty,
+    save: saveFavOrder,
+  });
+  if (canLeave) leaveRoute();
 }
 
 function unmount() {

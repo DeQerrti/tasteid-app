@@ -593,15 +593,13 @@ function unmount() {
 // шапке при несохранённых правках, независимо от того, как этот вид
 // открыт (см. closeAddView() ниже).
 async function leaveAddView() {
-  if (addDirty) {
-    const go = await confirmDialog(
-      i18n("Отзыв не сохранён – уйти и потерять правки?"),
-      i18n("Уйти без сохранения"),
-      i18n("Остаться")
-    );
-    if (!go) return;
-    setAddDirty(false);
-  }
+  const canLeave = await confirmLeaveIfDirty({
+    isDirty: () => addDirty,
+    save: saveReview,
+    message: i18n("Отзыв не сохранён."),
+  });
+  if (!canLeave) return;
+  setAddDirty(false);
   closeAddView();
 }
 

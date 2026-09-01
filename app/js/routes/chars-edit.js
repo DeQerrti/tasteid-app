@@ -58,6 +58,7 @@ let COLLECTION_LABEL = "Персонажи";
 let DATA_FILE = "characters-tier.json";
 let ceCleanupFns = [];
 let cePrevTitle = null;
+let ceDirty = false;
 
 function ceOn(target, type, handler, opts) {
   target.addEventListener(type, handler, opts);
@@ -188,7 +189,7 @@ async function mount(container, params) {
 
   ceOn(document.getElementById("ce-back"), "click", (e) => {
     e.preventDefault();
-    leaveRoute();
+    leaveCharsEdit();
   });
 
   ceOn(document, "site-labels-ready", () => {
@@ -219,7 +220,7 @@ async function mount(container, params) {
       if (e.key === "Escape") {
         const modalOpen = !document.getElementById("modal-overlay").classList.contains("hidden");
         if (modalOpen) closeModal();
-        else leaveRoute();
+        else leaveCharsEdit();
         // Иначе бы ниже по всплытию всё равно отработал общий
         // обработчик Escape из utils.js – не сломает (закрыть уже
         // закрытую модалку второй раз безопасно), но незачем.
@@ -236,6 +237,14 @@ async function mount(container, params) {
   await initCharsEdit();
 }
 
+async function leaveCharsEdit() {
+  const canLeave = await confirmLeaveIfDirty({
+    isDirty: () => ceDirty,
+    save: saveAll,
+  });
+  if (canLeave) leaveRoute();
+}
+
 function unmount() {
   ceCleanupFns.forEach((fn) => fn());
   ceCleanupFns = [];
@@ -247,6 +256,7 @@ function unmount() {
   charsDragSrc = null;
   selectedGalleryImg = null;
   editingTitleId = null;
+  ceDirty = false;
   clearTimeout(backupTitleCoverTimer);
   clearTimeout(backupModalImgTimer);
   clearDropIndicator();
@@ -291,6 +301,7 @@ async function initCharsEdit() {
   } catch {
     data = [];
   }
+  ceDirty = false;
   renderSidebar();
   if (data.length) selectTitle(data[0].id);
 }
@@ -351,6 +362,7 @@ function bindTitleDrag() {
       data.splice(insertBefore ? newIdx : newIdx + 1, 0, moved);
 
       dragSrcId = null;
+      ceDirty = true;
       renderSidebar();
     });
   });
@@ -523,6 +535,7 @@ async function saveTitleEdit() {
   title.cover = cover || "";
   title.cover_backup = coverBackup || "";
 
+  ceDirty = true;
   toggleNewTitleForm(false);
   selectTitle(title.id);
 }
@@ -562,6 +575,7 @@ async function addTitle() {
     ],
   });
 
+  ceDirty = true;
   toggleNewTitleForm(false);
   selectTitle(id);
 }
@@ -574,6 +588,7 @@ async function deleteTitle(e, id) {
     activeId = data[0]?.id || null;
     activeListId = null;
   }
+  ceDirty = true;
   renderSidebar();
   renderEditor();
 }
@@ -682,6 +697,7 @@ async function addList() {
   const id = activeId + "-" + Date.now();
   title.tierlists.push({ id, label: label.trim(), tiers: defaultTiers() });
   activeListId = id;
+  ceDirty = true;
   renderEditor();
 }
 
@@ -690,6 +706,7 @@ async function deleteList(listId) {
   const title = data.find((t) => t.id === activeId);
   title.tierlists = title.tierlists.filter((l) => l.id !== listId);
   activeListId = title.tierlists[0]?.id || null;
+  ceDirty = true;
   renderEditor();
 }
 
@@ -712,6 +729,7 @@ function addTier() {
   if (!list) return;
   list.tiers.push({ name, color, chars: [] });
   document.getElementById("new-tier-name").value = "";
+  ceDirty = true;
   renderEditor();
 }
 
@@ -721,18 +739,21 @@ async function deleteTier(listId, ti) {
   const list = title?.tierlists.find((l) => l.id === listId);
   if (!list) return;
   list.tiers.splice(ti, 1);
+  ceDirty = true;
   renderEditor();
 }
 
 function renameTier(listId, ti, val) {
   const t = getTier(listId, ti);
   if (t) t.name = val;
+  ceDirty = true;
 }
 
 function recolorTier(listId, ti, val) {
   const tier = getTier(listId, ti);
   if (!tier) return;
   tier.color = val;
+  ceDirty = true;
   const row = document.querySelectorAll(".tl-editor-row")[ti];
   if (row) {
     row.style.setProperty("--tl-color", val);
@@ -750,6 +771,7 @@ async function deleteChar(titleId, listId, ti, ci) {
   if (!(await confirmDialog(i18n("Удалить «{name}» из тир-листа?", { name: char?.name || i18n("персонажа") }))))
     return;
   list.tiers[ti].chars.splice(ci, 1);
+  ceDirty = true;
   renderEditor();
 }
 
@@ -1078,6 +1100,7 @@ async function confirmAddChar() {
   const char = { name, img };
   if (imgBackup) char.img_backup = imgBackup;
   list.tiers[tierIdx].chars.push(char);
+  ceDirty = true;
   closeModal();
   renderEditor();
 }
@@ -1138,6 +1161,7 @@ function bindDragDrop() {
 
       destList.tiers[destTierIdx].chars.splice(insertIdx, 0, moved);
       charsDragSrc = null;
+      ceDirty = true;
       renderEditor();
     });
   });
@@ -1160,6 +1184,7 @@ async function saveAll() {
     });
     const resp = await res.json();
     if (res.ok) {
+      ceDirty = false;
       status.className = "status-msg ok";
       status.textContent = i18n("Сохранено.");
       // tlState.collections[COLLECTION] (js/tierlist.js) держит уже

@@ -33,6 +33,7 @@
   let dragSrc = null;
   let cleanupFns = [];
   let root = null;
+  let roDirty = false;
 
   function on(target, type, handler, opts) {
     target.addEventListener(type, handler, opts);
@@ -58,15 +59,23 @@
 
     on(document.getElementById("ro-back"), "click", (e) => {
       e.preventDefault();
-      leaveRoute();
+      leaveRO();
     });
     onKeydown((e) => {
       if (e.key === "Escape" && !document.querySelector(".modal-overlay:not(.hidden)")) {
-        leaveRoute();
+        leaveRO();
       }
     });
 
     await load();
+  }
+
+  async function leaveRO() {
+    const canLeave = await confirmLeaveIfDirty({
+      isDirty: () => roDirty,
+      save,
+    });
+    if (canLeave) leaveRoute();
   }
 
   function unmount() {
@@ -74,6 +83,7 @@
     cleanupFns = [];
     titles = [];
     dragSrc = null;
+    roDirty = false;
     root = null;
   }
 
@@ -172,6 +182,7 @@
       if (e.clientX < midX) grid.insertBefore(dragSrc, target);
       else grid.insertBefore(dragSrc, target.nextSibling);
 
+      roDirty = true;
       updateNumbers();
     });
   }
@@ -203,6 +214,7 @@
       });
       const data = await res.json();
       if (res.ok) {
+        roDirty = false;
         status.className = "save-status ok";
         status.textContent = i18n("Порядок сохранён.");
         // fav_order живёт прямо в записях отзывов (reviews.json) – вкладка
