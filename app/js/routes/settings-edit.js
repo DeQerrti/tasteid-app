@@ -278,14 +278,9 @@ function settingsViewHtml() {
       </div>
 
       <div class="panel" id="panel-collections">
+        <p class="panel-intro" data-i18n>Свои тир-листы (коллекции) теперь заводятся, переименовываются и удаляются прямо на вкладке «Тир-лист» – кнопкой «Создать» и значками рядом с каждым тир-листом.</p>
         <div id="tierModesList"></div>
 
-        <h2 class="section-h" data-i18n>Коллекции</h2>
-        <div id="collectionsList"></div>
-        <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новая коллекция</label><input type="text" id="newCollectionName" data-no-dirty placeholder="Например: Опенинги" data-i18n-placeholder="Например: Опенинги"></div>
-        </div>
-        <button class="btn btn-ghost" onclick="addCollection()" data-i18n>Добавить коллекцию</button>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
         <div class="status-msg" id="status-collections"></div>
       </div>

@@ -119,10 +119,6 @@ async function saveSettings() {
     const row = document.getElementById(`statusrow-${b.key}`);
     if (row && row.classList.contains("editing")) toggleStatusEdit(b.key);
   });
-  tierCollections.forEach((c) => {
-    const row = document.getElementById(`collrow-${c.id}`);
-    if (row && row.classList.contains("editing")) toggleCollectionEdit(c.id);
-  });
   {
     const row = document.getElementById("tiermoderow-titles");
     if (row && row.classList.contains("editing")) toggleTierModeEdit("titles");

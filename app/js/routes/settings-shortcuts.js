@@ -88,14 +88,17 @@ async function loadCurrentSettings() {
   hiddenTierModesState = new Set(settings.hiddenTierModes || []);
   renderTierModesList();
 
-  // Пустой сохранённый список – это «все коллекции удалены», а не
-  // «настроек ещё нет»: подставлять сюда встроенную по длине массива
-  // значило бы воскрешать её после удаления.
+  // Коллекции тир-листов заводятся, переименовываются и удаляются
+  // теперь прямо на вкладке «Тир-лист» (js/tierlist.js, через
+  // patchSiteSettings – своё чтение-запись на каждое действие, без
+  // риска затереть). Здесь только сквозной провоз значения: /settings-
+  // edit сохраняет весь объект настроек разом (см. saveSettings), и
+  // без этого поля следующее же сохранение любой другой панели тихо
+  // стёрло бы все свои тир-листы. undefined, если настроек ещё не
+  // было, – JSON.stringify его не запишет, а не превратит в [].
   tierCollections = Array.isArray(settings.tierCollections)
     ? JSON.parse(JSON.stringify(settings.tierCollections))
-    : [{ ...BUILTIN_COLLECTION }];
-  removedBuiltinCollection = !tierCollections.some((c) => c.id === BUILTIN_COLLECTION.id);
-  renderCollectionsList();
+    : undefined;
 
   favSectionLabels = {
     favTitles: (labels.sections && labels.sections.favTitles) || i18n("Тайтлы"),

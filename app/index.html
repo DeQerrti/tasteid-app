@@ -1312,6 +1312,14 @@ section.group { margin-bottom: 3.5rem; }
 }
 .tl-mode-add-btn:hover { color: var(--red-hi); border-color: var(--red-dim); }
 
+.tl-mode-item { display: inline-flex; align-items: center; gap: .25rem; }
+.tl-mode-icon {
+  flex-shrink: 0; cursor: pointer; color: var(--text-dim); font-size: .8rem;
+  width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; transition: color .15s, background .15s;
+}
+.tl-mode-icon:hover { color: var(--red-hi); background: var(--tint-hi); }
+
 /* ══ МОДАЛКА: новый тир-лист (коллекция) ═════════ */
 .modal-overlay.hidden { display: none; }
 .modal-close:hover { color: var(--text-hi); }

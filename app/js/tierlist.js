@@ -164,6 +164,20 @@ function tlRender() {
   tlBindAll();
 }
 
+// Переименование/удаление коллекции – прямо тут, а не в /settings-edit
+// (эта панель там была ровно тем же самым списком, просто в другом
+// месте – раздельно держать было незачем). Встроенная "characters" не
+// исключение: activeTierCollections() возвращает её только заглушкой,
+// пока settings.tierCollections не существует, поэтому удаление/
+// переименование пишет её в site-settings.json как обычную запись –
+// после этого она ничем не отличается от своей.
+function tlCollectionMgmtIcons(c) {
+  if (!isAdmin()) return "";
+  return `
+    <span class="icon-btn tl-mode-icon" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); renameTierCollection('${esc(c.id)}')">✎</span>
+    <span class="icon-btn tl-mode-icon" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeTierCollection('${esc(c.id)}')">✕</span>`;
+}
+
 function tlModeToggleHtml() {
   // c.label || c.id – как в tlCharsHtml и в обработчике переключения
   // чуть ниже. Коллекция без подписи (запись, пришедшая из чужой
@@ -171,7 +185,10 @@ function tlModeToggleHtml() {
   // давала пустую кнопку: нажимать вроде и есть на что, а что это –
   // непонятно. Id хотя бы читается.
   const collectionBtns = visibleTierCollections().map(c =>
-    `<button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label || c.id)}</button>`
+    `<span class="tl-mode-item">
+      <button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label || c.id)}</button>
+      ${tlCollectionMgmtIcons(c)}
+    </span>`
   ).join("");
   const addBtn = isAdmin()
     ? `<button class="tl-mode-add-btn" id="tl-add-collection-btn" type="button" title="${i18n("Новый тир-лист")}">${i18n("Создать")}</button>`
@@ -179,11 +196,91 @@ function tlModeToggleHtml() {
   const titlesBtn = isTierModeVisible("titles")
     ? `<button class="tl-mode-btn${tlState.mode === "titles" ? " active" : ""}" data-mode="titles">${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}</button>`
     : "";
+  // "Персонажи" встроены изначально, но не запись в tierCollections –
+  // как только конфиг существует и её там нет, это значит её удалили
+  // отсюда же (см. removeTierCollection): показываем возврат, как и у
+  // разделов "Любимого".
+  const restoreBtn =
+    isAdmin() && Array.isArray(window.SITE_TIER_COLLECTIONS) && !window.SITE_TIER_COLLECTIONS.some((c) => c.id === "characters")
+      ? `<button class="tl-mode-add-btn" type="button" onclick="restoreBuiltinTierCollection()">${i18n("Вернуть «Персонажи»")} ↺</button>`
+      : "";
   return `<div class="tl-mode-toggle">
     ${titlesBtn}
     ${collectionBtns}
     ${addBtn}
+    ${restoreBtn}
   </div>`;
+}
+
+async function renameTierCollection(id) {
+  const label = activeTierCollections().find((c) => c.id === id)?.label || id;
+  const name = await promptDialog(i18n("Новое название тир-листа:"), label, i18n("Сохранить"));
+  if (name === null) return;
+  const newLabel = name.trim();
+  if (!newLabel || newLabel === label) return;
+
+  try {
+    await patchSiteSettings((settings) => {
+      settings.tierCollections = Array.isArray(settings.tierCollections) ? settings.tierCollections : activeTierCollections();
+      const entry = settings.tierCollections.find((c) => c.id === id);
+      if (entry) entry.label = newLabel;
+      else settings.tierCollections.push({ id, label: newLabel });
+    });
+    window.SITE_TIER_COLLECTIONS = activeTierCollections().map((c) => (c.id === id ? { ...c, label: newLabel } : c));
+    tlRender();
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  }
+}
+
+async function removeTierCollection(id) {
+  const c = activeTierCollections().find((x) => x.id === id);
+  const label = c?.label || id;
+  const file = collectionFileFor(id);
+  if (
+    !(await confirmDialog(
+      i18n(
+        "Удалить коллекцию «{name}»?\n\nСам тир-лист останется лежать в {file}, вместе с картинками, – пропадёт только кнопка на вкладке.",
+        { name: label, file }
+      )
+    ))
+  ) {
+    return;
+  }
+
+  try {
+    await patchSiteSettings((settings) => {
+      settings.tierCollections = (Array.isArray(settings.tierCollections) ? settings.tierCollections : activeTierCollections()).filter(
+        (x) => x.id !== id
+      );
+      settings.hiddenTierModes = (settings.hiddenTierModes || []).filter((x) => x !== id);
+    });
+    window.SITE_TIER_COLLECTIONS = activeTierCollections().filter((x) => x.id !== id);
+    window.SITE_HIDDEN_TIER_MODES?.delete(id);
+    if (tlState.mode === id) tlState.mode = "titles";
+    tlEnsureVisibleMode();
+    tlRender();
+  } catch (err) {
+    alert(err.message || i18n("Ошибка удаления"));
+  }
+}
+
+async function restoreBuiltinTierCollection() {
+  const builtin = { id: "characters", label: i18n("Персонажи") };
+  try {
+    await patchSiteSettings((settings) => {
+      settings.tierCollections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+      if (!settings.tierCollections.some((c) => c.id === builtin.id)) settings.tierCollections.unshift({ ...builtin });
+      settings.hiddenTierModes = (settings.hiddenTierModes || []).filter((x) => x !== builtin.id);
+    });
+    window.SITE_TIER_COLLECTIONS = activeTierCollections().some((c) => c.id === builtin.id)
+      ? activeTierCollections()
+      : [{ ...builtin }, ...activeTierCollections()];
+    window.SITE_HIDDEN_TIER_MODES?.delete(builtin.id);
+    tlRender();
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  }
 }
 
 // Если режим "Тайтлы" скрыт в настройках, а текущий/дефолтный режим

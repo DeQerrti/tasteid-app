@@ -131,7 +131,11 @@ async function removeShelfRow(i, containerId, withRange) {
 }
 
 // ── Коллекции тир-листов ──
-let tierCollections = [];
+// Управление (создание/переименование/удаление) переехало на саму
+// вкладку «Тир-лист» (js/tierlist.js) – здесь только сквозной провоз
+// значения при общем сохранении настроек, см. loadCurrentSettings() в
+// settings-shortcuts.js и payload в saveSettings() (settings-labels.js).
+let tierCollections;
 
 function slugify(name) {
   return (

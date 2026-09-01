@@ -93,13 +93,6 @@ async function mount(container, params) {
             <input type="text" id="nt-name" placeholder="Название" data-i18n-placeholder="Название">
           </div>
           <div class="field">
-            <label data-i18n>ID (латиница, без пробелов) *</label>
-            <input type="text" id="nt-id" placeholder="korotkij-id">
-            <div id="nt-id-hint" style="font-family:'DM Sans',sans-serif;font-size:.6rem;color:var(--text-dim);margin-top:.3rem;display:none" data-i18n>
-              ID нельзя менять у существующего тайтла – на него уже могут ссылаться сохранённые данные.
-            </div>
-          </div>
-          <div class="field">
             <label data-i18n>Папка по умолчанию в chars/ *</label>
             <input type="text" id="nt-folder" placeholder="имя-папки" data-i18n-placeholder="имя-папки">
           </div>
@@ -389,16 +382,23 @@ function toggleNewTitleForm(show) {
 
 function resetTitleForm() {
   document.getElementById("nt-name").value = "";
-  document.getElementById("nt-id").value = "";
   document.getElementById("nt-folder").value = "";
   document.getElementById("nt-cover").value = "";
   document.getElementById("nt-cover-backup").value = "";
   document.getElementById("nt-cover-backup-status").textContent = "";
   document.getElementById("nt-cover-upload-status").textContent = "";
   document.getElementById("nt-cover-upload").value = "";
-  document.getElementById("nt-id").disabled = false;
-  document.getElementById("nt-id-hint").style.display = "none";
   document.getElementById("nt-submit-btn").textContent = i18n("Добавить");
+}
+
+// ID тайтла больше не вводится руками – он служебный (ключ в data[],
+// имя файла тир-листа никак от него не зависит), а поле только путало:
+// человек заполнял его как ещё одно название. Теперь это slugify()
+// от папки (она и так обязана быть уникальной – это реальная папка на
+// диске в chars/) плюс суффикс времени на случай, если папку для
+// нового тайтла всё же укажут ту же, что у уже существующего.
+function titleIdFromFolder(folder) {
+  return slugify(folder) + "-" + Date.now().toString(36).slice(-4);
 }
 
 // ── Резервная копия обложки тайтла по ссылке (качается на сервере) ──
@@ -491,15 +491,12 @@ function openEditTitleForm(e, id) {
 
   editingTitleId = id;
   document.getElementById("nt-name").value = title.title;
-  document.getElementById("nt-id").value = title.id;
   document.getElementById("nt-folder").value = title.folder || "";
   document.getElementById("nt-cover").value = title.cover || "";
   document.getElementById("nt-cover-backup").value = title.cover_backup || "";
   document.getElementById("nt-cover-backup-status").textContent = "";
   document.getElementById("nt-cover-upload-status").textContent = "";
   document.getElementById("nt-cover-upload").value = "";
-  document.getElementById("nt-id").disabled = true;
-  document.getElementById("nt-id-hint").style.display = "block";
   document.getElementById("nt-submit-btn").textContent = i18n("Сохранить изменения");
 
   document.getElementById("new-title-form").classList.remove("hidden");
@@ -542,17 +539,15 @@ async function saveTitleEdit() {
 
 async function addTitle() {
   const name = document.getElementById("nt-name").value.trim();
-  const id = document.getElementById("nt-id").value.trim();
   const folder = document.getElementById("nt-folder").value.trim();
   const cover = document.getElementById("nt-cover").value.trim();
-  if (!name || !id || !folder) {
-    alert("Заполните название, ID и папку");
+  if (!name || !folder) {
+    alert("Заполните название и папку");
     return;
   }
-  if (data.find((t) => t.id === id)) {
-    alert("Тайтл с таким ID уже существует");
-    return;
-  }
+
+  let id = titleIdFromFolder(folder);
+  while (data.find((t) => t.id === id)) id = titleIdFromFolder(folder);
 
   if (cover && cover.startsWith("http") && !document.getElementById("nt-cover-backup").value) {
     clearTimeout(backupTitleCoverTimer);
