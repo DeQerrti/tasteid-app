@@ -499,12 +499,33 @@ async function createWindow({ compact = false } = {}) {
     const finish = () => {
       closingForReal = true;
       closingWin.close();
+      // Аварийный выход: если через 3 секунды после этого процесс всё
+      // ещё жив (обычное закрытие почему-то не довело дело до конца —
+      // подвисший рендерер, не долетевшее "closed"), значит это уже
+      // зависание, а не нормальное завершение, и его нужно оборвать
+      // силой. Без этого старый процесс мог годами тихо висеть в
+      // диспетчере задач, удерживая requestSingleInstanceLock() — и
+      // повторный запуск .exe после этого не делал вообще ничего:
+      // приложение считало, что оно уже открыто, и просто выходило
+      // само (см. второй-instance ниже), а показывать было нечего.
+      // unref() — чтобы сам этот таймер не держал процесс, если тот и
+      // так успел выйти нормально раньше него.
+      setTimeout(() => app.exit(0), 3000).unref();
     };
     const timeout = new Promise((resolve) => setTimeout(resolve, 6000));
     const synced = closingWin.webContents
       .executeJavaScript("window.__syncBeforeQuit ? window.__syncBeforeQuit() : null")
       .catch(() => {});
     Promise.race([synced, timeout]).then(finish);
+  });
+
+  // Без этого win ещё долго после закрытия окна продолжал указывать на
+  // уже уничтоженный BrowserWindow: second-instance ниже вызывал бы
+  // win.show()/win.focus() на нём и падал с необработанным исключением
+  // ("Object has been destroyed") — молча, без окна и без ошибки на
+  // экране, будто повторный запуск вообще ничего не сделал.
+  closingWin.on("closed", () => {
+    if (win === closingWin) win = null;
   });
 
   // Полосу для перетаскивания вставляем на каждую загрузку: страниц
@@ -771,7 +792,7 @@ async function checkForUpdates() {
 // показать первую: тот самый случай, когда человек не заметил, что
 // приложение уже открылось, и запустил .exe ещё раз.
 app.on("second-instance", () => {
-  if (!win) return;
+  if (!win || win.isDestroyed()) return;
   if (win.isMinimized()) win.restore();
   win.show();
   win.focus();

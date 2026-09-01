@@ -27,13 +27,27 @@ function rvPersistFilters() {
 
 let rvLastFiltered = [];
 
+// Вкладка «Отзывы» показывает только записи, у которых реально есть
+// отзыв (текст или оценка) — «в процессе»/«планирую» без того и
+// другого сюда не попадают. Общая функция для loadReviews() и
+// обработчика tags-map-updated ниже: раньше он подставлял в сетку
+// cache.reviews целиком, без этого фильтра — стоило поправить теги на
+// открытом где-то отзыве (add.js шлёт tags-map-updated на каждое
+// изменение), и на вкладке «Отзывы» на миг показывались все карточки
+// подряд, включая «в процессе» без отзыва. Пропадали только при
+// следующем заходе на вкладку, когда loadReviews() перечитывал и
+// фильтровал заново.
+function reviewsWithReview(list) {
+  return list.filter(r => r.preview || r.grade);
+}
+
 document.addEventListener("tags-map-updated", () => {
-  if (cache.reviews && document.getElementById("rv-grid")) applyRvFilters(cache.reviews);
+  if (cache.reviews && document.getElementById("rv-grid")) applyRvFilters(reviewsWithReview(cache.reviews));
 });
 
 async function loadReviews() {
   const data = await fetchReviews();
-  const withReview = data.filter(r => r.preview || r.grade);
+  const withReview = reviewsWithReview(data);
   if (withReview.length) {
     renderReviews(withReview);
   } else {
