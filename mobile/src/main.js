@@ -24,8 +24,16 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 import { Share } from "@capacitor/share";
 import { App } from "@capacitor/app";
 import { FileOpener } from "@capawesome-team/capacitor-file-opener";
+import { registerPlugin } from "@capacitor/core";
 import { ROUTES, ApiError } from "../../core/api.js";
 import { MobileVault } from "./vault.js";
+// Свой маленький нативный плагин (android/app/src/main/java/ru/tasteid/
+// app/InstallPermissionPlugin.java) — не из npm, регистрируется прямо в
+// MainActivity.java. "Установка неизвестных приложений" начиная с
+// Android 8 — не runtime-разрешение вроде камеры, которое система сама
+// спрашивает, а отдельный тумблер в настройках на каждое приложение;
+// готовых Capacitor-плагинов под него нет.
+const InstallPermission = registerPlugin("InstallPermission");
 // Версию спрашиваем у самого приложения, а не вшиваем из package.json
 // на сборке. Так уже делает Gradle (android/app/build.gradle читает ту
 // же package.json и кладёт её в versionName), и вторая копия того же
@@ -532,6 +540,29 @@ function showUpdateBanner(version, url) {
       close();
       return;
     }
+
+    // «Установка неизвестных приложений» — отдельный тумблер в
+    // настройках на каждое приложение (см. комментарий у
+    // InstallPermission выше), а не runtime-разрешение с обычным
+    // диалогом «Разрешить». Без него FileOpener.openFile() ниже просто
+    // молча падал, и обновление откатывалось на «Поделиться» без
+    // единого объяснения — человеку неоткуда было узнать, что вообще
+    // произошло и что можно включить нужный тумблер самому.
+    try {
+      const { value: canInstall } = await InstallPermission.canRequestPackageInstalls();
+      if (!canInstall) {
+        textEl.textContent = ru
+          ? "Нужно разрешить установку из этого источника — сейчас откроются настройки. Включи переключатель, вернись и нажми «Обновить» ещё раз."
+          : 'Installing needs permission for this source — opening settings now. Turn it on, come back, and press "Update" again.';
+        await InstallPermission.openSettings();
+        return; // диалог остаётся открытым — сам close() не зовём
+      }
+    } catch {
+      // Плагина нет (например, apk собран до его появления) — не повод
+      // блокировать обновление: просто продолжаем как раньше, а если
+      // всё-таки упадёт — откатимся на «Поделиться» в catch ниже.
+    }
+
     updateBtn.disabled = true;
     updateBtn.textContent = ru ? "Загрузка…" : "Downloading…";
     try {
