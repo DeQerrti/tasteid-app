@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════
-//  РОУТ #/add — редактор отзыва (добавить/править)
+//  РЕДАКТОР ОТЗЫВА — добавить/править
 //  (см. план перехода на SPA, фаза 3.3)
 //
 //  Как и #/chars-edit (js/routes/chars-edit.js) и #/favorites-edit
@@ -8,29 +8,40 @@
 //  (обложка, два источника, три выпадающих списка с инлайн-добавлением,
 //  сворачиваемые разделы, модалка тегов и категорий — под сотню вызовов),
 //  и переписывать каждый на вызов через объект-неймспейс ради самой
-//  процедуры переноса — риск опечатки на ровном месте. Верхнеуровневые
-//  имена здесь ровно те же, что были в app/add.html: там они точно так же
-//  были постоянными глобалами документа. Что они не сталкиваются с
-//  остальным index.html, проверено scripts/check-duplicate-functions.js
-//  (фаза 0 как раз для этого и разводила имена по страницам).
+//  процедуры переноса — риск опечатки на ровном месте. Что верхнеуровневые
+//  имена не сталкиваются с остальным index.html, проверено
+//  scripts/check-duplicate-functions.js (фаза 0 как раз для этого и
+//  разводила имена по страницам).
 //
-//  ── ГЛАВНОЕ: app/add.html остаётся живым файлом ──
-//  Этот маршрут покрывает ТОЛЬКО самостоятельное открытие редактора
-//  (#/add и #/add?edit=ID). Вторая жизнь add.html — iframe внутри
-//  модалки «Добавить себе» на чужом паспорте: openAddFromPassportModal()
-//  в js/passports.js грузит буквально /add.html?fromPassport=1&title=…
-//  отдельным документом, читает у него window.addDirty через
-//  frame.contentWindow и ждёт, что он сам вызовет
-//  window.parent.closeAddFromPassportModal() после сохранения. Поэтому
-//  ветка fromPassport здесь НЕ портирована вовсе (в SPA-оболочке
-//  window.parent === window, она бессмысленна), а сам add.html не тронут
-//  ни на байт — иначе поедет модалка паспортов.
+//  ── Три способа открытия ──
+//  Этот файл — единственный источник логики редактора, и подключается
+//  в трёх разных документах:
 //
-//  Из-за этого же расходятся два флага «есть несохранённое»: в add.html
-//  это `var addDirty` (нарочно var — только var кладёт свойство на
-//  window, откуда его и читает родительский фрейм), здесь — обычный
-//  `let addRouteDirty`. Читать его снаружи некому, а no-var из
-//  eslint.config.js запретил бы var в app/js/**.
+//    #/add и #/add?edit=ID — обычный маршрут SPA-оболочки (index.html),
+//    через registerRoute() внизу файла;
+//
+//    app/add.html — тот же редактор отдельным документом. Он остался
+//    отдельным ради одного случая: iframe внутри модалки «Добавить
+//    себе» на чужом паспорте (openAddFromPassportModal() в
+//    js/passports.js грузит /add.html?fromPassport=1&title=…). Кроме
+//    этого случая add.html можно было бы просто удалить в пользу
+//    #/add — но раз документ всё равно должен существовать для iframe,
+//    он же остаётся точкой входа и для прямого открытия ссылки;
+//
+//    IN_SPA_SHELL (ниже) — единственное, что отличает эти два случая
+//    в самом коде: true внутри index.html (там уже есть registerRoute
+//    и leaveRoute из router.js), false в одиночном add.html. closeAddView()
+//    и registerRoute() внизу — единственные места, которые на него смотрят.
+//
+//  ── Несохранённые изменения и модалка паспорта ──
+//  Родительское окно модалки читает флаг «есть несохранённое» через
+//  frame.contentWindow.addDirty — а это свойство на window кладёт
+//  только var, не let/const (и eslint.config.js запрещает var в
+//  app/js/**). Поэтому наружу торчит не сам addDirty (обычный let), а
+//  setAddDirty() — единственное место, которое дополнительно пишет то
+//  же значение в window.addDirty, и только когда мы правда открыты как
+//  модалка паспорта (fromPassportModal). В остальных двух случаях читать
+//  window.addDirty некому, и она не заводится вовсе.
 //
 //  ── Что обязано жить в mount()/unmount() ──
 //  Всё, что вешается на document/window: подписки на tags-map-updated,
@@ -70,6 +81,17 @@ let addCleanupFns = [];
 let addPrevTitle = null;
 let addLeaveTimer = null;
 
+// true внутри index.html (router.js уже подключён и определил
+// registerRoute/leaveRoute), false в одиночном app/add.html — см.
+// шапку файла и closeAddView() ниже.
+const IN_SPA_SHELL = typeof registerRoute === "function";
+
+// Открыты ли мы как модалка «Добавить себе» из чужого паспорта —
+// выставляется в initAddPage() и определяет, куда ведёт «уйти»/«сохранить»
+// (см. closeAddView() и saveReview()) и нужно ли зеркалить addDirty на
+// window (см. setAddDirty()).
+let fromPassportModal = false;
+
 function addOn(target, type, handler, opts) {
   target.addEventListener(type, handler, opts);
   addCleanupFns.push(() => target.removeEventListener(type, handler, opts));
@@ -97,12 +119,15 @@ async function mount(container, params) {
   typeRenamePending = null;
   statusPickerOpen = false;
   statusRenamePending = null;
-  addRouteDirty = false;
-  // Та же leaveAddRoute(), что ниже висит на клике по кнопке "назад" —
+  fromPassportModal = false;
+  setAddDirty(false);
+  // Та же leaveAddView(), что ниже висит на клике по кнопке "назад" —
   // но теперь ещё и на аппаратной/жестовой кнопке "назад" на телефоне
   // (см. installBackButton() в mobile/src/main.js): раньше она обходила
-  // эту проверку, дёргая историю напрямую.
-  setLeaveGuard(leaveAddRoute);
+  // эту проверку, дёргая историю напрямую. setLeaveGuard — из router.js,
+  // в одиночном add.html его нет и спрашивать нечего: там кнопка «назад»
+  // одна, и она уже проверяется в mount() ниже через leaveAddView().
+  if (IN_SPA_SHELL) setLeaveGuard(leaveAddView);
 
   container.innerHTML = `
     <header class="app-topbar">
@@ -405,14 +430,13 @@ async function mount(container, params) {
 
   document.title = `TasteID — ${i18n("Добавить отзыв")}`;
 
-  // ── Уход с маршрута ──
-  // Раньше это была ссылка "/" в шапке плюс beforeunload: обычная
-  // навигация из документа в документ. Здесь документ не меняется,
-  // beforeunload не сработает — спрашиваем сами, тем же confirmDialog,
-  // что и в add.html на клике по логотипу.
+  // ── Уход ──
+  // Ссылка стала обычной кнопкой (href="#") везде, даже в одиночном
+  // add.html: реальная навигация не даёт спросить подтверждение —
+  // спрашиваем сами, тем же confirmDialog, что и everywhere ещё.
   addOn(document.getElementById("add-back"), "click", (e) => {
     e.preventDefault();
-    leaveAddRoute();
+    leaveAddView();
   });
 
   // Клик по строке в списках модалки — делегирован на контейнер: имена
@@ -499,7 +523,7 @@ async function mount(container, params) {
         return;
       }
       e.stopPropagation();
-      leaveAddRoute();
+      leaveAddView();
     },
     { capture: true }
   );
@@ -520,7 +544,7 @@ async function mount(container, params) {
     if (!e.target.closest("[data-no-dirty]")) markAddDirty();
   });
   addOn(window, "beforeunload", (e) => {
-    if (!addRouteDirty) return;
+    if (!addDirty) return;
     e.preventDefault();
     e.returnValue = "";
   });
@@ -538,7 +562,7 @@ async function mount(container, params) {
 }
 
 function unmount() {
-  setLeaveGuard(null);
+  if (IN_SPA_SHELL) setLeaveGuard(null);
   addCleanupFns.forEach((fn) => fn());
   addCleanupFns = [];
   clearTimeout(backupCoverTimer);
@@ -561,22 +585,40 @@ function unmount() {
   noTagsOnCard = false;
   editingId = null;
   editingIds = {};
-  addRouteDirty = false;
+  fromPassportModal = false;
+  setAddDirty(false);
 }
 
-// Уйти с маршрута — с тем же вопросом, что раньше задавала ссылка
-// «TasteID» в шапке add.html при несохранённых правках.
-async function leaveAddRoute() {
-  if (addRouteDirty) {
+// Уйти — с тем же вопросом, что раньше задавала ссылка «TasteID» в
+// шапке при несохранённых правках, независимо от того, как этот вид
+// открыт (см. closeAddView() ниже).
+async function leaveAddView() {
+  if (addDirty) {
     const go = await confirmDialog(
       i18n("Отзыв не сохранён — уйти и потерять правки?"),
       i18n("Уйти без сохранения"),
       i18n("Остаться")
     );
     if (!go) return;
-    addRouteDirty = false;
+    setAddDirty(false);
   }
-  leaveRoute();
+  closeAddView();
+}
+
+// Три способа закрыть вид — по тому, как он был открыт (см. шапку файла):
+// модалка паспорта закрывается у родителя, SPA-маршрут уходит через
+// роутер, а одиночный add.html без паспорта (прямая ссылка, мимо обоих
+// случаев) ведёт себя как обычная ссылка — реальной навигацией на "/".
+function closeAddView() {
+  if (fromPassportModal) {
+    window.parent.closeAddFromPassportModal();
+    return;
+  }
+  if (IN_SPA_SHELL) {
+    leaveRoute();
+    return;
+  }
+  location.href = "/";
 }
 
 // ── Чекбокс Любимое ────────────────────────────
@@ -2323,12 +2365,12 @@ function resetToNew() {
   document.getElementById("danger-zone").hidden = true;
   document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
   document.getElementById("btn-save").textContent = i18n("Сохранить отзыв");
-  // Раньше это было history.replaceState(…, "add.html") — сбросить
-  // ?edit=ID, чтобы обновление страницы не открыло снова правку уже
-  // сохранённого отзыва. Здесь адрес документа не меняется, меняется
+  // Сбросить ?edit=ID/#/add?edit=ID, чтобы обновление страницы не
+  // открыло снова правку уже сохранённого отзыва. В SPA меняется
   // только хэш, и replaceState (в отличие от location.hash = …) не
-  // порождает hashchange, то есть маршрут не перемонтируется.
-  history.replaceState(null, "", "#/add");
+  // порождает hashchange, то есть маршрут не перемонтируется; в
+  // одиночном add.html меняется обычный адрес документа.
+  history.replaceState(null, "", IN_SPA_SHELL ? "#/add" : "add.html");
 
   ["f-title", "f-year", "f-format", "f-cover", "f-url", "f-preview", "f-url2", "f-review-full", "f-cover-backup"].forEach(
     (id) => (document.getElementById(id).value = "")
@@ -2367,16 +2409,51 @@ function resetToNew() {
   updateDateFields();
 }
 
-// ── инит по параметрам маршрута ────────────────
-// Раньше это был initPage(), читавший location.search: ?edit=ID для
-// правки и ?fromPassport=1&title=… для добавления из чужого паспорта.
-// Вторая ветка сюда не переехала намеренно — она живёт в отдельном
-// документе add.html внутри iframe (см. шапку файла), а параметры
-// первой приходят из хэша через роутер: #/add?edit=ID.
+// ── инит по параметрам ─────────────────────────
+// params — URLSearchParams в обоих случаях: из хэша через роутер
+// (#/add?edit=ID) или из location.search в одиночном add.html
+// (?edit=ID или ?fromPassport=1&title=…&type=…&year=…&cover=…).
 async function initAddPage(params) {
   updateDateFields();
 
-  const editId = params?.get("edit");
+  // Из чужого паспорта: там нет ни текста отзыва, ни оценки — только
+  // название, тип, год и, если автор паспорта указывал обложку внешней
+  // ссылкой (а не локальным файлом), сама эта ссылка. Добавляются они
+  // не поверх ничьего чужого отзыва, а как новый, свой — editingId не
+  // трогаем, fillForm() сам по себе ничего не редактирует.
+  //
+  // Проверяем не только сам параметр, но и что родитель — правда наша
+  // модалка (window.parent !== window и у него правда есть
+  // closeAddFromPassportModal): прямое открытие ссылки с
+  // fromPassport=1 в обычной вкладке ведёт себя как обычное добавление
+  // с подставленными полями, а не пытается закрыть несуществующую модалку.
+  if (params.get("fromPassport")) {
+    try {
+      fromPassportModal =
+        window.parent !== window && typeof window.parent.closeAddFromPassportModal === "function";
+    } catch {
+      // window.parent из другого источника бросил бы SecurityError — у
+      // нас такого не бывает (тот же процесс), но проверка не должна
+      // ронять форму.
+    }
+    // В модалке своя шапка ни к чему: логотип и «На главную» дублируют
+    // крестик самой модалки, а места странице и так отведено немного.
+    if (fromPassportModal) document.querySelector(".app-topbar")?.classList.add("hidden");
+    fillForm({
+      title: params.get("title") || "",
+      type: params.get("type") || "",
+      year: params.get("year") || "",
+      cover: params.get("cover") || "",
+    });
+    // fillForm() просто ставит .value — событие oninput на это не
+    // реагирует, поэтому свою резервную копию обложки, как при ручной
+    // вставке ссылки, запускаем явно.
+    if (params.get("cover")) scheduleBackupCover();
+    document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
+    return;
+  }
+
+  const editId = params.get("edit");
   if (!editId) return;
 
   try {
@@ -2403,7 +2480,7 @@ async function initAddPage(params) {
     // ставятся из кода, событий не будет), но renderGradeInput() и
     // прочее могли успеть пометить форму грязной. Она только что
     // открыта — считаем её чистой.
-    addRouteDirty = false;
+    setAddDirty(false);
   } catch (e) {
     setStatus("err", i18n("Не удалось загрузить отзыв: ") + e.message);
   }
@@ -2441,15 +2518,19 @@ async function deleteReview() {
     // В приложении никакой выкладки нет: файл на диске уже переписан,
     // ждать нечего.
     setStatus("ok", i18n("«{name}» удалена.", { name: data.title }));
+    // Тот же общий кэш, что читают favorites.js/tierlist.js между
+    // вызовами fetchReviews() (js/api.js) — без сброса они ещё
+    // мгновение показывали бы уже удалённую запись.
+    cache.reviews = null;
     refreshOpenReviewsTab(); // вкладка под /add молча висит с уже несуществующей карточкой (js/api.js)
-    // Форма после удаления показывает то, чего уже нет, — уходим с
-    // маршрута. Флаг «есть несохранённое» сбрасываем явно: иначе уход
-    // спросил бы «уйти без сохранения», хотя запись только что удалена,
-    // а не брошена недописанной.
-    addRouteDirty = false;
+    // Форма после удаления показывает то, чего уже нет, — уходим.
+    // Флаг «есть несохранённое» сбрасываем явно: иначе уход спросил бы
+    // «уйти без сохранения», хотя запись только что удалена, а не
+    // брошена недописанной.
+    setAddDirty(false);
     document.getElementById("danger-zone").hidden = true;
     document.getElementById("btn-save").disabled = true;
-    addLeaveTimer = setTimeout(() => leaveRoute(), 1800);
+    addLeaveTimer = setTimeout(() => closeAddView(), 1800);
   } catch (e) {
     setStatus("err", i18n("Не удалось удалить: ") + e.message);
   }
@@ -2706,13 +2787,27 @@ async function saveReview() {
     const data = await res.json();
     if (res.ok) {
       setStatus("ok", editingId !== null ? `«${title}» обновлён.` : `«${title}» сохранён.`);
-      addRouteDirty = false;
+      setAddDirty(false);
+      // Тот же общий кэш, что читают favorites.js/tierlist.js между
+      // вызовами fetchReviews() (js/api.js) — без сброса они ещё
+      // мгновение показывали бы старые данные.
+      cache.reviews = null;
       // Вкладка под /add спрятана через .hidden, а не разобрана, и сама
       // не перечитается, пока по ней не щёлкнут заново (js/api.js,
       // refreshOpenReviewsTab) — иначе после правки названия старое ещё
       // висело бы в «Отзывах», пока не переключиться туда-обратно.
       refreshOpenReviewsTab();
-      if (editingId === null) resetToNew();
+      if (editingId === null) {
+        if (fromPassportModal) {
+          // Секунда на «сохранён», чтобы было видно, что сохранение
+          // случилось, — и сами закрываем модалку: человек остаётся
+          // там же, на чужом паспорте, а не на пустой форме под
+          // следующую запись, которую эта ветка не сбрасывает.
+          setTimeout(() => closeAddView(), 900);
+          return;
+        }
+        resetToNew();
+      }
     } else {
       setStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
     }
@@ -2725,15 +2820,21 @@ async function saveReview() {
 }
 
 // ── Признак несохранённых изменений ────────────
-// В add.html этот флаг объявлен как `var addDirty` — нарочно: его
-// читает родительское окно через frame.contentWindow.addDirty, а
-// свойство на window кладёт только var. Здесь читать его снаружи
-// некому (отдельного документа нет), поэтому обычный let — и другое
-// имя, чтобы никто не спутал его с тем, «настоящим», из iframe.
-let addRouteDirty = false;
+// addDirty сам по себе — обычный let: читать его снаружи (кроме
+// модалки паспорта) некому. setAddDirty() — единственное место, которое
+// решает, зеркалить ли значение в window.addDirty (см. шапку файла).
+let addDirty = false;
 
-function markAddDirty() {
-  addRouteDirty = true;
+function setAddDirty(value) {
+  addDirty = value;
+  if (fromPassportModal) window.addDirty = value;
 }
 
-registerRoute("#/add", { mount, unmount });
+function markAddDirty() {
+  setAddDirty(true);
+}
+
+// В одиночном add.html router.js не подключён — там вызывает mount()
+// напрямую его же собственный маленький скрипт-загрузчик (см. шапку
+// файла и разметку add.html).
+if (IN_SPA_SHELL) registerRoute("#/add", { mount, unmount });
