@@ -215,7 +215,11 @@ function tlTitlesHtml() {
   }
 
   const hasAny = TIER_ROWS.some(t => byGrade[t.key]?.length);
-  let html = tlFiltersHtml() + tlYearFiltersHtml(byType);
+  const exportBtn = `<button class="admin-add-btn" id="tl-export-btn" onclick="tlExport('tl-titles-rows', '${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}')">${i18n("Сохранить как картинку")}</button>`;
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">${tlFiltersHtml()}${tlYearFiltersHtml(byType)}</div>
+    <div style="flex-shrink:0">${exportBtn}</div>
+  </div>`;
 
   if (!hasAny) {
     return html + `<div class="state-box" style="padding-top:2rem">${i18n("Ничего не найдено")}</div>`;
