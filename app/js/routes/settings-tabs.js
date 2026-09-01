@@ -1,0 +1,564 @@
+// ══════════════════════════════════════════════
+//  settings-tabs.js — разделы «Любимого», порядок вкладок, статусы, роли персон — часть роута #/settings-edit
+//  Разбито из settings-edit.js (2972 строки) по секциям — читается
+//  тем же способом, что и раньше: обычный глобальный скрипт, без
+//  своего экспорта, подключается вместе с settings-edit.js и остальными
+//  файлами этой же группы в index.html, в общей области видимости.
+// ══════════════════════════════════════════════
+
+// ── Разделы вкладки «Любимое» ──────────────────
+// Три встроенных раздела: у "Тайтлы" свой источник (reviews.json,
+// флаг favorite), у "Персонажи"/"Персоны" — favorites.json по type.
+// Список фиксированный: завести четвёртый встроенный неоткуда, свои
+// разделы заводятся ниже (favCollections).
+//
+// Удалить встроенный раздел можно, но "удалить" здесь значит убрать
+// его с сайта и из этого списка — сами записи в favorites.json лежат
+// и никуда не деваются. Раз строку из списка убирает не кнопка
+// "скрыть", вернуть её иначе как отсюда было бы нечем — поэтому
+// удалённые показываются отдельной строкой со стрелкой возврата.
+const FAV_SECTIONS = [
+  { key: "favTitles", def: i18n("Тайтлы") },
+  { key: "favCharacters", def: i18n("Персонажи") },
+  { key: "favPersons", def: i18n("Персоны") },
+];
+let favSectionLabels = {};
+let hiddenFavSectionsState = new Set();
+let removedFavSections = new Set();
+
+function renderFavSectionsList() {
+  const container = document.getElementById("favSectionsList");
+  const rows = FAV_SECTIONS.filter((s) => !removedFavSections.has(s.key))
+    .map((s) => {
+      const label = favSectionLabels[s.key] || s.def;
+      return `
+      <div class="tab-row" id="favsecrow-${s.key}">
+        ${eyeButton(hiddenFavSectionsState.has(s.key), `hiddenFavSectionsState.has('${s.key}') ? hiddenFavSectionsState.delete('${s.key}') : hiddenFavSectionsState.add('${s.key}'); renderFavSectionsList();`)}
+        <span class="tab-name" id="favsecname-${s.key}">${esc(label)}</span>
+        <input type="text" id="favsecinput-${s.key}" value="${esc(label)}">
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${s.key}')">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection('${s.key}')">✕</button>
+      </div>`;
+    })
+    .join("");
+
+  const gone = FAV_SECTIONS.filter((s) => removedFavSections.has(s.key));
+  const restore = gone.length
+    ? `
+      <div class="fav-restore">
+        Удалённые разделы:
+        ${gone
+          .map(
+            (s) => `<button type="button" class="fav-restore-btn"
+            onclick="restoreFavSection('${s.key}')">${esc(favSectionLabels[s.key] || s.def)} ↺</button>`
+          )
+          .join("")}
+      </div>`
+    : "";
+
+  container.innerHTML = rows + restore;
+}
+
+async function removeFavSection(key) {
+  const def = FAV_SECTIONS.find((s) => s.key === key);
+  const label = favSectionLabels[key] || def.def;
+  if (
+    !(await confirmDialog(
+      i18n(
+        "Удалить раздел «{name}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.",
+        { name: label }
+      )
+    ))
+  ) {
+    return;
+  }
+  removedFavSections.add(key);
+  hiddenFavSectionsState.add(key);
+  renderFavSectionsList();
+}
+
+function restoreFavSection(key) {
+  removedFavSections.delete(key);
+  hiddenFavSectionsState.delete(key);
+  renderFavSectionsList();
+}
+
+function toggleFavSecEdit(key) {
+  const row = document.getElementById(`favsecrow-${key}`);
+  const editing = row.classList.toggle("editing");
+  if (!editing) {
+    const val = document.getElementById(`favsecinput-${key}`).value.trim();
+    const def = FAV_SECTIONS.find((s) => s.key === key).def;
+    favSectionLabels[key] = val || def;
+    document.getElementById(`favsecname-${key}`).textContent = favSectionLabels[key];
+  }
+}
+
+// ── Свои разделы «Любимого» — в отличие от FAV_SECTIONS это не
+// фиксированный список: их заводят по кнопке, у каждого есть галочка
+// (скрыть) и удаление, как у коллекций тир-листа. Данные записей
+// живут в favorites.json с type = id раздела — своей папки с
+// картинками, в отличие от тир-листа, у них нет, поэтому создание
+// проще: не нужен модальный шаг с загрузкой.
+let favCollections = [];
+
+function renderFavCollectionsList() {
+  const container = document.getElementById("favCollectionsList");
+  container.innerHTML = favCollections
+    .map(
+      (c) => `
+      <div class="tab-row" id="favcollrow-${c.id}">
+        ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavCollectionsList();`)}
+        <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
+        <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}">
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavCollectionEdit('${c.id}')">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavCollection('${c.id}')">✕</button>
+      </div>
+    `
+    )
+    .join("");
+}
+
+function toggleFavCollectionEdit(id) {
+  const row = document.getElementById(`favcollrow-${id}`);
+  const editing = row.classList.toggle("editing");
+  if (!editing) {
+    const val = document.getElementById(`favcollinput-${id}`).value.trim();
+    const c = favCollections.find((x) => x.id === id);
+    if (c) {
+      c.label = val || c.label;
+      document.getElementById(`favcollname-${id}`).textContent = c.label;
+    }
+  }
+}
+
+function addFavCollection() {
+  const name = document.getElementById("newFavCollectionName").value.trim();
+  if (!name) return;
+  favCollections.push({ id: slugify(name), label: name });
+  document.getElementById("newFavCollectionName").value = "";
+  renderFavCollectionsList();
+}
+
+async function removeFavCollection(id) {
+  if (
+    !(await confirmDialog(
+      i18n("Удалить раздел? Уже добавленные записи останутся в данных, но перестанут где-либо отображаться.")
+    ))
+  ) {
+    return;
+  }
+  favCollections = favCollections.filter((c) => c.id !== id);
+  hiddenFavSectionsState.delete(id);
+  renderFavCollectionsList();
+}
+
+// Скрытие коллекций живёт в том же hiddenTierModes, что и у «Тайтлов»:
+// на вкладке это один ряд кнопок, и делить его на два разных списка
+// настроек было бы враньём про устройство.
+//
+// Удаление доступно и встроенным «Персонажам». Файл с их тир-листом
+// (characters-tier.json) при этом остаётся лежать, как и картинки, —
+// поэтому у встроенной коллекции есть строка возврата: заново завести
+// её с тем же id из интерфейса нельзя, у новой он был бы с суффиксом.
+const BUILTIN_COLLECTION = { id: "characters", label: i18n("Персонажи") };
+let removedBuiltinCollection = false;
+
+function renderCollectionsList() {
+  const container = document.getElementById("collectionsList");
+  const rows = tierCollections
+    .map(
+      (c) => `
+      <div class="tab-row" id="collrow-${c.id}">
+        ${eyeButton(hiddenTierModesState.has(c.id), `hiddenTierModesState.has('${c.id}') ? hiddenTierModesState.delete('${c.id}') : hiddenTierModesState.add('${c.id}'); renderCollectionsList();`)}
+        <span class="tab-name" id="collname-${c.id}">${esc(c.label)}</span>
+        <input type="text" id="collinput-${c.id}" value="${esc(c.label)}">
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleCollectionEdit('${c.id}')">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeCollection('${c.id}')">✕</button>
+      </div>
+    `
+    )
+    .join("");
+
+  const restore = removedBuiltinCollection
+    ? `
+      <div class="fav-restore">
+        ${i18n("Удалённые коллекции:")}
+        <button type="button" class="fav-restore-btn"
+          onclick="restoreBuiltinCollection()">${esc(BUILTIN_COLLECTION.label)} ↺</button>
+      </div>`
+    : "";
+
+  container.innerHTML = rows + restore;
+}
+
+function restoreBuiltinCollection() {
+  if (tierCollections.some((c) => c.id === BUILTIN_COLLECTION.id)) return;
+  tierCollections.unshift({ ...BUILTIN_COLLECTION });
+  hiddenTierModesState.delete(BUILTIN_COLLECTION.id);
+  removedBuiltinCollection = false;
+  renderCollectionsList();
+}
+
+function toggleCollectionEdit(id) {
+  const row = document.getElementById(`collrow-${id}`);
+  const editing = row.classList.toggle("editing");
+  if (!editing) {
+    const val = document.getElementById(`collinput-${id}`).value.trim();
+    const c = tierCollections.find((x) => x.id === id);
+    if (c) {
+      c.label = val || c.label;
+      document.getElementById(`collname-${id}`).textContent = c.label;
+    }
+  }
+}
+
+function addCollection() {
+  const name = document.getElementById("newCollectionName").value.trim();
+  if (!name) return;
+  tierCollections.push({ id: slugify(name), label: name });
+  document.getElementById("newCollectionName").value = "";
+  renderCollectionsList();
+}
+
+async function removeCollection(id) {
+  const c = tierCollections.find((x) => x.id === id);
+  const label = c ? c.label : id;
+  const file = id === "characters" ? "characters-tier.json" : `tier-${id}.json`;
+  if (
+    !(await confirmDialog(
+      i18n(
+        "Удалить коллекцию «{name}»?\n\nСам тир-лист останется лежать в {file}, вместе с картинками, — пропадёт только кнопка на вкладке.",
+        { name: label, file }
+      )
+    ))
+  ) {
+    return;
+  }
+  tierCollections = tierCollections.filter((x) => x.id !== id);
+  hiddenTierModesState.delete(id);
+  if (id === BUILTIN_COLLECTION.id) removedBuiltinCollection = true;
+  renderCollectionsList();
+}
+
+// Список тем берётся из реестра в js/theme.js. Раньше здесь лежала
+// своя копия — и она успела разъехаться: темы «Мягкий ботанический»
+// в ней не было вовсе, то есть выбрать её из настроек было нельзя.
+const THEMES = typeof themeOptions === "function" ? themeOptions() : [];
+
+// Размер шрифта — см. её же комментарий в разметке выше и в
+// style.css (--text-scale). markDirty=false — только для начальной
+// загрузки из loadCurrentSettings(), где значение просто отражает то,
+// что уже сохранено, а не правку человека.
+let textScale = 100;
+
+function applyTextScale(percent, markDirty) {
+  percent = Math.min(150, Math.max(80, Number(percent) || 100));
+  textScale = percent;
+  const slider = document.getElementById("text-scale-slider");
+  const label = document.getElementById("text-scale-value");
+  if (slider) slider.value = percent;
+  if (label) label.textContent = percent + "%";
+  document.documentElement.style.setProperty("--text-scale", percent / 100, "important");
+  if (markDirty) settingsDirty = true;
+}
+
+let selectedTheme = "classic";
+
+// Свои цвета по темам: { skin: { "--bg": "#…", accent: "#…" } }.
+// Отдельно для каждой темы — палитра, подогнанная под тёмную, на
+// светлой выглядела бы случайным набором.
+let themeColors = {};
+
+// Тёмная/светлая пара живёт под одним базовым id (soft/soft-dark,
+// classic/classic-light…) — группируем по нему, а не по общему
+// списку, иначе десять пилюль в ряд плохо читаются. Какая из двух
+// тёмная, а какая светлая — смотрим по-настоящему в themes.css
+// (color-scheme), а не угадываем по суффиксу: он у разных пар стоит
+// на разных сторонах (у классической светлая — новая, суффикс у
+// неё; у остальных наоборот, суффикс у тёмной).
+function themeIsDark(skin) {
+  for (const sheet of document.styleSheets) {
+    let rules;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    if (!rules) continue;
+    if (sheet.ownerNode && sheet.ownerNode.id === "theme-overrides") continue;
+    for (const rule of rules) {
+      if (!rule.selectorText) continue;
+      const sel = rule.selectorText.replace(/\s+/g, "");
+      if (sel === `[data-skin="${skin}"]` || sel === `html[data-skin="${skin}"]`) {
+        const cs = rule.style.getPropertyValue("color-scheme").trim();
+        if (cs) return cs === "dark";
+      }
+    }
+  }
+  return false;
+}
+
+function themeGroups() {
+  const groups = {};
+  for (const t of THEMES) {
+    const key = t.id.replace(/-dark$|-light$/, "");
+    const g = (groups[key] = groups[key] || { key, label: null, light: null, dark: null });
+    if (!/-dark$|-light$/.test(t.id)) g.label = t.label;
+    if (themeIsDark(t.id)) g.dark = t;
+    else g.light = t;
+  }
+  return Object.values(groups);
+}
+
+let openThemeGroup = null;
+
+function renderThemeGrid() {
+  const grid = document.getElementById("themeGrid");
+  const groups = themeGroups();
+  grid.innerHTML = groups
+    .map((g) => {
+      const active = [g.light, g.dark].find((v) => v && v.id === selectedTheme);
+      const mode = active ? (g.dark && active.id === g.dark.id ? " — тёмная" : i18n(" — светлая")) : "";
+      return `<div class="theme-group">
+        <div class="theme-option${active ? " selected" : ""}" data-group="${g.key}">${g.label}${mode}</div>
+        <div class="theme-popover hidden" id="popover-${g.key}">
+          ${g.light ? `<button type="button" class="${g.light.id === selectedTheme ? "current" : ""}" data-theme="${g.light.id}">${i18n("Светлая")}</button>` : ""}
+          ${g.dark ? `<button type="button" class="${g.dark.id === selectedTheme ? "current" : ""}" data-theme="${g.dark.id}">${i18n("Тёмная")}</button>` : ""}
+        </div>
+      </div>`;
+    })
+    .join("");
+
+  grid.querySelectorAll(".theme-option").forEach((el) => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      const key = el.dataset.group;
+      openThemeGroup = openThemeGroup === key ? null : key;
+      grid.querySelectorAll(".theme-popover").forEach((p) => {
+        p.classList.toggle("hidden", p.id !== `popover-${openThemeGroup}`);
+      });
+    };
+  });
+  grid.querySelectorAll(".theme-popover button").forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      selectedTheme = btn.dataset.theme;
+      openThemeGroup = null;
+      renderThemeGrid();
+      renderPalette();
+      previewPalette();
+    };
+  });
+}
+
+// ── Drag-and-drop порядка вкладок (вертикальный список) ──
+let tabDragSrc = null;
+
+function bindTabsDnd() {
+  const container = document.getElementById("tabsList");
+
+  container.querySelectorAll(".tab-row").forEach((row) => {
+    row.addEventListener("dragstart", (e) => {
+      tabDragSrc = row;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => {
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("dragging", "drag-over"));
+      tabDragSrc = null;
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!tabDragSrc || row === tabDragSrc) return;
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("drag-over"));
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      if (!tabDragSrc || row === tabDragSrc) return;
+
+      const srcId = tabDragSrc.dataset.id;
+      const targetId = row.dataset.id;
+      const srcIdx = tabOrderState.indexOf(srcId);
+      let targetIdx = tabOrderState.indexOf(targetId);
+      if (srcIdx === -1 || targetIdx === -1) return;
+
+      // Вставляем перед/после target в зависимости от того, выше или ниже курсор середины строки
+      const rect = row.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+
+      tabOrderState.splice(srcIdx, 1);
+      targetIdx = tabOrderState.indexOf(targetId);
+      tabOrderState.splice(before ? targetIdx : targetIdx + 1, 0, srcId);
+
+      renderTabsList();
+    });
+  });
+}
+
+function toggleTabEdit(id) {
+  const row = document.getElementById(`tabrow-${id}`);
+  const editing = row.classList.toggle("editing");
+  if (!editing) {
+    const val = document.getElementById(`tabinput-${id}`).value.trim();
+    const def = TAB_DEFS.find((t) => t.id === id).def;
+    tabLabels[id] = val || def;
+    document.getElementById(`tabname-${id}`).textContent = tabLabels[id];
+  }
+}
+
+// ── Статусы ──
+let archiveLabel = i18n("Архив");
+let statusBuckets = [];
+let hiddenStatusesState = new Set();
+
+function renderStatusesList() {
+  const container = document.getElementById("statusesList");
+  const rows = [...statusBuckets, { key: "archive", label: archiveLabel, removable: false }];
+  container.innerHTML = rows
+    .map(
+      (b) => `
+      <div class="tab-row" id="statusrow-${b.key}">
+        ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList();`)}
+        <span class="tab-name" id="statusname-${b.key}">${b.label}</span>
+        <input type="text" id="statusinput-${b.key}" value="${b.label}">
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('${b.key}')">✎</button>
+        ${b.key !== "archive" ? `<button class="icon-btn" title="${i18n("Удалить")}" onclick="removeStatusBucket('${b.key}')">✕</button>` : ""}
+      </div>
+    `
+    )
+    .join("");
+}
+
+function toggleStatusEdit(key) {
+  const row = document.getElementById(`statusrow-${key}`);
+  const editing = row.classList.toggle("editing");
+  if (!editing) {
+    const val = document.getElementById(`statusinput-${key}`).value.trim();
+    if (key === "archive") {
+      archiveLabel = val || i18n("Архив");
+      document.getElementById(`statusname-${key}`).textContent = archiveLabel;
+    } else {
+      const bucket = statusBuckets.find((b) => b.key === key);
+      if (bucket) {
+        bucket.label = val || bucket.label;
+        document.getElementById(`statusname-${key}`).textContent = bucket.label;
+      }
+    }
+  }
+}
+
+function addStatusBucket() {
+  const name = document.getElementById("newStatusName").value.trim();
+  if (!name) return;
+  const key =
+    "status_" +
+    name
+      .toLowerCase()
+      .replace(/[^a-zа-я0-9]+/gi, "_")
+      .slice(0, 30) +
+    "_" +
+    Date.now().toString(36).slice(-4);
+  statusBuckets.push({ key, label: name, removable: true });
+  document.getElementById("newStatusName").value = "";
+  renderStatusesList();
+}
+
+async function countReviewsByStatus(key) {
+  const reviews = await fetchReviews();
+  return reviews.filter((r) => r.status === key).length;
+}
+
+// Удалить статус, которым что-то помечено, — не поломка, но записи
+// пропадут со вкладки, и человек об этом должен узнать до, а не после.
+// Половина базы вполне может лежать в «Отложено».
+async function removeStatusBucket(key) {
+  const bucket = statusBuckets.find((b) => b.key === key);
+  const label = bucket ? bucket.label : key;
+
+  let used = 0;
+  try {
+    used = await countReviewsByStatus(key);
+  } catch {
+    // Не смогли посчитать — спросим без числа, но удалять не мешаем.
+  }
+  const warn = used
+    ? `\n\nВ этом статусе ${used} ${plural(used, [i18n("запись"), i18n("записи"), i18n("записей")])}. Они останутся в данных, но пропадут со вкладки «Статусы», пока им не поставить другой статус.`
+    : "";
+
+  if (!(await confirmDialog(i18n("Удалить раздел «{name}»?", { name: label }) + warn))) return;
+  statusBuckets = statusBuckets.filter((b) => b.key !== key);
+  hiddenStatusesState.delete(key);
+  renderStatusesList();
+}
+
+// Статус можно завести и из «Импорта», не уходя с разобранного файла
+// (js/import.js). Тогда эта панель осталась бы со старым списком, и
+// её «Сохранить» затёрло бы только что заведённый статус — поэтому
+// импорт зовёт этот хук сразу после записи настроек.
+function onStatusBucketsChanged(buckets) {
+  statusBuckets = JSON.parse(JSON.stringify(buckets));
+  renderStatusesList();
+}
+
+const BUILTIN_CAT_DEFAULTS = {
+  visual: i18n("Визуал / звук"),
+  plot: i18n("Сюжет / нарратив"),
+  chars: i18n("Персонажи / мир"),
+  special: i18n("Атмосфера / эмоции"),
+  genre: i18n("Жанр"),
+};
+let allCatLabels = { ...BUILTIN_CAT_DEFAULTS }; // ключ -> название (встроенные + свои)
+let catColors = {}; // ключ -> hex (необязательно, у встроенных по умолчанию нет)
+let customCatKeys = new Set();
+let customTags = {};
+
+// Рендер-функции и «+ Добавить» для категорий/тегов убраны вместе с
+// панелью «Теги» — то же самое делается инлайн в редакторе отзыва.
+// Состояние выше (allCatLabels/catColors/customCatKeys/customTags)
+// остаётся: оно подгружается в loadCurrentSettings() и уходит обратно
+// в saveSettings() неизменным, чтобы данные не терялись при сохранении
+// с любой другой вкладки.
+
+const BUILTIN_TYPE_DEFAULTS = {
+  anime: i18n("Аниме"),
+  manga: i18n("Манга"),
+  manhwa: i18n("Манхва"),
+  manhua: i18n("Маньхуа"),
+  novel: i18n("Ранобэ"),
+  movie: i18n("Фильм"),
+  show: i18n("Сериал"),
+  dorama: i18n("Дорама"),
+  book: i18n("Книга"),
+  game: i18n("Игра"),
+  gacha: i18n("Гача"),
+};
+let typeLabels = {};
+let hiddenTypes = new Set();
+let customTypeKeys = new Set();
+let typePlural = {}; // key -> [1 штука, 2–4 штуки, 5+ штук], только для своих типов
+
+// ── Роли персон (в «Любимом», тип «Персона») ──
+const BUILTIN_SUBTYPE_DEFAULTS = {
+  actor: i18n("Актёр"),
+  director: i18n("Режиссёр"),
+  author: i18n("Автор"),
+  seiyuu: i18n("Сэйю"),
+  artist: i18n("Художник"),
+  composer: i18n("Композитор"),
+};
+let subtypeLabels = {};
+let hiddenSubtypes = new Set();
+let customSubtypeKeys = new Set();
+
+// Панель «Типы» (типы тайтлов и роли персон) убрана — то же самое
+// теперь делается инлайн: типы в редакторе отзыва (#/add), роли в
+// редакторе персон (#/favorites-edit), тем же паттерном выпадающего
+// списка с добавлением, что и у источников. Состояние выше по-прежнему
+// подгружается в loadCurrentSettings() и уходит обратно в saveSettings()
+// неизменным, чтобы данные не терялись при сохранении с любой другой
+// вкладки.
+

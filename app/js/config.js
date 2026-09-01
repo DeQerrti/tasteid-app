@@ -60,7 +60,7 @@ async function proxyImagesToDataUrls(container) {
   const imgs = Array.from(container.querySelectorAll("img"));
   const toProxy = imgs
     .map(img => ({ img, src: img.getAttribute("src") || "" }))
-    .filter(({ src }) => src && !src.startsWith("data:") && !src.startsWith(location.origin) && !src.startsWith("/"));
+    .filter(({ src }) => src && !src.startsWith("data:") && !src.startsWith("/"));
 
   const origSrc = new Map();
 

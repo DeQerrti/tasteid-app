@@ -26,7 +26,8 @@
     "check:android": "node scripts/check-android.js",
     "check:mobile-links": "node scripts/check-mobile-links.js",
     "check:mobile-downloads": "node scripts/check-mobile-downloads.js",
-    "check:dupes": "node scripts/check-duplicate-functions.js"
+    "check:dupes": "node scripts/check-duplicate-functions.js",
+    "test:browser": "node scripts/run-browser-tests.js"
   },
   "dependencies": {
     "electron-updater": "^6.8.9"
@@ -45,6 +46,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "globals": "^17.11.0",
+    "playwright": "1.56.1",
     "prettier": "^3.9.6"
   },
   "build": {

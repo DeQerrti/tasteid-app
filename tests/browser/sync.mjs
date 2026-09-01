@@ -8,7 +8,8 @@
 // кроме api.github.com.
 //
 // Запуск: node tests/browser/sync.mjs [папка-хранилища]
-// Нужен playwright. В npm run check не входит — ручная проверка.
+// playwright — обычная devDependency. В npm run check не входит (нужен
+// настоящий браузер), но гоняется отдельным CI-джобом (npm run test:browser).
 
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";

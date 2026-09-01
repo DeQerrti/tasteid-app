@@ -6,8 +6,8 @@
 // горизонтальную прокрутку и слишком мелкие кнопки.
 //
 // Запуск: node tests/browser/mobile-layout.mjs [папка-хранилища]
-// Нужен playwright — рядом или глобально. В npm run check не входит:
-// это ручная проверка, когда правят вёрстку.
+// playwright — обычная devDependency. В npm run check не входит (нужен
+// настоящий браузер), но гоняется отдельным CI-джобом (npm run test:browser).
 
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";

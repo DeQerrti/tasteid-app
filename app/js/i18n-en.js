@@ -970,6 +970,8 @@ i18nRegister({
   "Название репозитория": "Repository name",
   "Если такого репозитория ещё нет на твоём GitHub — создадим сами, приватным. Если уже есть (например, второе устройство его уже завело) — подключимся к нему.":
     "If you don't have this repository on GitHub yet, we'll create it, as private. If it already exists (say, another device already set it up), we'll connect to it.",
+  "Галочка «repo» даёт токену доступ ко всем твоим репозиториям на GitHub, не только к этому. Если репозиторий для синка уже создан и хочется ограничить токен только им — заведи вместо этого fine-grained-токен (Settings → Developer settings → Personal access tokens → Fine-grained tokens на github.com) с доступом к одному этому репозиторию и правом Contents: Read and write.":
+    "The “repo” checkbox gives the token access to all your repositories on GitHub, not just this one. If the sync repository already exists and you'd rather limit the token to just it — create a fine-grained token instead (Settings → Developer settings → Personal access tokens → Fine-grained tokens on github.com), scoped to that one repository with Contents: Read and write.",
   Подключить: "Connect",
   "Заполни токен и название репозитория.": "Fill in the token and repository name.",
   "Проверяем токен…": "Checking the token…",

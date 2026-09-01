@@ -9,7 +9,8 @@
 // (Input.dispatchTouchEvent), а не рассылкой событий из самой страницы.
 //
 // Запуск: node tests/browser/touch-tips.mjs [папка-хранилища]
-// Нужен playwright. В npm run check не входит — ручная проверка.
+// playwright — обычная devDependency. В npm run check не входит (нужен
+// настоящий браузер), но гоняется отдельным CI-джобом (npm run test:browser).
 //
 // Хранилище нужно непустое: подсказки висят на тегах и оценках, а их
 // неоткуда взять, если отзывов нет.

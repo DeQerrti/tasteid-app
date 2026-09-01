@@ -34,6 +34,22 @@ jobs:
       - run: npm ci
       - run: npm run check
 
+  browser:
+    name: Проверки в браузере
+    runs-on: ubuntu-latest
+    # Не в общем check: это Playwright и настоящий Chromium, а не только
+    # Node — отдельный джоб не тормозит остальные проверки на каждый push
+    # и не блокирует сборку (build/android ниже не зависят от него).
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+
   build:
     name: Установщики
     needs: check

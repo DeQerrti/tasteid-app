@@ -284,6 +284,88 @@ const sharedBrowserGlobals = [
   "visibleTierCollections",
   // грузится по требованию из app/js/vendor (см. loadHtml2Canvas)
   "html2canvas",
+
+  // settings-edit.js разбит на settings-appearance.js/settings-stats.js/
+  // settings-grades.js/settings-tabs.js/settings-app.js/settings-sync.js/
+  // settings-shortcuts.js/settings-labels.js (и сам settings-edit.js как
+  // каркас) — все они делят одну область видимости, как и раньше одним
+  // файлом, поэтому их обращения друг к другу тоже нужно перечислить.
+  "allCatLabels",
+  "appInfo",
+  "applyTextScale",
+  "archiveLabel",
+  "bindTabsDnd",
+  "BUILTIN_CAT_DEFAULTS",
+  "BUILTIN_COLLECTION",
+  "BUILTIN_SUBTYPE_DEFAULTS",
+  "BUILTIN_TYPE_DEFAULTS",
+  "catColors",
+  "collapsibleizeSettingsSections",
+  "customCatKeys",
+  "customSubtypeKeys",
+  "customTags",
+  "customTypeKeys",
+  "detectApp",
+  "favCollections",
+  "favSectionLabels",
+  "FAV_SECTIONS",
+  "flashStatus",
+  "hiddenFavSectionsState",
+  "hiddenStatsState",
+  "hiddenStatusesState",
+  "hiddenSubtypes",
+  "hiddenTabsState",
+  "hiddenTierModesState",
+  "hiddenTypes",
+  "hideTagsAllOn",
+  "loadAppPanel",
+  "loadCurrentSettings",
+  "mainTabState",
+  "openThemeGroup",
+  "previewPalette",
+  "rawSettings",
+  "removedBuiltinCollection",
+  "removedFavSections",
+  "renderCollectionsList",
+  "renderFavCollectionsList",
+  "renderFavSectionsList",
+  "renderLabelsPanel",
+  "renderPalette",
+  "renderScaleTypeGrid",
+  "renderStatsList",
+  "renderStatusesList",
+  "renderSyncPanel",
+  "renderTabsList",
+  "renderThemeGrid",
+  "renderTierModesList",
+  "renderTypeColorsList",
+  "renderVaultsPanel",
+  "scaleType",
+  "selectedTheme",
+  "sePrevSkin",
+  "settingsDirty",
+  "shelves",
+  "statusBuckets",
+  "subtypeLabels",
+  "tabDragSrc",
+  "tabLabels",
+  "tabOrderState",
+  "TAB_DEFS",
+  "TAB_DEFS_BY_ID",
+  "textScale",
+  "themeColors",
+  "tierCollections",
+  "tierTitlesLabel",
+  "toggleCollectionEdit",
+  "toggleFavCollectionEdit",
+  "toggleFavSecEdit",
+  "toggleStatusEdit",
+  "toggleTabEdit",
+  "toggleTierModeEdit",
+  "typeColors",
+  "typeLabels",
+  "typePlural",
+  "updateScaleBlocks",
 ];
 
 const commonRules = {
@@ -329,6 +411,17 @@ export default [
       // Внутри функций неиспользуемые переменные по-прежнему ловятся.
       "no-unused-vars": ["warn", { vars: "local", args: "after-used", argsIgnorePattern: "^_" }],
     },
+  },
+  {
+    // settings-edit.js разбит на несколько файлов (см. sharedBrowserGlobals
+    // выше) — часть состояния объявлена `let` в одном файле, а
+    // переприсваивается в другом, куда переехала соответствующая секция.
+    // prefer-const этого не видит (файлы для него независимы) и в каждом
+    // таком месте предлагает `const`, что сломало бы переприсваивание из
+    // соседнего файла. В едином файле до разбиения этого предупреждения не
+    // было — оно ложное, а не забытый рефакторинг.
+    files: ["app/js/routes/settings-*.js"],
+    rules: { "prefer-const": "off" },
   },
   {
     // Приложение: Electron, общий слой и вспомогательные скрипты —
