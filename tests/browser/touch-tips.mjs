@@ -47,6 +47,25 @@ await new Promise((done, fail) => {
   server.stdout.on("data", (d) => String(d).includes("http") && (clearTimeout(timer), done()));
 });
 
+// Без своего хранилища (process.argv[2]) — обычный пустой временный
+// каталог, а подсказкам взяться неоткуда: они висят на оценке и тегах
+// конкретного отзыва. Заводим один отзыв сами, тем же /api, что и
+// настоящее приложение — grade и tag берём из встроенных умолчаний
+// (config.js: GRADES_DEF/TAGS_MAP), чтобы не зависеть от чужих настроек.
+if (!process.argv[2]) {
+  await fetch(`http://127.0.0.1:${port}/api/save-review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: "Tips Test",
+      type: "anime",
+      status: "completed",
+      grade: "rezonans",
+      tags: ["Топ рисовка"],
+    }),
+  });
+}
+
 const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },

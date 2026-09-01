@@ -45,6 +45,44 @@ await new Promise((done, fail) => {
   server.stdout.on("data", (d) => String(d).includes("http") && (clearTimeout(timer), done()));
 });
 
+// Без своего хранилища (process.argv[2]) — обычный пустой временный
+// каталог, а перетаскивать в пустых списках нечего. Заводим несколько
+// записей сами, тем же /api, что и настоящее приложение: так проверка
+// не зависит от того, что кто-то заранее подготовил папку руками.
+if (!process.argv[2]) {
+  const base = `http://127.0.0.1:${port}`;
+  for (let i = 1; i <= 4; i++) {
+    await fetch(`${base}/api/save-review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: `Drag Test ${i}`,
+        type: "anime",
+        status: "completed",
+        favorite: true, // #/reviews-order двигает порядок именно любимых, не всех подряд
+      }),
+    });
+    await fetch(`${base}/api/save-favorite`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: `Favorite ${i}`, type: "character" }),
+    });
+  }
+  // .title-item в #/chars-edit — не из reviews.json, а из characters-tier.json.
+  await fetch(`${base}/api/save-chars-tier`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      collection: "characters",
+      data: [1, 2, 3, 4].map((i) => ({
+        id: `title-${i}`,
+        title: `Chars Test ${i}`,
+        folder: `title-${i}`,
+      })),
+    }),
+  });
+}
+
 const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },

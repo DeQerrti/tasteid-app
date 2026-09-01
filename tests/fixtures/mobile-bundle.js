@@ -23,6 +23,7 @@ const FAKES = {
   "@capacitor/share": "./tests/fixtures/fake-share.js",
   "@capacitor/status-bar": "./tests/fixtures/fake-status-bar.js",
   "@capacitor/app": "./tests/fixtures/fake-app.js",
+  "@capawesome-team/capacitor-file-opener": "./tests/fixtures/fake-file-opener.js",
 };
 
 // Возвращает путь к собранному файлу.
