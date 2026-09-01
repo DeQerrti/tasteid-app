@@ -127,6 +127,10 @@ await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(2500);
 
 console.log("Оценка на карточке «Статусов»");
+// По умолчанию открывается «Отзывы» (или последняя открытая вкладка) –
+// «Статусы» больше не гарантированно первая, открываем её явно, как и
+// другие вкладки ниже через openTab().
+await openTab("tab-now");
 const grade = await centerOf("#tab-now [data-tip]");
 if (!grade) {
   ok(false, `в хранилище нет ни одной карточки с оценкой — проверять нечего`);

@@ -202,7 +202,6 @@ function settingsViewHtml() {
       </div>
 
       <div class="panel" id="panel-tabs">
-        <p class="panel-intro" data-i18n>Глаз – показывать вкладку или нет. Карандаш – переименовать. Перетаскивай за ⠿, чтобы менять порядок. Точка справа – какая вкладка открывается первой (при заходе на сайт и при обновлении страницы).</p>
         <div id="tabsList"></div>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
         <div class="status-msg" id="status-tabs"></div>
@@ -210,9 +209,9 @@ function settingsViewHtml() {
         <h2 class="section-h" data-i18n>Разделы вкладки «Статусы»</h2>
         <div id="statusesList"></div>
         <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено"></div>
+          <div><label data-i18n>Новый раздел</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено"></div>
         </div>
-        <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить статус</button>
+        <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
 
         <h2 class="section-h" data-i18n>Разделы вкладки «Любимое»</h2>
@@ -226,19 +225,13 @@ function settingsViewHtml() {
       </div>
 
       <div class="panel" id="panel-shortcuts">
-        <p class="panel-intro" data-i18n>
-          Клавиши для поиска, нового отзыва и списка горячих клавиш можно
-          поменять под себя – жми «Изменить» и нажми нужную клавишу.
-        </p>
         <div id="shortcutsList"></div>
-        <button class="btn btn-ghost" onclick="resetShortcutsToDefault()" data-i18n>Сбросить к умолчаниям</button>
+        <button class="btn btn-ghost" onclick="resetShortcutsToDefault()" data-i18n>Сбросить</button>
 
         <h2 class="section-h" data-i18n>Переключение вкладок</h2>
         <p class="panel-intro" data-i18n>
           Цифры 1–5 переключают вкладки по порядку и сами подстраиваются,
-          если какую-то скрыть. Здесь – необязательно, поверх цифр: своя
-          клавиша или кнопка мыши (средняя, «назад»/«вперёд») на
-          конкретную вкладку, привязанная к ней самой, а не к номеру.
+          если какую-то скрыть.
         </p>
         <div id="tabKeyBindingsList"></div>
       </div>
@@ -299,8 +292,8 @@ function settingsViewHtml() {
 
       <div class="panel" id="panel-labels">
         <p class="panel-intro" data-i18n>
-          Все надписи, которые видит посетитель. Пустое поле означает
-          «оставить как есть» – под ним написано значение по умолчанию.
+          Пустое поле означает «оставить как есть» – под ним написано
+          значение по умолчанию.
         </p>
         <div id="labelsGroups"></div>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>

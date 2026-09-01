@@ -2098,7 +2098,7 @@ function renderStatusPickerDropdown() {
   dd.innerHTML = `
     <div class="src-type-list">${options}</div>
     <div class="src-type-add-row">
-      <button type="button" class="btn-new src-type-add-btn" onclick="showAddStatusForm()">${i18n("Добавить статус")}</button>
+      <button type="button" class="btn-new src-type-add-btn" onclick="showAddStatusForm()">${i18n("Добавить раздел")}</button>
     </div>
     <div class="src-type-add-form hidden" id="status-picker-add-form">
       <input type="text" id="status-picker-new-name" placeholder="${i18n("Например: Перечитываю")}">

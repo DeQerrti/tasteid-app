@@ -322,7 +322,6 @@ const sharedBrowserGlobals = [
   "hideTagsAllOn",
   "loadAppPanel",
   "loadCurrentSettings",
-  "mainTabState",
   "openThemeGroup",
   "previewPalette",
   "rawSettings",

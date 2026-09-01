@@ -2707,7 +2707,16 @@ section.group { margin-bottom: 3.5rem; }
 <script>
 let _navInit = true;
 
+// LAST_TAB_KEY – из js/theme.js (он загружается заведомо раньше, прямо
+// в <head>): общая константа, а не общий localStorage-ключ-дубль,
+// иначе рано или поздно они бы разъехались, как только кто-то поправил
+// бы один и забыл про второй.
 function switchTab(tabId, btn) {
+  try {
+    localStorage.setItem(LAST_TAB_KEY, tabId.replace(/^tab-/, ""));
+  } catch {
+    // Приватный режим и подобное – не страшно, просто не запомнится.
+  }
   document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
   document.querySelectorAll(".tab-btn").forEach(el => {
     el.classList.remove("active");

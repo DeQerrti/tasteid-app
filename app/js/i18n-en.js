@@ -501,12 +501,10 @@ i18nRegister({
   "Ввести URL вручную": "Enter a URL by hand",
   "Вернуть все цвета темы": "Reset all theme colours",
   Вкладки: "Tabs",
-  "Все надписи, которые видит посетитель. Пустое поле означает «оставить как есть» – под ним написано значение по умолчанию.":
-    "Every label a visitor sees. An empty field means “leave as is” – the default is shown underneath.",
+  "Пустое поле означает «оставить как есть» – под ним написано значение по умолчанию.":
+    "An empty field means “leave as is” – the default is shown underneath.",
   "Выберите тайтл слева или создайте новый": "Pick a title on the left, or create a new one",
   "Выбрать файл": "Choose file",
-  "Глаз – показывать вкладку или нет. Карандаш – переименовать. Перетаскивай за ⠿, чтобы менять порядок. Точка справа – какая вкладка открывается первой (при заходе на сайт и при обновлении страницы).":
-    "The eye shows or hides a tab. The pencil renames it. Drag by ⠿ to reorder. The dot on the right marks the tab that opens first.",
   Год: "Year",
   "Год выхода": "Release year",
   Даты: "Dates",
@@ -523,7 +521,6 @@ i18nRegister({
   "Добавить персонажа": "Add character",
   "Добавить раздел": "Add section",
   "Добавить роль": "Add role",
-  "Добавить статус": "Add status",
   "Добавить тег": "Add tag",
   "Добавить текст отзыва": "Add review text",
   "Добавить тип": "Add type",
@@ -576,7 +573,6 @@ i18nRegister({
   "Новая коллекция": "New collection",
   "Новый отзыв": "New review",
   "Новый раздел": "New section",
-  "Новый статус": "New status",
   "Новый тайтл": "New title",
   "Новый тег": "New tag",
   "Новый тир-лист": "New tier list",
@@ -737,8 +733,6 @@ i18nRegister({
   "Одна и та же полка или соседние.": "The same shelf, or neighbouring ones.",
   он: "them",
   "Он оценил, а у тебя этого нет.": "They rated it and you don’t have it.",
-  "Открывать первой": "Open first",
-  "Открывать эту вкладку первой": "Open this tab first",
   "Открыть отзыв: {v0}": "Open review: {v0}",
   Оценки: "Ratings",
   "Ошибка сохранения": "Save failed",
@@ -1149,18 +1143,15 @@ i18nRegister({
 
 // ── Перебиндинг горячих клавиш (панель настроек) ─
 i18nRegister({
-  "Клавиши для поиска, нового отзыва и списка горячих клавиш можно поменять под себя – жми «Изменить» и нажми нужную клавишу.":
-    "The keys for search, a new review, and this list itself can be rebound – hit “Change” and press the key you want.",
   "Изменить": "Change",
   "Нажмите клавишу…": "Press a key…",
-  "Сбросить к умолчаниям": "Reset to defaults",
 });
 
 // ── Своя клавиша/кнопка мыши на вкладку (панель настроек) ─
 i18nRegister({
   "Переключение вкладок": "Tab switching",
-  "Цифры 1–5 переключают вкладки по порядку и сами подстраиваются, если какую-то скрыть. Здесь – необязательно, поверх цифр: своя клавиша или кнопка мыши (средняя, «назад»/«вперёд») на конкретную вкладку, привязанная к ней самой, а не к номеру.":
-    "Digits 1–5 switch tabs in order and adjust automatically when one is hidden. This is optional, on top of the digits: a key or mouse button (middle, back/forward) bound to a specific tab itself, not to its position.",
+  "Цифры 1–5 переключают вкладки по порядку и сами подстраиваются, если какую-то скрыть.":
+    "Digits 1–5 switch tabs in order and adjust automatically when one is hidden.",
   "не задано": "not set",
   "Очистить": "Clear",
   "Нажмите клавишу или кнопку мыши…": "Press a key or mouse button…",

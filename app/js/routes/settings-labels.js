@@ -137,12 +137,6 @@ async function saveSettings() {
   });
 
   const hiddenTabs = tabOrderState.filter((id) => hiddenTabsState.has(id));
-  // Если главная вкладка оказалась скрыта – не даём сохранить такую комбинацию молча,
-  // просто подстраховываемся и переключаем на первую видимую.
-  if (hiddenTabs.includes(mainTabState)) {
-    const firstVisible = tabOrderState.find((id) => !hiddenTabs.includes(id));
-    if (firstVisible) mainTabState = firstVisible;
-  }
   const hiddenStatuses = [...hiddenStatusesState];
 
   const hiddenStatsBlocks = [...hiddenStatsState];
@@ -226,7 +220,6 @@ async function saveSettings() {
     hiddenSubtypes: [...hiddenSubtypes],
     hiddenTabs,
     tabOrder: tabOrderState,
-    mainTab: mainTabState,
     hiddenStatsBlocks,
     gradeScale,
     statusBuckets,

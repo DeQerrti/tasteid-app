@@ -294,10 +294,20 @@ function domReady() {
 
 // ── Порядок вкладок, скрытые вкладки и стартовая вкладка ──
 // Всё это настраивается в /settings-edit и хранится в site-settings.json
-// (tabOrder / hiddenTabs / mainTab). Раньше публичная страница читала
-// только hiddenTabs, а порядок и стартовую вкладку игнорировала –
-// настройки сохранялись, но ни на что не влияли.
+// (tabOrder / hiddenTabs). Раньше публичная страница читала только
+// hiddenTabs, а порядок игнорировала – настройки сохранялись, но ни на
+// что не влияли.
 //
+// Стартовая вкладка раньше выбиралась вручную (settings.mainTab, поле
+// "Открывать первой" в /settings-edit) – убрано как лишний выбор:
+// вместо этого запоминаем, на какой вкладке был человек перед уходом
+// (index.html: switchTab() пишет сюда же), и открываем её снова.
+// "Отзывы" – запасной вариант на первый запуск, пока ничего ещё не
+// запомнено, и на случай, если запомненная вкладка вдруг скрыта.
+// Ключ – буквально та же строка, что и в switchTab() (index.html):
+// это разные файлы, но общий localStorage, а не общая переменная.
+const LAST_TAB_KEY = "tasteid-last-tab";
+
 // Итоговую стартовую вкладку кладём в window.SITE_INITIAL_TAB: сама
 // активация – за index.html, который знает про switchTab().
 function applyTabPreferences(settings) {
@@ -328,9 +338,17 @@ function applyTabPreferences(settings) {
   });
 
   const visible = finalOrder.filter((id) => !hidden.has(id));
-  const wanted = settings.mainTab;
+  let wanted = null;
+  try {
+    wanted = localStorage.getItem(LAST_TAB_KEY);
+  } catch {
+    // Приватный режим браузера и подобное – не повод падать, просто
+    // откатываемся на запасной вариант ниже.
+  }
   window.SITE_INITIAL_TAB =
-    wanted && visible.includes(wanted) ? wanted : visible[0] || null;
+    (wanted && visible.includes(wanted) && wanted) ||
+    (visible.includes("reviews") ? "reviews" : visible[0]) ||
+    null;
 }
 
 // ── Подписи интерфейса ─────────────────────────

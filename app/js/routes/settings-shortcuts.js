@@ -82,7 +82,6 @@ async function loadCurrentSettings() {
   const savedOrder = Array.isArray(settings.tabOrder) ? settings.tabOrder.filter((id) => TAB_DEFS_BY_ID[id]) : [];
   const missing = TAB_DEFS.map((t) => t.id).filter((id) => !savedOrder.includes(id));
   tabOrderState = [...savedOrder, ...missing];
-  mainTabState = settings.mainTab && TAB_DEFS_BY_ID[settings.mainTab] ? settings.mainTab : "now";
   renderTabsList();
 
   tierTitlesLabel = (labels.sections && labels.sections.tierTitles) || i18n("Тайтлы");

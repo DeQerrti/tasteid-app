@@ -259,7 +259,6 @@ const TAB_DEFS_BY_ID = Object.fromEntries(TAB_DEFS.map((t) => [t.id, t]));
 let tabLabels = {};
 let hiddenTabsState = new Set();
 let tabOrderState = TAB_DEFS.map((t) => t.id); // порядок id вкладок
-let mainTabState = "now"; // какая вкладка открывается первой
 
 function renderTabsList() {
   const container = document.getElementById("tabsList");
@@ -274,11 +273,6 @@ function renderTabsList() {
         <span class="tab-name" id="tabname-${id}">${tabLabels[id] || def.def}</span>
         <input type="text" id="tabinput-${id}" value="${tabLabels[id] || def.def}">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTabEdit('${id}')">✎</button>
-        <label class="main-radio-label" title="${i18n("Открывать эту вкладку первой")}">
-          <input type="radio" name="mainTabRadio" value="${id}" ${mainTabState === id ? "checked" : ""}
-            onchange="mainTabState = '${id}'">
-          ${i18n("Открывать первой")}
-        </label>
       </div>
     `;
     })
