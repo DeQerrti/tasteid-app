@@ -275,6 +275,7 @@ const sharedBrowserGlobals = [
   "tmdbKey",
   "tmdbPoster",
   "toggleSection",
+  "MEDIA_TYPES",
   "TYPE_COLORS",
   "TYPE_FILTER_ORDER",
   "TYPE_LABELS",

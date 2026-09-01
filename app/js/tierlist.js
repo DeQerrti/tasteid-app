@@ -12,10 +12,9 @@
 // а здесь остаётся только желаемый порядок: знакомые типы идут в
 // привычной последовательности, новые (в том числе добавленные через
 // настройки) — следом, по алфавиту.
-const TL_TYPE_ORDER = [
-  "anime", "manga", "manhwa", "manhua", "novel",
-  "movie", "show", "dorama", "book", "game", "gacha",
-];
+// Из config.js (MEDIA_TYPES) — единственного места, где перечислены
+// встроенные типы.
+const TL_TYPE_ORDER = MEDIA_TYPES.map((t) => t.key);
 
 function tlInferType(r) { return r.type || "anime"; }
 function tlTypeLabel(type) { return TYPE_LABELS[type] || type || "—"; }

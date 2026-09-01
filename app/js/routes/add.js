@@ -1778,19 +1778,9 @@ async function confirmRenameSourceType(n, key, rawName) {
 //    что и у источников (см. блок «Источники» выше). Свои типы хранятся
 //    в customTypes/hiddenTypes/customTypePlural, переименования встроенных —
 //    в labels.types (site-settings.json), правится прямо тут. ──
-const TYPE_BUILTINS = [
-  "anime",
-  "manga",
-  "manhwa",
-  "manhua",
-  "novel",
-  "movie",
-  "show",
-  "dorama",
-  "book",
-  "game",
-  "gacha",
-];
+// Из config.js (MEDIA_TYPES) — единственного места, где перечислены
+// встроенные типы.
+const TYPE_BUILTINS = MEDIA_TYPES.map((t) => t.key);
 let typePickerOpen = false;
 
 function typeLabel(key) {
