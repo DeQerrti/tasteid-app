@@ -107,11 +107,14 @@ async function proxyImagesToDataUrls(container) {
 // utils.js обязан подключаться раньше config.js.
 
 // ── Признак админа (для UI) ────────────────────
-// tasteid_ui — обычная, не HttpOnly кука, выставляется при логине.
-// Реальная авторизация на запись проверяется на бэкенде через
-// HttpOnly tasteid_auth (см. functions/_shared.js), эта кука —
-// только чтобы решить, показывать ли кнопки редактирования.
+// Входить в приложение не во что и не от кого — папку хранилища открыл
+// тот, кому она принадлежит, поэтому админские кнопки есть всегда.
+// window.__TASTEID.admin (electron/protocol.js) и кука tasteid_ui,
+// которую в браузере при разработке всё ещё ставит scripts/serve.js —
+// два способа сообщить об этом же самом факте, оставшиеся с тех пор,
+// когда на сайте было настоящее «войти».
 function isAdmin() {
+  if (window.__TASTEID?.admin) return true;
   return document.cookie.split(";").some(c => c.trim().startsWith("tasteid_ui="));
 }
 

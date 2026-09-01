@@ -1,14 +1,24 @@
 // ══════════════════════════════════════════════
-//  ЛОКАЛЬНЫЙ СЕРВЕР
+//  HTTP-СЕРВЕР — для разработки и для тестов, не для самого приложения
 //
-//  Приложение показывает те же страницы, что и сайт, и делает это через
-//  http://127.0.0.1:<порт>, а не file://. Разница принципиальная: по
-//  file:// не работают ни абсолютные пути (/js/theme.js), ни fetch за
-//  своими же файлами — то есть фронтенд пришлось бы переписывать. Через
-//  локальный сервер он работает ровно так, как работал на сайте.
+//  Собранное приложение эту версию маршрутизации больше не использует —
+//  окно грузится через electron/protocol.js (схема app://, без TCP и
+//  без порта, см. её же комментарий). Этот файл остался для двух вещей,
+//  которым как раз нужен настоящий HTTP:
 //
-//  Порт всегда случайный свободный: фиксированный номер рано или поздно
-//  окажется занят чем-то ещё, и приложение просто не откроется.
+//    scripts/serve.js — правка страниц в обычном браузере, без
+//    пересборки Electron;
+//
+//    tests/*.test.js — та же логика (ROUTES из core/api.js) проверяется
+//    обычным fetch() из Node, без графики и без Electron.
+//
+//  Маршрутизация здесь и в protocol.js намеренно продублирована, а не
+//  вынесена в одну функцию: у HTTP и у кастомной схемы разные объекты
+//  запроса/ответа (IncomingMessage/ServerResponse против Fetch
+//  Request/Response), и общая обёртка вышла бы сложнее, чем два похожих
+//  файла. Общими остаются: ROUTES/ApiError (core/api.js) и регексы/
+//  константы ниже, которые оба файла делят через импорт, — они не могут
+//  разъехаться просто потому, что это один и тот же файл.
 //
 //  Слушаем только 127.0.0.1. Это не паранойя: на 0.0.0.0 хранилище было
 //  бы открыто любому в той же сети — без пароля, потому что пароля здесь
@@ -21,7 +31,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROUTES, ApiError } from "../core/api.js";
 
-const MIME = {
+export const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -43,11 +53,11 @@ const MIME = {
 // русского названия, и папка с картинками называется так же. С
 // [a-z0-9-] такая папка не отдавалась — картинки загружались и
 // пропадали. Тот же набор запретов, что у TIER_ID в vault.js.
-const VAULT_DIRS = /^\/(covers|chars|[^\s/\\.:*?"<>|\x00-\x1f]{1,60})\//i;
+export const VAULT_DIRS = /^\/(covers|chars|[^\s/\\.:*?"<>|\x00-\x1f]{1,60})\//i;
 
 // Файлы данных фронтенд читает напрямую, как читал их на сайте:
 // fetch("/reviews.json"). Отдаём из хранилища.
-const VAULT_FILES =
+export const VAULT_FILES =
   /^\/(reviews|favorites|characters-tier|site-settings|tier-[^\s/\\.:*?"<>|\x00-\x1f]{1,60})\.json$/i;
 
 // Изменяющие запросы выполняются строго по одному.
@@ -119,7 +129,7 @@ async function serveFile(res, filePath, { store = true } = {}) {
 
 // Путь из запроса приводим к файлу внутри корня и проверяем, что он там
 // и остался: «..» в адресе иначе увёл бы за пределы папки.
-function resolveInside(root, urlPath) {
+export function resolveInside(root, urlPath) {
   const decoded = decodeURIComponent(urlPath).replace(/^\/+/, "");
   const full = path.resolve(root, decoded);
   const rel = path.relative(root, full);
@@ -134,12 +144,12 @@ function resolveInside(root, urlPath) {
 //
 // Иначе получается то, что и получилось при первом запуске: настройки
 // требуют войти, а войти негде.
-const ADMIN_COOKIE = "tasteid_ui=1; Path=/; SameSite=Lax";
+export const ADMIN_COOKIE = "tasteid_ui=1; Path=/; SameSite=Lax";
 
 // Экран приветствия и всё, что относится к самому приложению (папка
 // хранилища, масштаб), живёт в electron/ui — отдельно от app/, потому
 // что к сайту не имеет отношения и обратно туда не поедет.
-const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "ui");
+export const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "ui");
 
 export function createServer({ appDir, getVault, appRoutes = {}, getLang }) {
   return http.createServer(async (req, res) => {

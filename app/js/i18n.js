@@ -24,14 +24,19 @@
 //      <input data-i18n-placeholder="Например: Брошено">
 //      <button data-i18n-title="Удалить">
 //
-//  Язык берём из куки, которую ставит локальный сервер на каждый ответ
-//  (см. electron/server.js). Не запросом к /api/app/info: запрос
-//  асинхронный, и страница успела бы моргнуть русским до ответа.
+//  Язык берём синхронно, ещё до разбора остальной страницы — иначе она
+//  успела бы моргнуть русским до ответа. В приложении это window.__TASTEID
+//  (см. electron/protocol.js — вписывается прямо в HTML перед этим же
+//  скриптом), в браузере при разработке через scripts/serve.js — кука,
+//  которую там всё ещё ставит настоящий HTTP-ответ (electron/server.js).
 // ══════════════════════════════════════════════
 
 const I18N_LANGS = { ru: "Русский", en: "English" };
 
 function i18nLang() {
+  if (window.__TASTEID?.lang === "ru" || window.__TASTEID?.lang === "en") {
+    return window.__TASTEID.lang;
+  }
   const m = /(?:^|;\s*)tasteid_lang=(ru|en)(?:;|$)/.exec(document.cookie || "");
   return m ? m[1] : "ru";
 }

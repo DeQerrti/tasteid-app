@@ -10,12 +10,12 @@
 //    папки нет или пропала      → экран приветствия
 // ══════════════════════════════════════════════
 
-import { app, BrowserWindow, dialog, shell, Menu, nativeTheme } from "electron";
+import { app, BrowserWindow, dialog, shell, Menu, nativeTheme, protocol } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Vault } from "./vault.js";
-import { createServer, listen } from "./server.js";
+import { registerScheme, createHandler, SCHEME } from "./protocol.js";
 import { titleBarOptions, titleBarCss, overlayColors } from "./chrome.js";
 import { findUpdate, openDownload } from "./update.js";
 // Именно так, а не `import { autoUpdater } from "electron-updater"`:
@@ -30,6 +30,11 @@ const { autoUpdater } = pkg;
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.join(HERE, "..", "app");
+
+// До app.whenReady() — Chromium перестаёт принимать новые привилегированные
+// схемы, как только приложение стало "ready", вне зависимости от того,
+// когда вызван сам обработчик (protocol.handle ниже, уже внутри whenReady).
+registerScheme();
 
 // Без замка на один экземпляр двойной клик по .exe при уже открытом
 // окне (в том числе автозапуск после скачивания, за которым человек не
@@ -69,7 +74,6 @@ const ZOOM_STEP = 10;
 
 let vault = null;
 let win = null;
-let port = null;
 let config = {};
 
 async function readConfig() {
@@ -454,7 +458,7 @@ async function createWindow({ compact = false } = {}) {
     ...titleBarOptions(process.platform, overlayColors(skin)),
     webPreferences: {
       // Странице не нужны ни Node, ни выход из песочницы: с диском она
-      // говорит только через локальный сервер, как раньше — с сайтом.
+      // говорит только через схему app:// (electron/protocol.js).
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -565,11 +569,11 @@ async function createWindow({ compact = false } = {}) {
 }
 
 function openMain() {
-  win?.loadURL(`http://127.0.0.1:${port}/`);
+  win?.loadURL(`${SCHEME}://app/`);
 }
 
 function openWelcome() {
-  win?.loadURL(`http://127.0.0.1:${port}/welcome`);
+  win?.loadURL(`${SCHEME}://app/welcome`);
 }
 
 // ── Обновления ─────────────────────────────────
@@ -784,13 +788,15 @@ app.whenReady().then(async () => {
   const known = current && (await exists(current.path));
   if (known) await useVault(current.path);
 
-  const server = createServer({
-    appDir: APP_DIR,
-    getVault: () => vault,
-    appRoutes: appRoutes(),
-    getLang: appLanguage,
-  });
-  port = await listen(server);
+  protocol.handle(
+    SCHEME,
+    createHandler({
+      appDir: APP_DIR,
+      getVault: () => vault,
+      appRoutes: appRoutes(),
+      getLang: appLanguage,
+    })
+  );
 
   buildMenu();
   await createWindow({ compact: !known });
