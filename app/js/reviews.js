@@ -245,10 +245,20 @@ function rvBindCardClicks() {
 function reviewModalBodyHtml(r) {
   const grade = GRADES[gradeToShelf(r.grade)] || null;
   const formatYear = [r.format, r.year].filter(Boolean).join(" · ");
-  const dateRaw = r.date_end || r.date_start || r.date || null;
-  const dateStr = dateRaw
-    ? new Date(dateRaw).toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" })
-    : "";
+  // Полная дата (не короткая, как на бейдже карточки в архиве, —
+  // "12 марта", а развёрнутая, "12 марта 2024"). Раньше в развороте
+  // отзыва показывался только день завершения — сам период (начал →
+  // закончил) был виден только на карточке в архиве, внутри отзыва не
+  // было ни того ни другого, если даты различались.
+  const fmtLongDate = raw =>
+    new Date(raw).toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" });
+  let dateStr = "";
+  if (r.date_start && r.date_end && r.date_start !== r.date_end) {
+    dateStr = `${fmtLongDate(r.date_start)} → ${fmtLongDate(r.date_end)}`;
+  } else {
+    const dateRaw = r.date_end || r.date_start || r.date || null;
+    if (dateRaw) dateStr = fmtLongDate(dateRaw);
+  }
 
   const btn1 = sourceBtnHtml(r.url, r.source);
   const btn2 = sourceBtnHtml(r.url2, r.source2);

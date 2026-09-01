@@ -11,7 +11,7 @@
 // ══════════════════════════════════════════════
 
 import { app, BrowserWindow, dialog, shell, Menu, nativeTheme, protocol } from "electron";
-import { promises as fs } from "node:fs";
+import { promises as fs, appendFileSync as fsAppendFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Vault } from "./vault.js";
@@ -54,6 +54,25 @@ registerScheme();
 // видимого окна. process.exit() останавливает модуль на этом же месте,
 // без всякой гонки.
 if (!app.requestSingleInstanceLock()) {
+  // Дописываем (не debugLog(), тот перезаписывает файл целиком) в тот
+  // же quit-debug.log, но с добавлением, а не заменой: этот процесс —
+  // не тот, что уже вёл журнал своего закрытия, а свежий, проигравший
+  // гонку за лок. Если лок и правда занят зависшим старым процессом,
+  // строка ниже ляжет следом за его собственным журналом закрытия — в
+  // одном файле будет видно и как застряло старое окно, и что
+  // повторный запуск после этого ничего не смог показать.
+  try {
+    // Синхронная запись, не fs.promises: следом сразу process.exit(0),
+    // а он не ждёт незавершённые асинхронные операции — обычный
+    // fs.appendFile тут рисковал бы просто не успеть дописаться.
+    const file = path.join(app.getPath("userData"), "quit-debug.log");
+    fsAppendFileSync(
+      file,
+      `${new Date().toISOString()} requestSingleInstanceLock() отказал — лок уже занят другим процессом\n`
+    );
+  } catch {
+    // Некуда писать — не повод не выходить.
+  }
   app.quit();
   process.exit(0);
 }
@@ -107,6 +126,21 @@ async function exists(p) {
   } catch {
     return false;
   }
+}
+
+// ── Журнал закрытия/запуска ─────────────────────
+// Единственное, ради чего он существует: если "не открывается после
+// закрытия, а в диспетчере задач процессы висят" повторится и на
+// сборке с обоими фиксами ниже (обнуление win, аварийный app.exit),
+// нужны настоящие факты о том, где именно застряла последовательность
+// закрытия — а не очередная догадка вслепую. quitLog переписывается
+// заново на каждой попытке закрыть окно (не копится годами) — файл
+// всегда показывает только самую последнюю попытку.
+let quitLog = [];
+function debugLog(msg) {
+  quitLog.push(`${new Date().toISOString()} ${msg}`);
+  const file = path.join(app.getPath("userData"), "quit-debug.log");
+  fs.writeFile(file, quitLog.join("\n") + "\n").catch(() => {});
 }
 
 // ── Язык ───────────────────────────────────────
@@ -482,6 +516,9 @@ async function createWindow({ compact = false } = {}) {
   const closingWin = win;
   let closingForReal = false;
   closingWin.on("close", (e) => {
+    debugLog(
+      `close: closingForReal=${closingForReal} destroyed=${closingWin.webContents.isDestroyed()} quittingForUpdate=${quittingForUpdate}`
+    );
     if (closingForReal || closingWin.webContents.isDestroyed()) return;
     // quitAndInstall() тоже закрывает это окно (это первый шаг его
     // собственной последовательности «закрыться → поставить →
@@ -495,8 +532,25 @@ async function createWindow({ compact = false } = {}) {
     // обновлением не нужна и без того: следом всё равно другой процесс
     // того же приложения на тех же файлах, ничего не теряется.
     if (quittingForUpdate) return;
+    // Новая попытка закрыть окно — журнал начинаем с чистого листа,
+    // чтобы файл всегда показывал только самую последнюю попытку, а не
+    // копил историю за месяцы работы.
+    quitLog = [];
+    debugLog("close: preventDefault, жду __syncBeforeQuit до 6с");
     e.preventDefault();
-    const finish = () => {
+    // synced и timeout ниже оба зовут finish() — раньше только
+    // победитель гонки (Promise.race) делал это один раз, теперь
+    // каждый зовёт сам по себе (чтобы залогировать, ЧЕМ именно
+    // закончилось ожидание), поэтому нужен явный флаг, что второй
+    // вызов — уже не более чем эхо и делать повторно ничего не надо.
+    let finished = false;
+    const finish = (reason) => {
+      if (finished) {
+        debugLog(`finish(${reason}): уже финишировали раньше, пропускаю`);
+        return;
+      }
+      finished = true;
+      debugLog(`finish(${reason}): зову closingWin.close()`);
       closingForReal = true;
       closingWin.close();
       // Аварийный выход: если через 3 секунды после этого процесс всё
@@ -510,13 +564,22 @@ async function createWindow({ compact = false } = {}) {
       // само (см. второй-instance ниже), а показывать было нечего.
       // unref() — чтобы сам этот таймер не держал процесс, если тот и
       // так успел выйти нормально раньше него.
-      setTimeout(() => app.exit(0), 3000).unref();
+      setTimeout(() => {
+        debugLog("аварийный app.exit(0): closingWin.close() не привёл к выходу за 3с");
+        app.exit(0);
+      }, 3000).unref();
     };
-    const timeout = new Promise((resolve) => setTimeout(resolve, 6000));
+    const timeout = new Promise((resolve) => setTimeout(resolve, 6000)).then(() =>
+      finish("timeout-6s")
+    );
     const synced = closingWin.webContents
       .executeJavaScript("window.__syncBeforeQuit ? window.__syncBeforeQuit() : null")
-      .catch(() => {});
-    Promise.race([synced, timeout]).then(finish);
+      .then(() => finish("synced"))
+      .catch((err) => {
+        debugLog(`executeJavaScript упал: ${err?.message || err}`);
+        finish("sync-error");
+      });
+    Promise.race([synced, timeout]);
   });
 
   // Без этого win ещё долго после закрытия окна продолжал указывать на
@@ -525,6 +588,7 @@ async function createWindow({ compact = false } = {}) {
   // ("Object has been destroyed") — молча, без окна и без ошибки на
   // экране, будто повторный запуск вообще ничего не сделал.
   closingWin.on("closed", () => {
+    debugLog("closed: окно уничтожено");
     if (win === closingWin) win = null;
   });
 
@@ -792,6 +856,7 @@ async function checkForUpdates() {
 // показать первую: тот самый случай, когда человек не заметил, что
 // приложение уже открылось, и запустил .exe ещё раз.
 app.on("second-instance", () => {
+  debugLog(`second-instance: win=${!!win} destroyed=${win?.isDestroyed()}`);
   if (!win || win.isDestroyed()) return;
   if (win.isMinimized()) win.restore();
   win.show();
@@ -854,5 +919,6 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
+  debugLog(`window-all-closed: platform=${process.platform}`);
   if (process.platform !== "darwin") app.quit();
 });
