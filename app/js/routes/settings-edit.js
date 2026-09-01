@@ -206,7 +206,7 @@ function settingsViewHtml() {
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
         <div class="status-msg" id="status-tabs"></div>
 
-        <h2 class="section-h" data-i18n>Разделы вкладки «Статусы»</h2>
+        <h2 class="section-h" id="statusesHeading"></h2>
         <div id="statusesList"></div>
         <div class="row" style="margin-top:14px;">
           <div><label data-i18n>Новый раздел</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено"></div>
@@ -214,7 +214,7 @@ function settingsViewHtml() {
         <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
 
-        <h2 class="section-h" data-i18n>Разделы вкладки «Любимое»</h2>
+        <h2 class="section-h" id="favSectionsHeading"></h2>
         <div id="favSectionsList"></div>
         <div id="favCollectionsList"></div>
         <div class="row" style="margin-top:14px;">

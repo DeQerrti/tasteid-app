@@ -6,6 +6,19 @@
 //  файлами этой же группы в index.html, в общей области видимости.
 // ══════════════════════════════════════════════
 
+// Заголовки «Разделы вкладки «X»» ниже называют саму вкладку по её
+// текущему имени, а не намертво зашитым «Статусы»/«Любимое»: раньше
+// переименование вкладки в списке выше (toggleTabEdit) эти заголовки
+// не трогало – переименуй вкладку «Статусы» в «Помидор», и здесь
+// осталось бы «Разделы вкладки «Статусы»», хотя такой вкладки уже нет.
+function updateSectionListHeadings() {
+  const statusesH = document.getElementById("statusesHeading");
+  if (statusesH) statusesH.textContent = i18n("Разделы вкладки «{name}»", { name: tabLabels.now || TAB_DEFS_BY_ID.now.def });
+  const favH = document.getElementById("favSectionsHeading");
+  if (favH)
+    favH.textContent = i18n("Разделы вкладки «{name}»", { name: tabLabels.favorites || TAB_DEFS_BY_ID.favorites.def });
+}
+
 // ── Разделы вкладки «Любимое» ──────────────────
 // Три встроенных раздела: у "Тайтлы" свой источник (reviews.json,
 // флаг favorite), у "Персонажи"/"Персоны" – favorites.json по type.
@@ -418,6 +431,7 @@ function toggleTabEdit(id) {
     const def = TAB_DEFS.find((t) => t.id === id).def;
     tabLabels[id] = val || def;
     document.getElementById(`tabname-${id}`).textContent = tabLabels[id];
+    if (id === "now" || id === "favorites") updateSectionListHeadings();
   }
 }
 

@@ -285,6 +285,7 @@ const sharedBrowserGlobals = [
   "TYPE_PLURAL",
   "unitForms",
   "updateFileBtnName",
+  "updateSectionListHeadings",
   "visibleTierCollections",
   // грузится по требованию из app/js/vendor (см. loadHtml2Canvas)
   "html2canvas",

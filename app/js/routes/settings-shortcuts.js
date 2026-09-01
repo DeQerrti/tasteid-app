@@ -83,6 +83,7 @@ async function loadCurrentSettings() {
   const missing = TAB_DEFS.map((t) => t.id).filter((id) => !savedOrder.includes(id));
   tabOrderState = [...savedOrder, ...missing];
   renderTabsList();
+  updateSectionListHeadings();
 
   tierTitlesLabel = (labels.sections && labels.sections.tierTitles) || i18n("Тайтлы");
   hiddenTierModesState = new Set(settings.hiddenTierModes || []);

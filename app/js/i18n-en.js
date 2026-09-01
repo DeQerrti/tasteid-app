@@ -764,6 +764,7 @@ i18nRegister({
     "Unchecking this overwrites their status and rating with the values from the export. Review texts are never affected.",
   "совпадение вкусов": "taste match",
   "Сохранить как картинку": "Save as image",
+  "Разделы вкладки «{name}»": "Sections of the “{name}” tab",
   "Вернуть «Персонажи»": "Restore “Characters”",
   "Новое название тир-листа:": "New tier list name:",
   "Свои тир-листы (коллекции) теперь заводятся, переименовываются и удаляются прямо на вкладке «Тир-лист» – кнопкой «Создать» и значками рядом с каждым тир-листом.":
