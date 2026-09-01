@@ -266,6 +266,7 @@ async function applyTheme() {
   window.SITE_FAV_COLLECTIONS = settings.favCollections || [];
   window.SITE_HIDDEN_STATS = new Set(settings.hiddenStatsBlocks || []);
   window.SITE_HIDDEN_FAV_SECTIONS = new Set(settings.hiddenFavSections || []);
+  window.SITE_FAV_SECTION_ORDER = Array.isArray(settings.favSectionOrder) ? settings.favSectionOrder : null;
   window.SITE_HIDDEN_TIER_MODES = new Set(settings.hiddenTierModes || []);
   // Дальше идёт работа с DOM – ждём, пока разметка вообще появится.
   // Цвета выше применяются сразу, не дожидаясь этого, иначе будет

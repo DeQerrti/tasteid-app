@@ -312,6 +312,7 @@ const sharedBrowserGlobals = [
   "detectApp",
   "favCollections",
   "favSectionLabels",
+  "favSectionOrderState",
   "FAV_SECTIONS",
   "flashStatus",
   "hiddenFavSectionsState",

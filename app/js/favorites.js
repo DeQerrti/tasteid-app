@@ -48,44 +48,50 @@ function renderFavorites({ titles, characters, persons, favData }) {
     <button class="admin-add-btn" onclick="openFavExportModal()">${i18n("Сохранить как картинку")}</button>
   </div>`;
 
-  // ── Тайтлы ──────────────────────────────────
-  if (isFavSectionVisible("favTitles")) html += `<section class="group">
-    <div class="section-header">
-      <h2 class="section-title">${esc(siteLabel("sections", "favTitles", i18n("Тайтлы")))}</h2>
-      ${admin ? `<a href="#/reviews-order" class="admin-add-btn">${i18n("Порядок")}</a>` : ""}
-    </div>
-    <div class="grid-now">
-      ${titles.length
-        ? titles.map((r, i) => favTitleCard(r, i)).join("")
-        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
-    </div>
-  </section>`;
-
-  // ── Персонажи ────────────────────────────────
-  if (isFavSectionVisible("favCharacters")) html += `<section class="group">
-    <div class="section-header">
-      <h2 class="section-title">${esc(siteLabel("sections", "favCharacters", i18n("Персонажи")))}</h2>
-      ${admin ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>` : ""}
-    </div>
-    <div class="grid-chars">
-      ${characters.length
-        ? characters.map((r, i) => favPersonCard(r, i)).join("")
-        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
-    </div>
-  </section>`;
-
-  // ── Персоны ──────────────────────────────────
-  if (isFavSectionVisible("favPersons")) html += `<section class="group">
-    <div class="section-header">
-      <h2 class="section-title">${esc(siteLabel("sections", "favPersons", i18n("Персоны")))}</h2>
-      ${admin ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>` : ""}
-    </div>
-    <div class="grid-chars">
-      ${persons.length
-        ? persons.map((r, i) => favPersonCard(r, i)).join("")
-        : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
-    </div>
-  </section>`;
+  // ── Тайтлы / Персонажи / Персоны ─────────────
+  // Порядок этих трёх встроенных разделов настраивается в /settings-edit
+  // перетаскиванием (favSectionOrderState) – раньше был зашит намертво.
+  // window.SITE_FAV_SECTION_ORDER = null, пока настроек ещё не было.
+  const builtinSectionBuilders = {
+    favTitles: () => `<section class="group">
+      <div class="section-header">
+        <h2 class="section-title">${esc(siteLabel("sections", "favTitles", i18n("Тайтлы")))}</h2>
+        ${admin ? `<a href="#/reviews-order" class="admin-add-btn">${i18n("Порядок")}</a>` : ""}
+      </div>
+      <div class="grid-now">
+        ${titles.length
+          ? titles.map((r, i) => favTitleCard(r, i)).join("")
+          : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
+      </div>
+    </section>`,
+    favCharacters: () => `<section class="group">
+      <div class="section-header">
+        <h2 class="section-title">${esc(siteLabel("sections", "favCharacters", i18n("Персонажи")))}</h2>
+        ${admin ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>` : ""}
+      </div>
+      <div class="grid-chars">
+        ${characters.length
+          ? characters.map((r, i) => favPersonCard(r, i)).join("")
+          : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
+      </div>
+    </section>`,
+    favPersons: () => `<section class="group">
+      <div class="section-header">
+        <h2 class="section-title">${esc(siteLabel("sections", "favPersons", i18n("Персоны")))}</h2>
+        ${admin ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>` : ""}
+      </div>
+      <div class="grid-chars">
+        ${persons.length
+          ? persons.map((r, i) => favPersonCard(r, i)).join("")
+          : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
+      </div>
+    </section>`,
+  };
+  const sectionOrder = window.SITE_FAV_SECTION_ORDER || Object.keys(builtinSectionBuilders);
+  sectionOrder.forEach((key) => {
+    if (!builtinSectionBuilders[key] || !isFavSectionVisible(key)) return;
+    html += builtinSectionBuilders[key]();
+  });
 
   // ── Свои разделы (сверх Тайтлов/Персонажей/Персон) ─
   // Данные – те же записи favorites.json, отфильтрованные по своему

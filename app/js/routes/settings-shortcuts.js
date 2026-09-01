@@ -107,6 +107,13 @@ async function loadCurrentSettings() {
   };
   hiddenFavSectionsState = new Set(settings.hiddenFavSections || []);
   removedFavSections = new Set(settings.removedFavSections || []);
+  {
+    const saved = Array.isArray(settings.favSectionOrder)
+      ? settings.favSectionOrder.filter((key) => FAV_SECTIONS.some((s) => s.key === key))
+      : [];
+    const missing = FAV_SECTIONS.map((s) => s.key).filter((key) => !saved.includes(key));
+    favSectionOrderState = [...saved, ...missing];
+  }
   renderFavSectionsList();
 
   favCollections = settings.favCollections ? JSON.parse(JSON.stringify(settings.favCollections)) : [];

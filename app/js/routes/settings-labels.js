@@ -224,6 +224,7 @@ async function saveSettings() {
     hiddenTierModes: [...hiddenTierModesState],
     hiddenFavSections: [...hiddenFavSectionsState],
     removedFavSections: [...removedFavSections],
+    favSectionOrder: favSectionOrderState,
     favCollections,
     labels: {
       // Сначала то, что настроено на вкладке «Подписи», затем поля

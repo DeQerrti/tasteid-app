@@ -25,19 +25,27 @@ const FAV_SECTIONS = [
 let favSectionLabels = {};
 let hiddenFavSectionsState = new Set();
 let removedFavSections = new Set();
+// Порядок трёх встроенных разделов – раньше жёстко зашит (Тайтлы,
+// Персонажи, Персоны), теперь настраиваемый перетаскиванием, как и у
+// вкладок (tabOrderState). js/favorites.js читает его же
+// (window.SITE_FAV_SECTION_ORDER), см. её же комментарий там.
+let favSectionOrderState = FAV_SECTIONS.map((s) => s.key);
 
 function renderFavSectionsList() {
   const container = document.getElementById("favSectionsList");
-  const rows = FAV_SECTIONS.filter((s) => !removedFavSections.has(s.key))
-    .map((s) => {
-      const label = favSectionLabels[s.key] || s.def;
+  const rows = favSectionOrderState
+    .filter((key) => !removedFavSections.has(key))
+    .map((key) => {
+      const s = FAV_SECTIONS.find((x) => x.key === key);
+      const label = favSectionLabels[key] || s.def;
       return `
-      <div class="tab-row" id="favsecrow-${s.key}">
-        ${eyeButton(hiddenFavSectionsState.has(s.key), `hiddenFavSectionsState.has('${s.key}') ? hiddenFavSectionsState.delete('${s.key}') : hiddenFavSectionsState.add('${s.key}'); renderFavSectionsList();`)}
-        <span class="tab-name" id="favsecname-${s.key}">${esc(label)}</span>
-        <input type="text" id="favsecinput-${s.key}" value="${esc(label)}">
-        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${s.key}')">✎</button>
-        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection('${s.key}')">✕</button>
+      <div class="tab-row" id="favsecrow-${key}" data-key="${key}" draggable="true">
+        <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
+        ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList();`)}
+        <span class="tab-name" id="favsecname-${key}">${esc(label)}</span>
+        <input type="text" id="favsecinput-${key}" value="${esc(label)}">
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${key}')">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection('${key}')">✕</button>
       </div>`;
     })
     .join("");
@@ -57,6 +65,51 @@ function renderFavSectionsList() {
     : "";
 
   container.innerHTML = rows + restore;
+  bindFavSectionsDnd();
+}
+
+let favSecDragSrc = null;
+
+function bindFavSectionsDnd() {
+  const container = document.getElementById("favSectionsList");
+  container.querySelectorAll(".tab-row[draggable]").forEach((row) => {
+    row.addEventListener("dragstart", (e) => {
+      favSecDragSrc = row;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => {
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("dragging", "drag-over"));
+      favSecDragSrc = null;
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!favSecDragSrc || row === favSecDragSrc) return;
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("drag-over"));
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      if (!favSecDragSrc || row === favSecDragSrc) return;
+
+      const srcKey = favSecDragSrc.dataset.key;
+      const targetKey = row.dataset.key;
+      const srcIdx = favSectionOrderState.indexOf(srcKey);
+      let targetIdx = favSectionOrderState.indexOf(targetKey);
+      if (srcIdx === -1 || targetIdx === -1) return;
+
+      const rect = row.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+
+      favSectionOrderState.splice(srcIdx, 1);
+      targetIdx = favSectionOrderState.indexOf(targetKey);
+      favSectionOrderState.splice(before ? targetIdx : targetIdx + 1, 0, srcKey);
+
+      renderFavSectionsList();
+    });
+  });
 }
 
 async function removeFavSection(key) {
@@ -107,7 +160,8 @@ function renderFavCollectionsList() {
   container.innerHTML = favCollections
     .map(
       (c) => `
-      <div class="tab-row" id="favcollrow-${c.id}">
+      <div class="tab-row" id="favcollrow-${c.id}" data-id="${esc(c.id)}" draggable="true">
+        <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavCollectionsList();`)}
         <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
         <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}">
@@ -117,6 +171,51 @@ function renderFavCollectionsList() {
     `
     )
     .join("");
+  bindFavCollectionsDnd();
+}
+
+let favCollDragSrc = null;
+
+function bindFavCollectionsDnd() {
+  const container = document.getElementById("favCollectionsList");
+  container.querySelectorAll(".tab-row[draggable]").forEach((row) => {
+    row.addEventListener("dragstart", (e) => {
+      favCollDragSrc = row;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => {
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("dragging", "drag-over"));
+      favCollDragSrc = null;
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!favCollDragSrc || row === favCollDragSrc) return;
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("drag-over"));
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      if (!favCollDragSrc || row === favCollDragSrc) return;
+
+      const srcId = favCollDragSrc.dataset.id;
+      const targetId = row.dataset.id;
+      const srcIdx = favCollections.findIndex((c) => c.id === srcId);
+      let targetIdx = favCollections.findIndex((c) => c.id === targetId);
+      if (srcIdx === -1 || targetIdx === -1) return;
+
+      const rect = row.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+
+      const [moved] = favCollections.splice(srcIdx, 1);
+      targetIdx = favCollections.findIndex((c) => c.id === targetId);
+      favCollections.splice(before ? targetIdx : targetIdx + 1, 0, moved);
+
+      renderFavCollectionsList();
+    });
+  });
 }
 
 function toggleFavCollectionEdit(id) {
@@ -329,20 +428,77 @@ let hiddenStatusesState = new Set();
 
 function renderStatusesList() {
   const container = document.getElementById("statusesList");
-  const rows = [...statusBuckets, { key: "archive", label: archiveLabel, removable: false }];
-  container.innerHTML = rows
+  // «Архив» – не элемент statusBuckets (см. её же комментарий у
+  // archiveLabel выше), а фиксированный последний ряд: он не
+  // перетаскивается и не может встать выше настоящих разделов.
+  const rows = statusBuckets
     .map(
       (b) => `
-      <div class="tab-row" id="statusrow-${b.key}">
+      <div class="tab-row" id="statusrow-${b.key}" data-key="${b.key}" draggable="true">
+        <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList();`)}
         <span class="tab-name" id="statusname-${b.key}">${b.label}</span>
         <input type="text" id="statusinput-${b.key}" value="${b.label}">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('${b.key}')">✎</button>
-        ${b.key !== "archive" ? `<button class="icon-btn" title="${i18n("Удалить")}" onclick="removeStatusBucket('${b.key}')">✕</button>` : ""}
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeStatusBucket('${b.key}')">✕</button>
       </div>
     `
     )
     .join("");
+  const archiveRow = `
+    <div class="tab-row" id="statusrow-archive">
+      ${eyeButton(hiddenStatusesState.has("archive"), `hiddenStatusesState.has('archive') ? hiddenStatusesState.delete('archive') : hiddenStatusesState.add('archive'); renderStatusesList();`)}
+      <span class="tab-name" id="statusname-archive">${archiveLabel}</span>
+      <input type="text" id="statusinput-archive" value="${archiveLabel}">
+      <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('archive')">✎</button>
+    </div>
+  `;
+  container.innerHTML = rows + archiveRow;
+  bindStatusesDnd();
+}
+
+let statusDragSrc = null;
+
+function bindStatusesDnd() {
+  const container = document.getElementById("statusesList");
+  container.querySelectorAll(".tab-row[draggable]").forEach((row) => {
+    row.addEventListener("dragstart", (e) => {
+      statusDragSrc = row;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => {
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("dragging", "drag-over"));
+      statusDragSrc = null;
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!statusDragSrc || row === statusDragSrc) return;
+      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("drag-over"));
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      if (!statusDragSrc || row === statusDragSrc) return;
+
+      const srcKey = statusDragSrc.dataset.key;
+      const targetKey = row.dataset.key;
+      const srcIdx = statusBuckets.findIndex((b) => b.key === srcKey);
+      let targetIdx = statusBuckets.findIndex((b) => b.key === targetKey);
+      if (srcIdx === -1 || targetIdx === -1) return;
+
+      const rect = row.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+
+      const [moved] = statusBuckets.splice(srcIdx, 1);
+      targetIdx = statusBuckets.findIndex((b) => b.key === targetKey);
+      statusBuckets.splice(before ? targetIdx : targetIdx + 1, 0, moved);
+
+      renderStatusesList();
+    });
+  });
 }
 
 function toggleStatusEdit(key) {
