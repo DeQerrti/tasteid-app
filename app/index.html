@@ -2328,7 +2328,13 @@ section.group { margin-bottom: 3.5rem; }
 
 :where(.set-view) .status-msg { margin-top: 12px; font-size: .83rem; }
 
-:where(.set-view) h2.section-h { font-size: 1.05rem; color: var(--text-hi); }
+/* margin явно, а не браузерный дефолт у <h2> – он у разных браузеров/
+   элементов вокруг разный (em от собственного font-size, схлопывается
+   с соседями по-разному), из-за чего между разделами настроек то почти
+   не было отступа, то оказывался почти сантиметр пустоты. Первый
+   заголовок панели – без отступа сверху, ему не с чем схлопываться. */
+:where(.set-view) h2.section-h { font-size: 1.05rem; color: var(--text-hi); margin: 28px 0 12px; }
+:where(.set-view) .panel > h2.section-h:first-child { margin-top: 0; }
 
 /* ── ПЕРЕКЛЮЧАТЕЛЬ «Скрыть теги на всех карточках» ──
    Тот же приём, что у .fav-toggle в редакторе отзыва (add-view: кнопка
