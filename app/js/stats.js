@@ -58,7 +58,10 @@ function statsRender() {
   }
   const years = [...yearsSet].sort((a, b) => b - a);
 
-  const filtersHtml = statsYearFiltersHtml(years);
+  const filtersHtml = `<div class="stat-toolbar">
+    ${statsYearFiltersHtml(years)}
+    <button class="admin-add-btn" id="stats-export-btn" onclick="statsExport()">${i18n("Сохранить как картинку")}</button>
+  </div>`;
   const bodyHtml = statsState.year === "all"
     ? renderAllTimeStats(reviews, completed)
     : renderYearDigest(statsState.year, completed);
@@ -436,4 +439,58 @@ function animateStackedBars() {
       el.style.width = el.dataset.pct + "%";
     });
   }, 100);
+}
+
+// ══ ЭКСПОРТ СТАТИСТИКИ В КАРТИНКУ ═══════════════════════
+// Тот же приём, что у тир-листа персонажей и «Любимого»
+// (js/tierlist.js: tlExport, js/favorites.js: favExport) – html2canvas
+// поверх уже отрисованного .stat-grid, картинки сперва проксируются в
+// data:-URL (см. config.js). Экспортирует ровно то, что сейчас открыто:
+// «Всё время» или дайджест конкретного года – переключать это отдельно
+// незачем, для этого уже есть переключатель года над самой статистикой.
+async function statsExport() {
+  const btn = document.getElementById("stats-export-btn");
+  const grid = document.querySelector("#tab-stats .stat-grid");
+  if (!grid) return;
+  if (btn) {
+    btn.textContent = i18n("⏳ Создаём…");
+    btn.disabled = true;
+  }
+
+  let restoreImages = () => {};
+  try {
+    if (typeof html2canvas === "undefined") {
+      if (btn) btn.textContent = i18n("⏳ Загружаем библиотеку…");
+      await loadHtml2Canvas();
+      if (btn) btn.textContent = i18n("⏳ Создаём…");
+    }
+
+    restoreImages = await proxyImagesToDataUrls(grid);
+
+    const canvas = await html2canvas(grid, {
+      backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+    });
+
+    const link = document.createElement("a");
+    const label = statsState.year === "all" ? "all-time" : String(statsState.year);
+    link.download = `stats-${label}.png`;
+    link.href = canvas.toDataURL("image/png");
+    // Ссылку обязательно вставить в документ – см. тот же комментарий у
+    // tlExport() в js/tierlist.js про перехват на Android.
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    alert("Не удалось создать картинку 😢\n" + err.message);
+  } finally {
+    restoreImages();
+    if (btn) {
+      btn.textContent = i18n("Сохранить как картинку");
+      btn.disabled = false;
+    }
+  }
 }
