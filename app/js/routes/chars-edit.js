@@ -647,6 +647,7 @@ function renderEditor() {
     </div>`;
 
   bindDragDrop();
+  bindTierRowDrag();
 }
 
 const CHAR_PLACEHOLDER = imagePlaceholder(72, 108);
@@ -666,7 +667,8 @@ function renderTierRow(title, list, tier, ti) {
     .join("");
 
   return `
-    <div class="tl-editor-row" style="--tl-color:${esc(tier.color)}">
+    <div class="tl-editor-row" draggable="true" data-list="${esc(list.id)}" data-tier="${ti}" style="--tl-color:${esc(tier.color)}">
+      <span class="tl-row-drag-handle" title="${i18n("Перетащить")}">⠿</span>
       <button class="tl-row-del" onclick="deleteTier('${esc(list.id)}',${ti})">✕</button>
       <div class="tl-editor-label">
         <div class="tl-label-dot"></div>
@@ -1103,6 +1105,76 @@ async function confirmAddChar() {
   ceDirty = true;
   closeModal();
   renderEditor();
+}
+
+// ══ ПЕРЕТАСКИВАНИЕ ЦЕЛЫХ ТИРОВ ══════════════════
+// Тот же приём, что у сайдбара тайтлов (bindTitleDrag): draggable на
+// самой строке тира, вложенные .char-card тоже draggable – браузер сам
+// выбирает ближайшего draggable-предка к точке нажатия, поэтому
+// перетаскивание персонажа внутри/между тирами (bindDragDrop ниже) не
+// путается с перетаскиванием строки целиком. tierDragSrc держит
+// «активна ли сейчас именно эта, а не персонажная, перетасовка» –
+// dragover/drop строки всплывают и от перетаскивания персонажа тоже,
+// без этой проверки они бы срабатывали не вовремя.
+let tierDragSrc = null;
+
+function bindTierRowDrag() {
+  document.querySelectorAll(".tl-editor-row[draggable]").forEach((row) => {
+    row.addEventListener("dragstart", (e) => {
+      tierDragSrc = { listId: row.dataset.list, tierIdx: parseInt(row.dataset.tier) };
+      row.classList.add("dragging");
+      e.stopPropagation();
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      document.querySelectorAll(".tl-editor-row").forEach((r) => r.classList.remove("drag-over-up", "drag-over-dn"));
+      tierDragSrc = null;
+    });
+    row.addEventListener("dragover", (e) => {
+      if (!tierDragSrc) return;
+      e.preventDefault();
+      e.stopPropagation();
+      document.querySelectorAll(".tl-editor-row").forEach((r) => r.classList.remove("drag-over-up", "drag-over-dn"));
+      const rect = row.getBoundingClientRect();
+      const half = e.clientY < rect.top + rect.height / 2;
+      row.classList.add(half ? "drag-over-up" : "drag-over-dn");
+    });
+    row.addEventListener("dragleave", () => {
+      row.classList.remove("drag-over-up", "drag-over-dn");
+    });
+    row.addEventListener("drop", (e) => {
+      if (!tierDragSrc) return;
+      e.preventDefault();
+      e.stopPropagation();
+      row.classList.remove("drag-over-up", "drag-over-dn");
+
+      const destListId = row.dataset.list;
+      const destTierIdx = parseInt(row.dataset.tier);
+      if (tierDragSrc.listId !== destListId || tierDragSrc.tierIdx === destTierIdx) {
+        tierDragSrc = null;
+        return;
+      }
+
+      const title = data.find((t) => t.id === activeId);
+      const list = title?.tierlists.find((l) => l.id === destListId);
+      if (!list) {
+        tierDragSrc = null;
+        return;
+      }
+
+      const rect = row.getBoundingClientRect();
+      const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+      const [moved] = list.tiers.splice(tierDragSrc.tierIdx, 1);
+      let insertIdx = destTierIdx > tierDragSrc.tierIdx ? destTierIdx - 1 : destTierIdx;
+      if (!insertBefore) insertIdx += 1;
+      list.tiers.splice(insertIdx, 0, moved);
+
+      tierDragSrc = null;
+      ceDirty = true;
+      renderEditor();
+    });
+  });
 }
 
 // ══ DRAG & DROP – с позиционным индикатором ════
