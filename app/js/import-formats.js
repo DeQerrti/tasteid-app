@@ -1,27 +1,27 @@
 // ══════════════════════════════════════════════
-//  IMPORT FORMATS — разбор выгрузок из чужих сервисов
+//  IMPORT FORMATS – разбор выгрузок из чужих сервисов
 //  Зависит от: ничего (чистые функции)
 //
 //  Каждый сервис выгружает своё, и единого стандарта нет. Здесь на
 //  каждый формат по адаптеру, а наружу они отдают один и тот же вид
-//  записи — дальше js/import.js работает с ним, не зная, откуда он.
+//  записи – дальше js/import.js работает с ним, не зная, откуда он.
 //
 //  Что важно знать про сами выгрузки, потому что это определило всю
 //  конструкцию:
 //
-//    MyAnimeList / Шикимори (XML) — есть номер тайтла, и это удача:
+//    MyAnimeList / Шикимори (XML) – есть номер тайтла, и это удача:
 //    сопоставление по номеру не ошибается никогда.
 //
-//    Goodreads (CSV) — есть и свой номер, и ISBN. Тоже удача.
+//    Goodreads (CSV) – есть и свой номер, и ISBN. Тоже удача.
 //
-//    Letterboxd (CSV) — номеров НЕТ вовсе, только название и год.
+//    Letterboxd (CSV) – номеров НЕТ вовсе, только название и год.
 //    Сопоставлять приходится по ним, и для фильмов это работает
 //    заметно лучше, чем для аниме: у фильма одно каноническое
 //    название и один год, а не три сезона под одним именем.
 //
 //  Оценки у всех свои: десятка у MAL, пятёрка у Goodreads, половинки
 //  звёзд у Letterboxd. Адаптер отдаёт значение как есть и вместе с ним
-//  настоящие границы шкалы — scaleMin и scaleMax. Именно настоящие, а
+//  настоящие границы шкалы – scaleMin и scaleMax. Именно настоящие, а
 //  не наблюдаемые в файле: если человек ставил только четвёрки и
 //  пятёрки, его четвёрка всё равно «хорошо», а не «худшее из
 //  возможного», и раскладывать её надо по настоящей шкале.
@@ -30,7 +30,7 @@
 // ── Разбор CSV ─────────────────────────────────
 // Своя реализация вместо split(",") не от любви к велосипедам:
 // в выгрузках сплошь и рядом запятые внутри кавычек («Пелевин, Виктор»),
-// экранированные кавычки и переводы строк прямо посреди поля — у
+// экранированные кавычки и переводы строк прямо посреди поля – у
 // Goodreads так лежат тексты рецензий. Наивный split разваливает файл
 // молча, и человек об этом узнаёт уже по кривым данным в паспорте.
 function parseCsv(text) {
@@ -64,7 +64,7 @@ function parseCsv(text) {
   }
   if (field !== "" || row.length) { row.push(field); rows.push(row); }
 
-  // Пустые строки в конце файла — обычное дело, за запись их считать нельзя.
+  // Пустые строки в конце файла – обычное дело, за запись их считать нельзя.
   return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
 }
 
@@ -81,8 +81,8 @@ function csvToObjects(text) {
 
 // ── Общий вид записи ───────────────────────────
 // { title, type, status, score, scoreScale, rewatch, dateStart, dateEnd, ids }
-// status — один из ключей ниже, общих для всех сервисов.
-// score — как в исходнике; какая там шкала, никто не решает заранее.
+// status – один из ключей ниже, общих для всех сервисов.
+// score – как в исходнике; какая там шкала, никто не решает заранее.
 
 const IMPORT_STATUS_KEYS = {
   watching: i18n("Смотрю / читаю / играю"),
@@ -96,7 +96,7 @@ const IMPORT_STATUS_KEYS = {
 
 const MAL_TYPE_MAP = {
   tv: "anime", ova: "anime", ona: "anime", special: "anime",
-  movie: "anime", // в списке аниме «Movie» — полнометражка, а не кино
+  movie: "anime", // в списке аниме «Movie» – полнометражка, а не кино
   music: "anime",
   manga: "manga", manhwa: "manhwa", manhua: "manhua",
   novel: "novel", lightnovel: "novel",
@@ -123,10 +123,10 @@ function cleanDate(value) {
 function parseMalXml(text) {
   const doc = new DOMParser().parseFromString(text, "application/xml");
   if (doc.querySelector("parsererror")) {
-    throw new Error(i18n("Файл не читается как XML. Выгрузка иногда приходит в архиве — распакуй его сначала."));
+    throw new Error(i18n("Файл не читается как XML. Выгрузка иногда приходит в архиве – распакуй его сначала."));
   }
   const entries = [...doc.querySelectorAll("anime, manga")];
-  if (!entries.length) return null; // не наш формат — пусть попробуют другие
+  if (!entries.length) return null; // не наш формат – пусть попробуют другие
 
   const cell = (el, tag) => el.querySelector(tag)?.textContent?.trim() || "";
   const items = [];
@@ -175,7 +175,7 @@ function parseGoodreads(rows) {
       shelf === "dropped" || shelf === "abandoned" ? "dropped" :
       null;
 
-    // ISBN приходит в виде ="9780123456789" — так Goodreads защищается
+    // ISBN приходит в виде ="9780123456789" – так Goodreads защищается
     // от того, чтобы Excel не съел ведущие нули и не сделал из номера
     // число в экспоненциальной записи.
     const isbn13 = Number((r["ISBN13"] || "").replace(/[^0-9]/g, "")) || 0;
@@ -202,7 +202,7 @@ function parseGoodreads(rows) {
 }
 
 // ── Letterboxd (CSV) ───────────────────────────
-// Номеров в выгрузке нет вовсе — ни TMDB, ни IMDb. Есть название, год
+// Номеров в выгрузке нет вовсе – ни TMDB, ни IMDb. Есть название, год
 // и ссылка на страницу самого Letterboxd. Сопоставлять придётся по
 // названию с годом, и для фильмов это приемлемо: у фильма одно
 // каноническое название и один год выхода.
@@ -215,7 +215,7 @@ function parseLetterboxd(rows) {
     const title = r["Name"];
     if (!title) { skipped++; continue; }
 
-    // watchlist.csv — это «посмотреть потом», у него нет ни оценки,
+    // watchlist.csv – это «посмотреть потом», у него нет ни оценки,
     // ни даты просмотра. Отличаем по отсутствию колонки с оценкой.
     const hasRating = "Rating" in r;
     const rating = Number(r["Rating"]) || 0;
@@ -244,14 +244,14 @@ function parseLetterboxd(rows) {
 
 const ANILIST_STATUS_MAP = {
   CURRENT: "watching",
-  REPEATING: "watching", // пересмотр — это всё-таки «смотрю»
+  REPEATING: "watching", // пересмотр – это всё-таки «смотрю»
   PLANNING: "plantowatch",
   COMPLETED: "completed",
   DROPPED: "dropped",
   PAUSED: "onhold",
 };
 
-// У AniList нет отдельных типов для манхвы и маньхуа — есть страна
+// У AniList нет отдельных типов для манхвы и маньхуа – есть страна
 // происхождения, и по ней они различаются надёжнее, чем у MyAnimeList,
 // где тип проставляют руками и часто забывают.
 function anilistType(media) {
@@ -271,7 +271,7 @@ function anilistDate(d) {
   return `${d.year}-${pad(d.month)}-${pad(d.day)}`;
 }
 
-// collections — по одному ответу MediaListCollection на аниме и мангу.
+// collections – по одному ответу MediaListCollection на аниме и мангу.
 function parseAnilistLists(collections) {
   const items = [];
   const seen = new Set();
@@ -281,7 +281,7 @@ function parseAnilistLists(collections) {
     for (const list of collection?.lists || []) {
       // Свои списки AniList отдаёт вперемешку с обычными, и одна и та же
       // запись лежит сразу в двух: в статусном и в своём. Берём только
-      // статусные — иначе половина списка приехала бы дважды.
+      // статусные – иначе половина списка приехала бы дважды.
       if (list.isCustomList) continue;
 
       for (const entry of list.entries || []) {
@@ -304,7 +304,7 @@ function parseAnilistLists(collections) {
           dateStart: anilistDate(entry.startedAt),
           dateEnd: anilistDate(entry.completedAt),
           year: media.startDate?.year ? String(media.startDate.year) : null,
-          // Обложка приезжает вместе со списком — в отличие от файла,
+          // Обложка приезжает вместе со списком – в отличие от файла,
           // после которого за ней приходится ходить отдельным запросом.
           cover: media.coverImage?.large || null,
           ids: Object.keys(ids).length ? ids : undefined,
@@ -312,7 +312,7 @@ function parseAnilistLists(collections) {
       }
     }
   }
-  // Оценку просим у AniList в десятибалльном виде — как у MyAnimeList,
+  // Оценку просим у AniList в десятибалльном виде – как у MyAnimeList,
   // чтобы экран соответствий выглядел одинаково. У кого стоит стобалльная
   // шкала, тому AniList округлит сам.
   return { source: "AniList", scaleMin: 1, scaleMax: 10, items, skipped };
@@ -320,7 +320,7 @@ function parseAnilistLists(collections) {
 
 // ── Определение формата ────────────────────────
 // По набору заголовков: они у сервисов достаточно своеобразные, чтобы
-// не спутать. Если не узнали — честно говорим об этом, а не пытаемся
+// не спутать. Если не узнали – честно говорим об этом, а не пытаемся
 // угадать и разложить данные наугад.
 
 function detectCsvFormat(headers) {

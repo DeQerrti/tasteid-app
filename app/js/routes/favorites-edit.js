@@ -1,19 +1,19 @@
 // ══════════════════════════════════════════════
-//  РОУТ #/favorites-edit — редактор «Любимого»
+//  РОУТ #/favorites-edit – редактор «Любимого»
 //  (см. план перехода на SPA, фаза 3.2)
 //
-//  Как и #/chars-edit (js/routes/chars-edit.js), НЕ завёрнут в IIFE —
+//  Как и #/chars-edit (js/routes/chars-edit.js), НЕ завёрнут в IIFE –
 //  разметка и рендер списков (renderGroup/renderSubtypePickerDropdown)
 //  вызывают друг друга через инлайновые onclick="funcName(...)", и
 //  превращать их в вызовы через объект-неймспейс ради самой процедуры
-//  переноса — риск опечатки на ровном месте. Верхнеуровневые имена уже
+//  переноса – риск опечатки на ровном месте. Верхнеуровневые имена уже
 //  однажды переименовывались в фазе 0 (см. её же коммит) именно чтобы
-//  не столкнуться с add.html/reviews-order.html — здесь та же
+//  не столкнуться с add.html/reviews-order.html – здесь та же
 //  страховка: scripts/check-duplicate-functions.js (npm run check).
 //
-//  На document — три постоянных слушателя не самой страницы, а именно
+//  На document – три постоянных слушателя не самой страницы, а именно
 //  document (click вне дропдауна, tags-map-updated, site-labels-ready)
-//  плюс keydown для «Esc уходит с маршрута» — все сняты в unmount().
+//  плюс keydown для «Esc уходит с маршрута» – все сняты в unmount().
 // ══════════════════════════════════════════════
 
 let favEditingId = null;
@@ -52,7 +52,7 @@ async function mount(container) {
     </header>
     <main class="fe-view">
       <div class="edit-banner" id="edit-banner" style="display:none">
-        <div>Режим редактирования — <span class="edit-banner-title" id="edit-name-hint"></span></div>
+        <div>Режим редактирования – <span class="edit-banner-title" id="edit-name-hint"></span></div>
         <button class="btn-new" onclick="resetFavToNew()">${i18n("Новая запись")}</button>
       </div>
 
@@ -120,7 +120,7 @@ async function mount(container) {
 
       <div id="entries-groups-custom"></div>
 
-      <div class="order-hint" id="order-hint">${i18n("Перетащи за ⠿, чтобы изменить порядок, затем нажми «Сохранить порядок»")}</div>
+      <div class="order-hint" id="order-hint">${i18n("Перетащите за ⠿, чтобы изменить порядок, затем нажмите «Сохранить порядок»")}</div>
     </main>`;
 
   feOn(document.getElementById("fe-back"), "click", (e) => {
@@ -144,23 +144,23 @@ async function mount(container) {
     const wrap = document.getElementById("fav-type-picker-dropdown")?.closest(".src-type-wrap");
     if (wrap && !wrap.contains(e.target)) closeFavTypePickerDropdown();
   });
-  // Esc, открыт ли дропдаун роли — тогда ничего не делаем (тот же выбор,
+  // Esc, открыт ли дропдаун роли – тогда ничего не делаем (тот же выбор,
   // что раньше был в enableEscapeToLeave(".src-type-dropdown:not(.hidden)")
   // из utils.js: Escape сам дропдаун не закрывает, просто не даёт уйти
-  // со страницы, пока он открыт). Иначе — уходим с маршрута.
+  // со страницы, пока он открыт). Иначе – уходим с маршрута.
   feOn(document, "keydown", (e) => {
     if (e.key !== "Escape") return;
     if (document.querySelector(".src-type-dropdown:not(.hidden)")) return;
     leaveRoute();
   });
 
-  document.title = `TasteID — ${i18n("Персонажи и персоны")}`;
+  document.title = `TasteID – ${i18n("Персонажи и персоны")}`;
 
   // Раньше единственным триггером первой загрузки списка/типов было
-  // событие "site-labels-ready" от theme.js — на отдельной странице
+  // событие "site-labels-ready" от theme.js – на отдельной странице
   // оно срабатывало заново при каждом полном заходе. Под SPA-оболочкой
   // applyTheme() выполняется один раз за всё время жизни документа
-  // (см. её же комментарий в router.js) — событие уже отгремело
+  // (см. её же комментарий в router.js) – событие уже отгремело
   // задолго до того, как этот маршрут вообще замонтировался, и одной
   // лишь подписки выше недостаточно. Вызываем явно; подписка остаётся
   // на случай, если настройки правда поменяются, пока маршрут открыт.
@@ -255,7 +255,7 @@ async function confirmAddSubtype() {
   const name = input.value.trim();
 
   if (!name) {
-    statusEl.textContent = i18n("Введи название роли");
+    statusEl.textContent = i18n("Введите название роли");
     statusEl.className = "status-msg src-type-status err";
     return;
   }
@@ -316,11 +316,11 @@ async function removeSubtypePicker(key) {
   }
 }
 
-// Переименование роли — тот же приём, что у типа тайтла в add.html
+// Переименование роли – тот же приём, что у типа тайтла в add.html
 // (startRenameTypePicker): клик по ✎ подменяет подпись на текстовое
 // поле прямо в строке списка, Enter/уход фокуса сохраняют, Esc
 // отменяет. Встроенная роль переименовывается через labels.subtypes
-// (оверрайд подписи, ключ в SUBTYPE_BUILTINS не меняется), своя —
+// (оверрайд подписи, ключ в SUBTYPE_BUILTINS не меняется), своя –
 // через сам customSubtypes[key].
 let subtypeRenamePending = null;
 
@@ -390,22 +390,22 @@ function favCustomCollections() {
   return window.SITE_FAV_COLLECTIONS || [];
 }
 
-// ── Тип записи («Персонаж»/«Персона» + свои разделы) — тот же паттерн
+// ── Тип записи («Персонаж»/«Персона» + свои разделы) – тот же паттерн
 //    выпадающего списка с инлайн-добавлением, что у роли персоны
-//    (см. блок «Роль персоны» выше). Свои типы — это те же разделы
+//    (см. блок «Роль персоны» выше). Свои типы – это те же разделы
 //    «Любимого» (favCollections), что заводятся в /settings-edit;
 //    добавленный отсюда сразу появляется там и наоборот. Встроенные
 //    типы (character/person) теперь тоже переименовываются и
-//    скрываются — тем же приёмом, что источники в add.html и роли
-//    выше: подпись живёт в labels.favTypes, скрытие — в
-//    hiddenFavTypes. Скрытие built-in типа — НЕ то же самое, что
+//    скрываются – тем же приёмом, что источники в add.html и роли
+//    выше: подпись живёт в labels.favTypes, скрытие – в
+//    hiddenFavTypes. Скрытие built-in типа – НЕ то же самое, что
 //    удаление своего раздела: раздел «Персонажи»/«Персоны» на вкладке
 //    «Любимое» устроен отдельным, всегда существующим блоком
 //    разметки (js/favorites.js), а не циклом по favCollections, и
 //    прячется своим отдельным тумблером (hiddenFavSections, тот же
 //    глазок, что и у остальных секций, в /settings-edit). Скрытие
 //    типа здесь означает только «нельзя выбрать/создать новую запись
-//    этого типа» — уже существующие персонажи/персоны никуда не
+//    этого типа» – уже существующие персонажи/персоны никуда не
 //    денутся с вкладки. Формулировка диалога подтверждения ниже это
 //    и объясняет, чтобы не пугать несуществующей потерей данных.
 function favTypePickerOptionLabel(id) {
@@ -490,7 +490,7 @@ async function confirmAddFavType() {
   const name = input.value.trim();
 
   if (!name) {
-    statusEl.textContent = i18n("Введи название типа");
+    statusEl.textContent = i18n("Введите название типа");
     statusEl.className = "status-msg src-type-status err";
     return;
   }
@@ -502,7 +502,7 @@ async function confirmAddFavType() {
     return;
   }
 
-  // slugify() — из js/routes/settings-edit.js, тот же формат id, что
+  // slugify() – из js/routes/settings-edit.js, тот же формат id, что
   // и у раздела, заведённого через "+ Добавить раздел" в настройках
   // (см. addFavCollection там же): нижний регистр + метка времени,
   // чтобы совпадение с уже удалённым разделом было исключено.
@@ -538,7 +538,7 @@ async function removeFavTypePicker(id) {
     if (
       !(await confirmDialog(
         i18n(
-          "Скрыть тип «{name}» из списка?\n\nУже добавленные персонажи и персоны останутся на вкладке «Любимое» как есть — пропадёт только возможность выбрать этот тип для новой или редактируемой записи. Вернуть можно здесь же.",
+          "Скрыть тип «{name}» из списка?\n\nУже добавленные персонажи и персоны останутся на вкладке «Любимое» как есть – пропадёт только возможность выбрать этот тип для новой или редактируемой записи. Вернуть можно здесь же.",
           { name: label }
         )
       ))
@@ -586,10 +586,10 @@ async function removeFavTypePicker(id) {
   }
 }
 
-// Переименование — тот же инлайн-приём, что у роли персоны
+// Переименование – тот же инлайн-приём, что у роли персоны
 // (startRenameSubtypePicker). Встроенный тип пишет подпись в
 // labels.favTypes (ключ character/person не меняется), свой раздел
-// правит label прямо в объекте внутри favCollections — та же запись,
+// правит label прямо в объекте внутри favCollections – та же запись,
 // что редактируется и в /settings-edit (toggleFavCollectionEdit),
 // только сохраняется сразу, а не по общей кнопке «Сохранить».
 let favTypeRenamePending = null;
@@ -716,7 +716,7 @@ async function uploadFavImage() {
   const fileInput = document.getElementById("f-image-upload");
   const status = document.getElementById("image-upload-status");
   if (!fileInput.files.length) {
-    status.textContent = i18n("Выбери файл");
+    status.textContent = i18n("Выберите файл");
     status.style.color = "var(--red-hi, #c0392b)";
     return;
   }
@@ -961,7 +961,7 @@ async function loadList() {
     document.getElementById("list-header").style.display = "flex";
     renderList();
   } catch {
-    // нет файла/сети — список просто останется пустым
+    // нет файла/сети – список просто останется пустым
   }
 }
 
@@ -977,11 +977,11 @@ async function startEdit(id) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Удаление самой записи (персонажа/персоны) — прямо из строки списка,
+// Удаление самой записи (персонажа/персоны) – прямо из строки списка,
 // тем же приёмом, что у ✕ на карточках чар-листа (char-card-del) и
 // у тайтлов (title-item-del) в /chars-edit: без похода в форму
 // редактирования. Бэкенд уже это умел (saveFavorite → body._delete в
-// core/api.js) — не хватало только кнопки и обработчика здесь.
+// core/api.js) – не хватало только кнопки и обработчика здесь.
 async function deleteFavEntry(id) {
   const entry = allEntries.find((r) => r.id === id);
   const name = entry?.name || i18n("эту запись");
@@ -995,12 +995,12 @@ async function deleteFavEntry(id) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || i18n("неизвестная"));
-    // Если удалили ту самую запись, что сейчас открыта в форме —
+    // Если удалили ту самую запись, что сейчас открыта в форме –
     // форма показывала бы то, чего уже нет.
     if (favEditingId === id) resetFavToNew();
     await loadList();
     // «Любимое» под этим маршрутом ещё показывала бы удалённую запись,
-    // пока по ней не щёлкнуть заново — вкладка сама не перечитается,
+    // пока по ней не щёлкнуть заново – вкладка сама не перечитается,
     // пока открыт /favorites-edit поверх неё (см. js/api.js).
     refreshOpenReviewsTab();
     setFavStatus("ok", i18n("«{name}» удалена.", { name }));
@@ -1046,7 +1046,7 @@ async function saveEntry() {
   const btn = document.getElementById("btn-save");
   const name = document.getElementById("f-name").value.trim();
   if (!name) {
-    setFavStatus("err", i18n("Заполни имя"));
+    setFavStatus("err", i18n("Заполните имя"));
     return;
   }
 

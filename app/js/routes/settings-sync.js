@@ -1,15 +1,15 @@
 // ══════════════════════════════════════════════
-//  settings-sync.js — панель синхронизации через GitHub — часть роута #/settings-edit
-//  Разбито из settings-edit.js (2972 строки) по секциям — читается
+//  settings-sync.js – панель синхронизации через GitHub – часть роута #/settings-edit
+//  Разбито из settings-edit.js (2972 строки) по секциям – читается
 //  тем же способом, что и раньше: обычный глобальный скрипт, без
 //  своего экспорта, подключается вместе с settings-edit.js и остальными
 //  файлами этой же группы в index.html, в общей области видимости.
 // ══════════════════════════════════════════════
 
 // ── Синхронизация ────────────────────────────
-// Вся логика, включая автосинхронизацию в фоне, — в app/js/sync.js,
+// Вся логика, включая автосинхронизацию в фоне, – в app/js/sync.js,
 // здесь только экран: две панели, «не подключено» и «подключено», и
-// разбор конфликтов, если они есть. syncInFlight — общий с
+// разбор конфликтов, если они есть. syncInFlight – общий с
 // автосинхронизацией флаг (объявлен в sync.js): не дать ручной кнопке
 // и подоспевшему фоновому запуску столкнуться на одном и том же пути.
 
@@ -19,7 +19,7 @@ function renderSyncPanel() {
   box.innerHTML = config ? syncConnectedHtml(config) : syncSetupHtml();
   applyI18n(box);
   // Конфликт, найденный автосинхронизацией, мог случиться, пока
-  // человек не смотрел на эту вкладку вовсе — открыв её, сразу
+  // человек не смотрел на эту вкладку вовсе – открыв её, сразу
   // досчитываем ещё раз и показываем, что не так, а не заставляем
   // сперва самому нажать «Синхронизировать сейчас».
   if (config && localStorage.getItem(AUTOSYNC_CONFLICTS_KEY) === "1") startSync();
@@ -29,29 +29,29 @@ function syncSetupHtml() {
   return `
       <p class="sync-intro" data-i18n>
         Свободно и без своего сервера: приватный репозиторий на GitHub
-        как общее хранилище для всех твоих устройств — телефона,
+        как общее хранилище для всех ваших устройств – телефона,
         компьютера, ещё одного компьютера. GitHub здесь единственный
         сервер, а токен и служебные данные синхронизации остаются
         только на этом устройстве.
       </p>
       <p class="sync-intro" data-i18n>
-        После подключения синхронизация запускается сама — через
+        После подключения синхронизация запускается сама – через
         какое-то время после того, как что-то сохранено, и при открытии
-        приложения. Кнопка «Синхронизировать сейчас» останется — на
+        приложения. Кнопка «Синхронизировать сейчас» останется – на
         случай, если не хочется ждать.
       </p>
       <ol class="sync-intro" style="padding-left:1.2em;display:flex;flex-direction:column;gap:.5em;">
-        <li data-i18n>Заведи аккаунт на github.com, если его ещё нет — бесплатно.</li>
+        <li data-i18n>Заведите аккаунт на github.com, если его ещё нет – бесплатно.</li>
         <li>
-          <span data-i18n>Создай токен доступа —</span>
-          <a href="https://github.com/settings/tokens/new?scopes=repo&description=TasteID" target="_blank" rel="noopener" data-i18n>по этой ссылке</a><span data-i18n>, галочка «repo» уже отмечена. Внизу страницы — «Generate token».</span>
+          <span data-i18n>Создайте токен доступа –</span>
+          <a href="https://github.com/settings/tokens/new?scopes=repo&description=TasteID" target="_blank" rel="noopener" data-i18n>по этой ссылке</a><span data-i18n>, галочка «repo» уже отмечена. Внизу страницы – «Generate token».</span>
         </li>
-        <li data-i18n>Скопируй токен (он показывается один раз) и вставь сюда.</li>
+        <li data-i18n>Скопируйте токен (он показывается один раз) и вставьте сюда.</li>
       </ol>
       <p class="panel-intro" data-i18n>
-        Галочка «repo» даёт токену доступ ко всем твоим репозиториям на
+        Галочка «repo» даёт токену доступ ко всем вашим репозиториям на
         GitHub, не только к этому. Если репозиторий для синка уже
-        создан и хочется ограничить токен только им — заведи вместо
+        создан и хочется ограничить токен только им – заведите вместо
         этого fine-grained-токен (Settings → Developer settings →
         Personal access tokens → Fine-grained tokens на github.com) с
         доступом к одному этому репозиторию и правом Contents: Read and write.
@@ -64,9 +64,9 @@ function syncSetupHtml() {
         <label data-i18n>Название репозитория</label>
         <input type="text" id="sync-repo" value="tasteid-vault">
         <p class="panel-intro" data-i18n>
-          Если такого репозитория ещё нет на твоём GitHub — создадим
+          Если такого репозитория ещё нет на вашем GitHub – создадим
           сами, приватным. Если уже есть (например, второе устройство
-          его уже завело) — подключимся к нему.
+          его уже завело) – подключимся к нему.
         </p>
       </div>
       <button class="btn btn-primary" onclick="connectSync()" id="sync-connect-btn" data-i18n>Подключить</button>
@@ -98,7 +98,7 @@ async function connectSync() {
   const token = document.getElementById("sync-token").value.trim();
   const repo = document.getElementById("sync-repo").value.trim();
   if (!token || !repo) {
-    flashStatus("status-sync", false, i18n("Заполни токен и название репозитория."));
+    flashStatus("status-sync", false, i18n("Заполните токен и название репозитория."));
     return;
   }
 
@@ -110,7 +110,7 @@ async function connectSync() {
 
     flashStatus("status-sync", true, i18n("Проверяем репозиторий…"));
     if (!(await repoExists(config))) {
-      flashStatus("status-sync", true, i18n("Репозитория ещё нет — создаём…"));
+      flashStatus("status-sync", true, i18n("Репозитория ещё нет – создаём…"));
       await createRepo(config);
     }
 
@@ -127,7 +127,7 @@ async function disconnectSync() {
   if (
     !(await confirmDialog(
       i18n(
-        "Приложение забудет токен и репозиторий на этом устройстве. Сами данные — здесь и в репозитории — никуда не денутся, подключиться заново можно в любой момент."
+        "Приложение забудет токен и репозиторий на этом устройстве. Сами данные – здесь и в репозитории – никуда не денутся, подключиться заново можно в любой момент."
       ),
       i18n("Отключить")
     ))
@@ -154,7 +154,7 @@ async function startSync() {
     document.getElementById("sync-progress").textContent = "";
 
     // Забранные файлы и картинки записываем тем же путём, что и
-    // резервную копию, — restoreBackup трогает только то, что
+    // резервную копию, – restoreBackup трогает только то, что
     // передано, остальные файлы хранилища не затронет.
     if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
       await fetch("/api/restore-backup", {
@@ -172,14 +172,14 @@ async function startSync() {
       flashStatus(
         "status-sync",
         false,
-        i18n("Готово, но {n} файл(ов) изменились и здесь, и в репозитории — выбери, что оставить.", {
+        i18n("Готово, но {n} файл(ов) изменились и здесь, и в репозитории – выберите, что оставить.", {
           n: result.conflicts.length,
         })
       );
       renderConflicts(config, result.conflicts);
     } else {
       // Сперва перерисовать («последняя синхронизация» обновится),
-      // потом показать статус — иначе renderSyncPanel() тут же стирает
+      // потом показать статус – иначе renderSyncPanel() тут же стирает
       // status-sync вместе со всей панелью, и человек не успевает
       // увидеть «Готово» ни на миг.
       renderSyncPanel();

@@ -2,13 +2,13 @@
 //  АНГЛИЙСКИЙ СЛОВАРЬ
 //  Подключать сразу после i18n.js.
 //
-//  Ключ — русский текст ровно в том виде, в каком он стоит в коде
+//  Ключ – русский текст ровно в том виде, в каком он стоит в коде
 //  (см. шапку i18n.js). Строки без записи здесь остаются русскими и
 //  ничего не ломают; найти такие помогает scripts/check-i18n.js.
 //
-//  Названия тегов — отдельный случай. Ключ тега в TAGS_MAP это сам
+//  Названия тегов – отдельный случай. Ключ тега в TAGS_MAP это сам
 //  русский текст, и он же лежит в reviews.json у каждого отзыва.
-//  Переводить его как данные нельзя — развалится связь с отзывами.
+//  Переводить его как данные нельзя – развалится связь с отзывами.
 //  Поэтому здесь перевод только для показа: i18n(имяТега) на экране,
 //  а в данных и в ключах всё остаётся как было.
 // ══════════════════════════════════════════════
@@ -68,7 +68,7 @@ i18nRegister({
 
   // ── Полки оценок (GRADES_DEF) ────────────────
   Резонанс: "Resonance",
-  "Личный фаворит. То, что откликнулось": "A personal favourite — the one that struck a chord",
+  "Личный фаворит. То, что откликнулось": "A personal favourite – the one that struck a chord",
   Эталон: "Benchmark",
   "Почти безупречное исполнение": "Almost flawless execution",
   Отлично: "Excellent",
@@ -118,11 +118,11 @@ i18nRegister({
   записи: "entries",
   записей: "entries",
 
-  // ══ ТЕГИ — только для показа, ключ остаётся русским ══
+  // ══ ТЕГИ – только для показа, ключ остаётся русским ══
   // Визуал / звук
   "Визуальный нарратив": "Visual storytelling",
-  "История рассказывается без слов — через образы и детали":
-    "The story is told without words — through images and detail",
+  "История рассказывается без слов – через образы и детали":
+    "The story is told without words – through images and detail",
 
   // Сюжет / нарратив
   "Затягивает сразу": "Hooks you instantly",
@@ -135,7 +135,7 @@ i18nRegister({
   "Рояли в кустах": "Deus ex machina",
   "Внезапные спасения и нелепые совпадения": "Convenient rescues and absurd coincidences",
   Стеклище: "Heartbreak",
-  "Автор беспощаден к героям и твоим нервам":
+  "Автор беспощаден к героям и вашим нервам":
     "The author spares neither the characters nor your nerves",
   "Чеховские ружья": "Chekhov’s guns",
   "Детали из первых глав выстреливают спустя 100 выпусков":
@@ -145,7 +145,7 @@ i18nRegister({
   "Сильный финальный акт": "Strong final act",
   "Концовка вытягивает или венчает всё": "The ending either saves it or crowns it",
   "Открытый финал": "Open ending",
-  "Намеренно без ответов, додумай сам": "Deliberately unresolved — finish it yourself",
+  "Намеренно без ответов, додумай сам": "Deliberately unresolved – finish it yourself",
   "До титров": "Gripping to the credits",
   "Держит в напряжении до конца": "Keeps the tension to the very end",
   Проседает: "Sags in the middle",
@@ -155,8 +155,8 @@ i18nRegister({
   "Поток сознания": "Stream of consciousness",
   "Нелинейное субъективное изложение": "Non-linear, deeply subjective telling",
   "Документальный стиль": "Documentary style",
-  "Хроники, дневники, письма — эффект реальности":
-    "Chronicles, diaries, letters — the feel of something real",
+  "Хроники, дневники, письма – эффект реальности":
+    "Chronicles, diaries, letters – the feel of something real",
   "Медленный нарратив": "Slow narrative",
   "Атмосфера и детали важнее событий": "Mood and detail matter more than events",
   "Эпический масштаб": "Epic scope",
@@ -165,7 +165,7 @@ i18nRegister({
   Саспенс: "Suspense",
   "Напряжение нагнетается без экшена": "Tension builds without any action",
   "Затянутый монтаж": "Overlong edit",
-  "Мог быть короче — есть лишние сцены": "Could be shorter — there are scenes to spare",
+  "Мог быть короче – есть лишние сцены": "Could be shorter – there are scenes to spare",
   "Сюжет удивил": "The plot surprised me",
   "Ожидания были ниже результата": "It turned out better than expected",
 
@@ -233,7 +233,7 @@ i18nRegister({
 
   // Игры
   Автобой: "Auto-battle",
-  "Игра сама играет в игру лучше тебя": "The game plays itself better than you do",
+  "Игра сама играет в игру лучше вас": "The game plays itself better than you do",
   "Душный гринд": "Stifling grind",
   "Слишком много однообразной рутины": "Far too much repetitive busywork",
   "Мета-дрочево": "Meta slavery",
@@ -253,14 +253,14 @@ i18nRegister({
   "Переусложнённые системы": "Overcomplicated systems",
   "Слишком много механик, легко потеряться": "Too many mechanics, easy to get lost",
   "Короткая и ёмкая": "Short and dense",
-  "Прошёл за вечер — и не пожалел": "Finished it in an evening and didn’t regret it",
+  "Прошёл за вечер – и не пожалел": "Finished it in an evening and didn’t regret it",
   "Слабый финальный босс": "Weak final boss",
   "Финальный босс разочаровал геймплейно или сюжетно":
     "The final boss disappoints in play or in story",
 
   // Жанры
   Комедия: "Comedy",
-  "Юмор — основа или важная часть": "Humour is the point, or a large part of it",
+  "Юмор – основа или важная часть": "Humour is the point, or a large part of it",
   Хоррор: "Horror",
   "Страх, напряжение, атмосфера ужаса": "Fear, tension, an atmosphere of dread",
   Триллер: "Thriller",
@@ -309,7 +309,7 @@ i18nRegister({
 });
 
 // ── Склонения типов (формы для plural) ────────
-// В английском форм две, поэтому вторая и третья совпадают —
+// В английском форм две, поэтому вторая и третья совпадают –
 // i18nPlural() для en берёт первую при 1 и третью в остальных случаях.
 i18nRegister({
   аниме: "anime",
@@ -449,17 +449,17 @@ i18nRegister({
   "Папка с данными": "Data folder",
   "Открыть в проводнике": "Show in file manager",
   "Сменить папку…": "Change folder…",
-  "Хранится во внутренней области приложения — её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести данные на другое устройство — резервная копия ниже.":
-    "Stored inside the app's private storage — other apps can't see it, and it's deleted along with TasteID. To move your data to another device, use the backup below.",
+  "Хранится во внутренней области приложения – её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести данные на другое устройство – резервная копия ниже.":
+    "Stored inside the app's private storage – other apps can't see it, and it's deleted along with TasteID. To move your data to another device, use the backup below.",
   "Резервная копия": "Backup",
-  "Отзывы, любимое, тир-листы, настройки и загруженные вручную картинки — одним файлом, для себя.":
-    "Reviews, favorites, tier lists, settings and manually uploaded pictures — in one file, for yourself.",
+  "Отзывы, любимое, тир-листы, настройки и загруженные вручную картинки – одним файлом, для себя.":
+    "Reviews, favorites, tier lists, settings and manually uploaded pictures – in one file, for yourself.",
   "Скачать резервную копию": "Download backup",
   "Восстановить из файла…": "Restore from file…",
   "Текущие отзывы, любимое, тир-листы и настройки будут заменены содержимым файла. Отменить это можно только другой резервной копией. Продолжить?":
     "Current reviews, favorites, tier lists and settings will be replaced with the file's contents. The only way to undo this is another backup. Continue?",
-  "Это не похоже на файл резервной копии — внутри не JSON.":
-    "This doesn't look like a backup file — there's no JSON inside.",
+  "Это не похоже на файл резервной копии – внутри не JSON.":
+    "This doesn't look like a backup file – there's no JSON inside.",
   "Восстановлено. Обновляем страницу…": "Restored. Reloading the page…",
   Мельче: "Smaller",
   Крупнее: "Larger",
@@ -471,8 +471,8 @@ i18nRegister({
 // ── Панель «Хранилища» ────────────────────────
 i18nRegister({
   Хранилища: "Vaults",
-  "Несколько независимых хранилищ на одном устройстве — со своими отзывами, тир-листами и синхронизацией у каждого. Переключение между ними ничего не стирает: данные остаются каждое в своей папке.":
-    "Several independent vaults on one device — each with its own reviews, tier lists and sync. Switching between them doesn't erase anything: each vault's data stays in its own folder.",
+  "Несколько независимых хранилищ на одном устройстве – со своими отзывами, тир-листами и синхронизацией у каждого. Переключение между ними ничего не стирает: данные остаются каждое в своей папке.":
+    "Several independent vaults on one device – each with its own reviews, tier lists and sync. Switching between them doesn't erase anything: each vault's data stays in its own folder.",
   "Создать новое хранилище…": "Create a new vault…",
   "Открыть существующее…": "Open an existing one…",
   "Добавить хранилище…": "Add a vault…",
@@ -482,8 +482,8 @@ i18nRegister({
   "Новое хранилище": "New vault",
   "Имя для этого хранилища:": "Name for this vault:",
   Хранилище: "Vault",
-  "Хранилище будет убрано из списка. Сама папка на диске никуда не денется — её можно будет открыть заново через «Открыть существующее».":
-    "The vault will be removed from the list. The folder itself stays right where it is on disk — you can open it again later via “Open an existing one”.",
+  "Хранилище будет убрано из списка. Сама папка на диске никуда не денется – её можно будет открыть заново через «Открыть существующее».":
+    "The vault will be removed from the list. The folder itself stays right where it is on disk – you can open it again later via “Open an existing one”.",
   "Хранилище и все его данные будут стёрты с телефона. Продолжить?":
     "The vault and all of its data will be erased from the phone. Continue?",
 });
@@ -501,11 +501,11 @@ i18nRegister({
   "Ввести URL вручную": "Enter a URL by hand",
   "Вернуть все цвета темы": "Reset all theme colours",
   Вкладки: "Tabs",
-  "Все надписи, которые видит посетитель. Пустое поле означает «оставить как есть» — под ним написано значение по умолчанию.":
-    "Every label a visitor sees. An empty field means “leave as is” — the default is shown underneath.",
-  "Выбери тайтл слева или создай новый": "Pick a title on the left, or create a new one",
+  "Все надписи, которые видит посетитель. Пустое поле означает «оставить как есть» – под ним написано значение по умолчанию.":
+    "Every label a visitor sees. An empty field means “leave as is” – the default is shown underneath.",
+  "Выберите тайтл слева или создайте новый": "Pick a title on the left, or create a new one",
   "Выбрать файл": "Choose file",
-  "Глаз — показывать вкладку или нет. Карандаш — переименовать. Перетаскивай за ⠿, чтобы менять порядок. Точка справа — какая вкладка открывается первой (при заходе на сайт и при обновлении страницы).":
+  "Глаз – показывать вкладку или нет. Карандаш – переименовать. Перетаскивай за ⠿, чтобы менять порядок. Точка справа – какая вкладка открывается первой (при заходе на сайт и при обновлении страницы).":
     "The eye shows or hides a tab. The pencil renames it. Drag by ⠿ to reorder. The dot on the right marks the tab that opens first.",
   Год: "Year",
   "Год выхода": "Release year",
@@ -528,8 +528,8 @@ i18nRegister({
   "Добавить текст отзыва": "Add review text",
   "Добавить тип": "Add type",
   "Добавить тир": "Add tier",
-  "Если смотрел один день — заполни только «Завершил» или укажи одинаковые даты, на карточке покажется одна дата.":
-    "If it took a single day, fill in only “Finished” (or use the same date twice) — the card will show one date.",
+  "Если смотрел один день – заполните только «Завершил» или укажите одинаковые даты, на карточке покажется одна дата.":
+    "If it took a single day, fill in only “Finished” (or use the same date twice) – the card will show one date.",
   Завершено: "Finished",
   Завершил: "Finished",
   "Загрузить и использовать": "Upload and use",
@@ -538,8 +538,8 @@ i18nRegister({
     "The entry disappears from reviews, favorites and the tier list. You can bring it back from “Version history”.",
   "Здесь появится превью…": "The preview will appear here…",
   "Из какого произведения": "Which title it is from",
-  "Или загрузи файл — сожмётся и сконвертируется в WebP автоматически.":
-    "Or upload a file — it will be compressed and converted to WebP automatically.",
+  "Или загрузите файл – сожмётся и сконвертируется в WebP автоматически.":
+    "Or upload a file – it will be compressed and converted to WebP automatically.",
   "Или загрузить с компьютера": "Or upload from your computer",
   Импорт: "Import",
   Имя: "Name",
@@ -548,10 +548,10 @@ i18nRegister({
   "Имя персонажа *": "Character name *",
   "имя-папки": "folder-name",
   "История версий": "Version history",
-  "Каждая полка — диапазон значений с названием и цветом. Именно эти полки станут строками тир-листа.":
+  "Каждая полка – диапазон значений с названием и цветом. Именно эти полки станут строками тир-листа.":
     "Each shelf is a range of values with a name and a colour. These shelves become the rows of the tier list.",
-  "Каждое сохранение файла — это отдельная версия, которая навсегда остаётся здесь, даже если текущая версия сломается. Выбери файл, найди нужную дату и либо скачай эту версию как JSON, либо восстанови её — тогда она станет текущей.":
-    "Every save of a file is a separate version kept here for good, even if the current one breaks. Pick a file, find the date you need, and either download that version as JSON or restore it — then it becomes the current one.",
+  "Каждое сохранение файла – это отдельная версия, которая навсегда остаётся здесь, даже если текущая версия сломается. Выберите файл, найдите нужную дату и либо скачайте эту версию как JSON, либо восстановите её – тогда она станет текущей.":
+    "Every save of a file is a separate version kept here for good, even if the current one breaks. Pick a file, find the date you need, and either download that version as JSON or restore it – then it becomes the current one.",
   Категории: "Categories",
   Категория: "Category",
   Коллекции: "Collections",
@@ -582,29 +582,29 @@ i18nRegister({
   "Новый тир-лист": "New tier list",
   "Обложка (URL)": "Cover (URL)",
   Ок: "OK",
-  "Описание — показывается подсказкой при наведении":
-    "Description — shown as a tooltip on hover",
+  "Описание – показывается подсказкой при наведении":
+    "Description – shown as a tooltip on hover",
   Основное: "Basics",
   "Откуда (необязательно)": "Where from (optional)",
-  "Отметь тайтлы в редакторе отзыва.": "Mark titles in the review editor.",
+  "Отметьте тайтлы в редакторе отзыва.": "Mark titles in the review editor.",
   Оформление: "Appearance",
   "Оценка и теги": "Rating and tags",
   "Оценки и статусы": "Ratings and statuses",
   Палитра: "Palette",
   "Размер шрифта": "Text size",
-  "Только текст — иконки и отступы не меняются. Чтобы увеличить вообще всё, используйте «Масштаб» на вкладке «Приложение».":
-    "Text only — icons and spacing stay the same. To scale up everything, use “Zoom” on the App tab.",
+  "Только текст – иконки и отступы не меняются. Чтобы увеличить вообще всё, используйте «Масштаб» на вкладке «Приложение».":
+    "Text only – icons and spacing stay the same. To scale up everything, use “Zoom” on the App tab.",
   "Папка (источник)": "Folder (source)",
   "Папка по умолчанию в chars/ *": "Default folder inside chars/ *",
   "Папки не найдены": "No folders found",
-  "Пара предложений — что это и о чём…": "A couple of sentences — what it is and what it’s about…",
+  "Пара предложений – что это и о чём…": "A couple of sentences – what it is and what it’s about…",
   Паспорта: "Passports",
-  "Переименуй, перекрась, удали или добавь свою.":
+  "Переименуйте, перекрасьте, удалите или добавьте свою.":
     "Rename, recolour, delete, or add your own.",
   "Пересмотров (не считая первого раза)": "Rewatches (not counting the first time)",
-  "Перетащи за ⠿, чтобы изменить порядок, затем нажми «Сохранить порядок»":
+  "Перетащите за ⠿, чтобы изменить порядок, затем нажмите «Сохранить порядок»":
     "Drag by ⠿ to reorder, then press “Save order”",
-  "Перетащи карточки чтобы изменить порядок. Нажми «Сохранить» когда готово.":
+  "Перетащите карточки, чтобы изменить порядок. Нажмите «Сохранить», когда готово.":
     "Drag the cards to reorder them. Press “Save” when you’re done.",
   Персона: "Person",
   Персонаж: "Character",
@@ -614,28 +614,28 @@ i18nRegister({
   "Пока нет истории для этого файла.": "No history for this file yet.",
   Полки: "Shelves",
   "Полки (от лучшей к худшей)": "Shelves (best to worst)",
-  "Полный текст — необязательно": "Full text — optional",
-  "Превью — показывается на карточке": "Preview — shown on the card",
-  "Развёрнутый отзыв — откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник.":
-    "The full review — opens when the card is clicked. If left empty, the click shows the preview with a link to the source.",
+  "Полный текст – необязательно": "Full text – optional",
+  "Превью – показывается на карточке": "Preview – shown on the card",
+  "Развёрнутый отзыв – откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник.":
+    "The full review – opens when the card is clicked. If left empty, the click shows the preview with a link to the source.",
   "Разделы вкладки «Любимое»": "Sections of the “Favorites” tab",
-  "Скрыть тип «{name}» из списка?\n\nУже добавленные персонажи и персоны останутся на вкладке «Любимое» как есть — пропадёт только возможность выбрать этот тип для новой или редактируемой записи. Вернуть можно здесь же.":
-    "Hide the “{name}” type from the list?\n\nCharacters and people already added stay on the “Favorites” tab as is — only the ability to pick this type for a new or edited entry disappears. You can bring it back the same way.",
+  "Скрыть тип «{name}» из списка?\n\nУже добавленные персонажи и персоны останутся на вкладке «Любимое» как есть – пропадёт только возможность выбрать этот тип для новой или редактируемой записи. Вернуть можно здесь же.":
+    "Hide the “{name}” type from the list?\n\nCharacters and people already added stay on the “Favorites” tab as is – only the ability to pick this type for a new or edited entry disappears. You can bring it back the same way.",
   "Разделы вкладки «Статусы»": "Sections of the “Statuses” tab",
   "Редактор порядка": "Order editor",
   "Редактор тир-листов персонажей": "Character tier list editor",
   "Роль персоны": "Person’s role",
   Светлая: "Light",
-  "Склонение подставилось автоматически (чёрн­овик) — поправь, если неточно.":
-    "The plural was filled in automatically (a rough draft) — correct it if it’s off.",
+  "Склонение подставилось автоматически (чёрн­овик) – поправьте, если неточно.":
+    "The plural was filled in automatically (a rough draft) – correct it if it’s off.",
   "Создать список": "Create list",
   "Сохранить всё": "Save all",
   "Сохранить отзыв": "Save review",
   "Сохранить порядок": "Save order",
   "Ссылка на изображение": "Image link",
   "Ссылка на обложку": "Cover link",
-  "Ссылка на публикацию отзыва на стороне — например, на Teletype.":
-    "A link to the review published elsewhere — on Teletype, for instance.",
+  "Ссылка на публикацию отзыва на стороне – например, на Teletype.":
+    "A link to the review published elsewhere – on Teletype, for instance.",
   Статус: "Status",
   "Существующие теги": "Existing tags",
   Тег: "Tag",
@@ -650,41 +650,41 @@ i18nRegister({
   "Удалить этот отзыв": "Delete this review",
   "Формат (доп.)": "Format (extra)",
   Цвет: "Colour",
-  "Цвет не задан — теги будут нейтральными": "No colour set — tags will look neutral",
+  "Цвет не задан – теги будут нейтральными": "No colour set – tags will look neutral",
   "Цвет темы": "Theme colour",
   'Что показывать на вкладке "Статистика".': "What to show on the “Statistics” tab.",
   "ID (латиница, без пробелов) *": "ID (latin letters, no spaces) *",
-  "ID нельзя менять у существующего тайтла — на него уже могут ссылаться сохранённые данные.":
-    "The ID of an existing title can’t be changed — saved data may already point at it.",
+  "ID нельзя менять у существующего тайтла – на него уже могут ссылаться сохранённые данные.":
+    "The ID of an existing title can’t be changed – saved data may already point at it.",
   "URL картинки": "Image URL",
 });
 
 // ── Импорт, паспорта, статистика, тир-лист ────
 i18nRegister({
-  ". Список должен быть открыт — если в настройках профиля он закрыт, снаружи его не видно.":
-    ". The list must be public — if it’s private in the profile settings, nobody can see it.",
+  ". Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.":
+    ". The list must be public – if it’s private in the profile settings, nobody can see it.",
   "+ завести свой статус…": "+ create your own status…",
   "⏳ Загружаем библиотеку…": "⏳ Loading the library…",
   "⏳ Создаём…": "⏳ Creating…",
   "Аниме и манга": "Anime and manga",
-  "Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) — там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.":
-    "With no keys at all, covers for anime and manga (from AniList) and for books (from Open Library) already arrive — those are open to everyone. A key is only needed for movies: TMDB, the one open poster database, asks for one. It’s free and issued immediately.",
+  "Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) – там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.":
+    "With no keys at all, covers for anime and manga (from AniList) and for books (from Open Library) already arrive – those are open to everyone. A key is only needed for movies: TMDB, the one open poster database, asks for one. It’s free and issued immediately.",
   "без оценки": "no rating",
   "Больше всего пересмотрено:": "Most rewatched:",
   "в выгрузке": "in the export",
   "в любимом": "in favorites",
   "В паспорте нет списка тайтлов.": "There is no list of titles in this passport.",
-  "В паспорте нет шкалы оценок — показывать будет нечего.":
-    "There is no rating scale in this passport — there would be nothing to show.",
+  "В паспорте нет шкалы оценок – показывать будет нечего.":
+    "There is no rating scale in this passport – there would be nothing to show.",
   "В планах": "Planned",
-  "Введи название": "Enter a name",
+  "Введите название": "Enter a name",
   "Внутри файла должен быть объект паспорта.": "The file must contain a passport object.",
   Всё: "Everything",
   "Всё время": "All time",
   "Все года": "All years",
   "Все настройки": "All settings",
   всего: "in total",
-  "Выбери тип Developer, прими условия и заполни короткую анкету (в поле о цели использования достаточно написать, что ведёшь личный список просмотренного).":
+  "Выберите тип Developer, примите условия и заполните короткую анкету (в поле о цели использования достаточно написать, что ведёшь личный список просмотренного).":
     "Pick the Developer type, accept the terms and fill in the short form (for the purpose field, “keeping a personal watch list” is enough).",
   "Выбрать файл выгрузки": "Choose an export file",
   "Выгрузить свой": "Export mine",
@@ -695,22 +695,22 @@ i18nRegister({
   "Забираем мангу…": "Fetching manga…",
   "Забрать список": "Fetch the list",
   забыть: "forget",
-  "Заведи аккаунт на themoviedb.org и подтверди почту.":
+  "Заведите аккаунт на themoviedb.org и подтвердите почту.":
     "Create an account on themoviedb.org and confirm your email.",
   Завести: "Create",
   "Загружаем историю…": "Loading history…",
   "Загрузить чужой паспорт": "Load someone’s passport",
   "заметных споров": "notable disagreements",
-  "Игры пока не принимаем: у сервисов, где их ведут, нет общего формата выгрузки. Появится образец файла — разберём и его.":
+  "Игры пока не принимаем: у сервисов, где их ведут, нет общего формата выгрузки. Появится образец файла – разберём и его.":
     "Games aren’t accepted yet: the services that track them have no common export format. Send a sample file and it will be supported.",
   "Или по нику с AniList": "Or by AniList username",
   "Импортировать ещё файл": "Import another file",
   История: "History",
-  "Ключ появится тут же, в строке API Key (v3 auth) — скопируй его сюда целиком.":
-    "The key appears right there, in the API Key (v3 auth) row — copy the whole thing here.",
+  "Ключ появится тут же, в строке API Key (v3 auth) – скопируйте его сюда целиком.":
+    "The key appears right there, in the API Key (v3 auth) row – copy the whole thing here.",
   "Ключ принят. Постеры к фильмам теперь приедут вместе со списком.":
     "Key accepted. Movie posters will now arrive with the list.",
-  "Ключ хранится только в этом браузере и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая — репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.":
+  "Ключ хранится только в этом браузере и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая – репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.":
     "The key is kept in this browser only and goes nowhere else. The downside: on another device you’ll have to enter it again.",
   "ключ v3, 32 знака": "v3 key, 32 characters",
   Книги: "Books",
@@ -719,7 +719,7 @@ i18nRegister({
   "Настройки профиля → раздел API → Request an API Key.":
     "Profile settings → API section → Request an API Key.",
   "не импортировать": "don’t import",
-  "Не получилось достучаться до AniList. Проверь интернет и попробуй ещё раз.":
+  "Не получилось достучаться до AniList. Проверьте интернет и попробуйте ещё раз.":
     "Couldn’t reach AniList. Check your connection and try again.",
   "не тронуто": "untouched",
   "Не удалось узнать формат файла. Понимаем выгрузки: MyAnimeList и Шикимори (XML),":
@@ -743,7 +743,7 @@ i18nRegister({
   Оценки: "Ratings",
   "Ошибка сохранения": "Save failed",
   "Перенести в паспорт": "Import into the passport",
-  "Перенос списка из другого сервиса. Формат узнаётся сам, выбирать его не нужно. Файл разбирается прямо здесь, в браузере, и никуда не отправляется, а в паспорт попадает только после того, как ты подтвердишь.":
+  "Перенос списка из другого сервиса. Формат узнаётся сам, выбирать его не нужно. Файл разбирается прямо здесь, в браузере, и никуда не отправляется, а в паспорт попадает только после того, как вы подтвердите.":
     "Moving a list over from another service. The format is detected automatically. The file is parsed right here and sent nowhere; nothing enters the passport until you confirm.",
   "пересмотр всего": "rewatch in total",
   "пересмотра всего": "rewatches in total",
@@ -753,7 +753,7 @@ i18nRegister({
   "по нику": "by username",
   Подробнее: "More",
   "Пока без текста.": "No text yet.",
-  "Полное согласие — спорить не о чем.": "Complete agreement — nothing to argue about.",
+  "Полное согласие – спорить не о чем.": "Complete agreement – nothing to argue about.",
   "полок в шкале": "shelves in the scale",
   "Посмотреть все сохранённые версии данных и восстановить старую при необходимости":
     "Browse every saved version of your data and restore an older one if you need to",
@@ -788,9 +788,9 @@ i18nRegister({
   "Фавориты:": "Favorites:",
   "Файл не нужен и выгружать ничего не надо: открытый список AniList отдаёт кому угодно, и мы просто спросим его по нику. Поле для ника ниже. Обложки приезжают сразу вместе со списком.":
     "No file and no export needed: a public AniList list is readable by anyone, so we just ask for it by username. The field is below. Covers arrive with the list.",
-  "Файл не от TasteID — не тот формат.": "This file isn’t from TasteID — wrong format.",
-  "Файл не читается как XML. Выгрузка иногда приходит в архиве — распакуй его сначала.":
-    "The file doesn’t parse as XML. Exports sometimes arrive zipped — unpack it first.",
+  "Файл не от TasteID – не тот формат.": "This file isn’t from TasteID – wrong format.",
+  "Файл не читается как XML. Выгрузка иногда приходит в архиве – распакуй его сначала.":
+    "The file doesn’t parse as XML. Exports sometimes arrive zipped – unpack it first.",
   "Файл пустой или это не CSV и не XML. Нужна выгрузка списка из сервиса.":
     "The file is empty, or it’s neither CSV nor XML. A list export from a service is what’s needed.",
   Фильмы: "Movies",
@@ -799,50 +799,50 @@ i18nRegister({
   "Читать полностью →": "Read in full →",
   "Что и откуда принимаем": "What is accepted, and from where",
   "Что уже есть в паспорте": "What the passport already has",
-  "Чужой паспорт — файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо в браузере, никуда не отправляется.":
+  "Чужой паспорт – файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо в браузере, никуда не отправляется.":
     "Someone else’s passport is a file: have them export theirs with the button below and send it over. Then you can view it or compare it with yours. Everything is computed right here and sent nowhere.",
-  "Это не резервная копия: файл легче, чем твои настоящие данные (без текста отзывов, без избранного, без тир-листов), и загрузка сюда чужого паспорта ничего своего не трогает и не заменяет.":
+  "Это не резервная копия: файл легче, чем ваши настоящие данные (без текста отзывов, без избранного, без тир-листов), и загрузка сюда чужого паспорта ничего своего не трогает и не заменяет.":
     "This isn't a backup: the file is lighter than your real data (no review text, no favorites, no tier lists), and loading someone else's passport here doesn't touch or replace anything of yours.",
   Шикимори: "Shikimori",
-  "Это не похоже на файл паспорта — внутри не JSON.":
-    "This doesn’t look like a passport file — it isn’t JSON inside.",
+  "Это не похоже на файл паспорта – внутри не JSON.":
+    "This doesn’t look like a passport file – it isn’t JSON inside.",
   "Это XML, но списка аниме или манги внутри нет.":
     "It is XML, but there’s no anime or manga list inside.",
-  "AniList просит подождать — слишком много запросов подряд. Попробуй через минуту.":
-    "AniList is asking us to wait — too many requests in a row. Try again in a minute.",
+  "AniList просит подождать – слишком много запросов подряд. Попробуйте через минуту.":
+    "AniList is asking us to wait – too many requests in a row. Try again in a minute.",
   "Goodreads и Letterboxd (CSV). Колонки в файле:": "Goodreads and Letterboxd (CSV). Columns found:",
   "goodreads.com/review/import → кнопка Export Library, через минуту там же появится ссылка на goodreads_library_export.csv.":
     "goodreads.com/review/import → the Export Library button; a minute later a link to goodreads_library_export.csv appears there.",
   "Hardcover (издание)": "Hardcover (edition)",
-  "letterboxd.com/settings/data → Export Your Data. Скачается архив; внутри нужны ratings.csv (что оценено), watched.csv (что просмотрено) и watchlist.csv (что в планах) — по одному за раз.":
-    "letterboxd.com/settings/data → Export Your Data. You get an archive; inside you need ratings.csv (rated), watched.csv (watched) and watchlist.csv (planned) — one at a time.",
+  "letterboxd.com/settings/data → Export Your Data. Скачается архив; внутри нужны ratings.csv (что оценено), watched.csv (что просмотрено) и watchlist.csv (что в планах) – по одному за раз.":
+    "letterboxd.com/settings/data → Export Your Data. You get an archive; inside you need ratings.csv (rated), watched.csv (watched) and watchlist.csv (planned) – one at a time.",
   "MyAnimeList / Шикимори": "MyAnimeList / Shikimori",
-  "myanimelist.net → значок профиля → Export → Anime List или Manga List → Export My List. Скачается архив .xml.gz — распакуй его, нужен файл .xml изнутри.":
-    "myanimelist.net → profile icon → Export → Anime List or Manga List → Export My List. You get an .xml.gz archive — unpack it, the .xml inside is what’s needed.",
+  "myanimelist.net → значок профиля → Export → Anime List или Manga List → Export My List. Скачается архив .xml.gz – распакуй его, нужен файл .xml изнутри.":
+    "myanimelist.net → profile icon → Export → Anime List or Manga List → Export My List. You get an .xml.gz archive – unpack it, the .xml inside is what’s needed.",
   "reviews.json не найден": "reviews.json not found",
-  "shikimori.one → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами — загрузи их по очереди.":
-    "shikimori.one → Settings → Lists → Export → MyAnimeList format. Anime and manga come as two separate files — load them one after another.",
-  "TMDB не узнал этот ключ. Проверь, что скопирован он целиком.":
+  "shikimori.one → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами – загрузите их по очереди.":
+    "shikimori.one → Settings → Lists → Export → MyAnimeList format. Anime and manga come as two separate files – load them one after another.",
+  "TMDB не узнал этот ключ. Проверьте, что скопирован он целиком.":
     "TMDB doesn’t recognise this key. Check that you copied all of it.",
 });
 
 // ── Служебные сообщения и подписи настроек ────
 i18nRegister({
-  "— светлая": " — light",
-  "— тёмная": " — dark",
+  "– светлая": " – light",
+  "– тёмная": " – dark",
   "Блок оценок": "Ratings block",
   "Блок пересмотров": "Rewatches block",
   "Блок тегов": "Tags block",
   "Блоки статистики": "Statistics blocks",
-  "Введи название источника": "Enter a source name",
-  "Введи название категории": "Enter a category name",
-  "Введи название роли": "Enter a role name",
+  "Введите название источника": "Enter a source name",
+  "Введите название категории": "Enter a category name",
+  "Введите название роли": "Enter a role name",
   "Введи название статуса": "Enter a status name",
-  "Введи название тега": "Enter a tag name",
-  "Введи название типа": "Enter a type name",
+  "Введите название тега": "Enter a tag name",
+  "Введите название типа": "Enter a type name",
   "Восстановлено ✓": "Restored ✓",
-  "Выбери папку выше.": "Pick a folder above.",
-  "Выбери файл": "Choose a file",
+  "Выберите папку выше.": "Pick a folder above.",
+  "Выберите файл": "Choose a file",
   "дата неизвестна": "date unknown",
   "Две-четыре (2 …)": "Two to four (2 …)",
   "Делаю резервную копию картинки перед сохранением...": "Backing up the image before saving…",
@@ -857,14 +857,14 @@ i18nRegister({
   "Загружаем папки…": "Loading folders…",
   "Загружено ✓": "Uploaded ✓",
   "Загружено ✓ Обновляю список...": "Uploaded ✓ Refreshing the list…",
-  "Заполни имя": "Fill in the name",
-  "Заполни название": "Fill in the title",
-  "Категория добавлена — можно выбрать её выше": "Category added — you can pick it above",
+  "Заполните имя": "Fill in the name",
+  "Заполните название": "Fill in the title",
+  "Категория добавлена – можно выбрать её выше": "Category added – you can pick it above",
   "Категория обновлена": "Category updated",
   "Категория удалена": "Category deleted",
   "Кнопка «все»": "The “all” button",
-  "Лучшее за год — несколько ({year})": "Best of the year — several ({year})",
-  "Лучшее за год — одно ({year})": "Best of the year — one ({year})",
+  "Лучшее за год – несколько ({year})": "Best of the year – several ({year})",
+  "Лучшее за год – одно ({year})": "Best of the year – one ({year})",
   "Не удалось загрузить отзыв:": "Couldn’t load the review:",
   "Не удалось сконвертировать": "Couldn’t convert",
   "Не удалось сохранить копию": "Couldn’t save the copy",
@@ -879,7 +879,7 @@ i18nRegister({
   "Ошибка сети:": "Network error:",
   "Ошибка удаления": "Delete failed",
   "Ошибка:": "Error:",
-  "Папки не найдены в chars/. Введи URL вручную.":
+  "Папки не найдены в chars/. Введите URL вручную.":
     "No folders found in chars/. Enter a URL by hand.",
   "Пересмотров: 1 …": "Rewatches: 1 …",
   "Пересмотров: 2–4 …": "Rewatches: 2–4 …",
@@ -897,7 +897,7 @@ i18nRegister({
   "Резервная копия сохранена ✓": "Backup saved ✓",
   "Резервную копию сделать не удалось:": "Couldn’t make a backup:",
   Слабо: "Weak",
-  "Сначала выбери папку выше": "Pick a folder above first",
+  "Сначала выберите папку выше": "Pick a folder above first",
   "Сохранено ✓": "Saved ✓",
   "Сохранено.": "Saved.",
   "Сохранить изменения": "Save changes",
@@ -945,48 +945,48 @@ i18nRegister({
     "Delete “{name}”?\n\nThe entry disappears from reviews, favorites and the tier list.\nThe only way back is a rollback in “Version history”.",
   "Удалить раздел «{name}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.":
     "Delete the “{name}” section?\n\nEntries stay in the data but stop being shown. You can bring the section back right here.",
-  "Удалить коллекцию «{name}»?\n\nСам тир-лист останется лежать в {file}, вместе с картинками, — пропадёт только кнопка на вкладке.":
-    "Delete the “{name}” collection?\n\nThe tier list itself stays in {file}, images and all — only the button on the tab disappears.",
-  "Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл — все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).":
-    "Restore “{file}” to the version from {date}?\n\nThis replaces the current file — everything changed after that version is lost (though it stays in the history and can be restored back).",
+  "Удалить коллекцию «{name}»?\n\nСам тир-лист останется лежать в {file}, вместе с картинками, – пропадёт только кнопка на вкладке.":
+    "Delete the “{name}” collection?\n\nThe tier list itself stays in {file}, images and all – only the button on the tab disappears.",
+  "Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл – все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).":
+    "Restore “{file}” to the version from {date}?\n\nThis replaces the current file – everything changed after that version is lost (though it stays in the history and can be restored back).",
 });
 
 // ── Синхронизация ──────────────────────────────
 i18nRegister({
   Синхронизация: "Sync",
-  "Свободно и без своего сервера: приватный репозиторий на GitHub как общее хранилище для всех твоих устройств — телефона, компьютера, ещё одного компьютера. GitHub здесь единственный сервер, а токен и служебные данные синхронизации остаются только на этом устройстве.":
-    "Free, no server of our own: a private GitHub repository works as shared storage for all your devices — phone, computer, another computer. GitHub is the only server involved, and the token and sync bookkeeping stay only on this device.",
-  "После подключения синхронизация запускается сама — через какое-то время после того, как что-то сохранено, и при открытии приложения. Кнопка «Синхронизировать сейчас» останется — на случай, если не хочется ждать.":
-    "Once connected, sync runs on its own — a while after something is saved, and when the app opens. The “Sync now” button stays too, for when you don't want to wait.",
-  "Заведи аккаунт на github.com, если его ещё нет — бесплатно.":
-    "Create a github.com account if you don't have one — it's free.",
-  "Создай токен доступа —": "Create an access token —",
+  "Свободно и без своего сервера: приватный репозиторий на GitHub как общее хранилище для всех ваших устройств – телефона, компьютера, ещё одного компьютера. GitHub здесь единственный сервер, а токен и служебные данные синхронизации остаются только на этом устройстве.":
+    "Free, no server of our own: a private GitHub repository works as shared storage for all your devices – phone, computer, another computer. GitHub is the only server involved, and the token and sync bookkeeping stay only on this device.",
+  "После подключения синхронизация запускается сама – через какое-то время после того, как что-то сохранено, и при открытии приложения. Кнопка «Синхронизировать сейчас» останется – на случай, если не хочется ждать.":
+    "Once connected, sync runs on its own – a while after something is saved, and when the app opens. The “Sync now” button stays too, for when you don't want to wait.",
+  "Заведите аккаунт на github.com, если его ещё нет – бесплатно.":
+    "Create a github.com account if you don't have one – it's free.",
+  "Создайте токен доступа –": "Create an access token –",
   "по этой ссылке": "using this link",
-  ", галочка «repo» уже отмечена. Внизу страницы — «Generate token».":
-    ", the “repo” checkbox is already ticked. At the bottom of the page — “Generate token”.",
-  "Скопируй токен (он показывается один раз) и вставь сюда.":
+  ", галочка «repo» уже отмечена. Внизу страницы – «Generate token».":
+    ", the “repo” checkbox is already ticked. At the bottom of the page – “Generate token”.",
+  "Скопируйте токен (он показывается один раз) и вставьте сюда.":
     "Copy the token (it's shown only once) and paste it here.",
   "Токен доступа": "Access token",
   "Название репозитория": "Repository name",
-  "Если такого репозитория ещё нет на твоём GitHub — создадим сами, приватным. Если уже есть (например, второе устройство его уже завело) — подключимся к нему.":
+  "Если такого репозитория ещё нет на вашем GitHub – создадим сами, приватным. Если уже есть (например, второе устройство его уже завело) – подключимся к нему.":
     "If you don't have this repository on GitHub yet, we'll create it, as private. If it already exists (say, another device already set it up), we'll connect to it.",
-  "Галочка «repo» даёт токену доступ ко всем твоим репозиториям на GitHub, не только к этому. Если репозиторий для синка уже создан и хочется ограничить токен только им — заведи вместо этого fine-grained-токен (Settings → Developer settings → Personal access tokens → Fine-grained tokens на github.com) с доступом к одному этому репозиторию и правом Contents: Read and write.":
-    "The “repo” checkbox gives the token access to all your repositories on GitHub, not just this one. If the sync repository already exists and you'd rather limit the token to just it — create a fine-grained token instead (Settings → Developer settings → Personal access tokens → Fine-grained tokens on github.com), scoped to that one repository with Contents: Read and write.",
+  "Галочка «repo» даёт токену доступ ко всем вашим репозиториям на GitHub, не только к этому. Если репозиторий для синка уже создан и хочется ограничить токен только им – заведите вместо этого fine-grained-токен (Settings → Developer settings → Personal access tokens → Fine-grained tokens на github.com) с доступом к одному этому репозиторию и правом Contents: Read and write.":
+    "The “repo” checkbox gives the token access to all your repositories on GitHub, not just this one. If the sync repository already exists and you'd rather limit the token to just it – create a fine-grained token instead (Settings → Developer settings → Personal access tokens → Fine-grained tokens on github.com), scoped to that one repository with Contents: Read and write.",
   Подключить: "Connect",
-  "Заполни токен и название репозитория.": "Fill in the token and repository name.",
+  "Заполните токен и название репозитория.": "Fill in the token and repository name.",
   "Проверяем токен…": "Checking the token…",
   "Проверяем репозиторий…": "Checking the repository…",
-  "Репозитория ещё нет — создаём…": "The repository doesn't exist yet — creating it…",
+  "Репозитория ещё нет – создаём…": "The repository doesn't exist yet – creating it…",
   "Подключено к": "Connected to",
   "Последняя синхронизация: {when}.": "Last synced: {when}.",
   "ещё не было": "never",
   "Синхронизировать сейчас": "Sync now",
   Отключить: "Disconnect",
-  "Приложение забудет токен и репозиторий на этом устройстве. Сами данные — здесь и в репозитории — никуда не денутся, подключиться заново можно в любой момент.":
-    "The app forgets the token and repository on this device. The data itself — here and in the repository — stays put; you can reconnect any time.",
+  "Приложение забудет токен и репозиторий на этом устройстве. Сами данные – здесь и в репозитории – никуда не денутся, подключиться заново можно в любой момент.":
+    "The app forgets the token and repository on this device. The data itself – here and in the repository – stays put; you can reconnect any time.",
   "Синхронизируем…": "Syncing…",
-  "Готово, но {n} файл(ов) изменились и здесь, и в репозитории — выбери, что оставить.":
-    "Done, but {n} file(s) changed both here and in the repository — pick what to keep.",
+  "Готово, но {n} файл(ов) изменились и здесь, и в репозитории – выберите, что оставить.":
+    "Done, but {n} file(s) changed both here and in the repository – pick what to keep.",
   "Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.":
     "Done: sent {pushed}, pulled {pulled}, unchanged {skipped}.",
   "Оставить моё": "Keep mine",
@@ -994,15 +994,15 @@ i18nRegister({
   "Конфликты решены.": "Conflicts resolved.",
 });
 
-// Тексты ошибок из app/js/sync.js — тоже через i18n(), поэтому словарь
+// Тексты ошибок из app/js/sync.js – тоже через i18n(), поэтому словарь
 // им нужен здесь же.
 i18nRegister({
-  "Не получилось достучаться до GitHub — проверь соединение с интернетом.":
-    "Couldn't reach GitHub — check your internet connection.",
-  "GitHub не принял токен — проверь, что он не истёк и не отозван.":
-    "GitHub rejected the token — check that it hasn't expired or been revoked.",
-  "GitHub временно ограничил число запросов — попробуй через несколько минут.":
-    "GitHub temporarily rate-limited requests — try again in a few minutes.",
+  "Не получилось достучаться до GitHub – проверьте соединение с интернетом.":
+    "Couldn't reach GitHub – check your internet connection.",
+  "GitHub не принял токен – проверьте, что он не истёк и не отозван.":
+    "GitHub rejected the token – check that it hasn't expired or been revoked.",
+  "GitHub временно ограничил число запросов – попробуйте через несколько минут.":
+    "GitHub temporarily rate-limited requests – try again in a few minutes.",
   "У токена не хватает прав на этот репозиторий.": "The token doesn't have enough rights for this repository.",
   "Не получилось проверить токен.": "Couldn't verify the token.",
   "Не получилось проверить репозиторий.": "Couldn't check the repository.",
@@ -1032,19 +1032,19 @@ i18nRegister({
 // ── Какие теги показывать на карточке (add.html) ──
 i18nRegister({
   "Какие теги показывать на карточке": "Which tags to show on the card",
-  "На карточке помещается немного — выбери, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.":
-    "The card only fits a few — pick which of the selected tags matter most. The rest stay visible inside the review.",
+  "На карточке помещается немного – выберите, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.":
+    "The card only fits a few – pick which of the selected tags matter most. The rest stay visible inside the review.",
   "Выбрано: {n}/{max}": "Selected: {n}/{max}",
-  "Ничего не выбрано — покажутся первые теги по порядку.": "Nothing selected — the first tags in order will show.",
+  "Ничего не выбрано – покажутся первые теги по порядку.": "Nothing selected – the first tags in order will show.",
   "Не показывать теги на карточке": "Don't show tags on the card",
-  "Теги не будут показаны на карточке — только внутри отзыва.": "Tags won't show on the card — only inside the review.",
+  "Теги не будут показаны на карточке – только внутри отзыва.": "Tags won't show on the card – only inside the review.",
   "Теги на карточках": "Tags on cards",
-  "Ставит «Не показывать теги на карточке» сразу во всех отзывах — то же самое, что открыть каждый и отметить эту галочку вручную. Сами теги никуда не пропадают, они по-прежнему видны внутри отзыва. Выключение возвращает теги на карточки всех отзывов разом, включая те, где галочку поставили вручную в редакторе конкретного отзыва.":
-    "Turns on \"Don't show tags on the card\" for every review at once — the same as opening each one and checking that box by hand. The tags themselves aren't lost, they're still visible inside the review. Turning it off brings tags back on every card at once, including ones where the box was checked by hand in that review's own editor.",
+  "Ставит «Не показывать теги на карточке» сразу во всех отзывах – то же самое, что открыть каждый и отметить эту галочку вручную. Сами теги никуда не пропадают, они по-прежнему видны внутри отзыва. Выключение возвращает теги на карточки всех отзывов разом, включая те, где галочку поставили вручную в редакторе конкретного отзыва.":
+    "Turns on \"Don't show tags on the card\" for every review at once – the same as opening each one and checking that box by hand. The tags themselves aren't lost, they're still visible inside the review. Turning it off brings tags back on every card at once, including ones where the box was checked by hand in that review's own editor.",
   "Скрыть теги на всех карточках": "Hide tags on all cards",
   "Теги скрыты на всех карточках": "Tags hidden on all cards",
-  "Готово — теги скрыты на {n} карточках.": "Done — tags hidden on {n} cards.",
-  "Готово — теги возвращены на {n} карточках.": "Done — tags brought back on {n} cards.",
+  "Готово – теги скрыты на {n} карточках.": "Done – tags hidden on {n} cards.",
+  "Готово – теги возвращены на {n} карточках.": "Done – tags brought back on {n} cards.",
   "У всех отзывов теги на карточке уже были скрыты.": "Every review already had its card tags hidden.",
   "У всех отзывов теги на карточке уже были видны.": "Every review already had its card tags visible.",
 });
@@ -1077,16 +1077,16 @@ i18nRegister({
 // ── Цвета по типам (Статистика) ────────────────
 i18nRegister({
   "Цвета по типам": "Colours by type",
-  "Красят разбивку по типам и годам — диаграмму, столбики и цифры.":
-    "Colours the breakdown by type and by year — the chart, the bars and the numbers.",
+  "Красят разбивку по типам и годам – диаграмму, столбики и цифры.":
+    "Colours the breakdown by type and by year – the chart, the bars and the numbers.",
   "Цвет по умолчанию": "Default colour",
 });
 
 // ── Горячие клавиши (index.html, панель настроек) ──
 i18nRegister({
   "Горячие клавиши": "Keyboard shortcuts",
-  "Работают на главной странице — везде, кроме полей ввода и открытых окон.":
-    "Work on the main page — everywhere except text fields and open windows.",
+  "Работают на главной странице – везде, кроме полей ввода и открытых окон.":
+    "Work on the main page – everywhere except text fields and open windows.",
   "Переключить вкладку": "Switch tab",
   "Поиск в «Отзывах»": "Search in “Reviews”",
   "Список горячих клавиш": "List of keyboard shortcuts",
@@ -1111,12 +1111,12 @@ i18nRegister({
 i18nRegister({
   "Проверить обновления": "Check for updates",
   "Проверяем…": "Checking…",
-  "У тебя последняя версия.": "You're on the latest version.",
+  "У вас последняя версия.": "You're on the latest version.",
   "Не удалось проверить обновления.": "Couldn't check for updates.",
-  "Найдена версия {v} — качаем, предложим установить.":
-    "Found version {v} — downloading, we'll offer to install it.",
-  "Запущено из исходников — обновления не проверяются.":
-    "Running from source — updates aren't checked.",
+  "Найдена версия {v} – качаем, предложим установить.":
+    "Found version {v} – downloading, we'll offer to install it.",
+  "Запущено из исходников – обновления не проверяются.":
+    "Running from source – updates aren't checked.",
 });
 
 // ── Настоящая «текущая» версия в истории ───────
@@ -1128,20 +1128,20 @@ i18nRegister({
 i18nRegister({
   "Автоматически удалять версии старше:": "Automatically delete versions older than:",
   "Почистить сейчас": "Clean up now",
-  "Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки — по всем файлам сразу":
-    "Apply the selected age threshold right now instead of waiting for the automatic cleanup — across all files at once",
+  "Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки – по всем файлам сразу":
+    "Apply the selected age threshold right now instead of waiting for the automatic cleanup – across all files at once",
   "Не удалять автоматически": "Don't delete automatically",
   "Старше недели": "Older than a week",
   "Старше месяца": "Older than a month",
   "Старше полугода": "Older than six months",
-  "Сначала выбери, версии старше какого срока чистить.": "Pick an age threshold first.",
+  "Сначала выберите, версии старше какого срока чистить.": "Pick an age threshold first.",
   "Удалено версий: {n}": "Deleted {n} versions",
   "Не удалось почистить: {msg}": "Couldn't clean up: {msg}",
   "Удалить всю историю": "Delete all history",
-  "Стереть все прошлые версии этого файла целиком, независимо от возраста — не только старые":
-    "Wipe every past version of this file entirely, regardless of age — not just the old ones",
-  "Удалить всю историю файла «{file}»?\n\nТекущая версия не пострадает — удалятся только прошлые.":
-    "Delete all history for “{file}”?\n\nThe current version is untouched — only past ones are removed.",
+  "Стереть все прошлые версии этого файла целиком, независимо от возраста – не только старые":
+    "Wipe every past version of this file entirely, regardless of age – not just the old ones",
+  "Удалить всю историю файла «{file}»?\n\nТекущая версия не пострадает – удалятся только прошлые.":
+    "Delete all history for “{file}”?\n\nThe current version is untouched – only past ones are removed.",
   "История очищена ✓": "History cleared ✓",
   "Не удалось удалить: {msg}": "Couldn't delete: {msg}",
   "Версий: {n}": "Versions: {n}",
@@ -1149,8 +1149,8 @@ i18nRegister({
 
 // ── Перебиндинг горячих клавиш (панель настроек) ─
 i18nRegister({
-  "Клавиши для поиска, нового отзыва и списка горячих клавиш можно поменять под себя — жми «Изменить» и нажми нужную клавишу.":
-    "The keys for search, a new review, and this list itself can be rebound — hit “Change” and press the key you want.",
+  "Клавиши для поиска, нового отзыва и списка горячих клавиш можно поменять под себя – жми «Изменить» и нажми нужную клавишу.":
+    "The keys for search, a new review, and this list itself can be rebound – hit “Change” and press the key you want.",
   "Изменить": "Change",
   "Нажмите клавишу…": "Press a key…",
   "Сбросить к умолчаниям": "Reset to defaults",
@@ -1159,7 +1159,7 @@ i18nRegister({
 // ── Своя клавиша/кнопка мыши на вкладку (панель настроек) ─
 i18nRegister({
   "Переключение вкладок": "Tab switching",
-  "Цифры 1–5 переключают вкладки по порядку и сами подстраиваются, если какую-то скрыть. Здесь — необязательно, поверх цифр: своя клавиша или кнопка мыши (средняя, «назад»/«вперёд») на конкретную вкладку, привязанная к ней самой, а не к номеру.":
+  "Цифры 1–5 переключают вкладки по порядку и сами подстраиваются, если какую-то скрыть. Здесь – необязательно, поверх цифр: своя клавиша или кнопка мыши (средняя, «назад»/«вперёд») на конкретную вкладку, привязанная к ней самой, а не к номеру.":
     "Digits 1–5 switch tabs in order and adjust automatically when one is hidden. This is optional, on top of the digits: a key or mouse button (middle, back/forward) bound to a specific tab itself, not to its position.",
   "не задано": "not set",
   "Очистить": "Clear",
@@ -1186,16 +1186,16 @@ i18nRegister({
   "Загружен чужой паспорт: {count}&nbsp;{unit}": "Someone else’s passport loaded: {count}&nbsp;{unit}",
   "«{name}» удалена.": "“{name}” deleted.",
   "Название нового тир-листа:": "Name for the new tier list:",
-  "Развёрнутый текст сюда не перенесён — полный отзыв можно почитать по ссылке ниже.":
-    "The full text hasn’t been moved here — the complete review is available at the link below.",
+  "Развёрнутый текст сюда не перенесён – полный отзыв можно почитать по ссылке ниже.":
+    "The full text hasn’t been moved here – the complete review is available at the link below.",
 });
 
 // ── Предупреждение о несохранённых изменениях ──
 i18nRegister({
-  "Отзыв не сохранён — закрыть и потерять правки?": "This review isn’t saved — close and lose your changes?",
+  "Отзыв не сохранён – закрыть и потерять правки?": "This review isn’t saved – close and lose your changes?",
   "Закрыть без сохранения": "Close without saving",
   Остаться: "Stay",
-  "Есть несохранённые изменения — уйти и потерять их?": "You have unsaved changes — leave and lose them?",
+  "Есть несохранённые изменения – уйти и потерять их?": "You have unsaved changes – leave and lose them?",
   "Уйти без сохранения": "Leave without saving",
-  "Отзыв не сохранён — уйти и потерять правки?": "This review isn’t saved — leave and lose your changes?",
+  "Отзыв не сохранён – уйти и потерять правки?": "This review isn’t saved – leave and lose your changes?",
 });

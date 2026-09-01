@@ -1,22 +1,22 @@
 // ══════════════════════════════════════════════
-//  STATS — вкладка Статистика
+//  STATS – вкладка Статистика
 //  Читает только из reviews.json
 //  Зависит от: config.js, api.js, cards.js
 // ══════════════════════════════════════════════
 
 // ── Цвета по типам ─────────────────────────────
-// Берутся из config.js (MEDIA_TYPES) — единственного места, где
+// Берутся из config.js (MEDIA_TYPES) – единственного места, где
 // перечислены встроенные типы. Добавлять цвет для нового типа здесь
 // больше не нужно, он приезжает вместе с MEDIA_TYPES.
 const TYPE_COLORS = Object.fromEntries(MEDIA_TYPES.map((t) => [t.key, t.color]));
 
-// Настройки → Статистика → «Цвета по типам» — своя перекраска поверх
+// Настройки → Статистика → «Цвета по типам» – своя перекраска поверх
 // TYPE_COLORS, ключ в ключ. Без своего цвета остаётся значение выше.
 function typeColor(key) {
   return (window.SITE_TYPE_COLORS && window.SITE_TYPE_COLORS[key]) || TYPE_COLORS[key] || "#666";
 }
 
-// Выбранный год дайджеста. "all" — обычная статистика за всё время.
+// Выбранный год дайджеста. "all" – обычная статистика за всё время.
 const statsState = { year: "all" };
 
 async function loadStats() {
@@ -37,7 +37,7 @@ async function loadStats() {
 }
 
 // Тайтл считается "завершённым в году Y", если в этом году дата
-// окончания (или начала, если конца нет — старые записи без date_end)
+// окончания (или начала, если конца нет – старые записи без date_end)
 function statsCompletedYear(r) {
   const raw = r.date_end || r.date_start || r.date;
   return raw ? new Date(raw).getFullYear() : null;
@@ -183,7 +183,7 @@ function renderYearDigest(year, completed) {
   `;
 }
 
-// Лучшая оценка года (минимальный gradeScore — в начале GRADE_ORDER лежат
+// Лучшая оценка года (минимальный gradeScore – в начале GRADE_ORDER лежат
 // лучшие оценки). При нескольких тайтлах с одинаковой лучшей оценкой
 // показываем все, но не больше 6, чтобы не раздувать дайджест.
 function statsTopTitlesOfYear(withGrade) {
@@ -216,8 +216,8 @@ function renderTitleOfYear(list, year) {
 
 function renderCounters(counts, total, sectionTitle = null, totalLabel = null) {
   sectionTitle = sectionTitle ?? siteLabel("stats", "total", i18n("Всего"));
-  // По умолчанию — склоняемое "тайтл/тайтла/тайтлов".
-  // Если передана строка ("завершено") — используем её как есть без склонения.
+  // По умолчанию – склоняемое "тайтл/тайтла/тайтлов".
+  // Если передана строка ("завершено") – используем её как есть без склонения.
   const label = totalLabel !== null
     ? totalLabel
     : plural(total, unitForms());
@@ -400,7 +400,7 @@ function renderTagCloud(topTags) {
 function animateCounters() {
   document.querySelectorAll("[data-target]").forEach(el => {
     const target = parseInt(el.dataset.target);
-    // Лейбл рядом: у stat-total-num — следующий span, у stat-counter-val — следующий div
+    // Лейбл рядом: у stat-total-num – следующий span, у stat-counter-val – следующий div
     const labelEl = el.nextElementSibling;
     const forms = labelEl?.dataset.plural?.split("|");
 

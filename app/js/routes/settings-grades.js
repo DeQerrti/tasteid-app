@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════
-//  settings-grades.js — шкала оценок, коллекции и режим тир-листа — часть роута #/settings-edit
-//  Разбито из settings-edit.js (2972 строки) по секциям — читается
+//  settings-grades.js – шкала оценок, коллекции и режим тир-листа – часть роута #/settings-edit
+//  Разбито из settings-edit.js (2972 строки) по секциям – читается
 //  тем же способом, что и раньше: обычный глобальный скрипт, без
 //  своего экспорта, подключается вместе с settings-edit.js и остальными
 //  файлами этой же группы в index.html, в общей области видимости.
@@ -48,7 +48,7 @@ function updateScaleBlocks() {
   }
 }
 
-// Сид для "Названия" — обязательно с реальными ключами GRADES_DEF,
+// Сид для "Названия" – обязательно с реальными ключами GRADES_DEF,
 // иначе уже сохранённые отзывы (grade: "etalon" и т.д.) перестанут
 // находить свою полку.
 function seedCategoricalShelves() {
@@ -98,7 +98,7 @@ function renderShelvesList(containerId, withRange) {
           <button class="icon-btn" onclick="removeShelfRow(${i}, '${containerId}', ${withRange})">✕</button>
         </div>
         <input type="text" class="shelf-desc" value="${esc(s.desc || "")}"
-          onchange="shelves[${i}].desc=this.value" placeholder="${i18n("Описание — показывается подсказкой при наведении")}">
+          onchange="shelves[${i}].desc=this.value" placeholder="${i18n("Описание – показывается подсказкой при наведении")}">
       </div>
     `
     )
@@ -147,7 +147,7 @@ function slugify(name) {
 
 // ── Режим тир-листа «Тайтлы» ───────────────────
 // Не элемент tierCollections: у коллекций своя папка с картинками
-// и редактор, а «Тайтлы» — это просто вид тир-листа поверх reviews.json,
+// и редактор, а «Тайтлы» – это просто вид тир-листа поверх reviews.json,
 // хранить для него нечего. Поэтому отдельные переменные, тот же
 // визуальный паттерн (.tab-row), что у статусов и коллекций.
 let tierTitlesLabel = i18n("Тайтлы");

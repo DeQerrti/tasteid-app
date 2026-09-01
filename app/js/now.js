@@ -1,15 +1,15 @@
 // ══════════════════════════════════════════════
-//  NOW — вкладка Главная
-//  Читает только из reviews.json — без API
+//  NOW – вкладка Главная
+//  Читает только из reviews.json – без API
 //  Зависит от: config.js, api.js, cards.js
 // ══════════════════════════════════════════════
 const loading = {};
 
-// Раньше здесь стояла проверка cache.now — если "Сейчас" успела
+// Раньше здесь стояла проверка cache.now – если "Сейчас" успела
 // отрисоваться до того, как подгрузились подписи/цвета, перерисовать
 // готовый кэш заново. Кэша больше нет, но гонка та же: эта вкладка
 // открыта по умолчанию при старте и могла отрендериться раньше, чем
-// сюда пришло событие. Признак "уже отрисована" теперь — что вкладка
+// сюда пришло событие. Признак "уже отрисована" теперь – что вкладка
 // сейчас видна; loadNow() просто перечитает reviews.json (это дёшево)
 // и перерисует уже с правильными подписями.
 document.addEventListener("site-labels-ready", () => {
@@ -118,7 +118,7 @@ function renderNow({ buckets, completed }) {
 
     /* Треугольник рисуется рамкой, а не берётся символом '▾' из шрифта:
        ни один из самохостящихся шрифтов его не содержит (проверено по
-       cmap), и браузер подставлял системный запасной — на Android
+       cmap), и браузер подставлял системный запасной – на Android
        вместо мелкой галочки выходил крупный сплошной ▼ вдвое больше
        задуманного. Ровно тот же приём уже применён к стрелке у
        выпадающих списков (.select-wrap::after в style.css) и к ромбу
@@ -140,7 +140,7 @@ function renderNow({ buckets, completed }) {
 
   // Секции копятся отдельно от html: тот всегда начинается с блока
   // <style> выше, то есть пустым не бывает никогда. Раньше заглушка
-  // «список пуст» висела на `html || …` и поэтому не показывалась —
+  // «список пуст» висела на `html || …` и поэтому не показывалась –
   // на пустых данных вкладка оставалась просто белым листом.
   let sections = "";
 
@@ -149,7 +149,7 @@ function renderNow({ buckets, completed }) {
     if (bucket.items.length) sections += makeSection(bucket.key, bucket.label, bucket.items, collapsed);
   }
 
-  // ── Архив — группируем по году ─────────────────
+  // ── Архив – группируем по году ─────────────────
   if (completed.length && !window.SITE_HIDDEN_STATUSES?.has("archive")) {
     const sorted = [...completed].sort((a, b) => {
       const da = new Date(a.date_end || a.date_start || a.date || 0);
@@ -159,7 +159,7 @@ function renderNow({ buckets, completed }) {
     const byYear = {};
     for (const r of sorted) {
       const raw = r.date_end || r.date_start || r.date;
-      const y   = raw ? new Date(raw).getFullYear() : "—";
+      const y   = raw ? new Date(raw).getFullYear() : "–";
       if (!byYear[y]) byYear[y] = [];
       byYear[y].push(r);
     }

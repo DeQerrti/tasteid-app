@@ -1,43 +1,43 @@
 // ══════════════════════════════════════════════
-//  РОУТ #/chars-edit — редактор тир-листов персонажей
+//  РОУТ #/chars-edit – редактор тир-листов персонажей
 //  (см. план перехода на SPA, фаза 3.1)
 //
 //  В отличие от #/reviews-order (js/routes/reviews-order.js), эта
 //  страница НЕ завёрнута в IIFE: разметка перегружена инлайновыми
-//  onclick="funcName(...)" (их несколько десятков — редактирование
+//  onclick="funcName(...)" (их несколько десятков – редактирование
 //  тайтлов, тиров, персонажей, галерея, модалка), и превращать каждый
-//  в вызов через объект-неймспейс — риск опечатки на ровном месте при
+//  в вызов через объект-неймспейс – риск опечатки на ровном месте при
 //  таком объёме правок ради самой процедуры переноса. Вместо этого
 //  функции остаются обычными верхнеуровневыми объявлениями, как раньше
-//  были в app/chars-edit.html — они и там были permanent-глобалами
+//  были в app/chars-edit.html – они и там были permanent-глобалами
 //  документа, значит и здесь после подключения на index.html будут
 //  ровно тем же самым, просто в объединённой оболочке. Отсутствие
 //  коллизий с остальным index.html (rail, вкладки, js/now.js и т.д.)
-//  проверяет scripts/check-duplicate-functions.js (npm run check) —
+//  проверяет scripts/check-duplicate-functions.js (npm run check) –
 //  вот он и есть настоящая страховка здесь, а не сама обёртка.
 //
 //  Что всё же обязано жить внутри mount()/unmount(), а не быть
 //  постоянным глобалом: два слушателя на document (keydown и
-//  site-labels-ready) — они переживают document, а не текущий узел
+//  site-labels-ready) – они переживают document, а не текущий узел
 //  #view-root, и обязаны сниматься при уходе с маршрута, иначе
 //  продолжат работать поверх того, что откроется дальше (см. её же
 //  предупреждение в router.js). Остальные слушатели в bindTitleDrag()/
-//  bindDragDrop() навешаны прямо на элементы внутри #view-root —
+//  bindDragDrop() навешаны прямо на элементы внутри #view-root –
 //  умирают вместе с ними при innerHTML="" в router.js, отдельно
 //  снимать не нужно.
 //
 //  Параметр коллекции раньше читался из query-строки самого документа
-//  (?collection=X) — здесь его больше нет (один документ на всё
+//  (?collection=X) – здесь его больше нет (один документ на всё
 //  приложение, адрес меняет только хэш), поэтому его передаёт роутер:
 //  #/chars-edit?collection=X разбирается в router.js и приходит вторым
 //  аргументом в mount() как URLSearchParams.
 //
 //  Кнопка «История» (js/backup.js) на этот маршрут не подключена
 //  специально: это самозапускающийся IIFE, который вставляет на
-//  страницу плавающую кнопку раз и навсегда, а не по вызову — если
+//  страницу плавающую кнопку раз и навсегда, а не по вызову – если
 //  добавить его сюда, кнопка осталась бы висеть на ГЛАВНОЙ странице
 //  всегда, а не только пока открыт этот маршрут. Сам путь до истории
-//  версий никуда не делся — Настройки → История версий.
+//  версий никуда не делся – Настройки → История версий.
 // ══════════════════════════════════════════════
 
 let data = [];
@@ -95,7 +95,7 @@ async function mount(container, params) {
             <label data-i18n>ID (латиница, без пробелов) *</label>
             <input type="text" id="nt-id" placeholder="korotkij-id">
             <div id="nt-id-hint" style="font-family:'DM Sans',sans-serif;font-size:.6rem;color:var(--text-dim);margin-top:.3rem;display:none" data-i18n>
-              ID нельзя менять у существующего тайтла — на него уже могут ссылаться сохранённые данные.
+              ID нельзя менять у существующего тайтла – на него уже могут ссылаться сохранённые данные.
             </div>
           </div>
           <div class="field">
@@ -127,7 +127,7 @@ async function mount(container, params) {
       </aside>
 
       <div class="editor" id="editor">
-        <div class="editor-empty" data-i18n>Выбери тайтл слева или создай новый</div>
+        <div class="editor-empty" data-i18n>Выберите тайтл слева или создайте новый</div>
       </div>
     </main>
 
@@ -184,7 +184,7 @@ async function mount(container, params) {
       </div>
     </div>`;
 
-  document.title = `TasteID — Редактор: ${COLLECTION_LABEL}`;
+  document.title = `TasteID – Редактор: ${COLLECTION_LABEL}`;
 
   ceOn(document.getElementById("ce-back"), "click", (e) => {
     e.preventDefault();
@@ -195,20 +195,20 @@ async function mount(container, params) {
     const label =
       (window.SITE_TIER_COLLECTIONS || []).find((c) => c.id === COLLECTION)?.label ||
       (COLLECTION === "characters" ? "Персонажи" : COLLECTION);
-    document.title = `TasteID — Редактор: ${label}`;
+    document.title = `TasteID – Редактор: ${label}`;
     const headerEl = document.getElementById("header-sub");
     if (headerEl) headerEl.textContent = `${i18n("Редактор")}: ${label}`;
   });
 
-  // Esc: сперва закрыть модалку, если она открыта, — только если её
-  // не было, уходим с маршрута целиком. capture: true обязателен —
+  // Esc: сперва закрыть модалку, если она открыта, – только если её
+  // не было, уходим с маршрута целиком. capture: true обязателен –
   // js/utils.js вешает свой ГЛОБАЛЬНЫЙ (постоянный, на весь документ)
   // обработчик Escape ещё на этапе загрузки страницы: он кликает по
   // любому открытому .modal-overlay, что само по себе и закрывает
   // модалку через её же onclick="closeModalOnOverlay(event)". Без
   // capture тот обработчик (в фазе всплытия, добавлен раньше) успевал
   // отработать первым и закрыть модалку ДО того, как этот обработчик
-  // проверял её состояние — тот же Escape тогда и закрывал модалку, и
+  // проверял её состояние – тот же Escape тогда и закрывал модалку, и
   // тут же (застав её уже закрытой) уводил с маршрута одним нажатием.
   // В фазе перехвата (capture) этот обработчик успевает проверить
   // состояние модалки раньше, чем её кто-либо тронет.
@@ -221,7 +221,7 @@ async function mount(container, params) {
         if (modalOpen) closeModal();
         else leaveRoute();
         // Иначе бы ниже по всплытию всё равно отработал общий
-        // обработчик Escape из utils.js — не сломает (закрыть уже
+        // обработчик Escape из utils.js – не сломает (закрыть уже
         // закрытую модалку второй раз безопасно), но незачем.
         e.stopPropagation();
         return;
@@ -435,7 +435,7 @@ async function uploadTitleCoverFile() {
   const fileInput = document.getElementById("nt-cover-upload");
   const status = document.getElementById("nt-cover-upload-status");
   if (!fileInput.files.length) {
-    status.textContent = i18n("Выбери файл");
+    status.textContent = i18n("Выберите файл");
     status.style.color = "var(--red-hi)";
     return;
   }
@@ -505,7 +505,7 @@ async function saveTitleEdit() {
   const folder = document.getElementById("nt-folder").value.trim();
   const cover = document.getElementById("nt-cover").value.trim();
   if (!name || !folder) {
-    alert("Заполни название и папку");
+    alert("Заполните название и папку");
     return;
   }
 
@@ -533,7 +533,7 @@ async function addTitle() {
   const folder = document.getElementById("nt-folder").value.trim();
   const cover = document.getElementById("nt-cover").value.trim();
   if (!name || !id || !folder) {
-    alert("Заполни название, ID и папку");
+    alert("Заполните название, ID и папку");
     return;
   }
   if (data.find((t) => t.id === id)) {
@@ -592,7 +592,7 @@ function defaultTiers() {
 function renderEditor() {
   const box = document.getElementById("editor");
   if (!activeId) {
-    box.innerHTML = `<div class="editor-empty">${i18n("Выбери тайтл слева или создай новый")}</div>`;
+    box.innerHTML = `<div class="editor-empty">${i18n("Выберите тайтл слева или создайте новый")}</div>`;
     return;
   }
 
@@ -704,7 +704,7 @@ function addTier() {
   const name = document.getElementById("new-tier-name").value.trim();
   const color = document.getElementById("new-tier-color").value;
   if (!name) {
-    alert("Введи название тира");
+    alert("Введите название тира");
     return;
   }
   const title = data.find((t) => t.id === activeId);
@@ -784,7 +784,7 @@ async function loadGallery(folder, title) {
   const gridEl = document.getElementById("gallery-grid");
 
   if (!folder) {
-    statusEl.textContent = i18n("Выбери папку выше.");
+    statusEl.textContent = i18n("Выберите папку выше.");
     gridEl.innerHTML = "";
     return;
   }
@@ -809,7 +809,7 @@ async function loadGallery(folder, title) {
   const files = galleryCache[folder];
 
   if (!files.length) {
-    statusEl.textContent = `Картинки не найдены в папке chars/${folder}. Введи URL вручную.`;
+    statusEl.textContent = `Картинки не найдены в папке chars/${folder}. Введите URL вручную.`;
     document.getElementById("manual-section").classList.add("visible");
     return;
   }
@@ -818,7 +818,7 @@ async function loadGallery(folder, title) {
     ? new Set(title.tierlists.flatMap((l) => l.tiers.flatMap((t) => t.chars.map((c) => c.name))))
     : new Set();
 
-  statusEl.textContent = `${files.length} персонажей в папке chars/${folder}. Кликни на нужного.`;
+  statusEl.textContent = `${files.length} персонажей в папке chars/${folder}. Кликните на нужного.`;
 
   gridEl.innerHTML = files
     .map((f) => {
@@ -857,7 +857,7 @@ async function openModal(titleId, listId, ti) {
 
   if (!folders.length) {
     sel.innerHTML = `<option value="">${i18n("Папки не найдены")}</option>`;
-    document.getElementById("gallery-status").textContent = i18n("Папки не найдены в chars/. Введи URL вручную.");
+    document.getElementById("gallery-status").textContent = i18n("Папки не найдены в chars/. Введите URL вручную.");
     document.getElementById("manual-section").classList.add("visible");
     return;
   }
@@ -933,12 +933,12 @@ async function uploadCharImage() {
   const status = document.getElementById("upload-status");
 
   if (!folder) {
-    status.textContent = i18n("Сначала выбери папку выше");
+    status.textContent = i18n("Сначала выберите папку выше");
     status.style.color = "var(--red-hi)";
     return;
   }
   if (!fileInput.files.length) {
-    status.textContent = i18n("Выбери файл");
+    status.textContent = i18n("Выберите файл");
     status.style.color = "var(--red-hi)";
     return;
   }
@@ -1051,7 +1051,7 @@ async function confirmAddChar() {
   const name = document.getElementById("m-name").value.trim();
   const manualImg = document.getElementById("m-img").value.trim();
   if (!name) {
-    alert("Введи имя персонажа");
+    alert("Введите имя персонажа");
     return;
   }
   if (!pendingTier) return;
@@ -1082,7 +1082,7 @@ async function confirmAddChar() {
   renderEditor();
 }
 
-// ══ DRAG & DROP — с позиционным индикатором ════
+// ══ DRAG & DROP – с позиционным индикатором ════
 function bindDragDrop() {
   document.querySelectorAll(".char-card").forEach((card) => {
     card.addEventListener("dragstart", () => {
@@ -1164,7 +1164,7 @@ async function saveAll() {
       status.textContent = i18n("Сохранено.");
       // tlState.collections[COLLECTION] (js/tierlist.js) держит уже
       // загруженный набор персонажей/игр этой коллекции с флагом
-      // loaded: true — без сброса «Тир-лист» под этим маршрутом ещё
+      // loaded: true – без сброса «Тир-лист» под этим маршрутом ещё
       // показывал бы старую версию, пока по нему не щёлкнуть заново.
       delete tlState.collections[COLLECTION];
       refreshOpenReviewsTab();

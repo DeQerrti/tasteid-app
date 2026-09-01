@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════
-//  CARDS — переиспользуемые функции карточек
+//  CARDS – переиспользуемые функции карточек
 //  Зависит от: config.js
-//  TYPE_LABELS перенесён в config.js — здесь не объявлять
+//  TYPE_LABELS перенесён в config.js – здесь не объявлять
 // ══════════════════════════════════════════════
 
 // ── Хелперы ────────────────────────────────────
@@ -12,7 +12,7 @@ function normTitle(s) {
 // Обработка не открывшихся обложек живёт в js/utils.js: там один
 // делегированный слушатель на весь документ, а шаблоны просто ставят
 // data-fallback / data-placeholder через imgFallbackAttrs().
-// Здесь — только удобная обёртка под вертикальный постер.
+// Здесь – только удобная обёртка под вертикальный постер.
 function coverFallbackAttrs(cover, coverBackup) {
   return imgFallbackAttrs(cover, coverBackup, PH_TALL);
 }
@@ -36,7 +36,7 @@ function gradeInlineHtml(info) {
   return `<span class="card-grade-inline" style="color:${info.grade.color}" data-tip="${esc(info.grade.desc)}">${esc(info.grade.name)}</span>`;
 }
 
-// Локаль — по языку интерфейса, а не жёстко "ru-RU": с английским
+// Локаль – по языку интерфейса, а не жёстко "ru-RU": с английским
 // интерфейсом даты оставались русскими («12 мар.»), то есть половина
 // карточки переводилась, а половина нет.
 function fmtDateStr(str, short = false) {
@@ -64,11 +64,11 @@ function fmtDateStr(str, short = false) {
 function tagHtml(tag) {
   const info = TAGS_MAP[tag];
   const customColor = info && CAT_COLORS[info.cat];
-  // TAG_CAT_CLASS знает только про встроенные категории — своя категория
+  // TAG_CAT_CLASS знает только про встроенные категории – своя категория
   // без выбранного цвета (осознанно оставленная «нейтральной», см.
   // tm-cat-colornote в add.html) в нём не найдётся, и cls раньше уходил
   // в undefined: класс "rtag undefined" не даёт вообще никакой оболочки.
-  // Тот же rtag-special, что у встроенных без цвета, — то самое
+  // Тот же rtag-special, что у встроенных без цвета, – то самое
   // «нейтральные» из подсказки, а не поломка.
   const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
   const style = customColor ? ` style="--tag-color:${customColor}"` : "";
@@ -78,18 +78,18 @@ function tagHtml(tag) {
 
 // Карточка из reviews.json (главная, архив)
 function manualCard(r, index) {
-  // Оценка — из собственного r.grade, а не через findReviewForTitle():
+  // Оценка – из собственного r.grade, а не через findReviewForTitle():
   // та ищет по названию+типу заново по всему кэшу и предназначена для
   // карточек избранного (favorites.js), у которых своей оценки вообще
-  // нет. Здесь r — уже сам отзыв; при поиске по названию два разных
+  // нет. Здесь r – уже сам отзыв; при поиске по названию два разных
   // отзыва с одинаковым названием (например, обзор на 1-2 и отдельно на
-  // 3 сезон одного тайтла — намеренно разрешённый дубль, см. reviews.js)
+  // 3 сезон одного тайтла – намеренно разрешённый дубль, см. reviews.js)
   // находили один и тот же первый попавшийся отзыв и показывали чужую
   // оценку на обеих карточках.
   const shelf    = gradeToShelf(r.grade);
   const grade    = GRADES[shelf] || null;
   const info     = grade ? { grade, score: gradeScore(shelf) } : null;
-  const tagLabel = TYPE_LABELS[r.type] || r.type || "—";
+  const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
 
   let watchBadge = "";
   if (r.status === "current" && r.date_start) {

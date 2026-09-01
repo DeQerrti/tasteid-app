@@ -1,25 +1,25 @@
 // ══════════════════════════════════════════════
-//  TIERLIST — вкладка Тир-лист
-//  Режим "Тайтлы" — из reviews.json по оценкам
-//  Режим "Персонажи" — из characters-tier.json
+//  TIERLIST – вкладка Тир-лист
+//  Режим "Тайтлы" – из reviews.json по оценкам
+//  Режим "Персонажи" – из characters-tier.json
 //  Зависит от: config.js, api.js, cards.js
 // ══════════════════════════════════════════════
 
 // Здесь раньше лежал жёсткий список типов. Из-за него в фильтрах
 // висели «Ранобэ» и «Маньхуа», даже когда с такой оценкой ничего не
-// было, — кнопка открывала заведомо пустой тир-лист. Теперь типы
+// было, – кнопка открывала заведомо пустой тир-лист. Теперь типы
 // берутся из самих данных, как это давно сделано на вкладке «Отзывы»,
 // а здесь остаётся только желаемый порядок: знакомые типы идут в
 // привычной последовательности, новые (в том числе добавленные через
-// настройки) — следом, по алфавиту.
-// Из config.js (MEDIA_TYPES) — единственного места, где перечислены
+// настройки) – следом, по алфавиту.
+// Из config.js (MEDIA_TYPES) – единственного места, где перечислены
 // встроенные типы.
 const TL_TYPE_ORDER = MEDIA_TYPES.map((t) => t.key);
 
 function tlInferType(r) { return r.type || "anime"; }
-function tlTypeLabel(type) { return TYPE_LABELS[type] || type || "—"; }
+function tlTypeLabel(type) { return TYPE_LABELS[type] || type || "–"; }
 
-// Высота постеров персонажей — сохраняется между переключениями
+// Высота постеров персонажей – сохраняется между переключениями
 let tlCharHeight = parseInt(localStorage.getItem("tl-char-height") || "200");
 
 const tlState = {
@@ -32,12 +32,12 @@ const tlState = {
   collections: {}, // { [collectionId]: { games: [...], loaded: bool } }
 };
 
-// Список коллекций (кроме "Тайтлы") — по умолчанию только встроенная
+// Список коллекций (кроме "Тайтлы") – по умолчанию только встроенная
 // "Персонажи", остальное настраивается в /settings-edit.
 function activeTierCollections() {
   const configured = window.SITE_TIER_COLLECTIONS;
   // Именно Array.isArray, а не проверка длины: пустой список означает,
-  // что все коллекции удалили, и подставлять взамен встроенную нельзя —
+  // что все коллекции удалили, и подставлять взамен встроенную нельзя –
   // она бы возвращалась сама после каждого удаления.
   return Array.isArray(configured) ? configured : [{ id: "characters", label: i18n("Персонажи") }];
 }
@@ -53,7 +53,7 @@ function collectionFileFor(id) {
   return id === "characters" ? "characters-tier.json" : `tier-${id}.json`;
 }
 
-// ── Модалка: новый тир-лист (коллекция) — только для админа ────
+// ── Модалка: новый тир-лист (коллекция) – только для админа ────
 function tlSlugify(name) {
   return name.toLowerCase()
     .replace(/[^a-zа-я0-9]+/gi, "-")
@@ -78,7 +78,7 @@ function closeCollectionModalOnOverlay(e) {
 async function submitNewCollection() {
   const name = document.getElementById("cm-collection-name").value.trim();
   const statusEl = document.getElementById("collection-modal-status");
-  if (!name) { statusEl.textContent = i18n("Введи название"); statusEl.className = "status-msg err"; return; }
+  if (!name) { statusEl.textContent = i18n("Введите название"); statusEl.className = "status-msg err"; return; }
 
   const newCollection = { id: tlSlugify(name), label: name };
   const btn = document.getElementById("cm-collection-save");
@@ -120,7 +120,7 @@ async function loadTierlist() {
     // Раньше режим "Тайтлы" держался за tlState.loaded и не перечитывал
     // reviews.json при повторном заходе на вкладку. loadTierlist()
     // вызывается только при переключении на саму вкладку (switchTab в
-    // index.html) — не при смене режима внутри неё (та идёт через
+    // index.html) – не при смене режима внутри неё (та идёт через
     // tlBindAll → tlRender, без повторного fetch), так что перечитывать
     // тут каждый раз безопасно и дёшево (локальный файл).
     box.innerHTML = `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем…")}</div>`;
@@ -165,10 +165,10 @@ function tlRender() {
 }
 
 function tlModeToggleHtml() {
-  // c.label || c.id — как в tlCharsHtml и в обработчике переключения
+  // c.label || c.id – как в tlCharsHtml и в обработчике переключения
   // чуть ниже. Коллекция без подписи (запись, пришедшая из чужой
   // резервной копии или поправленная руками в site-settings.json)
-  // давала пустую кнопку: нажимать вроде и есть на что, а что это —
+  // давала пустую кнопку: нажимать вроде и есть на что, а что это –
   // непонятно. Id хотя бы читается.
   const collectionBtns = visibleTierCollections().map(c =>
     `<button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label || c.id)}</button>`
@@ -187,7 +187,7 @@ function tlModeToggleHtml() {
 }
 
 // Если режим "Тайтлы" скрыт в настройках, а текущий/дефолтный режим
-// как раз он — переключаемся на первую доступную коллекцию, иначе
+// как раз он – переключаемся на первую доступную коллекцию, иначе
 // вкладка откроется на кнопке, которой нет.
 function tlEnsureVisibleMode() {
   if (isTierModeVisible(tlState.mode)) return;
@@ -235,7 +235,7 @@ function tlTitlesHtml() {
       <div class="tl-cards">`;
 
     if (!items.length) {
-      html += `<div class="tl-empty">—</div>`;
+      html += `<div class="tl-empty">–</div>`;
     } else {
       for (let i = 0; i < items.length; i++) {
         const { review: r, poster, posterBackup } = items[i];
@@ -276,7 +276,7 @@ function tlPresentTypes() {
 function tlFiltersHtml() {
   const types = tlPresentTypes();
 
-  // Один-единственный тип — выбирать не из чего, панель только мешает
+  // Один-единственный тип – выбирать не из чего, панель только мешает
   if (types.length < 2) return "";
 
   const all = siteLabel("filters", "all", i18n("Всё"));
@@ -316,8 +316,8 @@ function tlCharsHtml(collectionId) {
     return `<div class="state-box"><div class="spinner"></div>Загружаем «${esc(collectionLabel)}»…</div>`;
   }
   if (!state.games.length) {
-    // Кнопка редактора есть не всегда, а тире стояло всегда — у гостя
-    // на пустой коллекции висело «Нет данных —» с висячим прочерком.
+    // Кнопка редактора есть не всегда, а тире стояло всегда – у гостя
+    // на пустой коллекции висело «Нет данных –» с висячим прочерком.
     const adminBtn = isAdmin()
       ? `<div style="margin-top:1.5rem"><a href="#/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a></div>`
       : "";
@@ -326,7 +326,7 @@ function tlCharsHtml(collectionId) {
 
   const games = state.games;
   const game = games.find(g => g.id === tlState.gameId) || games[0];
-  // ?? [] — файл коллекции открытый и правится руками (см. README), а
+  // ?? [] – файл коллекции открытый и правится руками (см. README), а
   // ещё приезжает из чужих резервных копий: запись без tierlists роняла
   // всю вкладку, вместо того чтобы просто показать пустую коллекцию.
   const lists = Array.isArray(game.tierlists) ? game.tierlists : [];
@@ -344,7 +344,7 @@ function tlCharsHtml(collectionId) {
       </div>`
     : "";
 
-  // list может не быть вовсе — у записи без tierlists (см. выше).
+  // list может не быть вовсе – у записи без tierlists (см. выше).
   const tiers = Array.isArray(list?.tiers) ? list.tiers : [];
   let tiersHtml = `<div class="tl-rows" id="tl-chars-rows">`;
   for (let ti = 0; ti < tiers.length; ti++) {
@@ -360,7 +360,7 @@ function tlCharsHtml(collectionId) {
       <div class="tl-cards">`;
 
     if (!chars.length) {
-      tiersHtml += `<div class="tl-empty">—</div>`;
+      tiersHtml += `<div class="tl-empty">–</div>`;
     } else {
       for (let i = 0; i < chars.length; i++) {
         const ch = chars[i];
@@ -387,7 +387,7 @@ function tlCharsHtml(collectionId) {
 
   const exportBtn = `<button class="admin-add-btn" id="tl-export-btn" onclick="tlExport('tl-chars-rows', '${esc(game.title)}')">${i18n("Сохранить как картинку")}</button>`;
 
-  // Ползунок размера — теперь до 1000px
+  // Ползунок размера – теперь до 1000px
   const slider = `<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem">
     <span style="font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">${i18n("Размер")}</span>
     <input type="range" min="80" max="1000" value="${tlCharHeight}" step="10"
@@ -443,7 +443,7 @@ function tlBindAll() {
   document.querySelectorAll(".tl-filter[data-tl-type]").forEach(btn => {
     btn.addEventListener("click", () => {
       tlState.filter = btn.dataset.tlType;
-      tlState.yearFilter = "all"; // при смене типа список годов меняется — сбрасываем
+      tlState.yearFilter = "all"; // при смене типа список годов меняется – сбрасываем
       tlRender();
     });
   });
@@ -495,10 +495,10 @@ function tlBindTooltip() {
 
   // Тап отличаем от прокрутки не на старте, а на отпускании: если бы
   // preventDefault звучал уже на touchstart, палец не смог бы листать
-  // список, начав движение с обложки, — браузер отменял прокрутку для
+  // список, начав движение с обложки, – браузер отменял прокрутку для
   // всего касания сразу. Порог совпадает с touch-drag.js.
-  const TAP_SLIP = 12; // px: палец уехал — прокрутка, а не тап
-  const TAP_TIME = 260; // мс: дольше — долгое нажатие, не тап
+  const TAP_SLIP = 12; // px: палец уехал – прокрутка, а не тап
+  const TAP_TIME = 260; // мс: дольше – долгое нажатие, не тап
 
   document.querySelectorAll(".tl-poster, .tl-char-poster").forEach(card => {
     card.addEventListener("mouseenter", e => { tlShowTip(card, tip); tlMoveTip(e, tip); });
@@ -516,7 +516,7 @@ function tlBindTooltip() {
       if (!touchStart) return;
       const p = e.touches[0];
       if (Math.hypot(p.clientX - touchStart.x, p.clientY - touchStart.y) > TAP_SLIP) {
-        touchStart = null; // палец уехал — не тап, дальше это уже прокрутка
+        touchStart = null; // палец уехал – не тап, дальше это уже прокрутка
       }
     }, { passive: true });
 
@@ -625,7 +625,7 @@ async function tlExport(rowsId, label) {
     link.href = canvas.toDataURL("image/png");
     // Ссылку обязательно вставить в документ, а не кликать по висящей в
     // воздухе. На телефоне <a download> не скачивает ничего, поэтому
-    // нажатие перехватывает mobile/src/main.js — одним слушателем на
+    // нажатие перехватывает mobile/src/main.js – одним слушателем на
     // document. До document событие доходит только от элемента, который
     // в документе и находится: клик по неприсоединённой ссылке всплывать
     // некуда, перехват не срабатывал, и «Сохранить как картинку» на

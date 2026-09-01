@@ -1,8 +1,8 @@
 // ══════════════════════════════════════════════
-//  FAVORITES — вкладка Любимое
+//  FAVORITES – вкладка Любимое
 //  Зависит от: config.js, api.js, cards.js
-//  Тайтлы — из reviews.json по флагу favorite: true
-//  Персонажи и персоны — из favorites.json
+//  Тайтлы – из reviews.json по флагу favorite: true
+//  Персонажи и персоны – из favorites.json
 // ══════════════════════════════════════════════
 
 async function loadFavorites() {
@@ -81,7 +81,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
   </section>`;
 
   // ── Свои разделы (сверх Тайтлов/Персонажей/Персон) ─
-  // Данные — те же записи favorites.json, отфильтрованные по своему
+  // Данные – те же записи favorites.json, отфильтрованные по своему
   // type; список самих разделов заводится в /settings-edit.
   (window.SITE_FAV_COLLECTIONS || []).forEach(c => {
     if (!isFavSectionVisible(c.id)) return;
@@ -105,7 +105,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
 // Карточка тайтла (из reviews.json с favorite: true)
 function favTitleCard(r, index) {
   const info     = findReviewForTitle(r.title, r.type);
-  const tagLabel = TYPE_LABELS[r.type] || r.type || "—";
+  const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
   const tagClass = ["anime","manga","novel","movie","show"].includes(r.type)
     ? `tag-${r.type}` : "tag-manual";
 
@@ -133,7 +133,7 @@ function favTitleCard(r, index) {
 }
 
 // Карточка персонажа или персоны (из favorites.json).
-// Лейблы ролей — из общего SUBTYPE_LABELS (js/config.js).
+// Лейблы ролей – из общего SUBTYPE_LABELS (js/config.js).
 function favPersonCard(r, index) {
   const img = r.image || r.image_backup || PH_SQ;
 

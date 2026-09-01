@@ -1,44 +1,44 @@
 // ══════════════════════════════════════════════
-//  РЕДАКТОР ОТЗЫВА — добавить/править
+//  РЕДАКТОР ОТЗЫВА – добавить/править
 //  (см. план перехода на SPA, фаза 3.3)
 //
 //  Как и #/chars-edit (js/routes/chars-edit.js) и #/favorites-edit
 //  (js/routes/favorites-edit.js), этот вид НЕ завёрнут в IIFE: разметка
-//  редактора отзыва — рекордсмен по инлайновым onclick="funcName(...)"
+//  редактора отзыва – рекордсмен по инлайновым onclick="funcName(...)"
 //  (обложка, два источника, три выпадающих списка с инлайн-добавлением,
-//  сворачиваемые разделы, модалка тегов и категорий — под сотню вызовов),
+//  сворачиваемые разделы, модалка тегов и категорий – под сотню вызовов),
 //  и переписывать каждый на вызов через объект-неймспейс ради самой
-//  процедуры переноса — риск опечатки на ровном месте. Что верхнеуровневые
+//  процедуры переноса – риск опечатки на ровном месте. Что верхнеуровневые
 //  имена не сталкиваются с остальным index.html, проверено
 //  scripts/check-duplicate-functions.js (фаза 0 как раз для этого и
 //  разводила имена по страницам).
 //
 //  ── Три способа открытия ──
-//  Этот файл — единственный источник логики редактора, и подключается
+//  Этот файл – единственный источник логики редактора, и подключается
 //  в трёх разных документах:
 //
-//    #/add и #/add?edit=ID — обычный маршрут SPA-оболочки (index.html),
+//    #/add и #/add?edit=ID – обычный маршрут SPA-оболочки (index.html),
 //    через registerRoute() внизу файла;
 //
-//    app/add.html — тот же редактор отдельным документом. Он остался
+//    app/add.html – тот же редактор отдельным документом. Он остался
 //    отдельным ради одного случая: iframe внутри модалки «Добавить
 //    себе» на чужом паспорте (openAddFromPassportModal() в
 //    js/passports.js грузит /add.html?fromPassport=1&title=…). Кроме
 //    этого случая add.html можно было бы просто удалить в пользу
-//    #/add — но раз документ всё равно должен существовать для iframe,
+//    #/add – но раз документ всё равно должен существовать для iframe,
 //    он же остаётся точкой входа и для прямого открытия ссылки;
 //
-//    IN_SPA_SHELL (ниже) — единственное, что отличает эти два случая
+//    IN_SPA_SHELL (ниже) – единственное, что отличает эти два случая
 //    в самом коде: true внутри index.html (там уже есть registerRoute
 //    и leaveRoute из router.js), false в одиночном add.html. closeAddView()
-//    и registerRoute() внизу — единственные места, которые на него смотрят.
+//    и registerRoute() внизу – единственные места, которые на него смотрят.
 //
 //  ── Несохранённые изменения и модалка паспорта ──
 //  Родительское окно модалки читает флаг «есть несохранённое» через
-//  frame.contentWindow.addDirty — а это свойство на window кладёт
+//  frame.contentWindow.addDirty – а это свойство на window кладёт
 //  только var, не let/const (и eslint.config.js запрещает var в
 //  app/js/**). Поэтому наружу торчит не сам addDirty (обычный let), а
-//  setAddDirty() — единственное место, которое дополнительно пишет то
+//  setAddDirty() – единственное место, которое дополнительно пишет то
 //  же значение в window.addDirty, и только когда мы правда открыты как
 //  модалка паспорта (fromPassportModal). В остальных двух случаях читать
 //  window.addDirty некому, и она не заводится вовсе.
@@ -55,13 +55,13 @@
 //  выполнялась прямо в теле скрипта, а обновления приходили событием
 //  tags-map-updated. В общем документе это событие отгремело один раз,
 //  задолго до монтирования маршрута (config.js шлёт его в ответ на
-//  site-labels-ready из theme.js — тоже одноразовое), поэтому здесь
+//  site-labels-ready из theme.js – тоже одноразовое), поэтому здесь
 //  всё то же самое вызывается явно в mount(), а подписки остаются на
 //  случай, если справочники поменяются, пока маршрут открыт.
 //
 //  Кнопка «История» (js/backup.js) сюда, как и на #/chars-edit, не
 //  подключена намеренно: это самозапускающийся IIFE, который вешает
-//  плавающую кнопку на документ раз и навсегда — в общей оболочке она
+//  плавающую кнопку на документ раз и навсегда – в общей оболочке она
 //  осталась бы висеть и на главной. Путь к истории версий никуда не
 //  делся: Настройки → История версий (#/backup-history).
 // ══════════════════════════════════════════════
@@ -82,11 +82,11 @@ let addPrevTitle = null;
 let addLeaveTimer = null;
 
 // true внутри index.html (router.js уже подключён и определил
-// registerRoute/leaveRoute), false в одиночном app/add.html — см.
+// registerRoute/leaveRoute), false в одиночном app/add.html – см.
 // шапку файла и closeAddView() ниже.
 const IN_SPA_SHELL = typeof registerRoute === "function";
 
-// Открыты ли мы как модалка «Добавить себе» из чужого паспорта —
+// Открыты ли мы как модалка «Добавить себе» из чужого паспорта –
 // выставляется в initAddPage() и определяет, куда ведёт «уйти»/«сохранить»
 // (см. closeAddView() и saveReview()) и нужно ли зеркалить addDirty на
 // window (см. setAddDirty()).
@@ -100,7 +100,7 @@ function addOn(target, type, handler, opts) {
 async function mount(container, params) {
   addPrevTitle = document.title;
 
-  // Состояние вида — с нуля при каждом монтировании: верхнеуровневые
+  // Состояние вида – с нуля при каждом монтировании: верхнеуровневые
   // let'ы живут столько же, сколько документ, а не столько, сколько
   // открыт маршрут (см. шапку файла).
   selectedGrade = null;
@@ -121,10 +121,10 @@ async function mount(container, params) {
   statusRenamePending = null;
   fromPassportModal = false;
   setAddDirty(false);
-  // Та же leaveAddView(), что ниже висит на клике по кнопке "назад" —
+  // Та же leaveAddView(), что ниже висит на клике по кнопке "назад" –
   // но теперь ещё и на аппаратной/жестовой кнопке "назад" на телефоне
   // (см. installBackButton() в mobile/src/main.js): раньше она обходила
-  // эту проверку, дёргая историю напрямую. setLeaveGuard — из router.js,
+  // эту проверку, дёргая историю напрямую. setLeaveGuard – из router.js,
   // в одиночном add.html его нет и спрашивать нечего: там кнопка «назад»
   // одна, и она уже проверяется в mount() ниже через leaveAddView().
   if (IN_SPA_SHELL) setLeaveGuard(leaveAddView);
@@ -139,7 +139,7 @@ async function mount(container, params) {
 
       <!-- Баннер редактирования -->
       <div class="edit-banner" id="edit-banner" style="display:none">
-        <div>Режим редактирования — <span class="edit-banner-title" id="edit-title-hint"></span></div>
+        <div>Режим редактирования – <span class="edit-banner-title" id="edit-title-hint"></span></div>
         <button class="btn-new" onclick="resetToNew()">${i18n("Новый отзыв")}</button>
       </div>
 
@@ -189,7 +189,7 @@ async function mount(container, params) {
         </div>
       </div>
 
-      <!-- Обложка — свёрнута за кнопкой, как и остальные разделы.
+      <!-- Обложка – свёрнута за кнопкой, как и остальные разделы.
            Отдельного заголовка нет: кнопка «Добавить обложку» и так
            называет раздел, а лишняя строка только удлиняла форму. -->
       <div class="src-field" id="cover-field">
@@ -204,7 +204,7 @@ async function mount(container, params) {
               </div>
               <button type="button" class="icon-btn" title="Убрать обложку" onclick="closeCoverPanel()">✕</button>
             </div>
-            <div class="hint">${i18n("Или загрузи файл — сожмётся и сконвертируется в WebP автоматически.")}</div>
+            <div class="hint">${i18n("Или загрузите файл – сожмётся и сконвертируется в WebP автоматически.")}</div>
             <div class="cover-upload-row">
               <label class="btn btn-ghost file-btn">
                 <input type="file" id="f-cover-upload" accept="image/*" onchange="updateFileBtnName(this)">
@@ -219,7 +219,7 @@ async function mount(container, params) {
         <input type="hidden" id="f-cover-backup">
       </div>
 
-      <!-- Даты — состав полей зависит от статуса (см. updateDateFields) -->
+      <!-- Даты – состав полей зависит от статуса (см. updateDateFields) -->
       <div class="sec collapsed" id="sec-dates">
         <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('dates')">${i18n("Добавить дату")}</button>
         <div class="sec-body">
@@ -250,7 +250,7 @@ async function mount(container, params) {
             <input type="text" id="f-url" class="src-url-input" placeholder="https://" oninput="onSourceUrlChange(1)">
             <button type="button" class="icon-btn" title="Убрать источник" onclick="closeSourcePanel(1)">✕</button>
           </div>
-          <div class="hint" style="margin:.6rem 0 0;">${i18n("Ссылка на публикацию отзыва на стороне — например, на Teletype.")}</div>
+          <div class="hint" style="margin:.6rem 0 0;">${i18n("Ссылка на публикацию отзыва на стороне – например, на Teletype.")}</div>
           <button type="button" class="btn-new" id="add-second-source" style="margin-top:.6rem;" onclick="showSecondSource()">${i18n("Добавить ещё один источник")}</button>
         </div>
         <input type="hidden" id="f-source" value="teletype">
@@ -272,7 +272,7 @@ async function mount(container, params) {
         <input type="hidden" id="f-source2" value="">
       </div>
 
-      <!-- Текст отзыва: превью и полный текст — один раздел. Это две части
+      <!-- Текст отзыва: превью и полный текст – один раздел. Это две части
            одного и того же, разносить их по двум кнопкам было незачем. -->
       <div class="sec collapsed" id="sec-text">
         <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('text')">${i18n("Добавить текст отзыва")}</button>
@@ -282,17 +282,17 @@ async function mount(container, params) {
             <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('text', false)">✕</button>
           </div>
           <div class="field">
-            <label>${i18n("Превью — показывается на карточке")}</label>
-            <textarea id="f-preview" placeholder="${i18n("Пара предложений — что это и о чём…")}"></textarea>
+            <label>${i18n("Превью – показывается на карточке")}</label>
+            <textarea id="f-preview" placeholder="${i18n("Пара предложений – что это и о чём…")}"></textarea>
           </div>
           <div class="field" style="margin-bottom:0;">
-            <label>${i18n("Полный текст — необязательно")}</label>
-            <textarea id="f-review-full" placeholder="${i18n("Развёрнутый отзыв — откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник.")}" style="min-height:220px;"></textarea>
+            <label>${i18n("Полный текст – необязательно")}</label>
+            <textarea id="f-review-full" placeholder="${i18n("Развёрнутый отзыв – откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник.")}" style="min-height:220px;"></textarea>
           </div>
         </div>
       </div>
 
-      <!-- Оценка и теги — тоже один раздел: и то и другое про «как оценил» -->
+      <!-- Оценка и теги – тоже один раздел: и то и другое про «как оценил» -->
       <div class="sec collapsed" id="sec-gradetags">
         <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('gradetags')">${i18n("Добавить оценку и теги")}</button>
         <div class="sec-body">
@@ -312,7 +312,7 @@ async function mount(container, params) {
 
           <div class="field" id="card-tags-field" style="margin-top:1.25rem;" hidden>
             <label>${i18n("Какие теги показывать на карточке")}</label>
-            <p class="card-tags-hint">${i18n("На карточке помещается немного — выбери, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.")}</p>
+            <p class="card-tags-hint">${i18n("На карточке помещается немного – выберите, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.")}</p>
             <div class="card-tag-row card-tags-none-row" id="card-tags-none-row" onclick="toggleNoTagsOnCard()">
               <span class="tm-row-check"></span>
               <span class="card-tag-row-name">${i18n("Не показывать теги на карточке")}</span>
@@ -328,7 +328,7 @@ async function mount(container, params) {
       <button class="btn-save" id="btn-save" onclick="saveReview()">${i18n("Сохранить отзыв")}</button>
       <div class="status-msg" id="status"></div>
 
-      <!-- Удаление: только в режиме правки. Ссылкой, а не кнопкой, и внизу —
+      <!-- Удаление: только в режиме правки. Ссылкой, а не кнопкой, и внизу –
            чтобы не оказаться под пальцем рядом с «Сохранить». -->
       <div class="danger-zone" id="danger-zone" hidden>
         <button type="button" class="tm-link tm-danger" onclick="deleteReview()">${i18n("Удалить этот отзыв")}</button>
@@ -337,7 +337,7 @@ async function mount(container, params) {
 
     </main>
 
-    <!-- Модалка: новый тег / новая категория. Класс add-view на ней самой —
+    <!-- Модалка: новый тег / новая категория. Класс add-view на ней самой –
          чтобы правила вида «.add-view input» (см. index.html) доставали и до
          полей внутри модалки: на исходной странице это были голые
          input/textarea/select на весь документ. -->
@@ -394,7 +394,7 @@ async function mount(container, params) {
             <div class="tm-color-row">
               <input type="color" id="tm-cat-color" value="#8b1a1a" oninput="markCatColorSet()">
               <button type="button" class="tm-link" id="tm-cat-nocolor" onclick="clearCatColor()" hidden>${i18n("Без цвета")}</button>
-              <span class="tm-note" id="tm-cat-colornote" hidden>${i18n("Цвет не задан — теги будут нейтральными")}</span>
+              <span class="tm-note" id="tm-cat-colornote" hidden>${i18n("Цвет не задан – теги будут нейтральными")}</span>
             </div>
           </div>
           <div class="tm-actions">
@@ -405,7 +405,7 @@ async function mount(container, params) {
 
           <!-- Показывается вместо тихой ошибки, когда в категории ещё есть
                теги: раньше deleteCategory() просто отказывала и просила
-               перенести теги руками — здесь и перенос, и удаление вместе с
+               перенести теги руками – здесь и перенос, и удаление вместе с
                категорией доступны в один клик. -->
           <div class="tm-cat-delete-choice hidden" id="tm-cat-delete-choice">
             <p class="tm-note" id="tm-cat-delete-note"></p>
@@ -428,18 +428,18 @@ async function mount(container, params) {
       </div>
     </div>`;
 
-  document.title = `TasteID — ${i18n("Добавить отзыв")}`;
+  document.title = `TasteID – ${i18n("Добавить отзыв")}`;
 
   // ── Уход ──
   // Ссылка стала обычной кнопкой (href="#") везде, даже в одиночном
-  // add.html: реальная навигация не даёт спросить подтверждение —
+  // add.html: реальная навигация не даёт спросить подтверждение –
   // спрашиваем сами, тем же confirmDialog, что и everywhere ещё.
   addOn(document.getElementById("add-back"), "click", (e) => {
     e.preventDefault();
     leaveAddView();
   });
 
-  // Клик по строке в списках модалки — делегирован на контейнер: имена
+  // Клик по строке в списках модалки – делегирован на контейнер: имена
   // тегов приходят от пользователя и в inline-onclick их пришлось бы
   // экранировать дважды.
   document.getElementById("tm-tag-list").addEventListener("click", (e) => {
@@ -492,16 +492,16 @@ async function mount(container, params) {
   // ── Escape ──
   // Раньше здесь работали два обработчика: общий из js/utils.js (он
   // кликает по открытой .modal-overlay и зовёт closeXDropdown()) и
-  // enableEscapeToLeave(".src-type-dropdown:not(.hidden)") — уйти на "/",
+  // enableEscapeToLeave(".src-type-dropdown:not(.hidden)") – уйти на "/",
   // если ничего не открыто. Оба в фазе всплытия, и общий шёл первым:
   // он успевал закрыть модалку ДО того, как второй проверял её
   // состояние, и одно нажатие Escape закрывало модалку тегов и тут же
   // уводило со страницы. Здесь то же, что уже сделано в
   // js/routes/chars-edit.js: свой обработчик в фазе ПЕРЕХВАТА, который
-  // видит состояние первым, и stopPropagation — до общего не доходит.
+  // видит состояние первым, и stopPropagation – до общего не доходит.
   // Инлайн-переименование типа/статуса (startRenameTypePicker) само
   // гасит Escape, но его onkeydown висит на самом поле, то есть уже
-  // после перехвата на document — поэтому проверяем поле явно и
+  // после перехвата на document – поэтому проверяем поле явно и
   // отдаём событие ему.
   addOn(
     document,
@@ -529,10 +529,10 @@ async function mount(container, params) {
   );
 
   // ── Несохранённые изменения ──
-  // Форма отзыва — самое частое место, где реально теряют написанное:
+  // Форма отзыва – самое частое место, где реально теряют написанное:
   // набрал текст, отвлёкся, закрыл окно или ушёл по ссылке. Большинство
-  // полей — обычные input/textarea/select, их ловит один делегированный
-  // слушатель на main. Оценка, теги и «Любимое» — исключение: это
+  // полей – обычные input/textarea/select, их ловит один делегированный
+  // слушатель на main. Оценка, теги и «Любимое» – исключение: это
   // кнопки, меняющие состояние в JS напрямую (selectedGrade,
   // selectedTags, чекбокс без события change), поэтому помечены
   // отдельно, прямо там, где это состояние меняется.
@@ -549,7 +549,7 @@ async function mount(container, params) {
     e.returnValue = "";
   });
 
-  // Первичная отрисовка — явно, а не по событию: см. шапку файла.
+  // Первичная отрисовка – явно, а не по событию: см. шапку файла.
   renderGradeInput();
   renderTagsGrid();
   resetTagForm();
@@ -568,7 +568,7 @@ function unmount() {
   clearTimeout(backupCoverTimer);
   clearTimeout(addLeaveTimer);
   document.title = addPrevTitle || document.title;
-  // Флаги открытых выпадающих списков — обязательно в исходное: общий
+  // Флаги открытых выпадающих списков – обязательно в исходное: общий
   // обработчик Escape из js/utils.js зовёт closeTypeDropdown() и его
   // соседей на ЛЮБОЙ странице приложения, раз уж они теперь объявлены в
   // общем документе. С поднятым флагом они полезли бы в разметку,
@@ -589,13 +589,13 @@ function unmount() {
   setAddDirty(false);
 }
 
-// Уйти — с тем же вопросом, что раньше задавала ссылка «TasteID» в
+// Уйти – с тем же вопросом, что раньше задавала ссылка «TasteID» в
 // шапке при несохранённых правках, независимо от того, как этот вид
 // открыт (см. closeAddView() ниже).
 async function leaveAddView() {
   if (addDirty) {
     const go = await confirmDialog(
-      i18n("Отзыв не сохранён — уйти и потерять правки?"),
+      i18n("Отзыв не сохранён – уйти и потерять правки?"),
       i18n("Уйти без сохранения"),
       i18n("Остаться")
     );
@@ -605,10 +605,10 @@ async function leaveAddView() {
   closeAddView();
 }
 
-// Три способа закрыть вид — по тому, как он был открыт (см. шапку файла):
+// Три способа закрыть вид – по тому, как он был открыт (см. шапку файла):
 // модалка паспорта закрывается у родителя, SPA-маршрут уходит через
 // роутер, а одиночный add.html без паспорта (прямая ссылка, мимо обоих
-// случаев) ведёт себя как обычная ссылка — реальной навигацией на "/".
+// случаев) ведёт себя как обычная ссылка – реальной навигацией на "/".
 function closeAddView() {
   if (fromPassportModal) {
     window.parent.closeAddFromPassportModal();
@@ -656,7 +656,7 @@ function hideSecondSource() {
 }
 
 // ── Сворачиваемые разделы ──────────────────────
-// Свёрнутый раздел — одна строка-кнопка вместо блока полей. Состояние
+// Свёрнутый раздел – одна строка-кнопка вместо блока полей. Состояние
 // хранится классом collapsed на обёртке, так что кнопка и содержимое
 // не могут разъехаться между собой.
 function toggleEditorSection(name, open) {
@@ -692,7 +692,7 @@ function updateDateFields() {
   const prevStart = document.getElementById("f-date-start")?.value || today;
   const prevEnd = document.getElementById("f-date-end")?.value || today;
 
-  // «Планирую» — дат ещё нет, прячем раздел целиком, чтобы кнопка
+  // «Планирую» – дат ещё нет, прячем раздел целиком, чтобы кнопка
   // «Добавить дату» не предлагала заполнить бессмысленное поле.
   if (status === "planning") {
     section.innerHTML = "";
@@ -703,7 +703,7 @@ function updateDateFields() {
 
   if (status === "completed") {
     section.innerHTML = `
-      <div class="hint">${i18n("Если смотрел один день — заполни только «Завершил» или укажи одинаковые даты, на карточке покажется одна дата.")}</div>
+      <div class="hint">${i18n("Если смотрел один день – заполните только «Завершил» или укажите одинаковые даты, на карточке покажется одна дата.")}</div>
       <div class="grid">
         <div class="field">
           <label>${i18n("Начал")} <span style="font-size:.6rem;opacity:.5">${i18n("(необязательно)")}</span></label>
@@ -717,7 +717,7 @@ function updateDateFields() {
     return;
   }
 
-  // current, onhold и любой свой статус — только дата начала.
+  // current, onhold и любой свой статус – только дата начала.
   section.innerHTML = `
     <div class="grid">
       <div class="field">
@@ -727,7 +727,7 @@ function updateDateFields() {
     </div>`;
 }
 
-// ── Оценки — вид зависит от шкалы, настроенной в настройках ──
+// ── Оценки – вид зависит от шкалы, настроенной в настройках ──
 // gradesGrid ищется на каждый вызов, а не один раз при загрузке файла:
 // разметка вида появляется только в mount() и умирает в unmount().
 function renderGradeInput() {
@@ -807,7 +807,7 @@ function renderGradeInput() {
   renderShelfPreview();
 }
 
-// ── Теги — из TAGS_MAP (config.js) ─────────────
+// ── Теги – из TAGS_MAP (config.js) ─────────────
 function renderTagsGrid() {
   const tagsGrid = document.getElementById("tags-grid");
   if (!tagsGrid) return;
@@ -836,13 +836,13 @@ function renderTagsGrid() {
 }
 
 // ── Какие из выбранных тегов показывать на карточке ──
-// Карточка — витрина на беглый взгляд, всех тегов там не поместится
+// Карточка – витрина на беглый взгляд, всех тегов там не поместится
 // (reviews.js, reviewCard: показывает первые CARD_TAGS_MAX). Модалка
-// показывает все выбранные теги отзыва — кликом отмечаешь до
-// CARD_TAGS_MAX «избранных». Ничего не отмечено — карточка сама берёт
+// показывает все выбранные теги отзыва – кликом отмечаешь до
+// CARD_TAGS_MAX «избранных». Ничего не отмечено – карточка сама берёт
 // первые по порядку (старое поведение, не нужно ничего решать вручную).
-// noTagsOnCard — отдельный режим поверх этого: теги на карточке не
-// нужны вовсе, список избранных при этом не трогаем и не теряем —
+// noTagsOnCard – отдельный режим поверх этого: теги на карточке не
+// нужны вовсе, список избранных при этом не трогаем и не теряем –
 // он просто не используется, пока переключатель включён.
 const CARD_TAGS_MAX = 4;
 let featuredCardTags = new Set();
@@ -862,7 +862,7 @@ function renderCardTagsList() {
   if (noTagsOnCard) {
     box.innerHTML = "";
     box.classList.add("disabled");
-    count.textContent = i18n("Теги не будут показаны на карточке — только внутри отзыва.");
+    count.textContent = i18n("Теги не будут показаны на карточке – только внутри отзыва.");
     return;
   }
   box.classList.remove("disabled");
@@ -881,7 +881,7 @@ function renderCardTagsList() {
     .join("");
   count.textContent = featuredCardTags.size
     ? i18n("Выбрано: {n}/{max}", { n: featuredCardTags.size, max: CARD_TAGS_MAX })
-    : i18n("Ничего не выбрано — покажутся первые теги по порядку.");
+    : i18n("Ничего не выбрано – покажутся первые теги по порядку.");
 }
 
 function toggleCardTagFeatured(tag) {
@@ -898,17 +898,17 @@ function toggleNoTagsOnCard() {
 
 // ── Модалка: теги и категории ──────────────────
 //    Раньше правка тегов жила в настройках; её убрали оттуда, а сюда
-//    добавить забыли — теперь и создание, и редактирование в одном месте:
+//    добавить забыли – теперь и создание, и редактирование в одном месте:
 //    форма сверху работает в двух режимах, режим задаётся выбором строки
 //    в списке под ней.
 //
 //    Встроенные теги и категории лежат в js/config.js и из объекта их не
-//    вычеркнуть, поэтому удаление встроенного тега — это запись его имени
-//    в settings.hiddenTags, а переименование — hiddenTags + новая запись
+//    вычеркнуть, поэтому удаление встроенного тега – это запись его имени
+//    в settings.hiddenTags, а переименование – hiddenTags + новая запись
 //    в customTags. Для встроенных категорий удаления нет вовсе: на них
 //    завязаны встроенные теги. См. BUILTIN_TAG_NAMES / BUILTIN_CAT_KEYS.
 
-let tmTagEdit = null; // имя редактируемого тега или null — тогда режим создания
+let tmTagEdit = null; // имя редактируемого тега или null – тогда режим создания
 let tmCatEdit = null; // ключ редактируемой категории или null
 let tmCatColorSet = true; // задан ли цвет у категории в форме
 
@@ -969,7 +969,7 @@ function populateTagModalCatSelect() {
 }
 
 // ── Массовое удаление тегов ─────────────────────
-// Тот же список, что и всегда, — просто клик по строке выбирает её
+// Тот же список, что и всегда, – просто клик по строке выбирает её
 // вместо того, чтобы открывать правку, а форма добавления/правки и
 // переключатель вкладок спрятаны CSS-классом .bulk-mode (см. стили).
 let tmBulkMode = false;
@@ -1061,7 +1061,7 @@ function renderTmTagList() {
     });
 
   // Сначала категории в их обычном порядке, затем осиротевшие (категорию
-  // удалили, а тег на неё ещё смотрит) — чтобы такой тег не пропал из списка.
+  // удалили, а тег на неё ещё смотрит) – чтобы такой тег не пропал из списка.
   const order = Object.keys(CAT_LABELS).filter((key) => byCat[key]);
   Object.keys(byCat).forEach((key) => {
     if (!order.includes(key)) order.push(key);
@@ -1113,7 +1113,7 @@ function renderTmCatList() {
     .join("");
 }
 
-// Цвет приходит из site-settings.json, а подставляется в атрибут style —
+// Цвет приходит из site-settings.json, а подставляется в атрибут style –
 // пропускаем только настоящий hex, чтобы туда нельзя было дописать своё.
 function tmSafeColor(value) {
   return /^#[0-9a-f]{3,8}$/i.test(value || "") ? value : "";
@@ -1175,7 +1175,7 @@ async function submitTag() {
   const from = tmTagEdit;
 
   if (!name) {
-    tmStatus(i18n("Введи название тега"), "err");
+    tmStatus(i18n("Введите название тега"), "err");
     return;
   }
   if (name !== from && TAGS_MAP[name]) {
@@ -1307,7 +1307,7 @@ async function submitCategory() {
   const editKey = tmCatEdit;
 
   if (!name) {
-    tmStatus(i18n("Введи название категории"), "err");
+    tmStatus(i18n("Введите название категории"), "err");
     return;
   }
 
@@ -1356,7 +1356,7 @@ async function submitCategory() {
       switchTagModalTab("tag");
       populateTagModalCatSelect();
       document.getElementById("tm-tag-cat").value = key;
-      tmStatus(i18n("Категория добавлена — можно выбрать её выше"), "ok");
+      tmStatus(i18n("Категория добавлена – можно выбрать её выше"), "ok");
     }
   } catch (err) {
     tmStatus(err.message || i18n("Ошибка сохранения"), "err");
@@ -1374,7 +1374,7 @@ function tmCatTagWord(n) {
 }
 
 // Встроенную категорию, как и встроенный тег, нельзя вырезать из
-// config.js — поэтому её удаление складывается в hiddenCategories, а
+// config.js – поэтому её удаление складывается в hiddenCategories, а
 // оттуда применяется при загрузке настроек.
 async function deleteCategory() {
   const key = tmCatEdit;
@@ -1389,7 +1389,7 @@ async function deleteCategory() {
   await tmCatDeleteCommit(key);
 }
 
-// Раньше здесь была тихая ошибка «сначала перенеси теги вручную» —
+// Раньше здесь была тихая ошибка «сначала перенеси теги вручную» –
 // теперь перенос (в любую другую категорию) и удаление вместе с тегами
 // сделаны прямо тут, одним из двух кликов.
 function tmCatDeleteShowChoice(key, used) {
@@ -1454,7 +1454,7 @@ async function tmCatDeleteAll() {
 }
 
 // Категория у тега (в т.ч. встроенного) переопределяется тем же
-// механизмом, что и переименование тега в submitTag() — записью в
+// механизмом, что и переименование тега в submitTag() – записью в
 // settings.customTags по точному имени тега, встроенный он или свой.
 async function tmCatReassignTags(fromCat, toCat) {
   const names = Object.keys(TAGS_MAP).filter((n) => TAGS_MAP[n].cat === fromCat);
@@ -1497,7 +1497,7 @@ async function tmCatDeleteCommit(key) {
       const hidden = new Set(settings.hiddenCategories || []);
       if (BUILTIN_CAT_KEYS.has(key)) hidden.add(key);
       settings.hiddenCategories = [...hidden];
-      // Переименование встроенной категории живёт в labels.categories —
+      // Переименование встроенной категории живёт в labels.categories –
       // после удаления оно осталось бы висеть мусором.
       if (settings.labels && settings.labels.categories) {
         delete settings.labels.categories[key];
@@ -1517,14 +1517,14 @@ async function tmCatDeleteCommit(key) {
   }
 }
 
-// ── Источники ссылок — источник выбирается прямо в инлайн-меню под
+// ── Источники ссылок – источник выбирается прямо в инлайн-меню под
 //    кнопкой «+ Добавить источник», без похода в отдельную модалку.
 //    Новые типы источников добавляются из того же меню и сохраняются
 //    в settings.customSources (SOURCE_LABELS приходит из config.js) ──
 const SOURCE_BUILTINS = ["teletype", "other"];
-let openSourceDropdown = null; // 1 | 2 | null — какое меню типа сейчас открыто
+let openSourceDropdown = null; // 1 | 2 | null – какое меню типа сейчас открыто
 // Ключ источника, у которого сейчас открыто инлайн-переименование
-// (см. startRenameSourceType) — тот же приём, что у typeRenamePending
+// (см. startRenameSourceType) – тот же приём, что у typeRenamePending
 // в пикере типа тайтла: не даёт Enter (сам вызывает blur) и
 // естественному blur сработать дважды подряд.
 let sourceRenamePending = null;
@@ -1539,7 +1539,7 @@ function srcIds(n) {
 
 // Приводит вид источника в соответствие с тем, заполнен ли он.
 // Первый источник живёт по схеме «кнопка ↔ панель», второй просто
-// показывается или прячется целиком — он появляется только по
+// показывается или прячется целиком – он появляется только по
 // требованию из уже открытого первого.
 function syncSourcePanel(n) {
   const ids = srcIds(n);
@@ -1578,7 +1578,7 @@ function closeSourcePanel(n) {
 }
 
 function onSourceUrlChange(_n) {
-  // резерв на будущее — например, автоопределение типа источника по URL
+  // резерв на будущее – например, автоопределение типа источника по URL
 }
 
 function renderTypeDropdown(n) {
@@ -1645,7 +1645,7 @@ async function confirmAddSourceType(n) {
   const name = input.value.trim();
 
   if (!name) {
-    statusEl.textContent = i18n("Введи название источника");
+    statusEl.textContent = i18n("Введите название источника");
     statusEl.className = "status-msg src-type-status err";
     return;
   }
@@ -1690,7 +1690,7 @@ async function removeSourceType(key) {
     delete SOURCE_LABELS[key];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     if (openSourceDropdown !== null) renderTypeDropdown(openSourceDropdown);
-    // если удалённый тип был выбран в одном из полей — сбрасываем на Teletype
+    // если удалённый тип был выбран в одном из полей – сбрасываем на Teletype
     [1, 2].forEach((n) => {
       const el = document.getElementById(srcIds(n).source);
       if (el.value === key) {
@@ -1703,11 +1703,11 @@ async function removeSourceType(key) {
   }
 }
 
-// Переименование своего источника — тот же приём, что у типа тайтла
+// Переименование своего источника – тот же приём, что у типа тайтла
 // (startRenameTypePicker ниже): клик по ✎ подменяет подпись на
 // текстовое поле прямо в строке списка, Enter/уход фокуса сохраняют,
 // Esc отменяет. Встроенные источники (Teletype/Другое) не
-// переименовываются — как и не удаляются (SOURCE_BUILTINS).
+// переименовываются – как и не удаляются (SOURCE_BUILTINS).
 function startRenameSourceType(n, key) {
   const dd = document.getElementById(`src-type-dropdown-${n}`);
   const row = dd?.querySelector(`.src-type-option[data-type-key="${CSS.escape(key)}"]`);
@@ -1774,11 +1774,11 @@ async function confirmRenameSourceType(n, key, rawName) {
   }
 }
 
-// ── Тип тайтла — тот же паттерн выпадающего списка с инлайн-добавлением,
+// ── Тип тайтла – тот же паттерн выпадающего списка с инлайн-добавлением,
 //    что и у источников (см. блок «Источники» выше). Свои типы хранятся
-//    в customTypes/hiddenTypes/customTypePlural, переименования встроенных —
+//    в customTypes/hiddenTypes/customTypePlural, переименования встроенных –
 //    в labels.types (site-settings.json), правится прямо тут. ──
-// Из config.js (MEDIA_TYPES) — единственного места, где перечислены
+// Из config.js (MEDIA_TYPES) – единственного места, где перечислены
 // встроенные типы.
 const TYPE_BUILTINS = MEDIA_TYPES.map((t) => t.key);
 let typePickerOpen = false;
@@ -1793,7 +1793,7 @@ function syncTypePickerLabel() {
 }
 
 // Ключ типа, у которого сейчас открыт инлайн-рендейм (см.
-// startRenameTypePicker) — нужен, чтобы Enter (который сам вызывает
+// startRenameTypePicker) – нужен, чтобы Enter (который сам вызывает
 // blur для коммита) и естественный blur не сработали дважды подряд.
 let typeRenamePending = null;
 
@@ -1822,7 +1822,7 @@ function renderTypePickerDropdown() {
         <input type="text" id="type-picker-plural-few" placeholder="2–4" style="font-size:.78rem;">
         <input type="text" id="type-picker-plural-many" placeholder="5+" style="font-size:.78rem;">
       </div>
-      <div class="hint" style="margin-top:.3rem;font-size:.68rem;">${i18n("Склонение подставилось автоматически (чёрн­овик) — поправь, если неточно.")}</div>
+      <div class="hint" style="margin-top:.3rem;font-size:.68rem;">${i18n("Склонение подставилось автоматически (чёрн­овик) – поправьте, если неточно.")}</div>
       <button type="button" class="btn-new" style="margin-top:.4rem;" onclick="confirmAddType()">${i18n("Добавить")}</button>
     </div>
     <div class="status-msg src-type-status" id="type-picker-status"></div>`;
@@ -1863,7 +1863,7 @@ function showAddTypeForm() {
 function prefillTypePlural() {
   const name = document.getElementById("type-picker-new-name").value.trim();
   // i18nGuessPlural отвечает только за английский и возвращает null на
-  // любом другом языке — тогда решает русская эвристика. Без этой
+  // любом другом языке – тогда решает русская эвристика. Без этой
   // развилки английскому интерфейсу подставлялись русские окончания:
   // «Podcast» превращался в «Podcasta/Podcastов». Обе функции дают
   // черновик, который тут же показывается в трёх редактируемых полях.
@@ -1879,7 +1879,7 @@ async function confirmAddType() {
   const name = nameInput.value.trim();
 
   if (!name) {
-    statusEl.textContent = i18n("Введи название типа");
+    statusEl.textContent = i18n("Введите название типа");
     statusEl.className = "status-msg src-type-status err";
     return;
   }
@@ -1921,10 +1921,10 @@ async function confirmAddType() {
   }
 }
 
-// Встроенный тип нельзя вырезать из TYPE_LABELS в коде — «удаление»
+// Встроенный тип нельзя вырезать из TYPE_LABELS в коде – «удаление»
 // для него складывается в hiddenTypes, тем же приёмом, что и у тегов и
 // категорий: он просто перестаёт появляться в списке. У своих типов
-// удаление настоящее — стирает customTypes/customTypePlural целиком.
+// удаление настоящее – стирает customTypes/customTypePlural целиком.
 async function removeTypePicker(key) {
   if (Object.keys(TYPE_LABELS).length <= 1) {
     alert(i18n("Должен остаться хотя бы один тип"));
@@ -1954,10 +1954,10 @@ async function removeTypePicker(key) {
   }
 }
 
-// Переименование — инлайн, прямо в строке списка: клик по ✎ подменяет
+// Переименование – инлайн, прямо в строке списка: клик по ✎ подменяет
 // подпись на текстовое поле, Enter/уход фокуса сохраняют, Esc отменяет.
 // Встроенный тип переименовывается через labels.types (оверрайд
-// подписи, ключ в TYPE_BUILTINS не меняется), свой — через сам
+// подписи, ключ в TYPE_BUILTINS не меняется), свой – через сам
 // customTypes[key].
 function startRenameTypePicker(key) {
   const dd = document.getElementById("type-picker-dropdown");
@@ -2030,7 +2030,7 @@ async function confirmRenameTypePicker(key, rawName) {
   }
 }
 
-// ── Статус — такой же пикер, как у типа ────────
+// ── Статус – такой же пикер, как у типа ────────
 // Был обычный <select>: он не давал добавить свой статус, хотя типы
 // это уже умели. Теперь список общий по виду и поведению, а «своё»
 // значение дописывается в statusBuckets внутри site-settings.json.
@@ -2038,16 +2038,16 @@ async function confirmRenameTypePicker(key, rawName) {
 // Само значение по-прежнему лежит в поле f-status (hidden), поэтому
 // заполнение и сохранение формы менять не пришлось.
 //
-// Встроенные статусы (как TYPE_BUILTINS у типов) — их нельзя вычеркнуть
+// Встроенные статусы (как TYPE_BUILTINS у типов) – их нельзя вычеркнуть
 // из DEFAULT_STATUS_BUCKETS в коде, поэтому «удаление» для них
 // складывается в hiddenStatuses (тот же массив, что и глазок в
-// настройках — там же можно вернуть обратно), а не по-настоящему
+// настройках – там же можно вернуть обратно), а не по-настоящему
 // стирает статус. У своих статусов удаление настоящее.
 const STATUS_BUILTINS = ["current", "onhold", "planning"];
 
-// Список всех доступных статусов. "completed" — не bucket, он всегда
+// Список всех доступных статусов. "completed" – не bucket, он всегда
 // последний и неудаляемый: это конечное состояние, а не этап, и он
-// не проходит через hiddenStatuses (см. её же комментарий в now.js) —
+// не проходит через hiddenStatuses (см. её же комментарий в now.js) –
 // без него нечем было бы пометить отзыв завершённым.
 function statusOptions() {
   const buckets = activeStatusBuckets().filter((b) => !window.SITE_HIDDEN_STATUSES?.has(b.key));
@@ -2062,7 +2062,7 @@ function statusLabel(key) {
 }
 
 let statusPickerOpen = false;
-// Ключ статуса, у которого сейчас открыт инлайн-рендейм — тот же приём,
+// Ключ статуса, у которого сейчас открыт инлайн-рендейм – тот же приём,
 // что и у typeRenamePending (см. её же комментарий): Enter сам вызывает
 // blur для коммита, флаг не даёт коммитнуть дважды подряд.
 let statusRenamePending = null;
@@ -2165,7 +2165,7 @@ async function confirmAddStatus() {
   statusEl.className = "status-msg src-type-status";
   try {
     await patchSiteSettings((settings) => {
-      // Если своих статусов ещё не задавали, в файле их нет вовсе —
+      // Если своих статусов ещё не задавали, в файле их нет вовсе –
       // берём встроенные, иначе добавление затёрло бы стандартные.
       const current = settings.statusBuckets?.length
         ? settings.statusBuckets
@@ -2213,11 +2213,11 @@ async function removeStatusPicker(key) {
   }
 }
 
-// Переименование — тот же инлайн-приём, что и у типа (startRenameTypePicker):
+// Переименование – тот же инлайн-приём, что и у типа (startRenameTypePicker):
 // клик по ✎ подменяет подпись на текстовое поле, Enter/уход фокуса
-// сохраняют, Esc отменяет. «Завершено» — не настоящий bucket (см.
+// сохраняют, Esc отменяет. «Завершено» – не настоящий bucket (см.
 // statusOptions), его подпись живёт в labels.statuses.archive, у
-// обычных — прямо в statusBuckets.
+// обычных – прямо в statusBuckets.
 function startRenameStatusPicker(key) {
   const dd = document.getElementById("status-picker-dropdown");
   const row = dd?.querySelector(`.src-type-option[data-status-key="${CSS.escape(key)}"]`);
@@ -2310,11 +2310,11 @@ function fillForm(r) {
   document.getElementById("f-source2").value = r.source2 || "";
   syncTypePickerLabel();
   // Без этого кнопка статуса всегда оставалась на подписи по умолчанию
-  // ("Завершено"/Архив, см. разметку в mount()) — сам f-status.value
+  // ("Завершено"/Архив, см. разметку в mount()) – сам f-status.value
   // проставлялся выше верно, а подпись на кнопке с ним не сверялась.
   syncStatusPickerLabel();
 
-  // Инлайн-панели источников и обложки — раскрыть/свернуть по наличию значения
+  // Инлайн-панели источников и обложки – раскрыть/свернуть по наличию значения
   syncSourcePanel(1);
   syncSourcePanel(2);
   syncCoverPanel();
@@ -2404,19 +2404,19 @@ function resetToNew() {
 }
 
 // ── инит по параметрам ─────────────────────────
-// params — URLSearchParams в обоих случаях: из хэша через роутер
+// params – URLSearchParams в обоих случаях: из хэша через роутер
 // (#/add?edit=ID) или из location.search в одиночном add.html
 // (?edit=ID или ?fromPassport=1&title=…&type=…&year=…&cover=…).
 async function initAddPage(params) {
   updateDateFields();
 
-  // Из чужого паспорта: там нет ни текста отзыва, ни оценки — только
+  // Из чужого паспорта: там нет ни текста отзыва, ни оценки – только
   // название, тип, год и, если автор паспорта указывал обложку внешней
   // ссылкой (а не локальным файлом), сама эта ссылка. Добавляются они
-  // не поверх ничьего чужого отзыва, а как новый, свой — editingId не
+  // не поверх ничьего чужого отзыва, а как новый, свой – editingId не
   // трогаем, fillForm() сам по себе ничего не редактирует.
   //
-  // Проверяем не только сам параметр, но и что родитель — правда наша
+  // Проверяем не только сам параметр, но и что родитель – правда наша
   // модалка (window.parent !== window и у него правда есть
   // closeAddFromPassportModal): прямое открытие ссылки с
   // fromPassport=1 в обычной вкладке ведёт себя как обычное добавление
@@ -2426,7 +2426,7 @@ async function initAddPage(params) {
       fromPassportModal =
         window.parent !== window && typeof window.parent.closeAddFromPassportModal === "function";
     } catch {
-      // window.parent из другого источника бросил бы SecurityError — у
+      // window.parent из другого источника бросил бы SecurityError – у
       // нас такого не бывает (тот же процесс), но проверка не должна
       // ронять форму.
     }
@@ -2439,7 +2439,7 @@ async function initAddPage(params) {
       year: params.get("year") || "",
       cover: params.get("cover") || "",
     });
-    // fillForm() просто ставит .value — событие oninput на это не
+    // fillForm() просто ставит .value – событие oninput на это не
     // реагирует, поэтому свою резервную копию обложки, как при ручной
     // вставке ссылки, запускаем явно.
     if (params.get("cover")) scheduleBackupCover();
@@ -2464,16 +2464,16 @@ async function initAddPage(params) {
     document.getElementById("edit-title-hint").textContent = review.title;
     document.getElementById("page-subtitle").textContent = i18n("Редактировать отзыв");
     document.getElementById("btn-save").textContent = i18n("Сохранить изменения");
-    document.title = `TasteID — ${i18n("Редактировать отзыв")}`;
+    document.title = `TasteID – ${i18n("Редактировать отзыв")}`;
     // Удаляем строго по номеру записи. У совсем старых записей номера
-    // может не оказаться — тогда кнопки просто нет: удалять по названию
+    // может не оказаться – тогда кнопки просто нет: удалять по названию
     // нельзя, под одним названием лежат разные записи.
     document.getElementById("danger-zone").hidden = typeof review.id !== "number";
-    // fillForm() трогает те же поля, что и человек руками, — на
+    // fillForm() трогает те же поля, что и человек руками, – на
     // делегированный input/change слушатель это не похоже (значения
     // ставятся из кода, событий не будет), но renderGradeInput() и
     // прочее могли успеть пометить форму грязной. Она только что
-    // открыта — считаем её чистой.
+    // открыта – считаем её чистой.
     setAddDirty(false);
   } catch (e) {
     setStatus("err", i18n("Не удалось загрузить отзыв: ") + e.message);
@@ -2482,7 +2482,7 @@ async function initAddPage(params) {
 
 // ── удаление ───────────────────────────────────
 // Спрашиваем один раз, но по-человечески: с названием записи, чтобы было
-// видно, что удаляется именно то. Обещание про «Историю версий» настоящее —
+// видно, что удаляется именно то. Обещание про «Историю версий» настоящее –
 // reviews.json там отслеживается и откатывается целиком.
 async function deleteReview() {
   if (typeof editingId !== "number") return;
@@ -2513,11 +2513,11 @@ async function deleteReview() {
     // ждать нечего.
     setStatus("ok", i18n("«{name}» удалена.", { name: data.title }));
     // Тот же общий кэш, что читают favorites.js/tierlist.js между
-    // вызовами fetchReviews() (js/api.js) — без сброса они ещё
+    // вызовами fetchReviews() (js/api.js) – без сброса они ещё
     // мгновение показывали бы уже удалённую запись.
     cache.reviews = null;
     refreshOpenReviewsTab(); // вкладка под /add молча висит с уже несуществующей карточкой (js/api.js)
-    // Форма после удаления показывает то, чего уже нет, — уходим.
+    // Форма после удаления показывает то, чего уже нет, – уходим.
     // Флаг «есть несохранённое» сбрасываем явно: иначе уход спросил бы
     // «уйти без сохранения», хотя запись только что удалена, а не
     // брошена недописанной.
@@ -2532,7 +2532,7 @@ async function deleteReview() {
 
 function previewCover(url) {
   const img = document.getElementById("cover-img");
-  // Раньше проверялось только url.startsWith("http") — из-за этого превью
+  // Раньше проверялось только url.startsWith("http") – из-за этого превью
   // не показывалось после загрузки файла на сервер (относительный путь
   // вида "/covers/xxx.webp" такой проверке не проходил).
   if (url && url.trim()) {
@@ -2541,7 +2541,7 @@ function previewCover(url) {
   } else img.style.display = "none";
 }
 
-// ── Инлайн-панель обложки — свёрнута за кнопкой «+ Добавить обложку»,
+// ── Инлайн-панель обложки – свёрнута за кнопкой «+ Добавить обложку»,
 //    так же как источники ниже. ──
 function openCoverPanel() {
   document.getElementById("cover-add-btn").classList.add("hidden");
@@ -2560,7 +2560,7 @@ function closeCoverPanel() {
   document.getElementById("cover-add-btn").classList.remove("hidden");
 }
 
-// Раскрыть/свернуть панель обложки по наличию значения — как у источников.
+// Раскрыть/свернуть панель обложки по наличию значения – как у источников.
 function syncCoverPanel() {
   const hasCover = document.getElementById("f-cover").value.trim().length > 0;
   document.getElementById("cover-add-btn").classList.toggle("hidden", hasCover);
@@ -2604,7 +2604,7 @@ async function uploadCoverFile() {
   const fileInput = document.getElementById("f-cover-upload");
   const status = document.getElementById("cover-upload-status");
   if (!fileInput.files.length) {
-    status.textContent = i18n("Выбери файл");
+    status.textContent = i18n("Выберите файл");
     status.style.color = "var(--red-hi, #c0392b)";
     return;
   }
@@ -2631,7 +2631,7 @@ async function uploadCoverFile() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
-    // Обложка загружена напрямую — своя резервная копия ей не нужна.
+    // Обложка загружена напрямую – своя резервная копия ей не нужна.
     document.getElementById("f-cover").value = "";
     document.getElementById("f-cover-backup").value = "/" + data.path;
     previewCover("/" + data.path);
@@ -2643,7 +2643,7 @@ async function uploadCoverFile() {
   }
 }
 
-// ── Автобэкап картинки по ссылке — качается на сервере, чтобы не
+// ── Автобэкап картинки по ссылке – качается на сервере, чтобы не
 //    упереться в CORS. Срабатывает через паузу после ввода, не на
 //    каждую напечатанную букву. ──
 let backupCoverTimer = null;
@@ -2704,18 +2704,18 @@ async function saveReview() {
   const reviewFull = document.getElementById("f-review-full").value.trim();
   // Превью необязательно: если заполнили только полный текст, само
   // превью (короткий текст-заглушка для карточек/списков и признак
-  // «отзыв не пустой» в фильтрах — js/reviews.js, js/now.js, js/stats.js)
+  // «отзыв не пустой» в фильтрах – js/reviews.js, js/now.js, js/stats.js)
   // подтягивается из полного текста, а не остаётся пустым.
   const preview = document.getElementById("f-preview").value.trim() || reviewFull;
   const status = document.getElementById("f-status").value;
 
   if (!title) {
-    setStatus("err", i18n("Заполни название"));
+    setStatus("err", i18n("Заполните название"));
     return;
   }
 
   // Подстраховка: если ссылку на обложку вписали и сразу сохранили, не
-  // дожидаясь паузы в 1.2с — бэкап мог не успеть запуститься. Досылаем
+  // дожидаясь паузы в 1.2с – бэкап мог не успеть запуститься. Досылаем
   // его прямо сейчас и ждём завершения перед сохранением отзыва.
   const coverUrl = document.getElementById("f-cover").value.trim();
   if (coverUrl && coverUrl.startsWith("http") && !document.getElementById("f-cover-backup").value) {
@@ -2732,10 +2732,10 @@ async function saveReview() {
 
   const cover = document.getElementById("f-cover").value.trim() || null;
 
-  // Номер тайтла в чужой базе достаётся из самой ссылки на обложку —
+  // Номер тайтла в чужой базе достаётся из самой ссылки на обложку –
   // ничего дополнительно вводить не нужно. Нужен он для будущего
   // импорта списков: там всё сходится по номерам, а не по названиям
-  // (см. js/external-ids.js). Уже проставленные номера не затираем —
+  // (см. js/external-ids.js). Уже проставленные номера не затираем –
   // часть из них дозапрошена у API и в ссылке не лежит.
   const ids = mergeIds(editingIds, extractIdsFromCover(cover));
 
@@ -2783,18 +2783,18 @@ async function saveReview() {
       setStatus("ok", editingId !== null ? `«${title}» обновлён.` : `«${title}» сохранён.`);
       setAddDirty(false);
       // Тот же общий кэш, что читают favorites.js/tierlist.js между
-      // вызовами fetchReviews() (js/api.js) — без сброса они ещё
+      // вызовами fetchReviews() (js/api.js) – без сброса они ещё
       // мгновение показывали бы старые данные.
       cache.reviews = null;
       // Вкладка под /add спрятана через .hidden, а не разобрана, и сама
       // не перечитается, пока по ней не щёлкнут заново (js/api.js,
-      // refreshOpenReviewsTab) — иначе после правки названия старое ещё
+      // refreshOpenReviewsTab) – иначе после правки названия старое ещё
       // висело бы в «Отзывах», пока не переключиться туда-обратно.
       refreshOpenReviewsTab();
       if (editingId === null) {
         if (fromPassportModal) {
           // Секунда на «сохранён», чтобы было видно, что сохранение
-          // случилось, — и сами закрываем модалку: человек остаётся
+          // случилось, – и сами закрываем модалку: человек остаётся
           // там же, на чужом паспорте, а не на пустой форме под
           // следующую запись, которую эта ветка не сбрасывает.
           setTimeout(() => closeAddView(), 900);
@@ -2814,8 +2814,8 @@ async function saveReview() {
 }
 
 // ── Признак несохранённых изменений ────────────
-// addDirty сам по себе — обычный let: читать его снаружи (кроме
-// модалки паспорта) некому. setAddDirty() — единственное место, которое
+// addDirty сам по себе – обычный let: читать его снаружи (кроме
+// модалки паспорта) некому. setAddDirty() – единственное место, которое
 // решает, зеркалить ли значение в window.addDirty (см. шапку файла).
 let addDirty = false;
 
@@ -2828,7 +2828,7 @@ function markAddDirty() {
   setAddDirty(true);
 }
 
-// В одиночном add.html router.js не подключён — там вызывает mount()
+// В одиночном add.html router.js не подключён – там вызывает mount()
 // напрямую его же собственный маленький скрипт-загрузчик (см. шапку
 // файла и разметку add.html).
 if (IN_SPA_SHELL) registerRoute("#/add", { mount, unmount });

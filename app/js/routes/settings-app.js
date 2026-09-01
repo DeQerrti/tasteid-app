@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════
-//  settings-app.js — настройки приложения, хранилища, резервная копия — часть роута #/settings-edit
-//  Разбито из settings-edit.js (2972 строки) по секциям — читается
+//  settings-app.js – настройки приложения, хранилища, резервная копия – часть роута #/settings-edit
+//  Разбито из settings-edit.js (2972 строки) по секциям – читается
 //  тем же способом, что и раньше: обычный глобальный скрипт, без
 //  своего экспорта, подключается вместе с settings-edit.js и остальными
 //  файлами этой же группы в index.html, в общей области видимости.
@@ -9,7 +9,7 @@
 // ── Настройки приложения ───────────────────────
 // Всё здесь идёт через /api/app/*: страница в песочнице и до системы
 // сама дотянуться не может. На сайте этих адресов нет, поэтому панель
-// и не показывается — проверяем одним запросом при монтировании.
+// и не показывается – проверяем одним запросом при монтировании.
 let appInfo = null;
 
 async function appApi(url, body) {
@@ -28,11 +28,11 @@ async function detectApp() {
     appInfo = await appApi("/api/app/info");
     document.getElementById("tab-app").classList.remove("hidden");
     document.getElementById("tab-vaults").classList.remove("hidden");
-    // Синхронизация ходит в /api/export-backup и /api/restore-backup —
+    // Синхронизация ходит в /api/export-backup и /api/restore-backup –
     // они есть у приложения (core/api.js), но не у голого сайта.
     document.getElementById("tab-sync").classList.remove("hidden");
   } catch {
-    // Обычный браузер — панелей приложения просто нет.
+    // Обычный браузер – панелей приложения просто нет.
   }
 }
 
@@ -41,10 +41,10 @@ function zoomPercent(percent) {
 }
 
 // process.platform называется "win32" у Electron/Node на Windows
-// вообще всегда — даже на 64-битной и ARM64 системе: это имя унаследовано
+// вообще всегда – даже на 64-битной и ARM64 системе: это имя унаследовано
 // от старого Win32 API и разрядность в нём никогда не была закодирована.
 // Показывать его как есть в «О программе» вводит в заблуждение (человек
-// решает, что приложение 32-битное) — поэтому здесь расшифровываем
+// решает, что приложение 32-битное) – поэтому здесь расшифровываем
 // платформу и разрядность (process.arch) в отдельности.
 const PLATFORM_OS_NAMES = { win32: "Windows", darwin: "macOS", linux: "Linux", android: "Android" };
 const PLATFORM_ARCH_NAMES = { x64: "64-bit", ia32: "32-bit", arm64: "ARM64" };
@@ -68,7 +68,7 @@ function renderAppPanel() {
   document.getElementById("app-version").textContent =
     `TasteID ${appInfo.version || ""} · ${platformLabel(appInfo.platform, appInfo.arch)}`;
 
-  // На телефоне нет ни проводника, ни понятия масштаба окна — вместо
+  // На телефоне нет ни проводника, ни понятия масштаба окна – вместо
   // неработающих кнопок показываем то, что там правда можно сделать.
   document.getElementById("app-vault-actions").classList.toggle("hidden", !!appInfo.mobile);
   document.getElementById("app-vault-mobile-note").classList.toggle("hidden", !appInfo.mobile);
@@ -76,7 +76,7 @@ function renderAppPanel() {
 }
 
 // На макбуке и в мобильном банере обновление показывает себя само,
-// если найдено, — здесь только статус для случаев, когда нечего
+// если найдено, – здесь только статус для случаев, когда нечего
 // показывать (уже последняя версия) или уже показано (диалог/банер
 // всплыл отдельно, поверх этой же страницы).
 async function checkForUpdateNow() {
@@ -85,19 +85,19 @@ async function checkForUpdateNow() {
   flashStatus("status-update", true, i18n("Проверяем…"));
   try {
     const data = await appApi("/api/app/check-update", {});
-    if (data.status === "latest") flashStatus("status-update", true, i18n("У тебя последняя версия."));
+    if (data.status === "latest") flashStatus("status-update", true, i18n("У вас последняя версия."));
     else if (data.status === "error") flashStatus("status-update", false, i18n("Не удалось проверить обновления."));
-    // «Качается» — самый частый случай успеха, и раньше он показывал
+    // «Качается» – самый частый случай успеха, и раньше он показывал
     // пустую строку: человек жал кнопку и не получал вообще никакой
     // реакции, хотя обновление уже нашлось.
     else if (data.status === "downloading")
       flashStatus(
         "status-update",
         true,
-        i18n("Найдена версия {v} — качаем, предложим установить.", { v: data.version || "" })
+        i18n("Найдена версия {v} – качаем, предложим установить.", { v: data.version || "" })
       );
     else if (data.status === "dev")
-      flashStatus("status-update", true, i18n("Запущено из исходников — обновления не проверяются."));
+      flashStatus("status-update", true, i18n("Запущено из исходников – обновления не проверяются."));
     else flashStatus("status-update", true, "");
   } catch (e) {
     flashStatus("status-update", false, e.message);
@@ -108,12 +108,12 @@ async function checkForUpdateNow() {
 
 // ── Панель «Хранилища» ─────────────────────────
 // Список {id, name} приходит из appInfo (тот же /api/app/info, что
-// уже дёргает detectApp()) — отдельного запроса не нужно, разве что
+// уже дёргает detectApp()) – отдельного запроса не нужно, разве что
 // appInfo ещё не готов при самом первом клике по вкладке.
 //
-// На компьютере «Добавить» — это выбор папки: новой или уже
+// На компьютере «Добавить» – это выбор папки: новой или уже
 // существующей (например, скопированной с другого устройства
-// вручную). На телефоне выбирать нечего — там только имя, а папку
+// вручную). На телефоне выбирать нечего – там только имя, а папку
 // заводит сама MobileVault.
 async function renderVaultsPanel() {
   const box = document.getElementById("vaultsPanel");
@@ -121,7 +121,7 @@ async function renderVaultsPanel() {
     if (!appInfo) appInfo = await appApi("/api/app/info");
     box.innerHTML = `
         <p class="panel-intro" data-i18n>
-          Несколько независимых хранилищ на одном устройстве — со своими
+          Несколько независимых хранилищ на одном устройстве – со своими
           отзывами, тир-листами и синхронизацией у каждого. Переключение
           между ними ничего не стирает: данные остаются каждое в своей
           папке.
@@ -198,7 +198,7 @@ async function toggleVaultEdit(id) {
 }
 
 // Переключение перечитывает reviews.json, favorites.json и всё
-// остальное с нуля — как и при «Сменить папку» на прошлой версии
+// остальное с нуля – как и при «Сменить папку» на прошлой версии
 // этой вкладки, проще и надёжнее перезагрузить страницу, чем гонять
 // все панели вручную по новой. Хэш #/settings-edit при этом остаётся
 // в адресе, так что после перезагрузки открываются те же настройки.
@@ -215,7 +215,7 @@ async function addVault(mode) {
   try {
     let path;
     // promptDialog, а не window.prompt: в Electron последнего просто
-    // нет — вызов бросает «prompt() is not supported.», то есть на
+    // нет – вызов бросает «prompt() is not supported.», то есть на
     // компьютере обе кнопки заканчивались ошибкой, а хранилище так и
     // не заводилось (см. js/utils.js).
     if (mode === "mobile") {
@@ -238,7 +238,7 @@ async function addVault(mode) {
 }
 
 // Из списка можно убрать только не-текущее хранилище (кнопка вообще
-// не показывается у активного) — предупреждение разное для
+// не показывается у активного) – предупреждение разное для
 // компьютера и телефона, потому что и последствия разные: на
 // компьютере папка остаётся на диске и её можно открыть заново
 // через «Открыть существующее», на телефоне отдельной папки для
@@ -247,7 +247,7 @@ async function removeVault(id) {
   const warn = appInfo.mobile
     ? i18n("Хранилище и все его данные будут стёрты с телефона. Продолжить?")
     : i18n(
-        "Хранилище будет убрано из списка. Сама папка на диске никуда не денется — её можно будет открыть заново через «Открыть существующее»."
+        "Хранилище будет убрано из списка. Сама папка на диске никуда не денется – её можно будет открыть заново через «Открыть существующее»."
       );
   // confirmDialog, а не window.confirm: та же коробка в теме
   // приложения, что и у остальных подтверждений (js/utils.js).
@@ -271,7 +271,7 @@ async function loadAppPanel() {
 // Применять масштаб на каждое перемещение ползунка казалось удобным,
 // но вышло наоборот: сам интерфейс (в том числе ползунок) едет вместе
 // с масштабом прямо под курсором, и попасть в нужное значение труднее,
-// а не легче. Цифра рядом обновляется вживую (input), а сам масштаб —
+// а не легче. Цифра рядом обновляется вживую (input), а сам масштаб –
 // только когда отпустили (change).
 function previewZoom(percent) {
   document.getElementById("app-zoom-value").textContent = zoomPercent(Number(percent));
@@ -309,8 +309,8 @@ async function changeVault() {
 }
 
 // ── Резервная копия ─────────────────────────────
-// Не путать с «Паспортом»: тот — урезанный слепок для показа чужим,
-// этот — всё целиком и только для себя (core/api.js: exportBackup /
+// Не путать с «Паспортом»: тот – урезанный слепок для показа чужим,
+// этот – всё целиком и только для себя (core/api.js: exportBackup /
 // restoreBackup, там же расписано подробнее).
 async function exportBackup() {
   try {
@@ -334,7 +334,7 @@ async function exportBackup() {
 
 async function restoreBackup(input) {
   const file = input.files?.[0];
-  input.value = ""; // тот же файл ещё раз выбрать иначе не получится — onchange не сработает
+  input.value = ""; // тот же файл ещё раз выбрать иначе не получится – onchange не сработает
   if (!file) return;
 
   if (
@@ -354,7 +354,7 @@ async function restoreBackup(input) {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error(i18n("Это не похоже на файл резервной копии — внутри не JSON."));
+      throw new Error(i18n("Это не похоже на файл резервной копии – внутри не JSON."));
     }
     const res = await fetch("/api/restore-backup", {
       method: "POST",
