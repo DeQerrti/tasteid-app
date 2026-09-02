@@ -1010,13 +1010,16 @@ function bindPassports() {
   document.getElementById("pp-share-copy")?.addEventListener("click", async (e) => {
     const input = document.getElementById("pp-share-code-out");
     if (!input) return;
+    // currentTarget нельзя трогать после await – браузер обнуляет его,
+    // как только синхронная часть обработки события закончилась,
+    // задолго до того, как await продолжит выполнение дальше.
+    const btn = e.currentTarget;
     try {
       await navigator.clipboard.writeText(input.value);
     } catch {
       input.select();
       document.execCommand("copy");
     }
-    const btn = e.currentTarget;
     const original = btn.textContent;
     btn.textContent = i18n("Скопировано");
     setTimeout(() => {
