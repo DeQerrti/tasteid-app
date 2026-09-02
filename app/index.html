@@ -2628,6 +2628,23 @@ section.group { margin-bottom: 3.5rem; }
     rail.addEventListener("mouseenter", peek);
     rail.addEventListener("mouseleave", unpeek);
 
+    // Escape – та же ловушка-полоска, только с клавиатуры: тот же
+    // Windows-приём с автоскрывающейся панелью задач (мышью в край или
+    // клавишей Win). У мыши есть mouseleave, чтобы спрятать рельсу
+    // обратно, у Escape такого события нет – если мышь так и не
+    // побывала над рельсой, прячем сами через unpeek() по таймеру,
+    // а не оставляем висеть навсегда. Повторный Escape, пока рельса
+    // уже выехала, прячет её сразу – не нужно ждать.
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || !document.body.classList.contains("rail-collapsed")) return;
+      if (rail.classList.contains("rail-peek")) {
+        unpeek();
+      } else {
+        peek();
+        hideTimer = setTimeout(() => rail.classList.remove("rail-peek"), 3000);
+      }
+    });
+
     let restored = false;
     try { restored = localStorage.getItem(STORAGE_KEY) === "1"; } catch {}
     if (restored) setCollapsed(true);
