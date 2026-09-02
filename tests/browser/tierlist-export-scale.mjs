@@ -130,6 +130,23 @@ ok(
   `холст за пределом — масштаб уменьшен так, чтобы уложиться в 8000px: ${scaleChecks.huge}`
 );
 
+// На телефоне порог по умолчанию заметно ниже десктопного (см.
+// utils.js) — 8000 уже один раз оказался мал на реальном устройстве
+// (верхние тиры срезало), хотя тот же холст безопасно укладывался в
+// песочнице без настоящей видеокарты. window.Capacitor подделываем
+// точно тем же способом, что и tests/browser/mobile-bridge.mjs.
+const mobileDefault = await page.evaluate(() => {
+  window.Capacitor = { isNativePlatform: () => true };
+  const fakeHuge = { scrollWidth: 900, scrollHeight: 6800 };
+  const scale = window.safeCaptureScale(fakeHuge, 2);
+  delete window.Capacitor;
+  return scale;
+});
+ok(
+  mobileDefault < 2 && mobileDefault * 6800 <= 4096 + 1e-6,
+  `на телефоне без явного maxDim потолок консервативнее — 4096, а не 8000: ${mobileDefault}`
+);
+
 console.log("Заливаем 260 отзывов на все типы и оценки");
 await page.evaluate(async (reviews) => {
   for (const r of reviews) {
