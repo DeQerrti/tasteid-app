@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import http from "node:http";
 import { Vault } from "../electron/vault.js";
 import { createServer, listen } from "../electron/server.js";
 
@@ -561,5 +562,75 @@ test("страницы приложения отдаются, красивые �
       const res = await fetch(base + url);
       assert.equal(res.status, expect, `${url} → ${res.status}`);
     }
+  });
+});
+
+// ── Резервная копия обложки по ссылке ──────────
+// Раньше запрос уходил с выдуманным User-Agent вида "TasteID cover
+// backup" – источники с защитой от ботов (AniList среди них) такое
+// тихо отсеивают, хотя та же ссылка прекрасно открывается в браузере.
+// Проверяем не сам AniList (в тестах нет сети), а то, что наш сервер
+// действительно посылает заголовки, похожие на настоящий браузер, и
+// сам Referer на источник картинки – заодно ловим будущий откат этого
+// фикса, если кто-то снова подставит сюда что-то похожее на бота.
+async function withImageHost(run) {
+  let lastHeaders = null;
+  const server = http.createServer((req, res) => {
+    lastHeaders = req.headers;
+    if (req.url === "/hang") return; // никогда не отвечаем
+    // 1x1 PNG
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64"
+    );
+    res.writeHead(200, { "Content-Type": "image/png" });
+    res.end(png);
+  });
+  await new Promise((resolve) => server.listen(0, resolve));
+  const port = server.address().port;
+  try {
+    await run({ port, getLastHeaders: () => lastHeaders });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test("резервная копия скачивается с настоящим User-Agent и Referer, а не выдуманным", async () => {
+  await withImageHost(async ({ port, getLastHeaders }) => {
+    await withServer(async ({ api }) => {
+      const { status, data } = await api("POST", "/api/backup-cover", {
+        url: `http://127.0.0.1:${port}/cover.png`,
+        filename: "some-title",
+      });
+      assert.equal(status, 200);
+      assert.equal(data.ok, true);
+
+      const headers = getLastHeaders();
+      assert.match(
+        headers["user-agent"],
+        /Mozilla.*Chrome|Mozilla.*Safari/i,
+        "User-Agent похож на настоящий браузер"
+      );
+      assert.doesNotMatch(headers["user-agent"], /TasteID/i, "выдуманного User-Agent больше нет");
+      assert.equal(
+        headers["referer"],
+        `http://127.0.0.1:${port}/`,
+        "Referer указывает на источник картинки"
+      );
+    });
+  });
+});
+
+test("зависший источник картинки не вешает запрос навсегда", async () => {
+  await withImageHost(async ({ port }) => {
+    await withServer(async ({ api }) => {
+      const { status, data } = await api("POST", "/api/backup-cover", {
+        url: `http://127.0.0.1:${port}/hang`,
+        filename: "never-responds",
+      });
+      assert.notEqual(status, 200);
+      assert.equal(data.ok, undefined);
+      assert.match(data.error, /не ответил вовремя/);
+    });
   });
 });

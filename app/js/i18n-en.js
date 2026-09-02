@@ -452,15 +452,6 @@ i18nRegister({
   "Хранится во внутренней области приложения – её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести данные на другое устройство – резервная копия ниже.":
     "Stored inside the app's private storage – other apps can't see it, and it's deleted along with TasteID. To move your data to another device, use the backup below.",
   "Резервная копия": "Backup",
-  "Резервные копии картинок": "Image backups",
-  "Обложки и аватарки по ссылке получают резервную копию автоматически при сохранении – но только с того момента, начиная с которого это заработало. Кнопка ниже досоздаёт копии всем, у кого их ещё нет.":
-    "Covers and avatars by URL get a backup automatically on save – but only from the point that started working. The button below creates the missing ones for everyone who doesn't have one yet.",
-  "Досоздать резервные копии": "Create missing backups",
-  "Смотрим, у кого нет резервной копии…": "Checking who's missing a backup…",
-  "У всех уже есть резервная копия.": "Everyone already has a backup.",
-  "Готово: {done} из {total}, {failed} не удалось (ссылка недоступна?).":
-    "Done: {done} of {total}, {failed} failed (link unavailable?).",
-  "Готово: резервных копий создано – {done}.": "Done: backups created – {done}.",
   "Отзывы, любимое, тир-листы, настройки и загруженные вручную картинки – одним файлом, для себя.":
     "Reviews, favorites, tier lists, settings and manually uploaded pictures – in one file, for yourself.",
   "Скачать резервную копию": "Download backup",

@@ -388,7 +388,37 @@ async function backupCover({ vault, body }) {
   }
   if (!isSafeFileName(filename)) throw new ApiError("Недопустимое название файла");
 
-  const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (TasteID cover backup)" } });
+  // Выдуманная строка вида "TasteID cover backup" не похожа ни на один
+  // настоящий браузер – источники с защитой от ботов (AniList среди
+  // них) такую тихо отсеивают: не 4xx с понятной причиной, а просто
+  // обрыв соединения или пустой ответ, поэтому раньше это выглядело
+  // как "ссылка недоступна", хотя сама ссылка открывалась в браузере
+  // без проблем. Referer на домен самой картинки – тот же обычный
+  // обход хотлинк-защиты, которая сверяет источник запроса со своим
+  // же доменом, а не с конкретной страницей на нём.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  let res;
+  try {
+    res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        Referer: new URL(url).origin + "/",
+      },
+      signal: controller.signal,
+    });
+  } catch (e) {
+    throw new ApiError(
+      e.name === "AbortError"
+        ? "Картинка не скачалась: сервер не ответил вовремя"
+        : `Картинка не скачалась: ${e.message}`,
+      502
+    );
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new ApiError(`Картинка не скачалась: ${res.status}`, 502);
 
   const type = res.headers.get("content-type") || "";
