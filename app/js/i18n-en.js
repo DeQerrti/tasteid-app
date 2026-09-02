@@ -709,6 +709,12 @@ i18nRegister({
   "ключ v3, 32 знака": "v3 key, 32 characters",
   Книги: "Books",
   "можно забрать себе": "worth picking up",
+  "любимое у обоих": "favorites in common",
+  "В любимом": "In favorites",
+  "Любимое у вас обоих": "Favorites you both have",
+  "В любимом только у него": "In favorites, only theirs",
+  "В любимом только у вас": "In favorites, only yours",
+  "Общего любимого не нашлось.": "No favorites in common.",
   "Название…": "Name…",
   "Настройки профиля → раздел API → Request an API Key.":
     "Profile settings → API section → Request an API Key.",

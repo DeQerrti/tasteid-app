@@ -276,6 +276,24 @@ function myGradedItems() {
     }));
 }
 
+// Отдельно от myGradedItems(): любимое и оценённое — независимые
+// флаги (можно любить без оценки и оценить без пометки «любимое»),
+// а сравнение оценок и сравнение любимого ниже (compareResultHtml)
+// сопоставляют разные подмножества.
+function myFavoriteItems() {
+  return (cache.reviews || [])
+    .filter((r) => r.favorite === true)
+    .map((r) => ({
+      title: r.title,
+      type: r.type || null,
+      year: r.year || null,
+      cover: r.cover || null,
+      coverBackup: r.cover_backup || null,
+      grade: gradeToShelf(r.grade),
+      ids: r.ids,
+    }));
+}
+
 // ── Загрузка панели ────────────────────────────
 
 async function loadPassports() {
@@ -361,11 +379,36 @@ function passportIntroHtml() {
 // Чужой паспорт сам по себе: полки его шкалы, его названия и цвета.
 // Ровно то, что человек увидел бы, зайдя к нему на сайт.
 
+// Карточка тайтла в сетке «Просмотра» – одна и та же что на полке
+// (по оценке), что в отдельном разделе «Любимое» ниже: у полки и
+// раздела разный набор карточек, но сама карточка (обложка, сердце,
+// кнопка «Добавить себе», подпись) не должна разъезжаться между ними.
+function ppCardHtml(item) {
+  return `
+    <div class="pp-card" title="${esc(item.title)}">
+      ${ppPoster(item)}
+      ${item.favorite ? ppFavBadge() : ""}
+      <button class="pp-add-btn" title="${esc(i18n("Добавить себе"))}"
+        onclick="addFromPassport(${registerAddItem(item)})">+</button>
+      <div class="pp-card-title">${esc(item.title)}</div>
+      ${ppMeta(item)}
+    </div>`;
+}
+
+function ppFavBadge() {
+  return `<span class="pp-fav-badge" title="${esc(i18n("В любимом"))}">
+    <svg width="11" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"></path>
+    </svg>
+  </span>`;
+}
+
 function guestViewHtml() {
   ppAddQueue = [];
   const info = makeGradeInfo(guestPassport.gradeScale);
   const items = guestPassport.items;
   const graded = items.filter((i) => i.grade);
+  const favorites = items.filter((i) => i.favorite);
 
   const byType = {};
   for (const item of items) {
@@ -381,12 +424,14 @@ function guestViewHtml() {
   const summary = `<div class="pp-summary">
     ${ppStat(items.length, i18n("тайтлов"))}
     ${ppStat(graded.length, i18n("с оценкой"))}
-    ${ppStat(items.filter((i) => i.favorite).length, i18n("в любимом"))}
+    ${ppStat(favorites.length, i18n("в любимом"))}
     ${ppStat(info.shelves.length, i18n("полок в шкале"))}
   </div>
   ${topTypes ? `<p class="pp-types">${esc(topTypes)}</p>` : ""}`;
 
-  // По полкам сверху вниз – получается его тир-лист.
+  // По полкам сверху вниз – получается его тир-лист. Сердце на обложке
+  // (ppCardHtml) отмечает те же самые тайтлы, что попадут ниже в
+  // «Любимое», – видно сразу, не сверяясь с отдельным списком.
   const shelves = info.shelves.map((shelf) => {
     const inShelf = graded.filter((i) => i.grade === shelf.key);
     if (!inShelf.length) return "";
@@ -397,26 +442,33 @@ function guestViewHtml() {
         <span class="pp-shelf-count">${inShelf.length}</span>
       </div>
       <div class="pp-grid">
-        ${inShelf.map((item) => `
-          <div class="pp-card" title="${esc(item.title)}">
-            ${ppPoster(item)}
-            <button class="pp-add-btn" title="${esc(i18n("Добавить себе"))}"
-              onclick="addFromPassport(${registerAddItem(item)})">+</button>
-            <div class="pp-card-title">${esc(item.title)}</div>
-            ${ppMeta(item)}
-          </div>`).join("")}
+        ${inShelf.map(ppCardHtml).join("")}
       </div>
     </section>`;
   }).join("");
 
-  const noGrade = items.filter((i) => !i.grade);
+  // Раньше это была одна строка счётчика («Ещё 28 без оценки – только
+  // в любимом») – какие именно 28, узнать было неоткуда. Теперь это
+  // настоящий раздел с карточками, как и полки выше: сначала тайтлы,
+  // которые вдобавок оценены (у них уже есть своё сердце на полке –
+  // здесь просто дубликат карточки, чтобы всё любимое было в одном
+  // месте), затем те, что только в любимом и нигде больше.
+  const favoritesSection = favorites.length
+    ? `<section class="pp-shelf">
+        <div class="pp-shelf-head">
+          <h3 class="pp-shelf-name">${esc(i18n("Любимое"))}</h3>
+          <span class="pp-shelf-count">${favorites.length}</span>
+        </div>
+        <div class="pp-grid">
+          ${favorites.map(ppCardHtml).join("")}
+        </div>
+      </section>`
+    : "";
 
   return `<div class="pp-result">
     ${summary}
     ${shelves || `<p class="panel-intro">В этом паспорте нет ни одной оценки.</p>`}
-    ${noGrade.length
-      ? `<p class="pp-types">Ещё ${noGrade.length} без оценки – только в любимом.</p>`
-      : ""}
+    ${favoritesSection}
   </div>`;
 }
 
@@ -446,18 +498,13 @@ function ppChip(info, grade) {
 
 // ── Режим «Сравнение» ──────────────────────────
 
-function compareResultHtml() {
-  ppAddQueue = [];
-  const mine = myGradeInfo();
-  const theirs = makeGradeInfo(guestPassport.gradeScale);
-
-  const myItems = myGradedItems();
-  const theirItems = guestPassport.items.filter((i) => i.grade);
+// Сопоставление двух списков тайтлов по matchKeys() – общий шаг что
+// для оценок, что для любимого (см. их вызовы ниже). Каждый чужой
+// тайтл засчитывается не больше одного раза: без этого два моих
+// отзыва, севших на одну чужую запись, раздували бы счётчик «общих»
+// до числа большего, чем весь чужой список.
+function matchTwoSets(myItems, theirItems) {
   const theirIndex = indexByKeys(theirItems);
-
-  // Каждый чужой тайтл засчитывается не больше одного раза: без этого
-  // два моих отзыва, севших на одну чужую запись, раздували бы «смотрели
-  // оба» до числа большего, чем весь чужой паспорт.
   const claimed = new Set();
   const both = [];
   const onlyMine = [];
@@ -473,6 +520,17 @@ function compareResultHtml() {
     }
   }
   const onlyTheirs = theirItems.filter((item) => !claimed.has(item));
+  return { both, onlyMine, onlyTheirs };
+}
+
+function compareResultHtml() {
+  ppAddQueue = [];
+  const mine = myGradeInfo();
+  const theirs = makeGradeInfo(guestPassport.gradeScale);
+
+  const myItems = myGradedItems();
+  const theirItems = guestPassport.items.filter((i) => i.grade);
+  const { both, onlyMine, onlyTheirs } = matchTwoSets(myItems, theirItems);
 
   // Расхождение считаем в долях шкалы, чтобы разные шкалы были сравнимы.
   for (const pair of both) {
@@ -488,18 +546,44 @@ function compareResultHtml() {
   const avgGap = rated.length ? rated.reduce((s, p) => s + p.gap, 0) / rated.length : null;
   const accord = avgGap === null ? null : Math.round((1 - avgGap) * 100);
 
+  // Отдельно от оценок: любимое сравнивается тем же способом
+  // (matchTwoSets), но своим подмножеством – можно любить без оценки,
+  // и наоборот. gap/spор тут ни при чём, просто три списка: у обоих в
+  // любимом, только у вас, только у него (последний – с кнопкой
+  // «Добавить себе», как и «Стоит забрать себе» у оценок).
+  const myFavs = myFavoriteItems();
+  const theirFavs = guestPassport.items.filter((i) => i.favorite);
+  const favMatch = matchTwoSets(myFavs, theirFavs);
+
   return `<div class="pp-result">
     <div class="pp-summary">
       ${ppStat(both.length, i18n("смотрели оба"))}
       ${ppStat(accord === null ? "–" : accord + "%", i18n("совпадение вкусов"))}
       ${ppStat(argued.length, i18n("заметных споров"))}
       ${ppStat(onlyTheirs.length, i18n("можно забрать себе"))}
+      ${ppStat(favMatch.both.length, i18n("любимое у обоих"))}
     </div>
     ${comparePairsHtml(i18n("Где разошлись"), argued, mine, theirs, i18n("Полное согласие – спорить не о чем."))}
     ${comparePairsHtml(i18n("Где сошлись"), agreed, mine, theirs, i18n("Общих оценок не нашлось."))}
     ${compareOneSidedHtml(i18n("Стоит забрать себе"), onlyTheirs, theirs, true)}
     ${compareOneSidedHtml(i18n("Только у вас"), onlyMine, mine)}
+    ${bothFavoritesHtml(favMatch.both)}
+    ${compareOneSidedHtml(i18n("В любимом только у него"), favMatch.onlyTheirs, theirs, true)}
+    ${compareOneSidedHtml(i18n("В любимом только у вас"), favMatch.onlyMine, mine)}
   </div>`;
+}
+
+function bothFavoritesHtml(pairs) {
+  const rows = pairs.map((pair) => `
+    <div class="pp-row">
+      ${ppPoster(pair.mine)}
+      <div class="pp-body">
+        <div class="pp-title">${esc(pair.mine.title)}</div>
+        ${ppMeta(pair.mine)}
+      </div>
+    </div>`).join("");
+
+  return ppSection(i18n("Любимое у вас обоих"), rows, i18n("Общего любимого не нашлось."));
 }
 
 function comparePairsHtml(title, pairs, mine, theirs, emptyText) {
@@ -684,6 +768,16 @@ function passportStyles() {
       gap: .6rem;
     }
     .pp-card { min-width: 0; position: relative; }
+    .pp-fav-badge {
+      position: absolute; top: 0; left: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: .3rem .35rem;
+      background: var(--badge-bg, var(--poster-scrim));
+      backdrop-filter: blur(8px);
+      border-radius: 0 var(--radius-btn, 0px) var(--radius-btn, 0px) 0;
+      color: var(--red-hi);
+      z-index: 3;
+    }
     .pp-add-btn {
       position: absolute; top: .3rem; right: .3rem;
       width: 22px; height: 22px; line-height: 20px; text-align: center;
