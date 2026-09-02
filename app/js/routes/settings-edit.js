@@ -380,6 +380,22 @@ function settingsViewHtml() {
         </div>
         <div class="status-msg" id="status-recompress"></div>
 
+        <!-- Отдельная история от сжатия выше: не про размер файла, а
+             про то, что файл вообще больше никому не нужен – отзыв,
+             для которого он был обложкой, давно удалён, а файл всё
+             это время оставался лежать в covers/covers-backup. -->
+        <p class="panel-intro" data-i18n>
+          Отдельно от размера – бывают и вовсе ненужные файлы: отзыв
+          удалён, а его обложка осталась лежать на диске. Эта кнопка
+          только показывает, сколько таких файлов и места они занимают
+          – удаление отдельным шагом, только если сами захотите.
+        </p>
+        <div class="row" style="gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" id="btn-find-orphans" onclick="findOrphanCoversNow()" data-i18n>Проверить оставленные копии</button>
+          <button class="btn btn-ghost hidden" id="btn-delete-orphans" onclick="deleteOrphanCoversNow()" data-i18n>Удалить найденное</button>
+        </div>
+        <div class="status-msg" id="status-orphans"></div>
+
         <h2 class="section-h" data-i18n>Язык</h2>
         <div class="row">
           <div style="flex:0 0 220px;">

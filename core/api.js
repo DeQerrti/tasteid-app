@@ -536,6 +536,50 @@ async function recompressCovers({ vault, compressImage }) {
   return { ok: true, total: targets.length, compressed: compressedCount, failed, savedBytes };
 }
 
+// ── Обложки, оставшиеся без отзыва ──────────────
+// Автобэкап и ручная загрузка (js/routes/add.js) сами чистят за собой
+// при замене или стирании ссылки внутри одной правки (см.
+// discardScratchCoverBackup/originalCoverBackup), но это не ловит
+// более старый случай: отзыв целиком удалён, а файл его обложки в
+// covers/ или covers-backup/ остался лежать – раньше такой чистки не
+// было вовсе. Ищем то, на что ни один отзыв в reviews.json больше не
+// ссылается, и оставляем решение удалять или нет человеку – это
+// делает удаление, а данные молча не воскресишь.
+async function findOrphanCovers({ vault }) {
+  const reviews = await vault.readJson("reviews.json", []);
+  const referenced = new Set(
+    reviews.filter((r) => r.cover_backup).map((r) => String(r.cover_backup).replace(/^\/+/, ""))
+  );
+
+  const all = await vault.listAllMedia();
+  const candidates = all.filter((p) => p.startsWith("covers/") || p.startsWith("covers-backup/"));
+  const orphans = candidates.filter((p) => !referenced.has(p));
+
+  let totalBytes = 0;
+  for (const relPath of orphans) {
+    try {
+      totalBytes += base64ToBuffer(await vault.readMedia(relPath)).length;
+    } catch {
+      // файл мог исчезнуть между listAllMedia и чтением – пропускаем
+    }
+  }
+
+  return { ok: true, orphans, totalBytes };
+}
+
+const ORPHAN_COVER_PATH = /^(covers|covers-backup)\/[^/]+$/;
+
+async function deleteOrphanCovers({ vault, body }) {
+  const paths = Array.isArray(body.paths) ? body.paths : [];
+  let deleted = 0;
+  for (const relPath of paths) {
+    if (!ORPHAN_COVER_PATH.test(relPath)) continue;
+    await vault.deleteMedia(relPath);
+    deleted++;
+  }
+  return { ok: true, deleted };
+}
+
 // ── Настройки ──────────────────────────────────
 
 async function getSiteSettings({ vault }) {
@@ -758,6 +802,8 @@ export const ROUTES = {
   "POST /api/backup-cover": backupCover,
   "POST /api/delete-media": deleteMedia,
   "POST /api/recompress-covers": recompressCovers,
+  "POST /api/find-orphan-covers": findOrphanCovers,
+  "POST /api/delete-orphan-covers": deleteOrphanCovers,
   "POST /api/restore-file-version": restoreFileVersion,
   "POST /api/clear-file-history": clearFileHistory,
   "POST /api/prune-history": pruneHistory,

@@ -1277,6 +1277,15 @@ i18nRegister({
   "Сжато {count} из {total}, освобождено {mb} МБ – {failed} не удалось.":
     "Compressed {count} of {total}, freed {mb} MB – {failed} failed.",
   "Не получилось:": "Couldn't do it:",
+  "Отдельно от размера – бывают и вовсе ненужные файлы: отзыв удалён, а его обложка осталась лежать на диске. Эта кнопка только показывает, сколько таких файлов и места они занимают – удаление отдельным шагом, только если сами захотите.":
+    "Separately from size – some files are simply no longer needed at all: a review got deleted, and its cover stayed on disk. This button only shows how many such files there are and how much space they take – deleting is a separate step, only if you choose to.",
+  "Проверить оставленные копии": "Check for leftover copies",
+  "Удалить найденное": "Delete what was found",
+  "Оставленных копий не найдено.": "No leftover copies found.",
+  "Найдено {count} файлов без отзыва, {mb} МБ.": "Found {count} files with no review, {mb} MB.",
+  "Удалить {count} файлов без отзыва? Это действие нельзя отменить.":
+    "Delete {count} files with no review? This can't be undone.",
+  "Удалено файлов: {count}.": "Files deleted: {count}.",
 });
 
 // ── Синхронизация: пояснения для новичков ──────

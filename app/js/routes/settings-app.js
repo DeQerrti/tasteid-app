@@ -150,6 +150,77 @@ async function recompressCoversNow() {
   }
 }
 
+// ── Обложки, оставшиеся без отзыва ──────────────
+// Найденное держим здесь между "проверить" и "удалить" – список путей
+// нужен только что найденный, второй запрос за ним же не имеет смысла,
+// а держать его в скрытом поле формы ради этого было бы лишним.
+let foundOrphanCovers = null;
+
+async function findOrphanCoversNow() {
+  const findBtn = document.getElementById("btn-find-orphans");
+  const deleteBtn = document.getElementById("btn-delete-orphans");
+  deleteBtn.classList.add("hidden");
+  foundOrphanCovers = null;
+  if (findBtn) findBtn.disabled = true;
+  flashStatus("status-orphans", true, i18n("Проверяем…"));
+  try {
+    const res = await fetch("/api/find-orphan-covers", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Ошибка ${res.status}`);
+
+    if (data.orphans.length === 0) {
+      flashStatus("status-orphans", true, i18n("Оставленных копий не найдено."));
+    } else {
+      foundOrphanCovers = data.orphans;
+      const mb = (data.totalBytes / 1024 / 1024).toFixed(1);
+      flashStatus(
+        "status-orphans",
+        true,
+        i18n("Найдено {count} файлов без отзыва, {mb} МБ.", { count: data.orphans.length, mb })
+      );
+      deleteBtn.classList.remove("hidden");
+    }
+  } catch (e) {
+    flashStatus("status-orphans", false, i18n("Не получилось: ") + e.message);
+  } finally {
+    if (findBtn) findBtn.disabled = false;
+  }
+}
+
+async function deleteOrphanCoversNow() {
+  if (!foundOrphanCovers?.length) return;
+  if (
+    !(await confirmDialog(
+      i18n("Удалить {count} файлов без отзыва? Это действие нельзя отменить.", {
+        count: foundOrphanCovers.length,
+      }),
+      i18n("Удалить")
+    ))
+  ) {
+    return;
+  }
+
+  const deleteBtn = document.getElementById("btn-delete-orphans");
+  if (deleteBtn) deleteBtn.disabled = true;
+  flashStatus("status-orphans", true, i18n("Удаляем…"));
+  try {
+    const res = await fetch("/api/delete-orphan-covers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paths: foundOrphanCovers }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Ошибка ${res.status}`);
+    flashStatus("status-orphans", true, i18n("Удалено файлов: {count}.", { count: data.deleted }));
+    foundOrphanCovers = null;
+    deleteBtn?.classList.add("hidden");
+  } catch (e) {
+    flashStatus("status-orphans", false, i18n("Не получилось: ") + e.message);
+  } finally {
+    if (deleteBtn) deleteBtn.disabled = false;
+  }
+}
+
 // ── Панель «Хранилища» ─────────────────────────
 // Список {id, name} приходит из appInfo (тот же /api/app/info, что
 // уже дёргает detectApp()) – отдельного запроса не нужно, разве что
