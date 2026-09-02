@@ -223,6 +223,7 @@ async function saveSettings() {
     statusOrder: statusOrderedKeys(),
     tierCollections,
     hiddenTierModes: [...hiddenTierModesState],
+    tierModeOrder: tierModeOrderedKeys(),
     hiddenFavSections: [...hiddenFavSectionsState],
     removedFavSections: [...removedFavSections],
     favSectionOrder: favSectionOrderState,

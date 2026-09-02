@@ -775,8 +775,8 @@ i18nRegister({
   "Разделы вкладки «{name}»": "Sections of the “{name}” tab",
   "Вернуть «Персонажи»": "Restore “Characters”",
   "Новое название тир-листа:": "New tier list name:",
-  "Свои тир-листы (коллекции) теперь заводятся, переименовываются и удаляются прямо на вкладке «Тир-лист» – кнопкой «Создать» и значками рядом с каждым тир-листом.":
-    "Your own tier lists (collections) are now created, renamed, and deleted right on the Tier List tab – with the “Create” button and the icons next to each one.",
+  "Здесь можно скрыть, переименовать, удалить и переставить местами все тир-листы разом – «Тайтлы» и свои коллекции. Завести новый тир-лист по-прежнему проще кнопкой «Создать» на самой вкладке «Тир-лист».":
+    "Here you can hide, rename, delete, and reorder all tier lists at once – “Titles” and your own collections. Creating a new one is still easiest with the “Create” button on the Tier List tab itself.",
   "Что показать на картинке?": "What should be on the image?",
   "Только тайтлы": "Titles only",
   "Только персонажи и персоны": "Characters and persons only",

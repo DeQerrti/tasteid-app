@@ -367,6 +367,8 @@ const sharedBrowserGlobals = [
   "textScale",
   "themeColors",
   "tierCollections",
+  "tierModeOrderState",
+  "tierModeOrderedKeys",
   "tierTitlesLabel",
   "toggleCollectionEdit",
   "toggleFavCollectionEdit",

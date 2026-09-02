@@ -164,34 +164,55 @@ function tlRender() {
   tlBindAll();
 }
 
+// Порядок кнопок "Тайтлы"/коллекции – настраивается в /settings-edit
+// (вкладка «Вкладки», раздел «Тир-листы»: там же можно и скрыть, и
+// переименовать, и удалить). window.SITE_TIER_MODE_ORDER – тот же
+// список ключей ("titles" + id коллекций), что сохраняет та панель;
+// новый или ещё не встречавшийся ключ (только что созданная коллекция,
+// первый запуск без настроек) достраивается в конец, а не теряется.
+function tlOrderedModeKeys() {
+  const known = ["titles", ...activeTierCollections().map((c) => c.id)];
+  const saved = Array.isArray(window.SITE_TIER_MODE_ORDER)
+    ? window.SITE_TIER_MODE_ORDER.filter((k) => known.includes(k))
+    : [];
+  const missing = known.filter((k) => !saved.includes(k));
+  return [...saved, ...missing];
+}
+
 function tlModeToggleHtml() {
   // c.label || c.id – как в tlCharsHtml и в обработчике переключения
   // чуть ниже. Коллекция без подписи (запись, пришедшая из чужой
   // резервной копии или поправленная руками в site-settings.json)
   // давала пустую кнопку: нажимать вроде и есть на что, а что это –
   // непонятно. Id хотя бы читается. Переименование/удаление самой
-  // коллекции – внутри её же редактора (js/routes/chars-edit.js,
-  // renameCurrentCollection/deleteCurrentCollection), не здесь.
-  const collectionBtns = visibleTierCollections().map(c =>
-    `<button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label || c.id)}</button>`
-  ).join("");
+  // коллекции – в /settings-edit или внутри её же редактора
+  // (js/routes/chars-edit.js, renameCurrentCollection/deleteCurrentCollection).
+  const collections = activeTierCollections();
+  const modeBtns = tlOrderedModeKeys()
+    .map((key) => {
+      if (key === "titles") {
+        if (!isTierModeVisible("titles")) return "";
+        return `<button class="tl-mode-btn${tlState.mode === "titles" ? " active" : ""}" data-mode="titles">${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}</button>`;
+      }
+      if (!isTierModeVisible(key)) return "";
+      const c = collections.find((x) => x.id === key);
+      if (!c) return "";
+      return `<button class="tl-mode-btn${tlState.mode === c.id ? " active" : ""}" data-mode="${esc(c.id)}">${esc(c.label || c.id)}</button>`;
+    })
+    .join("");
   const addBtn = isAdmin()
     ? `<button class="tl-mode-add-btn" id="tl-add-collection-btn" type="button" title="${i18n("Новый тир-лист")}">${i18n("Создать")}</button>`
     : "";
-  const titlesBtn = isTierModeVisible("titles")
-    ? `<button class="tl-mode-btn${tlState.mode === "titles" ? " active" : ""}" data-mode="titles">${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}</button>`
-    : "";
   // "Персонажи" встроены изначально, но не запись в tierCollections –
   // как только конфиг существует и её там нет, это значит её удалили
-  // из редактора (deleteCurrentCollection в chars-edit.js): показываем
-  // возврат, как и у разделов "Любимого".
+  // (deleteCurrentCollection в chars-edit.js или /settings-edit):
+  // показываем возврат, как и у разделов "Любимого".
   const restoreBtn =
     isAdmin() && Array.isArray(window.SITE_TIER_COLLECTIONS) && !window.SITE_TIER_COLLECTIONS.some((c) => c.id === "characters")
       ? `<button class="tl-mode-add-btn" type="button" onclick="restoreBuiltinTierCollection()">${i18n("Вернуть «Персонажи»")} ↺</button>`
       : "";
   return `<div class="tl-mode-toggle">
-    ${titlesBtn}
-    ${collectionBtns}
+    ${modeBtns}
     ${addBtn}
     ${restoreBtn}
   </div>`;

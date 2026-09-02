@@ -87,19 +87,23 @@ async function loadCurrentSettings() {
 
   tierTitlesLabel = (labels.sections && labels.sections.tierTitles) || i18n("Тайтлы");
   hiddenTierModesState = new Set(settings.hiddenTierModes || []);
-  renderTierModesList();
 
-  // Коллекции тир-листов заводятся, переименовываются и удаляются
-  // теперь прямо на вкладке «Тир-лист» (js/tierlist.js, через
-  // patchSiteSettings – своё чтение-запись на каждое действие, без
-  // риска затереть). Здесь только сквозной провоз значения: /settings-
-  // edit сохраняет весь объект настроек разом (см. saveSettings), и
-  // без этого поля следующее же сохранение любой другой панели тихо
-  // стёрло бы все свои тир-листы. undefined, если настроек ещё не
-  // было, – JSON.stringify его не запишет, а не превратит в [].
+  // activeTierCollections() – тот же запасной вариант ([{id:"characters"}]),
+  // что использует и сама вкладка «Тир-лист» (js/tierlist.js), пока
+  // настроек ещё не было: показать в списке нечего материализовать
+  // самим, раз показывать всё равно придётся встроенную «Персонажи».
   tierCollections = Array.isArray(settings.tierCollections)
     ? JSON.parse(JSON.stringify(settings.tierCollections))
-    : undefined;
+    : activeTierCollections();
+  {
+    const knownTier = ["titles", ...tierCollections.map((c) => c.id)];
+    const savedTierOrder = Array.isArray(settings.tierModeOrder)
+      ? settings.tierModeOrder.filter((k) => knownTier.includes(k))
+      : [];
+    const missingTier = knownTier.filter((k) => !savedTierOrder.includes(k));
+    tierModeOrderState = [...savedTierOrder, ...missingTier];
+  }
+  renderTierModesList();
 
   favSectionLabels = {
     favTitles: (labels.sections && labels.sections.favTitles) || i18n("Тайтлы"),

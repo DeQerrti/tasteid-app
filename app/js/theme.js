@@ -269,6 +269,7 @@ async function applyTheme() {
   window.SITE_HIDDEN_FAV_SECTIONS = new Set(settings.hiddenFavSections || []);
   window.SITE_FAV_SECTION_ORDER = Array.isArray(settings.favSectionOrder) ? settings.favSectionOrder : null;
   window.SITE_HIDDEN_TIER_MODES = new Set(settings.hiddenTierModes || []);
+  window.SITE_TIER_MODE_ORDER = Array.isArray(settings.tierModeOrder) ? settings.tierModeOrder : null;
   // Дальше идёт работа с DOM – ждём, пока разметка вообще появится.
   // Цвета выше применяются сразу, не дожидаясь этого, иначе будет
   // видно мигание темы по умолчанию.
