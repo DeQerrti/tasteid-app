@@ -39,6 +39,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROUTES, ApiError } from "../core/api.js";
 import { MIME, VAULT_FILES, VAULT_DIRS, resolveInside } from "./server.js";
+import { compressImage } from "./image.js";
 
 export const SCHEME = "app";
 
@@ -152,7 +153,7 @@ export function createHandler({ appDir, getVault, appRoutes = {}, getLang }) {
         if (!vault) return json({ error: "Хранилище не выбрано" }, { status: 503 });
 
         const body = request.method === "POST" ? await readJsonBody(request) : {};
-        const run = () => handler({ vault, body, query: url.searchParams });
+        const run = () => handler({ vault, body, query: url.searchParams, compressImage });
         const result = request.method === "POST" ? await inQueue(run) : await run();
         return json(result);
       }

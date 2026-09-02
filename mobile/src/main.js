@@ -265,6 +265,43 @@ function seedLangCookie() {
   document.cookie = "tasteid_ui=1; path=/";
 }
 
+// ── Сжатие резервных копий обложек ──────────────
+// Тот же приём, что уже год как используют add.js/chars-edit.js/
+// favorites-edit.js для своих загруженных файлов (canvas → webp, макс.
+// 1200px, качество 0.85), только здесь для core/api.js: backupCover(),
+// который качает обложку по внешней ссылке сам и раньше сохранял её
+// как есть, без сжатия. На компьютере тот же интерфейс собирает sharp
+// (нативный модуль, см. electron/image.js) – его нельзя затянуть сюда,
+// в мобильный мост, который esbuild собирает в один файл для WebView,
+// но здесь и не нужно: то же самое умеет обычный canvas браузера.
+async function compressImage(bytes, contentType) {
+  const blob = new Blob([bytes], { type: contentType || "image/png" });
+  const bitmap = await createImageBitmap(blob);
+  try {
+    let { width, height } = bitmap;
+    const maxSide = Math.max(width, height);
+    if (maxSide > 1200) {
+      const scale = 1200 / maxSide;
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+    const outBlob = await new Promise((resolve, reject) =>
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Не удалось сконвертировать"))),
+        "image/webp",
+        0.85
+      )
+    );
+    return { bytes: new Uint8Array(await outBlob.arrayBuffer()), ext: "webp" };
+  } finally {
+    bitmap.close();
+  }
+}
+
 // ── Перехват запросов ──────────────────────────
 
 function jsonResponse(data, status = 200) {
@@ -292,7 +329,7 @@ async function handle(pathname, search, init) {
     if (!handler) return jsonResponse({ error: "Not Found" }, 404);
     try {
       const query = new URLSearchParams(search || "");
-      return jsonResponse((await handler({ vault, body, query })) || { ok: true });
+      return jsonResponse((await handler({ vault, body, query, compressImage })) || { ok: true });
     } catch (e) {
       return jsonResponse({ error: e.message }, e instanceof ApiError ? e.status : 500);
     }

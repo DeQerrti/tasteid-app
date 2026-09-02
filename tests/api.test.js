@@ -8,6 +8,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import http from "node:http";
+import sharp from "sharp";
 import { Vault } from "../electron/vault.js";
 import { createServer, listen } from "../electron/server.js";
 
@@ -573,16 +574,24 @@ test("страницы приложения отдаются, красивые �
 // действительно посылает заголовки, похожие на настоящий браузер, и
 // сам Referer на источник картинки – заодно ловим будущий откат этого
 // фикса, если кто-то снова подставит сюда что-то похожее на бота.
-async function withImageHost(run) {
+async function withImageHost(run, { big = false } = {}) {
   let lastHeaders = null;
+  // 1x1 PNG – хватает для проверки заголовков. "big" собирает
+  // настоящую крупную PNG (через sharp, тот же модуль, что и само
+  // сжатие) для проверки, что сжатие правда что-то сжимает.
+  const png = big
+    ? await sharp({
+        create: { width: 2000, height: 2000, channels: 3, background: { r: 90, g: 60, b: 150 } },
+      })
+        .png()
+        .toBuffer()
+    : Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64"
+      );
   const server = http.createServer((req, res) => {
     lastHeaders = req.headers;
     if (req.url === "/hang") return; // никогда не отвечаем
-    // 1x1 PNG
-    const png = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-      "base64"
-    );
     res.writeHead(200, { "Content-Type": "image/png" });
     res.end(png);
   });
@@ -619,6 +628,34 @@ test("резервная копия скачивается с настоящим
       );
     });
   });
+});
+
+test("резервная копия обложки по ссылке сжимается в webp", async () => {
+  // Раньше backupCover() сохранял обложку ровно в том виде, в каком её
+  // отдал источник, – без сжатия и без пересборки, в отличие от ручной
+  // загрузки файла (add.js/chars-edit.js/favorites-edit.js уже год как
+  // сжимают в браузере тем же canvas → webp). Синтетический PNG заведомо
+  // сжимаемый: сплошной цвет, крупнее лимита в 1200px по стороне.
+  await withImageHost(
+    async ({ port }) => {
+      await withServer(async ({ api, root }) => {
+        const { status, data } = await api("POST", "/api/backup-cover", {
+          url: `http://127.0.0.1:${port}/cover.png`,
+          filename: "big-cover",
+        });
+        assert.equal(status, 200);
+        assert.equal(data.ok, true);
+        assert.equal(data.url, "/covers-backup/big-cover.webp", "сохранено как webp, а не png");
+
+        const saved = await fs.readFile(path.join(root, "covers-backup", "big-cover.webp"));
+        assert.ok(
+          saved.length < 5000,
+          `сжатый файл заметно меньше исходного (${saved.length} байт)`
+        );
+      });
+    },
+    { big: true }
+  );
 });
 
 test("зависший источник картинки не вешает запрос навсегда", async () => {

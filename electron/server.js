@@ -30,6 +30,7 @@ import { promises as fs, createReadStream } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROUTES, ApiError } from "../core/api.js";
+import { compressImage } from "./image.js";
 
 export const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -181,7 +182,7 @@ export function createServer({ appDir, getVault, appRoutes = {}, getLang }) {
         if (!vault) return sendJson(res, { error: "Хранилище не выбрано" }, 503);
 
         const body = req.method === "POST" ? await readBody(req) : {};
-        const run = () => handler({ vault, body, query: url.searchParams });
+        const run = () => handler({ vault, body, query: url.searchParams, compressImage });
         const result = req.method === "POST" ? await inQueue(run) : await run();
         return sendJson(res, result);
       }

@@ -381,7 +381,7 @@ async function uploadCharImage({ vault, body }) {
 // basePath "covers"). Раньше здесь стояло "covers", и бэкап внешней
 // обложки писался в ту же папку, что ручная загрузка – перенос с
 // разъехавшимся именем сломался бы без предупреждения.
-async function backupCover({ vault, body }) {
+async function backupCover({ vault, body, compressImage }) {
   const { url, filename } = body;
   if (!url || typeof url !== "string" || !/^https?:\/\//.test(url)) {
     throw new ApiError("Нужна корректная ссылка (http/https)");
@@ -422,14 +422,32 @@ async function backupCover({ vault, body }) {
   if (!res.ok) throw new ApiError(`Картинка не скачалась: ${res.status}`, 502);
 
   const type = res.headers.get("content-type") || "";
-  const ext = /png/.test(type)
+  let ext = /png/.test(type)
     ? "png"
     : /webp/.test(type)
       ? "webp"
       : /gif/.test(type)
         ? "gif"
         : "jpg";
-  const buffer = new Uint8Array(await res.arrayBuffer());
+  let buffer = new Uint8Array(await res.arrayBuffer());
+
+  // compressImage приходит снаружи (electron/image.js на компьютере –
+  // sharp, mobile/src/main.js на телефоне – canvas браузера): само
+  // API общее для обеих платформ, а нативный модуль sharp в мобильный
+  // бандл затянуть нельзя. gif пропускаем – анимация не переживёт
+  // перекодирование в статичный webp, лучше оставить оригинал как есть.
+  // Само сжатие – необязательный шаг: не удалось – сохраняем
+  // оригинал, как было раньше, а не роняем сохранение обложки из-за
+  // этого.
+  if (compressImage && ext !== "gif") {
+    try {
+      const compressed = await compressImage(buffer, type);
+      buffer = compressed.bytes;
+      ext = compressed.ext;
+    } catch {
+      // сжатие не удалось – сохраняем оригинал
+    }
+  }
 
   const saved = await vault.saveMedia("covers-backup", `${filename}.${ext}`, buffer);
   return { ok: true, url: saved };
