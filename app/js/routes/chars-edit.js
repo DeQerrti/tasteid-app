@@ -618,7 +618,11 @@ function renderEditor() {
         (l) =>
           `<button class="list-tab${l.id === list?.id ? " active" : ""}" onclick="selectList('${esc(l.id)}')">${esc(l.label)}</button>`
       )
-      .join("") + `<button class="list-tab list-tab-add" onclick="addList()">${i18n("Создать список")}</button>`;
+      .join("") +
+    `<button class="list-tab list-tab-add" onclick="addList()">${i18n("Создать список")}</button>` +
+    (list
+      ? `<button class="list-tab list-tab-del" onclick="deleteList('${esc(list.id)}')" title="${i18n("Удалить список")}">✕</button>`
+      : "");
 
   const rows = (list?.tiers || []).map((tier, ti) => renderTierRow(title, list, tier, ti)).join("");
 
@@ -626,7 +630,8 @@ function renderEditor() {
     <div class="editor-top">
       <div class="editor-title">${esc(title.title)}</div>
       <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-        ${list ? `<button class="btn btn-ghost" onclick="deleteList('${esc(list.id)}')" data-i18n>Удалить список</button>` : ""}
+        <button class="btn btn-ghost" onclick="renameCurrentCollection()" data-i18n>Переименовать тир-лист</button>
+        <button class="btn btn-ghost" onclick="deleteCurrentCollection()" data-i18n>Удалить тир-лист</button>
       </div>
     </div>
     <div class="list-tabs">${tabs}</div>
@@ -663,7 +668,6 @@ function renderTierRow(title, list, tier, ti) {
 
   return `
     <div class="tl-editor-row" draggable="true" data-list="${esc(list.id)}" data-tier="${ti}" style="--tl-color:${esc(tier.color)}">
-      <span class="tl-row-drag-handle" title="${i18n("Перетащить")}">⠿</span>
       <button class="tl-row-del" onclick="deleteTier('${esc(list.id)}',${ti})">✕</button>
       <div class="tl-editor-label">
         <div class="tl-label-dot"></div>
@@ -705,6 +709,67 @@ async function deleteList(listId) {
   activeListId = title.tierlists[0]?.id || null;
   ceDirty = true;
   renderEditor();
+}
+
+// ══ КОЛЛЕКЦИЯ (весь тир-лист, а не один список внутри тайтла) ══
+// Переименование и удаление коллекции – прямо здесь, внутри её же
+// редактора, а не на вкладке «Тир-лист» и не в /settings-edit (раньше
+// было то там, то там – теперь один раз и по месту). Встроенная
+// "characters" не исключение: activeTierCollections() возвращает её
+// только заглушкой, пока settings.tierCollections не существует,
+// поэтому переименование/удаление пишет её в site-settings.json как
+// обычную запись – после этого она ничем не отличается от своей.
+// Вернуть удалённую "characters" можно с самой вкладки «Тир-лист»
+// (restoreBuiltinTierCollection в js/tierlist.js) – там же, где кнопка
+// «Редактор» на неё и вела, пока коллекция существовала.
+async function renameCurrentCollection() {
+  const name = await promptDialog(i18n("Новое название тир-листа:"), COLLECTION_LABEL, i18n("Сохранить"));
+  if (name === null) return;
+  const newLabel = name.trim();
+  if (!newLabel || newLabel === COLLECTION_LABEL) return;
+
+  try {
+    await patchSiteSettings((settings) => {
+      settings.tierCollections = Array.isArray(settings.tierCollections) ? settings.tierCollections : activeTierCollections();
+      const entry = settings.tierCollections.find((c) => c.id === COLLECTION);
+      if (entry) entry.label = newLabel;
+      else settings.tierCollections.push({ id: COLLECTION, label: newLabel });
+    });
+    window.SITE_TIER_COLLECTIONS = activeTierCollections().map((c) => (c.id === COLLECTION ? { ...c, label: newLabel } : c));
+    COLLECTION_LABEL = newLabel;
+    document.title = `TasteID – ${i18n("Редактор")}: ${COLLECTION_LABEL}`;
+    const headerEl = document.getElementById("header-sub");
+    if (headerEl) headerEl.textContent = `${i18n("Редактор")}: ${COLLECTION_LABEL}`;
+  } catch (err) {
+    alert(err.message || i18n("Ошибка сохранения"));
+  }
+}
+
+async function deleteCurrentCollection() {
+  const file = collectionFileFor(COLLECTION);
+  if (
+    !(await confirmDialog(
+      i18n(
+        "Удалить коллекцию «{name}»?\n\nСам тир-лист останется лежать в {file}, вместе с картинками, – пропадёт только кнопка на вкладке.",
+        { name: COLLECTION_LABEL, file }
+      )
+    ))
+  ) {
+    return;
+  }
+  try {
+    await patchSiteSettings((settings) => {
+      settings.tierCollections = (Array.isArray(settings.tierCollections) ? settings.tierCollections : activeTierCollections()).filter(
+        (c) => c.id !== COLLECTION
+      );
+      settings.hiddenTierModes = (settings.hiddenTierModes || []).filter((x) => x !== COLLECTION);
+    });
+    window.SITE_TIER_COLLECTIONS = activeTierCollections().filter((c) => c.id !== COLLECTION);
+    window.SITE_HIDDEN_TIER_MODES?.delete(COLLECTION);
+    leaveRoute();
+  } catch (err) {
+    alert(err.message || i18n("Ошибка удаления"));
+  }
 }
 
 // ══ ТИРЫ ═══════════════════════════════════════

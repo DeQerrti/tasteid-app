@@ -642,6 +642,8 @@ i18nRegister({
   "Тип шкалы влияет на то, как выглядит поле оценки в форме добавления и как тайтлы раскладываются по тир-листу.":
     "The scale type decides how the rating field looks in the editor and how titles are laid out in the tier list.",
   "Тир-листы": "Tier lists",
+  "Переименовать тир-лист": "Rename tier list",
+  "Удалить тир-лист": "Delete tier list",
   "Удалить список": "Delete list",
   "Удалить этот отзыв": "Delete this review",
   "Формат (доп.)": "Format (extra)",
