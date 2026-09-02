@@ -673,7 +673,7 @@ async function tlExport(rowsId, label) {
     const canvas = await withTimeout(
       html2canvas(rows, {
         backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
-        scale: 2,
+        scale: safeCaptureScale(rows, 2),
         useCORS: true,
         allowTaint: false,
         logging: false,

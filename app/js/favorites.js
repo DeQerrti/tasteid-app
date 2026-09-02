@@ -377,7 +377,7 @@ async function favExport(sectionIds) {
     const canvas = await withTimeout(
       html2canvas(wrap, {
         backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
-        scale: 2,
+        scale: safeCaptureScale(wrap, 2),
         useCORS: true,
         allowTaint: false,
         logging: false,

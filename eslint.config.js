@@ -229,6 +229,7 @@ const sharedBrowserGlobals = [
   "rvBindCardClicks",
   "rvLastFiltered",
   "rvState",
+  "safeCaptureScale",
   "saveCollapsed",
   "saveSettings",
   "saveTmdbKey",

@@ -491,7 +491,7 @@ async function statsExport() {
     const canvas = await withTimeout(
       html2canvas(grid, {
         backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
-        scale: 2,
+        scale: safeCaptureScale(grid, 2),
         useCORS: true,
         allowTaint: false,
         logging: false,
