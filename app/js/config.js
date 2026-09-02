@@ -64,6 +64,19 @@ async function proxyImagesToDataUrls(container) {
 
   const origSrc = new Map();
 
+  // Большой тир-лист (сотни карточек) запускал все запросы разом,
+  // одним Promise.all без предела: браузер держит не больше 6
+  // соединений на источник разом (это касается и локального сервера
+  // тоже – ограничение на стороне браузера, не сервера), и лишние
+  // запросы просто стояли в очереди. У каждого при этом свой таймаут
+  // отсчитывался с момента вызова, а не с момента, когда он реально
+  // начал выполняться, – так что запрос №150 мог получить отказ по
+  // таймауту, вообще не успев уйти в сеть. Небольшими партиями каждый
+  // запрос реально стартует почти сразу после вызова, и таймаут снова
+  // значит то же, что и должен – "сервер не ответил", а не "не успел
+  // получить очередь".
+  const CONCURRENCY = 8;
+
   // Предел по времени – без него зависший (не отвечающий вовсе, не
   // «404», а именно молчащий) сервер вешал бы весь экспорт навсегда:
   // у fetch() своего таймаута нет. Тот же класс проблемы, что и у
@@ -88,7 +101,7 @@ async function proxyImagesToDataUrls(container) {
     });
   }
 
-  await Promise.all(toProxy.map(async ({ img, src }) => {
+  async function proxyOne({ img, src }) {
     // Если резервная копия уже когда-то скачана (см. core/api.js,
     // backupCover) – data-fallback у этой же картинки указывает прямо
     // на неё, тем же сервером, что отдаёт страницу. Берём её первой и
@@ -127,7 +140,19 @@ async function proxyImagesToDataUrls(container) {
       origSrc.set(img, src);
       img.src = placeholder;
     }
-  }));
+  }
+
+  // Свой маленький пул вместо Promise.all по всем сразу – см.
+  // комментарий у CONCURRENCY выше. Воркеров ровно CONCURRENCY штук,
+  // каждый разбирает очередь по одному, пока она не кончится.
+  let next = 0;
+  async function worker() {
+    while (next < toProxy.length) {
+      const item = toProxy[next++];
+      await proxyOne(item);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, toProxy.length) }, worker));
 
   return function restore() {
     origSrc.forEach((src, img) => { img.src = src; });
