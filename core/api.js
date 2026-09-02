@@ -540,16 +540,51 @@ async function recompressCovers({ vault, compressImage }) {
 // Автобэкап и ручная загрузка (js/routes/add.js) сами чистят за собой
 // при замене или стирании ссылки внутри одной правки (см.
 // discardScratchCoverBackup/originalCoverBackup), но это не ловит
-// более старый случай: отзыв целиком удалён, а файл его обложки в
+// более старый случай: запись целиком удалена, а файл её обложки в
 // covers/ или covers-backup/ остался лежать – раньше такой чистки не
-// было вовсе. Ищем то, на что ни один отзыв в reviews.json больше не
-// ссылается, и оставляем решение удалять или нет человеку – это
-// делает удаление, а данные молча не воскресишь.
-async function findOrphanCovers({ vault }) {
+// было вовсе. Ищем то, на что больше никто не ссылается, и оставляем
+// решение удалять или нет человеку – это делает удаление, а данные
+// молча не воскресишь.
+//
+// /api/backup-cover общий на отзывы, персонажей и любимое – все трое
+// кладут файл в один и тот же covers-backup/ (см. backupCover выше),
+// поэтому сверяться нужно со всеми тремя источниками разом: отзывами
+// (cover_backup), любимым (image_backup) и каждым тир-листом
+// персонажей – встроенным "characters" и всеми, что человек завёл сам
+// (site-settings.json: tierCollections) – там cover_backup у самого
+// тайтла и img_backup у каждого персонажа внутри.
+async function collectReferencedCoverPaths({ vault }) {
+  const referenced = new Set();
+  const addRef = (value) => {
+    if (value) referenced.add(String(value).replace(/^\/+/, ""));
+  };
+
   const reviews = await vault.readJson("reviews.json", []);
-  const referenced = new Set(
-    reviews.filter((r) => r.cover_backup).map((r) => String(r.cover_backup).replace(/^\/+/, ""))
-  );
+  for (const r of reviews) addRef(r.cover_backup);
+
+  const favorites = await vault.readJson("favorites.json", []);
+  for (const f of favorites) addRef(f.image_backup);
+
+  const settings = await vault.readJson("site-settings.json", {});
+  const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+  const collectionIds = new Set(["characters", ...collections.map((c) => c.id).filter(isSafeName)]);
+  for (const id of collectionIds) {
+    const titles = await vault.readJson(collectionFile(id), []);
+    for (const title of titles) {
+      addRef(title.cover_backup);
+      for (const list of title.tierlists || []) {
+        for (const tier of list.tiers || []) {
+          for (const ch of tier.chars || []) addRef(ch.img_backup);
+        }
+      }
+    }
+  }
+
+  return referenced;
+}
+
+async function findOrphanCovers({ vault }) {
+  const referenced = await collectReferencedCoverPaths({ vault });
 
   const all = await vault.listAllMedia();
   const candidates = all.filter((p) => p.startsWith("covers/") || p.startsWith("covers-backup/"));

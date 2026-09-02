@@ -43,6 +43,9 @@ const PNG = Buffer.from(
   "base64"
 );
 writeFileSync(join(vaultDir, "covers-backup", "used.webp"), PNG);
+writeFileSync(join(vaultDir, "covers-backup", "used-by-favorite.webp"), PNG);
+writeFileSync(join(vaultDir, "covers-backup", "used-by-character.webp"), PNG);
+writeFileSync(join(vaultDir, "covers-backup", "used-by-custom-collection.webp"), PNG);
 writeFileSync(join(vaultDir, "covers-backup", "orphan1.webp"), PNG);
 writeFileSync(join(vaultDir, "covers", "orphan2.webp"), PNG);
 
@@ -50,6 +53,45 @@ writeFileSync(join(vaultDir, "covers", "orphan2.webp"), PNG);
 writeFileSync(
   join(vaultDir, "reviews.json"),
   JSON.stringify([{ id: 1, title: "Тест", cover_backup: "/covers-backup/used.webp" }])
+);
+// /api/backup-cover общий на отзывы, любимое и персонажей — все трое
+// кладут файл в один и тот же covers-backup/. Раньше findOrphanCovers()
+// сверялся только с reviews.json и посчитал бы файлы любимого и
+// персонажей "ничьими", хотя они использовались, — эти три записи
+// проверяют именно это.
+writeFileSync(
+  join(vaultDir, "favorites.json"),
+  JSON.stringify([{ name: "Кто-то", image_backup: "/covers-backup/used-by-favorite.webp" }])
+);
+writeFileSync(
+  join(vaultDir, "characters-tier.json"),
+  JSON.stringify([
+    {
+      id: "t1",
+      title: "Тайтл",
+      tierlists: [
+        {
+          id: "t1-design",
+          tiers: [
+            {
+              name: "Топ",
+              chars: [{ name: "Герой", img_backup: "/covers-backup/used-by-character.webp" }],
+            },
+          ],
+        },
+      ],
+    },
+  ])
+);
+writeFileSync(
+  join(vaultDir, "site-settings.json"),
+  JSON.stringify({ tierCollections: [{ id: "games", label: "Игры" }] })
+);
+writeFileSync(
+  join(vaultDir, "tier-games.json"),
+  JSON.stringify([
+    { id: "g1", title: "Игра", cover_backup: "/covers-backup/used-by-custom-collection.webp" },
+  ])
 );
 
 const port = 8970;
@@ -93,7 +135,10 @@ await page.waitForFunction(
   { timeout: 5000 }
 );
 const foundText = await page.evaluate(() => document.getElementById("status-orphans").textContent);
-ok(/Найдено 2/.test(foundText), `нашёл оба ничьих файла, не тронув используемый: "${foundText}"`);
+ok(
+  /Найдено 2/.test(foundText),
+  `нашёл только оба настоящих сироты, не файлы отзыва/любимого/персонажа/своей коллекции: "${foundText}"`
+);
 ok(
   await page.evaluate(
     () => !document.getElementById("btn-delete-orphans").classList.contains("hidden")
@@ -128,7 +173,13 @@ ok(/Удалено файлов: 2/.test(deletedText), `удалил оба ни
 
 const backupFiles = readdirSync(join(vaultDir, "covers-backup"));
 const coversFiles = readdirSync(join(vaultDir, "covers"));
-ok(backupFiles.includes("used.webp"), "используемый файл в covers-backup остался");
+ok(backupFiles.includes("used.webp"), "файл отзыва остался");
+ok(backupFiles.includes("used-by-favorite.webp"), "файл любимого остался");
+ok(backupFiles.includes("used-by-character.webp"), "файл персонажа остался");
+ok(
+  backupFiles.includes("used-by-custom-collection.webp"),
+  "файл своей коллекции тир-листа остался"
+);
 ok(!backupFiles.includes("orphan1.webp"), "ничейный файл в covers-backup удалён");
 ok(!coversFiles.includes("orphan2.webp"), "ничейный файл в covers удалён");
 

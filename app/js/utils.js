@@ -68,6 +68,28 @@ document.addEventListener(
   true
 );
 
+// ── Удаление заброшенного файла обложки/картинки ────
+// Общее для add.js, chars-edit.js и favorites-edit.js: вставка новой
+// ссылки поверх старой (или прямая загрузка файла взамен ссылки)
+// раньше создавала новый файл в covers/covers-backup, а старый
+// оставался лежать на диске вечно, никем больше не используемый.
+// Каждый из трёх файлов сам решает, когда его звать (см.
+// discardScratchCoverBackup в add.js и её аналоги) – здесь только сам
+// запрос на удаление, не привязанный к конкретной форме.
+async function deleteMediaFile(relPath) {
+  if (!relPath) return;
+  try {
+    await fetch("/api/delete-media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: relPath }),
+    });
+  } catch {
+    // Не получилось – не страшно, файл просто останется на диске,
+    // как и было до этой правки.
+  }
+}
+
 // Готовые атрибуты для <img> – чтобы не расписывать data-* в каждом шаблоне.
 // Возвращает строку вида: data-fallback="…" data-placeholder="…"
 // Резервная копия подставляется только если основная ссылка вообще была:

@@ -2675,20 +2675,8 @@ async function uploadCoverFile() {
 // копия, на которую УЖЕ ссылается сохранённый отзыв, и трогать её до
 // подтверждённого сохранения новой нельзя: не сохранив правку и уйдя
 // из редактора, человек ожидает увидеть отзыв таким же, каким он был.
-async function deleteMediaFile(relPath) {
-  if (!relPath) return;
-  try {
-    await fetch("/api/delete-media", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: relPath }),
-    });
-  } catch {
-    // Не получилось – не страшно, файл просто останется на диске,
-    // как и было до этой правки.
-  }
-}
-
+// Сам запрос на удаление (deleteMediaFile) – общий с chars-edit.js и
+// favorites-edit.js, живёт в utils.js.
 function discardScratchCoverBackup() {
   const current = document.getElementById("f-cover-backup").value.trim();
   if (current && current !== originalCoverBackup) deleteMediaFile(current);

@@ -61,6 +61,7 @@ const sharedBrowserGlobals = [
   "DEFAULT_STATUS_BUCKETS",
   "defaultScoreMap",
   "defaultStatusMap",
+  "deleteMediaFile",
   "detectCsvFormat",
   "DISAGREE_THRESHOLD",
   "dateLocale",

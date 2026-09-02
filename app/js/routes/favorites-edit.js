@@ -17,6 +17,11 @@
 // ══════════════════════════════════════════════
 
 let favEditingId = null;
+// Та же страховка, что у cover_backup в js/routes/add.js: значение
+// image_backup, с которым открыта правка (null у новой записи) –
+// трогать нельзя, пока сохранение не подтвердит, что запись теперь
+// ссылается на другой файл или вообще ни на какой.
+let originalImageBackup = null;
 let allEntries = [];
 let groupLists = { character: [], person: [] };
 let orderDirty = false;
@@ -38,6 +43,7 @@ function feOn(target, type, handler, opts) {
 async function mount(container) {
   fePrevTitle = document.title;
   favEditingId = null;
+  originalImageBackup = null;
   allEntries = [];
   groupLists = { character: [], person: [] };
   orderDirty = false;
@@ -750,6 +756,7 @@ async function uploadFavImage() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
+    discardScratchImageBackup();
     document.getElementById("f-image").value = "";
     document.getElementById("f-image-backup").value = data.url;
     previewAvatar(data.url);
@@ -761,8 +768,19 @@ async function uploadFavImage() {
   }
 }
 
+// Та же логика, что discardScratchCoverBackup в js/routes/add.js: копия,
+// которую заменяет новая (или которую стирают вместе со ссылкой),
+// безопасно удалить сразу же, только если она не совпадает с
+// originalImageBackup – та уже сохранена в записи, трогать её раньше
+// подтверждённого сохранения нельзя.
+function discardScratchImageBackup() {
+  const current = document.getElementById("f-image-backup").value.trim();
+  if (current && current !== originalImageBackup) deleteMediaFile(current);
+}
+
 function scheduleBackupImage() {
   clearTimeout(backupImageTimer);
+  discardScratchImageBackup();
   document.getElementById("f-image-backup").value = "";
   backupImageTimer = setTimeout(backupImageNow, 1200);
 }
@@ -810,6 +828,7 @@ function setFavStatus(type, text) {
 
 function resetFavToNew() {
   favEditingId = null;
+  originalImageBackup = null;
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("page-subtitle").textContent = i18n("Персонажи и персоны");
   document.getElementById("btn-save").textContent = i18n("Сохранить");
@@ -833,6 +852,7 @@ function fillFavForm(r) {
   document.getElementById("f-name").value = r.name || "";
   document.getElementById("f-image").value = r.image || "";
   document.getElementById("f-image-backup").value = r.image_backup || "";
+  originalImageBackup = r.image_backup || null;
   document.getElementById("f-from").value = r.from || "";
   document.getElementById("f-type").value = r.type || "character";
   document.getElementById("f-subtype").value = r.subtype || "actor";
@@ -1092,6 +1112,14 @@ async function saveEntry() {
     const data = await res.json();
     if (res.ok) {
       setFavStatus("ok", favEditingId !== null ? `«${name}» обновлён.` : `«${name}» сохранён.`);
+      // Запись только что сохранена с другой резервной копией (или
+      // вовсе без неё) – прежняя больше никем не используется, теперь
+      // это подтверждено. См. discardScratchCoverBackup в add.js –
+      // раньше этого момента удалять было нельзя.
+      if (originalImageBackup && originalImageBackup !== entry.image_backup) {
+        deleteMediaFile(originalImageBackup);
+      }
+      originalImageBackup = entry.image_backup;
       if (favEditingId === null) resetFavToNew();
       // Тот же сброс, что при удалении и смене порядка выше.
       refreshOpenReviewsTab();

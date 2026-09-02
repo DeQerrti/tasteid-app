@@ -52,6 +52,26 @@ let editingTitleId = null;
 let dropIndicator = null;
 let backupTitleCoverTimer = null;
 let backupModalImgTimer = null;
+// Значение cover_backup/img_backup, с которым открыта правка (null у
+// новой записи) – та же страховка, что originalCoverBackup в
+// js/routes/add.js. Здесь весь тир-лист держится в памяти и пишется
+// на диск разом кнопкой «Сохранить» (saveAll), а не по одной записи
+// за раз, поэтому это ловит только замену/стирание ссылки в пределах
+// одной открытой формы – более старую копию, оставшуюся уже
+// сохранённой на диске до этой правки, найдёт «Проверить оставленные
+// копии» в настройках после того, как saveAll() запишет новую версию.
+let originalTitleCoverBackup = null;
+// Резервные копии обложки тайтла, замену которых подтвердил
+// submitTitleForm(), но которые ещё не удалены с диска: весь тир-лист
+// пишется одним запросом (saveAll), а не по одной записи, поэтому
+// удалять старый файл раньше подтверждённого ответа сервера нельзя –
+// иначе несохранённый уход из редактора стёр бы файл, на который
+// characters-tier.json (на диске) всё ещё ссылается. У персонажа
+// такой пары нет – модалка (confirmAddChar) только добавляет нового,
+// никогда не подменяет уже сохранённого, поэтому там достаточно
+// стирать саму заброшенную "черновую" копию сразу же (см.
+// scheduleBackupModalImg ниже) – ей ещё никто не успел сослаться.
+let pendingBackupCleanup = [];
 
 let COLLECTION = "characters";
 let COLLECTION_LABEL = "Персонажи";
@@ -69,6 +89,7 @@ async function mount(container, params) {
   cePrevTitle = document.title;
   foldersCache = null;
   galleryCache = {};
+  pendingBackupCleanup = [];
 
   COLLECTION = (params && params.get("collection")) || "characters";
   COLLECTION_LABEL =
@@ -383,6 +404,7 @@ function toggleNewTitleForm(show) {
 }
 
 function resetTitleForm() {
+  originalTitleCoverBackup = null;
   document.getElementById("nt-name").value = "";
   document.getElementById("nt-folder").value = "";
   document.getElementById("nt-cover").value = "";
@@ -404,8 +426,18 @@ function titleIdFromFolder(folder) {
 }
 
 // ── Резервная копия обложки тайтла по ссылке (качается на сервере) ──
+// discardScratchTitleCoverBackup – та же логика, что в js/routes/add.js:
+// копия, которую заменяет новая, безопасно удалить сразу же, только
+// если она не совпадает с originalTitleCoverBackup (уже сохранённой
+// на диске версией).
+function discardScratchTitleCoverBackup() {
+  const current = document.getElementById("nt-cover-backup").value.trim();
+  if (current && current !== originalTitleCoverBackup) deleteMediaFile(current);
+}
+
 function scheduleBackupTitleCover() {
   clearTimeout(backupTitleCoverTimer);
+  discardScratchTitleCoverBackup();
   document.getElementById("nt-cover-backup").value = "";
   backupTitleCoverTimer = setTimeout(backupTitleCoverNow, 1200);
 }
@@ -476,6 +508,7 @@ async function uploadTitleCoverFile() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
+    discardScratchTitleCoverBackup();
     document.getElementById("nt-cover").value = "";
     document.getElementById("nt-cover-backup").value = data.url;
     status.textContent = i18n("Загружено ✓");
@@ -496,6 +529,7 @@ function openEditTitleForm(e, id) {
   document.getElementById("nt-folder").value = title.folder || "";
   document.getElementById("nt-cover").value = title.cover || "";
   document.getElementById("nt-cover-backup").value = title.cover_backup || "";
+  originalTitleCoverBackup = title.cover_backup || null;
   document.getElementById("nt-cover-backup-status").textContent = "";
   document.getElementById("nt-cover-upload-status").textContent = "";
   document.getElementById("nt-cover-upload").value = "";
@@ -528,6 +562,13 @@ async function saveTitleEdit() {
 
   const title = data.find((t) => t.id === editingTitleId);
   if (!title) return;
+
+  // Старую копию удаляем не сразу, а только после того, как saveAll()
+  // подтвердит, что characters-tier.json на диске теперь ссылается на
+  // другой файл (или вовсе ни на какой) – см. pendingBackupCleanup выше.
+  if (originalTitleCoverBackup && originalTitleCoverBackup !== (coverBackup || null)) {
+    pendingBackupCleanup.push(originalTitleCoverBackup);
+  }
 
   title.title = name;
   title.folder = folder;
@@ -970,6 +1011,7 @@ function selectGalleryItem(el) {
   selectedGalleryImg = { name: el.dataset.name, url: el.dataset.url };
   document.getElementById("m-name").value = el.dataset.name;
   document.getElementById("m-img").value = "";
+  deleteMediaFile(document.getElementById("m-img-backup").value.trim());
   document.getElementById("m-img-backup").value = "";
   document.getElementById("m-img-backup-status").textContent = "";
   document.getElementById("m-img-preview").style.display = "none";
@@ -1084,6 +1126,10 @@ function closeModal() {
   document.getElementById("modal-overlay").classList.add("hidden");
   pendingTier = null;
   selectedGalleryImg = null;
+  // Закрыли, не добавив персонажа, – черновая копия, если успела
+  // создаться, никому уже не пригодится.
+  deleteMediaFile(document.getElementById("m-img-backup").value.trim());
+  document.getElementById("m-img-backup").value = "";
 }
 
 function closeModalOnOverlay(e) {
@@ -1102,6 +1148,11 @@ function previewModalImg(url) {
 // ── Резервная копия картинки персонажа по ссылке (качается на сервере) ──
 function scheduleBackupModalImg() {
   clearTimeout(backupModalImgTimer);
+  // Модалка только добавляет нового персонажа – текущее значение
+  // всегда черновое, ещё не сохранённое ни в одном тир-листе, поэтому
+  // удалить его сразу при замене ссылки безопасно (в отличие от
+  // discardScratchTitleCoverBackup, сравнивать не с чем).
+  deleteMediaFile(document.getElementById("m-img-backup").value.trim());
   document.getElementById("m-img-backup").value = "";
   backupModalImgTimer = setTimeout(backupModalImgNow, 1200);
 }
@@ -1329,6 +1380,11 @@ async function saveAll() {
       ceDirty = false;
       status.className = "status-msg ok";
       status.textContent = i18n("Сохранено.");
+      // Только теперь подтверждено, что диск больше не ссылается на
+      // старые копии обложек – раньше этого момента удалять их было
+      // нельзя (см. pendingBackupCleanup выше).
+      pendingBackupCleanup.forEach((relPath) => deleteMediaFile(relPath));
+      pendingBackupCleanup = [];
       // tlState.collections[COLLECTION] (js/tierlist.js) держит уже
       // загруженный набор персонажей/игр этой коллекции с флагом
       // loaded: true – без сброса «Тир-лист» под этим маршрутом ещё
