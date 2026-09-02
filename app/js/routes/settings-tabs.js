@@ -56,7 +56,7 @@ function renderFavSectionsList() {
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList();`)}
         <span class="tab-name" id="favsecname-${key}">${esc(label)}</span>
-        <input type="text" id="favsecinput-${key}" value="${esc(label)}">
+        <input type="text" id="favsecinput-${key}" value="${esc(label)}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${key}')">✎</button>
         <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection('${key}')">✕</button>
       </div>`;
@@ -177,7 +177,7 @@ function renderFavCollectionsList() {
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavCollectionsList();`)}
         <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
-        <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}">
+        <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavCollectionEdit('${c.id}')">✎</button>
         <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavCollection('${c.id}')">✕</button>
       </div>
@@ -439,35 +439,50 @@ function toggleTabEdit(id) {
 let archiveLabel = i18n("Архив");
 let statusBuckets = [];
 let hiddenStatusesState = new Set();
+// Порядок статусов вместе с «Архивом» – раньше архив был жёстко зашит
+// последним рядом (не перетаскивался вовсе), хотя физически ничего не
+// требует, чтобы он шёл последним: js/now.js просто рендерит статусы в
+// этом самом порядке. Теперь один общий список, архив – обычный ряд в
+// нём. statusOrderedKeys() сама достраивает порядок при рассинхроне
+// (только что заведённый статус, или загрузка настроек до того, как
+// в них появился archive) – в конец, а не молча теряет ряд.
+let statusOrderState = [];
+
+function statusOrderedKeys() {
+  const known = [...statusBuckets.map((b) => b.key), "archive"];
+  const ordered = statusOrderState.filter((k) => known.includes(k));
+  const missing = known.filter((k) => !ordered.includes(k));
+  return [...ordered, ...missing];
+}
 
 function renderStatusesList() {
   const container = document.getElementById("statusesList");
-  // «Архив» – не элемент statusBuckets (см. её же комментарий у
-  // archiveLabel выше), а фиксированный последний ряд: он не
-  // перетаскивается и не может встать выше настоящих разделов.
-  const rows = statusBuckets
-    .map(
-      (b) => `
+  const rows = statusOrderedKeys()
+    .map((key) => {
+      if (key === "archive") {
+        return `
+        <div class="tab-row" id="statusrow-archive" data-key="archive" draggable="true">
+          <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
+          ${eyeButton(hiddenStatusesState.has("archive"), `hiddenStatusesState.has('archive') ? hiddenStatusesState.delete('archive') : hiddenStatusesState.add('archive'); renderStatusesList();`)}
+          <span class="tab-name" id="statusname-archive">${archiveLabel}</span>
+          <input type="text" id="statusinput-archive" value="${archiveLabel}" onkeydown="if(event.key==='Enter')this.blur();">
+          <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('archive')">✎</button>
+        </div>`;
+      }
+      const b = statusBuckets.find((x) => x.key === key);
+      if (!b) return "";
+      return `
       <div class="tab-row" id="statusrow-${b.key}" data-key="${b.key}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList();`)}
         <span class="tab-name" id="statusname-${b.key}">${b.label}</span>
-        <input type="text" id="statusinput-${b.key}" value="${b.label}">
+        <input type="text" id="statusinput-${b.key}" value="${b.label}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('${b.key}')">✎</button>
         <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeStatusBucket('${b.key}')">✕</button>
-      </div>
-    `
-    )
+      </div>`;
+    })
     .join("");
-  const archiveRow = `
-    <div class="tab-row" id="statusrow-archive">
-      ${eyeButton(hiddenStatusesState.has("archive"), `hiddenStatusesState.has('archive') ? hiddenStatusesState.delete('archive') : hiddenStatusesState.add('archive'); renderStatusesList();`)}
-      <span class="tab-name" id="statusname-archive">${archiveLabel}</span>
-      <input type="text" id="statusinput-archive" value="${archiveLabel}">
-      <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('archive')">✎</button>
-    </div>
-  `;
-  container.innerHTML = rows + archiveRow;
+  container.innerHTML = rows;
   bindStatusesDnd();
 }
 
@@ -499,16 +514,18 @@ function bindStatusesDnd() {
 
       const srcKey = statusDragSrc.dataset.key;
       const targetKey = row.dataset.key;
-      const srcIdx = statusBuckets.findIndex((b) => b.key === srcKey);
-      let targetIdx = statusBuckets.findIndex((b) => b.key === targetKey);
+      const order = statusOrderedKeys();
+      const srcIdx = order.indexOf(srcKey);
+      let targetIdx = order.indexOf(targetKey);
       if (srcIdx === -1 || targetIdx === -1) return;
 
       const rect = row.getBoundingClientRect();
       const before = e.clientY < rect.top + rect.height / 2;
 
-      const [moved] = statusBuckets.splice(srcIdx, 1);
-      targetIdx = statusBuckets.findIndex((b) => b.key === targetKey);
-      statusBuckets.splice(before ? targetIdx : targetIdx + 1, 0, moved);
+      order.splice(srcIdx, 1);
+      targetIdx = order.indexOf(targetKey);
+      order.splice(before ? targetIdx : targetIdx + 1, 0, srcKey);
+      statusOrderState = order;
 
       renderStatusesList();
     });

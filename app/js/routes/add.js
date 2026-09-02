@@ -1599,7 +1599,7 @@ function renderTypeDropdown(n) {
       <button type="button" class="btn-new src-type-add-btn" onclick="showAddSourceTypeForm(${n})">${i18n("Добавить")}</button>
     </div>
     <div class="src-type-add-form hidden" id="src-type-add-form-${n}">
-      <input type="text" id="src-type-new-name-${n}" placeholder="${i18n("Например: Дзен")}">
+      <input type="text" id="src-type-new-name-${n}" placeholder="${i18n("Например: Дзен")}" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddSourceType(${n});}">
       <button type="button" class="btn-new" onclick="confirmAddSourceType(${n})">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="src-type-status-${n}"></div>`;
@@ -1828,11 +1828,11 @@ function renderTypePickerDropdown() {
       <button type="button" class="btn-new src-type-add-btn" onclick="showAddTypeForm()">${i18n("Добавить тип")}</button>
     </div>
     <div class="src-type-add-form hidden" id="type-picker-add-form" style="flex-direction:column;align-items:stretch;">
-      <input type="text" id="type-picker-new-name" placeholder="${i18n("Например: Артбук")}" oninput="prefillTypePlural()">
+      <input type="text" id="type-picker-new-name" placeholder="${i18n("Например: Артбук")}" oninput="prefillTypePlural()" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddType();}">
       <div style="display:flex;gap:.4rem;margin-top:.4rem;">
-        <input type="text" id="type-picker-plural-one" placeholder="${i18n("1 штука")}" style="font-size:.78rem;">
-        <input type="text" id="type-picker-plural-few" placeholder="2–4" style="font-size:.78rem;">
-        <input type="text" id="type-picker-plural-many" placeholder="5+" style="font-size:.78rem;">
+        <input type="text" id="type-picker-plural-one" placeholder="${i18n("1 штука")}" style="font-size:.78rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddType();}">
+        <input type="text" id="type-picker-plural-few" placeholder="2–4" style="font-size:.78rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddType();}">
+        <input type="text" id="type-picker-plural-many" placeholder="5+" style="font-size:.78rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddType();}">
       </div>
       <div class="hint" style="margin-top:.3rem;font-size:.68rem;">${i18n("Склонение подставилось автоматически (чёрн­овик) – поправьте, если неточно.")}</div>
       <button type="button" class="btn-new" style="margin-top:.4rem;" onclick="confirmAddType()">${i18n("Добавить")}</button>
@@ -2099,7 +2099,7 @@ function renderStatusPickerDropdown() {
       <button type="button" class="btn-new src-type-add-btn" onclick="showAddStatusForm()">${i18n("Добавить раздел")}</button>
     </div>
     <div class="src-type-add-form hidden" id="status-picker-add-form">
-      <input type="text" id="status-picker-new-name" placeholder="${i18n("Например: Перечитываю")}">
+      <input type="text" id="status-picker-new-name" placeholder="${i18n("Например: Перечитываю")}" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddStatus();}">
       <button type="button" class="btn-new" onclick="confirmAddStatus()">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="status-picker-status"></div>`;

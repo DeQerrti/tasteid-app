@@ -129,6 +129,7 @@ async function loadCurrentSettings() {
   statusBuckets = settings.statusBuckets ? JSON.parse(JSON.stringify(settings.statusBuckets)) : builtinDefaults;
   archiveLabel = statuses.archive || i18n("Архив");
   hiddenStatusesState = new Set(settings.hiddenStatuses || []);
+  statusOrderState = Array.isArray(settings.statusOrder) ? [...settings.statusOrder] : [];
   renderStatusesList();
 
   const gradeScale = settings.gradeScale || null;

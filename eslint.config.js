@@ -353,6 +353,8 @@ const sharedBrowserGlobals = [
   "settingsDirty",
   "shelves",
   "statusBuckets",
+  "statusOrderState",
+  "statusOrderedKeys",
   "subtypeLabels",
   "tabDragSrc",
   "tabLabels",

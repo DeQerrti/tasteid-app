@@ -2655,7 +2655,7 @@ section.group { margin-bottom: 3.5rem; }
     <div class="modal-title" data-i18n>Новый тир-лист</div>
     <div class="field">
       <label data-i18n>Название</label>
-      <input type="text" id="cm-collection-name" placeholder="Например: Опенинги" data-i18n-placeholder="Например: Опенинги">
+      <input type="text" id="cm-collection-name" placeholder="Например: Опенинги" data-i18n-placeholder="Например: Опенинги" onkeydown="if(event.key==='Enter'){event.preventDefault();submitNewCollection();}">
     </div>
     <button class="btn-save" id="cm-collection-save" onclick="submitNewCollection()" data-i18n>Создать</button>
     <div class="status-msg" id="collection-modal-status"></div>

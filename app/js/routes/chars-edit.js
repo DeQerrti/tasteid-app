@@ -90,15 +90,15 @@ async function mount(container, params) {
         <div class="new-title-form hidden" id="new-title-form">
           <div class="field">
             <label data-i18n>Название тайтла *</label>
-            <input type="text" id="nt-name" placeholder="Название" data-i18n-placeholder="Название">
+            <input type="text" id="nt-name" placeholder="Название" data-i18n-placeholder="Название" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleForm();}">
           </div>
           <div class="field">
             <label data-i18n>Папка по умолчанию в chars/ *</label>
-            <input type="text" id="nt-folder" placeholder="имя-папки" data-i18n-placeholder="имя-папки">
+            <input type="text" id="nt-folder" placeholder="имя-папки" data-i18n-placeholder="имя-папки" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleForm();}">
           </div>
           <div class="field">
             <label data-i18n>Обложка (URL)</label>
-            <input type="text" id="nt-cover" placeholder="https://..." oninput="scheduleBackupTitleCover()">
+            <input type="text" id="nt-cover" placeholder="https://..." oninput="scheduleBackupTitleCover()" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleForm();}">
             <input type="hidden" id="nt-cover-backup">
             <div id="nt-cover-backup-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
           </div>
@@ -635,7 +635,7 @@ function renderEditor() {
     <div class="list-tabs">${tabs}</div>
     <div class="tl-editor-rows" id="tl-editor-rows">${rows}</div>
     <div class="add-tier-row">
-      <input type="text" id="new-tier-name" placeholder="${i18n("Название нового тира")}" data-i18n-placeholder="${i18n("Название нового тира")}">
+      <input type="text" id="new-tier-name" placeholder="${i18n("Название нового тира")}" data-i18n-placeholder="${i18n("Название нового тира")}" onkeydown="if(event.key==='Enter'){event.preventDefault();addTier();}">
       <input type="color" id="new-tier-color" value="#888888" style="width:32px;height:32px;border:1px solid var(--border2);border-radius:2px;padding:2px;cursor:pointer;background:none;">
       <button class="btn btn-dashed" onclick="addTier()">${i18n("Добавить тир")}</button>
     </div>

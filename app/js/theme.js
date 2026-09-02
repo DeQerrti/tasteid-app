@@ -262,6 +262,7 @@ async function applyTheme() {
   window.SITE_GRADE_SCALE = settings.gradeScale || null;
   window.SITE_STATUS_BUCKETS = settings.statusBuckets || null;
   window.SITE_HIDDEN_STATUSES = new Set(settings.hiddenStatuses || []);
+  window.SITE_STATUS_ORDER = Array.isArray(settings.statusOrder) ? settings.statusOrder : null;
   window.SITE_TIER_COLLECTIONS = settings.tierCollections || null;
   window.SITE_FAV_COLLECTIONS = settings.favCollections || [];
   window.SITE_HIDDEN_STATS = new Set(settings.hiddenStatsBlocks || []);

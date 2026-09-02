@@ -163,7 +163,7 @@ function renderTierModesList() {
       <div class="tab-row" id="tiermoderow-titles">
         ${eyeButton(hiddenTierModesState.has("titles"), "hiddenTierModesState.has('titles') ? hiddenTierModesState.delete('titles') : hiddenTierModesState.add('titles'); renderTierModesList();")}
         <span class="tab-name" id="tiermodename-titles">${esc(tierTitlesLabel)}</span>
-        <input type="text" id="tiermodeinput-titles" value="${esc(tierTitlesLabel)}">
+        <input type="text" id="tiermodeinput-titles" value="${esc(tierTitlesLabel)}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTierModeEdit('titles')">✎</button>
       </div>
     `;

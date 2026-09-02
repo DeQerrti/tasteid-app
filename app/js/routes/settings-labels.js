@@ -220,6 +220,7 @@ async function saveSettings() {
     gradeScale,
     statusBuckets,
     hiddenStatuses,
+    statusOrder: statusOrderedKeys(),
     tierCollections,
     hiddenTierModes: [...hiddenTierModesState],
     hiddenFavSections: [...hiddenFavSectionsState],

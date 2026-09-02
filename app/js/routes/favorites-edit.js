@@ -219,7 +219,7 @@ function renderSubtypePickerDropdown() {
       <button type="button" class="btn-new src-type-add-btn" onclick="showAddSubtypeForm()">${i18n("Добавить роль")}</button>
     </div>
     <div class="src-type-add-form hidden" id="subtype-picker-add-form">
-      <input type="text" id="subtype-picker-new-name" placeholder="${i18n("Например: Продюсер")}">
+      <input type="text" id="subtype-picker-new-name" placeholder="${i18n("Например: Продюсер")}" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddSubtype();}">
       <button type="button" class="btn-new" onclick="confirmAddSubtype()">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="subtype-picker-status"></div>`;
@@ -453,7 +453,7 @@ function renderFavTypePickerDropdown() {
       <button type="button" class="btn-new src-type-add-btn" onclick="showAddFavTypeForm()">${i18n("Добавить тип")}</button>
     </div>
     <div class="src-type-add-form hidden" id="fav-type-picker-add-form">
-      <input type="text" id="fav-type-picker-new-name" placeholder="${i18n("Например: Локации")}">
+      <input type="text" id="fav-type-picker-new-name" placeholder="${i18n("Например: Локации")}" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmAddFavType();}">
       <button type="button" class="btn-new" onclick="confirmAddFavType()">${i18n("Ок")}</button>
     </div>
     <div class="status-msg src-type-status" id="fav-type-picker-status"></div>`;

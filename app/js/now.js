@@ -86,6 +86,48 @@ function toggleSection(id) {
   saveCollapsed(collapsed);
 }
 
+// «Архив» – группируем по году. Не элемент activeStatusBuckets() (это
+// просто все завершённые, а не отдельный ручной статус), поэтому своя
+// функция, а не ещё одна запись в buckets.
+function makeArchiveSection(completed, collapsed) {
+  if (!completed.length || window.SITE_HIDDEN_STATUSES?.has("archive")) return "";
+
+  const sorted = [...completed].sort((a, b) => {
+    const da = new Date(a.date_end || a.date_start || a.date || 0);
+    const db = new Date(b.date_end || b.date_start || b.date || 0);
+    return db - da;
+  });
+  const byYear = {};
+  for (const r of sorted) {
+    const raw = r.date_end || r.date_start || r.date;
+    const y = raw ? new Date(raw).getFullYear() : "–";
+    if (!byYear[y]) byYear[y] = [];
+    byYear[y].push(r);
+  }
+
+  const isCollapsed = collapsed.has("archive");
+  let archiveInner = "";
+  for (const year of Object.keys(byYear).sort((a, b) => b - a)) {
+    archiveInner += `<div class="year-divider">${esc(String(year))}</div>
+      <div class="grid-now">
+        ${byYear[year].map((r, i) => manualCard(r, i)).join("")}
+      </div>`;
+  }
+
+  return `
+    <section class="group now-section" data-section="archive">
+      <div class="now-section-header" onclick="toggleSection('archive')">
+        <h2 class="section-title" style="margin-bottom:0;cursor:pointer;user-select:none">
+          ${esc(siteLabel("statuses", "archive", i18n("Архив")))}
+          <span class="section-count">${completed.length}</span>
+        </h2>
+      </div>
+      <div class="now-section-body${isCollapsed ? " hidden" : ""}">
+        ${archiveInner}
+      </div>
+    </section>`;
+}
+
 function renderNow({ buckets, completed }) {
   const box = document.getElementById("tab-now");
   const collapsed = getCollapsed();
@@ -121,48 +163,30 @@ function renderNow({ buckets, completed }) {
   // на пустых данных вкладка оставалась просто белым листом.
   let sections = "";
 
+  // Порядок статусов вместе с «Архивом» – настраивается в /settings-edit
+  // перетаскиванием (statusOrderState там же): «Архив» раньше был
+  // жёстко зашит последним, теперь может стоять где угодно.
+  // window.SITE_STATUS_ORDER = null, пока настроек ещё не было.
+  const bucketsByKey = Object.fromEntries(buckets.map((b) => [b.key, b]));
+  const order = window.SITE_STATUS_ORDER || [...buckets.map((b) => b.key), "archive"];
+  const seen = new Set();
+  for (const key of order) {
+    seen.add(key);
+    if (window.SITE_HIDDEN_STATUSES?.has(key)) continue;
+    if (key === "archive") {
+      sections += makeArchiveSection(completed, collapsed);
+    } else if (bucketsByKey[key]?.items.length) {
+      sections += makeSection(key, bucketsByKey[key].label, bucketsByKey[key].items, collapsed);
+    }
+  }
+  // Статус, заведённый уже после того, как порядок сохранился (или
+  // сама «Архив», если её вдруг нет в сохранённом порядке) – просто
+  // дописывается в конец, а не пропадает молча.
   for (const bucket of buckets) {
-    if (window.SITE_HIDDEN_STATUSES?.has(bucket.key)) continue;
+    if (seen.has(bucket.key) || window.SITE_HIDDEN_STATUSES?.has(bucket.key)) continue;
     if (bucket.items.length) sections += makeSection(bucket.key, bucket.label, bucket.items, collapsed);
   }
-
-  // ── Архив – группируем по году ─────────────────
-  if (completed.length && !window.SITE_HIDDEN_STATUSES?.has("archive")) {
-    const sorted = [...completed].sort((a, b) => {
-      const da = new Date(a.date_end || a.date_start || a.date || 0);
-      const db = new Date(b.date_end || b.date_start || b.date || 0);
-      return db - da;
-    });
-    const byYear = {};
-    for (const r of sorted) {
-      const raw = r.date_end || r.date_start || r.date;
-      const y   = raw ? new Date(raw).getFullYear() : "–";
-      if (!byYear[y]) byYear[y] = [];
-      byYear[y].push(r);
-    }
-
-    const isCollapsed = collapsed.has("archive");
-    let archiveInner = "";
-    for (const year of Object.keys(byYear).sort((a, b) => b - a)) {
-      archiveInner += `<div class="year-divider">${esc(String(year))}</div>
-        <div class="grid-now">
-          ${byYear[year].map((r, i) => manualCard(r, i)).join("")}
-        </div>`;
-    }
-
-    sections += `
-      <section class="group now-section" data-section="archive">
-        <div class="now-section-header" onclick="toggleSection('archive')">
-          <h2 class="section-title" style="margin-bottom:0;cursor:pointer;user-select:none">
-            ${esc(siteLabel("statuses", "archive", i18n("Архив")))}
-            <span class="section-count">${completed.length}</span>
-          </h2>
-        </div>
-        <div class="now-section-body${isCollapsed ? " hidden" : ""}">
-          ${archiveInner}
-        </div>
-      </section>`;
-  }
+  if (!seen.has("archive")) sections += makeArchiveSection(completed, collapsed);
 
   box.innerHTML = html +
     (sections || `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`);

@@ -209,7 +209,7 @@ function settingsViewHtml() {
         <h2 class="section-h" id="statusesHeading"></h2>
         <div id="statusesList"></div>
         <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новый раздел</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено"></div>
+          <div><label data-i18n>Новый раздел</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
         </div>
         <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
@@ -218,7 +218,7 @@ function settingsViewHtml() {
         <div id="favSectionsList"></div>
         <div id="favCollectionsList"></div>
         <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги"></div>
+          <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги" onkeydown="if(event.key==='Enter'){event.preventDefault();addFavCollection();}"></div>
         </div>
         <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
