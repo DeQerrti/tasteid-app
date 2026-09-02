@@ -1264,30 +1264,6 @@ i18nRegister({
     "On non-Google phones (Xiaomi/MIUI, Samsung, Huawei and similar) the manufacturer's own security app may double-check the same thing – usually called “Security” or “Phone Manager”: it's worth looking there for a similar switch if none of the above helped.",
 });
 
-// ── Настройки: пересжатие старых обложек ───────
-i18nRegister({
-  "Резервные копии обложек": "Cover backups",
-  "Обложки, скачанные по внешней ссылке, теперь сохраняются сжатыми и занимают меньше места – но те, что сохранились до этого, остались в исходном виде. Эта кнопка один раз сжимает все старые копии; новые сжимаются сами, без неё.":
-    "Covers downloaded from an external link are now saved compressed and take up less space – but ones saved before that stayed in their original form. This button compresses all the old copies once; new ones compress themselves without it.",
-  "Сжать старые обложки": "Compress old covers",
-  "Сжимаем…": "Compressing…",
-  "Сжимать нечего – все копии уже сжаты.": "Nothing to compress – all copies are already compressed.",
-  "Готово: сжато {count} из {total}, освобождено {mb} МБ.":
-    "Done: compressed {count} of {total}, freed {mb} MB.",
-  "Сжато {count} из {total}, освобождено {mb} МБ – {failed} не удалось.":
-    "Compressed {count} of {total}, freed {mb} MB – {failed} failed.",
-  "Не получилось:": "Couldn't do it:",
-  "Отдельно от размера – бывают и вовсе ненужные файлы: отзыв удалён, а его обложка осталась лежать на диске. Эта кнопка только показывает, сколько таких файлов и места они занимают – удаление отдельным шагом, только если сами захотите.":
-    "Separately from size – some files are simply no longer needed at all: a review got deleted, and its cover stayed on disk. This button only shows how many such files there are and how much space they take – deleting is a separate step, only if you choose to.",
-  "Проверить оставленные копии": "Check for leftover copies",
-  "Удалить найденное": "Delete what was found",
-  "Оставленных копий не найдено.": "No leftover copies found.",
-  "Найдено {count} файлов без отзыва, {mb} МБ.": "Found {count} files with no review, {mb} MB.",
-  "Удалить {count} файлов без отзыва? Это действие нельзя отменить.":
-    "Delete {count} files with no review? This can't be undone.",
-  "Удалено файлов: {count}.": "Files deleted: {count}.",
-});
-
 // ── Синхронизация: пояснения для новичков ──────
 i18nRegister({
   "GitHub – бесплатный сайт, на котором разработчики хранят код; здесь он просто чужое хранилище вместо своего сервера, которого у TasteID нет. Приватный (закрытый от посторонних) репозиторий на нём – общая папка для всех ваших устройств: телефон, компьютер и любое ещё устройство с этим приложением по очереди кладут туда свои изменения и забирают чужие. Токен и служебные данные синхронизации при этом остаются только на этом устройстве, на github.com уходят только сами данные приложения.":
