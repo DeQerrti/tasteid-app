@@ -121,6 +121,18 @@ async function proxyImagesToDataUrls(container) {
         const dataUrl = await fetchAsDataUrl(url);
         origSrc.set(img, src);
         img.src = dataUrl;
+        // img.src – это только "начали грузить", а не "готово". Браузер
+        // ещё должен ДЕКОДИРОВАТЬ новые байты в растр, и на сотнях
+        // картинок разом это не мгновенно – html2canvas клонирует DOM
+        // для рисования сразу после этой функции, и без явного ожидания
+        // декодирования часть карточек на большом тир-листе успевала
+        // попасть в клон ещё до того, как их новый src действительно
+        // прорисовался, и оставалась пустой на снимке. Разница между
+        // "все" (сотни карточек, decode не успевает) и одним типом
+        // (десятки, успевает всегда) – отсюда же. catch – на случай
+        // повреждённых байт, тогда просто идём дальше со старым src, не
+        // роняя весь экспорт.
+        await img.decode().catch(() => {});
         return;
       } catch (e) {
         if (url !== src) console.warn(`[proxyImagesToDataUrls] не удалось получить ${src}: ${e.message}`);
@@ -139,6 +151,7 @@ async function proxyImagesToDataUrls(container) {
     if (placeholder) {
       origSrc.set(img, src);
       img.src = placeholder;
+      await img.decode().catch(() => {});
     }
   }
 
