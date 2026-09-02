@@ -478,6 +478,64 @@ function base64ToBuffer(data) {
   return out;
 }
 
+// Обратная сторона – без Buffer тоже: btoa есть и в Node, и в
+// браузере, но принимает только строку, а строка от String.fromCharCode
+// разом на файле в несколько мегабайт может упереться в предел одного
+// вызова – переводим кусками (тот же приём, что в mobile/src/main.js
+// для скачивания apk).
+function bufferToBase64(bytes) {
+  const CHUNK = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+function guessImageContentType(relPath) {
+  if (/\.png$/i.test(relPath)) return "image/png";
+  if (/\.jpe?g$/i.test(relPath)) return "image/jpeg";
+  return "image/png";
+}
+
+// ── Пересжатие старых резервных копий обложек ──
+// backupCover() сжимает новые копии сам, но копии, сохранённые до
+// появления этой возможности, остались в исходном, несжатом виде –
+// разовый проход по уже существующим файлам тем же compressImage
+// (см. backupCover выше – что это и почему по-разному на компьютере
+// и на телефоне). webp и gif пропускаем: webp – почти наверняка уже
+// сжат этой же функцией раньше, gif – его перекодирование в статичный
+// webp потеряло бы анимацию, тут это неуместно так же, как и в
+// backupCover.
+async function recompressCovers({ vault, compressImage }) {
+  if (!compressImage) {
+    throw new ApiError("Сжатие недоступно на этой платформе");
+  }
+
+  const all = await vault.listAllMedia();
+  const targets = all.filter((p) => p.startsWith("covers-backup/") && !/\.(webp|gif)$/i.test(p));
+
+  let compressedCount = 0;
+  let failed = 0;
+  let savedBytes = 0;
+
+  for (const relPath of targets) {
+    try {
+      const before = base64ToBuffer(await vault.readMedia(relPath));
+      const { bytes, ext } = await compressImage(before, guessImageContentType(relPath));
+      const newRelPath = relPath.replace(/\.[^./]+$/, `.${ext}`);
+      await vault.writeMedia(newRelPath, bufferToBase64(bytes));
+      if (newRelPath !== relPath) await vault.deleteMedia(relPath);
+      compressedCount++;
+      savedBytes += Math.max(0, before.length - bytes.length);
+    } catch {
+      failed++;
+    }
+  }
+
+  return { ok: true, total: targets.length, compressed: compressedCount, failed, savedBytes };
+}
+
 // ── Настройки ──────────────────────────────────
 
 async function getSiteSettings({ vault }) {
@@ -699,6 +757,7 @@ export const ROUTES = {
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/backup-cover": backupCover,
   "POST /api/delete-media": deleteMedia,
+  "POST /api/recompress-covers": recompressCovers,
   "POST /api/restore-file-version": restoreFileVersion,
   "POST /api/clear-file-history": clearFileHistory,
   "POST /api/prune-history": pruneHistory,

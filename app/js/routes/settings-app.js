@@ -108,6 +108,48 @@ async function checkForUpdateNow() {
   }
 }
 
+// Разовая миграция: обложки по внешней ссылке, сохранённые до того,
+// как backupCover() научился сжимать их сам (core/api.js), остались
+// в исходном виде. /api/recompress-covers – та же самая функция
+// сжатия, только пройденная разом по всем уже существующим файлам, а
+// не по одной новой обложке за раз.
+async function recompressCoversNow() {
+  const btn = document.getElementById("btn-recompress-covers");
+  if (btn) btn.disabled = true;
+  flashStatus("status-recompress", true, i18n("Сжимаем…"));
+  try {
+    const res = await fetch("/api/recompress-covers", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Ошибка ${res.status}`);
+
+    if (data.total === 0) {
+      flashStatus("status-recompress", true, i18n("Сжимать нечего – все копии уже сжаты."));
+    } else {
+      const mb = (data.savedBytes / 1024 / 1024).toFixed(1);
+      flashStatus(
+        "status-recompress",
+        data.failed === 0,
+        data.failed === 0
+          ? i18n("Готово: сжато {count} из {total}, освобождено {mb} МБ.", {
+              count: data.compressed,
+              total: data.total,
+              mb,
+            })
+          : i18n("Сжато {count} из {total}, освобождено {mb} МБ – {failed} не удалось.", {
+              count: data.compressed,
+              total: data.total,
+              mb,
+              failed: data.failed,
+            })
+      );
+    }
+  } catch (e) {
+    flashStatus("status-recompress", false, i18n("Не получилось: ") + e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ── Панель «Хранилища» ─────────────────────────
 // Список {id, name} приходит из appInfo (тот же /api/app/info, что
 // уже дёргает detectApp()) – отдельного запроса не нужно, разве что
