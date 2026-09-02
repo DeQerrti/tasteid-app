@@ -370,6 +370,81 @@ function cameraButton(onclickExpr, id) {
   return `<button type="button" class="icon-btn"${id ? ` id="${id}"` : ""} title="${i18n("Сохранить как картинку")}" onclick="${onclickExpr}">${cameraIcon()}</button>`;
 }
 
+// ── Подготовка узла перед html2canvas ───────────
+// Общее для tlExport/statsExport/favExport: html2canvas клонирует
+// снимаемый узел в отдельный iframe – это перезапускает часы CSS-
+// анимации у клона с нуля, а не берёт уже доигранное состояние живой
+// страницы. Без отключения анимаций карточки/разделы с
+// animation: … both выходили на картинке частично прозрачными, будто
+// сохранение застало их на середине появления, хотя на самой странице
+// анимация давно закончилась. restore() возвращает как было.
+function disableAnimations(container) {
+  const animated = Array.from(container.querySelectorAll("*"));
+  const prev = animated.map((el) => el.style.animation);
+  animated.forEach((el) => {
+    el.style.animation = "none";
+  });
+  return () => {
+    animated.forEach((el, i) => {
+      el.style.animation = prev[i];
+    });
+  };
+}
+
+// Ждать, пока все картинки в узле догрузятся (или отвалятся) – с
+// пределом по времени, опросом, а не одним event-листенером. Картинки
+// с data-fallback (imgFallbackAttrs в этом же файле) при ошибке сами
+// переставляют себе src на резервную копию – это делает общий
+// перехватчик error чуть выше, capture-листенер на document, который
+// срабатывает раньше любого листенера на самой картинке. Слушать
+// «первую» ошибку и сразу считать картинку готовой было бы неверно:
+// src уже поменялся на резервную копию, но её загрузка только
+// начинается – card ушла бы на снимок недогруженной. Опрос img.complete
+// сам подхватывает каждую следующую попытку, сколько бы их ни было.
+//
+// Предел по времени нужен по другой причине: img[loading="lazy"] в
+// узле, который специально держат за пределами экрана (офскрин-
+// контейнер экспорта в js/favorites.js), браузер решает вообще не
+// грузить, пока не окажется рядом с видимой областью, – а она никогда
+// не окажется. img.complete тогда не станет true никогда, и без
+// предела ожидание зависало бы навсегда – снимок «Любимого» из-за
+// этого крутился бесконечно.
+function waitForImages(imgs, timeoutMs = 8000) {
+  return Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise((resolve) => {
+          const start = Date.now();
+          const check = () => {
+            if (img.complete || Date.now() - start > timeoutMs) {
+              resolve();
+              return;
+            }
+            setTimeout(check, 100);
+          };
+          check();
+        })
+    )
+  );
+}
+
+// Предел по времени для самого html2canvas – по отдельной причине от
+// waitForImages/fetchAsDataUrl выше: даже когда src каждой картинки
+// уже заведомо безопасен (data:-URI или заглушка), сам html2canvas
+// иногда всё равно виснет на чём-то своём внутреннем (шрифты, canvas
+// определённого размера в конкретном браузере) без единого способа
+// подсунуть ему свой таймаут изнутри библиотеки. Без внешнего предела
+// кнопка-камера крутилась бы вечно вне зависимости от того, помогли
+// ли остальные меры выше или нет, – это последняя страховка, а не
+// замена им.
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message || "Не дождались")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 // ── Тултипы [data-tip] – общий JS, а не CSS ::after ────────────────
 // Раньше подсказка у тега (.rtag) и у оценки (.grade-chip) рисовалась
 // чистым CSS: ::after с content: attr(data-tip), position: absolute

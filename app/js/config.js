@@ -64,8 +64,20 @@ async function proxyImagesToDataUrls(container) {
 
   const origSrc = new Map();
 
+  // Предел по времени – без него зависший (не отвечающий вовсе, не
+  // «404», а именно молчащий) сервер вешал бы весь экспорт навсегда:
+  // у fetch() своего таймаута нет. Тот же класс проблемы, что и у
+  // ожидания картинок в waitForImages (js/utils.js), только уже на
+  // уровне сетевого запроса, а не браузерной загрузки <img>.
   async function fetchAsDataUrl(url) {
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    let res;
+    try {
+      res = await fetch(url, { signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
     return new Promise((resolve, reject) => {
@@ -93,6 +105,20 @@ async function proxyImagesToDataUrls(container) {
       } catch (e) {
         if (url !== src) console.warn(`[proxyImagesToDataUrls] не удалось получить ${src}: ${e.message}`);
       }
+    }
+
+    // Ни прямая ссылка, ни прокси не дали картинку – src остаётся
+    // недоступным адресом, и html2canvas внутри себя попробует
+    // загрузить его сам, своим собственным (не имеющим предела по
+    // времени) запросом: недоступный или молчащий сервер повесил бы
+    // весь снимок насмерть, уже после того, как этот же цикл честно
+    // отработал со своим таймаутом. Подменяем на заглушку (та же,
+    // что показывается и на живой странице при сбое) – она всегда
+    // под рукой, это data:-URI, никуда не ходит.
+    const placeholder = img.dataset.placeholder;
+    if (placeholder) {
+      origSrc.set(img, src);
+      img.src = placeholder;
     }
   }));
 

@@ -464,21 +464,44 @@ async function statsExport() {
   }
 
   let restoreImages = () => {};
+  let restoreAnim = () => {};
   try {
     if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
+    // «Тайтл года» использует ту же карточку (manualCard), что и вся
+    // остальная лента, с loading="lazy" – см. её же комментарий у
+    // waitForImages в js/utils.js про то, почему это стоит форсировать
+    // перед снимком.
+    const imgs = Array.from(grid.querySelectorAll("img"));
+    imgs.forEach((img) => {
+      img.loading = "eager";
+    });
+    await waitForImages(imgs);
+
     restoreImages = await proxyImagesToDataUrls(grid);
 
-    const canvas = await html2canvas(grid, {
-      backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      onclone: (clonedDoc) => {
-        clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
-      },
-    });
+    // html2canvas клонирует grid в отдельный iframe – это перезапускает
+    // часы animation: fadeUp у разделов/карточек с нуля, и снимок
+    // выходил темнее живой страницы (та часть анимации, где элементы
+    // ещё не успели проявиться полностью). См. её же комментарий у
+    // disableAnimations() в js/utils.js.
+    restoreAnim = disableAnimations(grid);
+    await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+
+    const canvas = await withTimeout(
+      html2canvas(grid, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
+        },
+      }),
+      20000,
+      i18n("Не удалось создать картинку за разумное время.")
+    );
 
     const link = document.createElement("a");
     const label = statsState.year === "all" ? "all-time" : String(statsState.year);
@@ -493,6 +516,7 @@ async function statsExport() {
     alert("Не удалось создать картинку 😢\n" + err.message);
   } finally {
     restoreImages();
+    restoreAnim();
     restoreBtn();
   }
 }

@@ -538,7 +538,6 @@ i18nRegister({
     "If it took a single day, fill in only “Finished” (or use the same date twice) – the card will show one date.",
   Завершено: "Finished",
   Завершил: "Finished",
-  "Загрузить как обложку": "Upload as cover",
   "Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».":
     "The entry disappears from reviews, favorites and the tier list. You can bring it back from “Version history”.",
   "Здесь появится превью…": "The preview will appear here…",
@@ -772,6 +771,7 @@ i18nRegister({
     "Unchecking this overwrites their status and rating with the values from the export. Review texts are never affected.",
   "совпадение вкусов": "taste match",
   "Сохранить как картинку": "Save as image",
+  "Не удалось создать картинку за разумное время.": "Couldn’t create the image in reasonable time.",
   "Разделы вкладки «{name}»": "Sections of the “{name}” tab",
   "Вернуть «Персонажи»": "Restore “Characters”",
   "Новое название тир-листа:": "New tier list name:",

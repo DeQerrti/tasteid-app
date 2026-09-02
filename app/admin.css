@@ -21,6 +21,7 @@
 .app-topbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   padding: 14px 24px;
   border-bottom: 1px solid var(--border);
@@ -61,6 +62,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 @media (max-width: 700px) {
   .app-topbar { padding: 12px 16px; }

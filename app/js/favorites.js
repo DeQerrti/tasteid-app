@@ -354,31 +354,45 @@ async function favExport(sectionIds) {
   document.body.appendChild(wrap);
 
   let restoreImages = () => {};
+  let restoreAnim = () => {};
   try {
     if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
     const imgs = Array.from(wrap.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map((img) => (img.complete ? Promise.resolve() : new Promise((res) => { img.onload = img.onerror = res; })))
-    );
+    // loading="lazy" (карточки унаследовали его от обычного показа на
+    // вкладке) в контейнере, специально отодвинутом за экран, браузер
+    // решает не грузить вовсе – ждать load/error тогда бессмысленно,
+    // они никогда не придут. Снимок «Любимого» из-за этого крутился
+    // бесконечно; принудительная "eager" запускает загрузку сразу, а
+    // waitForImages всё равно не виснет насовсем, если что-то не ответит.
+    imgs.forEach((img) => {
+      img.loading = "eager";
+    });
+    await waitForImages(imgs);
 
     restoreImages = await proxyImagesToDataUrls(wrap);
+    restoreAnim = disableAnimations(wrap);
+    await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
 
-    const canvas = await html2canvas(wrap, {
-      backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      onclone: (clonedDoc) => {
-        // html2canvas клонирует документ в отдельный iframe – без явного
-        // переноса data-skin переменные темы (themes.css, [data-skin="…"])
-        // резолвились бы в клоне к дефолтным (тёмным), а не к текущей
-        // теме человека, и картинка выходила заметно темнее реальной
-        // страницы.
-        clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
-      },
-    });
+    const canvas = await withTimeout(
+      html2canvas(wrap, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        onclone: (clonedDoc) => {
+          // html2canvas клонирует документ в отдельный iframe – без явного
+          // переноса data-skin переменные темы (themes.css, [data-skin="…"])
+          // резолвились бы в клоне к дефолтным (тёмным), а не к текущей
+          // теме человека, и картинка выходила заметно темнее реальной
+          // страницы.
+          clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
+        },
+      }),
+      20000,
+      i18n("Не удалось создать картинку за разумное время.")
+    );
 
     const link = document.createElement("a");
     link.download = "favorites.png";
@@ -392,6 +406,7 @@ async function favExport(sectionIds) {
     alert("Не удалось создать картинку 😢\n" + err.message);
   } finally {
     restoreImages();
+    restoreAnim();
     wrap.remove();
     restoreBtn();
   }

@@ -207,11 +207,10 @@ async function mount(container, params) {
             <div class="hint">${i18n("Или загрузите файл – сожмётся и сконвертируется в WebP автоматически.")}</div>
             <div class="cover-upload-row">
               <label class="btn btn-ghost file-btn">
-                <input type="file" id="f-cover-upload" accept="image/*" onchange="updateFileBtnName(this)">
+                <input type="file" id="f-cover-upload" accept="image/*" onchange="updateFileBtnName(this); uploadCoverFile()">
                 <span>${i18n("Выбрать файл")}</span>
               </label>
               <span class="file-btn-name" id="f-cover-upload-name"></span>
-              <button type="button" class="btn btn-ghost" onclick="uploadCoverFile()">${i18n("Загрузить как обложку")}</button>
             </div>
             <div id="cover-upload-status" class="status-msg" style="margin:.4rem 0 0;text-align:left;min-height:0;"></div>
           </div>

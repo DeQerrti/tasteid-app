@@ -246,7 +246,7 @@ function tlTitlesHtml() {
   const hasAny = TIER_ROWS.some(t => byGrade[t.key]?.length);
   const exportBtn = cameraButton(`tlExport('tl-titles-rows', '${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}')`, "tl-export-btn");
   let html = `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap">
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">${tlFiltersHtml()}${tlYearFiltersHtml(byType)}</div>
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">${tlFiltersHtml()}${tlYearFiltersHtml(byType)}</div>
     <div style="flex-shrink:0">${exportBtn}</div>
   </div>`;
 
@@ -430,7 +430,7 @@ function tlCharsHtml(collectionId) {
   </div>`;
 
   return `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap">
-    <div class="tl-filters" style="margin-bottom:0">${gameButtons}</div>
+    <div class="tl-filters">${gameButtons}</div>
     <div style="display:flex;gap:.5rem;flex-shrink:0">${adminBtn}${exportBtn}</div>
   </div>
   ${listButtons}
@@ -625,9 +625,8 @@ async function tlExport(rowsId, label) {
   const tip = document.getElementById("tl-tooltip");
   if (tip) tip.style.visibility = "hidden";
 
-  let animated = [];
-  let prevAnimation = [];
   let restoreImages = () => {};
+  let restoreAnim = () => {};
 
   try {
     const rows = document.getElementById(rowsId);
@@ -635,30 +634,35 @@ async function tlExport(rowsId, label) {
 
     if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
+    // Тир-лист может быть длиннее экрана – карточки далеко за
+    // прокруткой ещё не подгрузились (loading="lazy"), тот же случай,
+    // что и офскрин-контейнер «Любимого» (см. её же комментарий у
+    // waitForImages в js/utils.js), только по другой причине.
     const imgs = Array.from(rows.querySelectorAll("img"));
-    await Promise.all(imgs.map(img =>
-      img.complete ? Promise.resolve() : new Promise(res => {
-        img.onload = img.onerror = res;
-      })
-    ));
+    imgs.forEach((img) => {
+      img.loading = "eager";
+    });
+    await waitForImages(imgs);
 
     restoreImages = await proxyImagesToDataUrls(rows);
 
-    animated = Array.from(rows.querySelectorAll(".tl-row, .tl-poster, .tl-char-poster"));
-    prevAnimation = animated.map(el => el.style.animation);
-    animated.forEach(el => { el.style.animation = "none"; });
+    restoreAnim = disableAnimations(rows);
     await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
 
-    const canvas = await html2canvas(rows, {
-      backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      onclone: (clonedDoc) => {
-        clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
-      },
-    });
+    const canvas = await withTimeout(
+      html2canvas(rows, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
+        },
+      }),
+      20000,
+      i18n("Не удалось создать картинку за разумное время.")
+    );
 
     const link = document.createElement("a");
     const safeName = label.replace(/[^a-zA-Zа-яА-Я0-9_\- ]/g, "").trim() || "tierlist";
@@ -679,7 +683,7 @@ async function tlExport(rowsId, label) {
     alert("Не удалось создать картинку 😢\n" + err.message);
   } finally {
     restoreImages();
-    animated.forEach((el, i) => { el.style.animation = prevAnimation[i]; });
+    restoreAnim();
     if (tip) tip.style.visibility = "";
     restoreBtn();
   }

@@ -80,6 +80,10 @@ async function mount(container, params) {
     <header class="app-topbar">
       <a href="#" class="logo topbar-back" id="ce-back"><span class="arrow">&larr;</span>TasteID</a>
       <h1 class="topbar-title" id="header-sub">${esc(COLLECTION_LABEL ? `${i18n("Редактор")}: ${COLLECTION_LABEL}` : "")}</h1>
+      <div style="display:flex;gap:.5rem;margin-left:auto;flex-wrap:wrap;min-width:0">
+        <button class="btn btn-ghost" onclick="renameCurrentCollection()" data-i18n>Переименовать тир-лист</button>
+        <button class="btn btn-ghost" onclick="deleteCurrentCollection()" data-i18n>Удалить тир-лист</button>
+      </div>
     </header>
     <main class="ce-view">
       <aside class="sidebar">
@@ -627,10 +631,6 @@ function renderEditor() {
   box.innerHTML = `
     <div class="editor-top">
       <div class="editor-title">${esc(title.title)}</div>
-      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-ghost" onclick="renameCurrentCollection()" data-i18n>Переименовать тир-лист</button>
-        <button class="btn btn-ghost" onclick="deleteCurrentCollection()" data-i18n>Удалить тир-лист</button>
-      </div>
     </div>
     <div class="list-tabs">${tabs}</div>
     <div class="tl-editor-rows" id="tl-editor-rows">${rows}</div>
