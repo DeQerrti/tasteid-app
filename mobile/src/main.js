@@ -473,6 +473,32 @@ async function downloadAndInstall(url) {
   await FileOpener.openFile({ path: uri, mimeType: "application/vnd.android.package-archive" });
 }
 
+// Причина отказа – а не молчаливый откат на «Поделиться», как было.
+// Отличить «нет сети» от «система отказала в установке» можно по
+// тексту ошибки (fetch бросает свою, узнаваемую по HTTP/сети), всё
+// остальное – это почти всегда Play Защита: она сканирует любой apk,
+// поставленный не из Play Store, независимо от тумблера «Установка
+// неизвестных приложений» (тот лишь разрешает саму попытку) – и либо
+// предупреждает, либо блокирует совсем, в обоих случаях FileOpener
+// получает отказ, из которого не вытащить точную причину. Инструкция
+// ниже – единственный настоящий способ снять её со счётчиков: она
+// не выключается ни разрешением на телефоне, ни кодом самого
+// приложения, только в настройках самого Play Store.
+function describeUpdateError(e, ru) {
+  const msg = (e && (e.message || e.errorMessage)) || (e ? String(e) : "");
+  const isNetwork = /HTTP \d|fetch|network|failed to fetch|net::/i.test(msg);
+
+  if (isNetwork) {
+    return ru
+      ? `Не получилось скачать файл${msg ? ` (${msg})` : ""}. Проверьте подключение и попробуйте ещё раз.`
+      : `Couldn't download the file${msg ? ` (${msg})` : ""}. Check your connection and try again.`;
+  }
+
+  return ru
+    ? `Система отказала в установке${msg ? ` (${msg})` : ""}. Чаще всего это Play Защита – она проверяет любое приложение, поставленное не из Play Store, и либо предупреждает о нём, либо блокирует совсем, отдельно от разрешения «Установка неизвестных приложений». Чтобы установить: Play Store → значок профиля → «Play Защита» → шестерёнка настроек → выключите «Сканировать приложения с помощью Play Защиты», затем нажмите «Обновить» ещё раз. Либо нажмите «Поделиться» ниже и установите apk вручную.`
+    : `The system refused to install${msg ? ` (${msg})` : ""}. This is usually Play Protect – it scans any app installed outside Play Store and either warns about it or blocks it outright, separately from the "install unknown apps" permission. To install: Play Store → profile icon → "Play Protect" → settings gear → turn off "Scan apps with Play Protect", then press "Update" again. Or press "Share" below to install the apk manually.`;
+}
+
 function isNewerVersion(latest, current) {
   const a = latest.replace(/^v/i, "").split(".").map(Number);
   const b = current.replace(/^v/i, "").split(".").map(Number);
@@ -569,13 +595,19 @@ function showUpdateBanner(version, url) {
       await downloadAndInstall(url);
       close();
     } catch (e) {
-      // Не вышло скачать или открыть в приложении (нет сети, отказал
-      // плагин) – старый путь остаётся запасным, но причину стоит хотя
-      // бы залогировать: без этого отличить «нет сети» от «плагин
-      // сломан» можно было только перепиской с разработчиком.
+      // Раньше здесь просто молча подставлялось «Поделиться» – причина
+      // уходила только в консоль, до которой человеку не добраться.
+      // Теперь настоящий текст ошибки и что с ним делать – прямо в
+      // диалоге, а «Обновить» превращается в «Поделиться» на этот же
+      // клик, чтобы не потерять и старый запасной путь.
       console.error("[update] скачивание/установка не удались:", e);
-      Share.share({ title: "TasteID", url }).catch(() => {});
-      close();
+      textEl.textContent = describeUpdateError(e, ru);
+      updateBtn.disabled = false;
+      updateBtn.textContent = ru ? "Поделиться" : "Share";
+      updateBtn.onclick = () => {
+        Share.share({ title: "TasteID", url }).catch(() => {});
+        close();
+      };
     }
   };
 
