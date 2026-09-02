@@ -2215,7 +2215,16 @@ section.group { margin-bottom: 3.5rem; }
     font-size: 1.3rem; line-height: 1; color: var(--text-dim); opacity: .6;
   }
 
-  #main { max-width: none; padding: 0 16px 64px; }
+  /* margin: 0 auto в базовом правиле (десктоп, #app – ряд) центрирует
+     #main против широкого экрана. На телефоне #app становится колонкой
+     (см. выше) – в колоночном флексе те же auto-отступы уже не растягивают
+     элемент на всю ширину, а центрируют его ПО СОДЕРЖИМОМУ (margin: auto
+     на поперечной оси означает «не тянуться», а не «тянуться и центрировать
+     остаток»). #main схлопывался до ширины своего самого широкого ряда –
+     этим объяснялась вся кривая вёрстка списков настроек на телефоне: не
+     сами строки были неправильными, а контейнер вокруг них был вдвое уже
+     экрана. */
+  #main { max-width: none; margin: 0; padding: 0 16px 64px; }
   .settings-panel-back {
     display: flex; align-items: center; gap: 8px;
     width: calc(100% + 32px); margin: 0 -16px 8px; padding: 16px;

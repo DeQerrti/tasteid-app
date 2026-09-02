@@ -68,11 +68,12 @@ function renderAppPanel() {
   document.getElementById("app-version").textContent =
     `TasteID ${appInfo.version || ""} · ${platformLabel(appInfo.platform, appInfo.arch)}`;
 
-  // На телефоне нет ни проводника, ни понятия масштаба окна – вместо
-  // неработающих кнопок показываем то, что там правда можно сделать.
+  // На телефоне нет проводника – вместо неработающих кнопок показываем
+  // то, что там правда можно сделать. Масштаб же на телефоне свой,
+  // через CSS zoom (см. applyMobileZoom в mobile/src/main.js) – секция
+  // не скрывается, только сам механизм смены масштаба ниже другой.
   document.getElementById("app-vault-actions").classList.toggle("hidden", !!appInfo.mobile);
   document.getElementById("app-vault-mobile-note").classList.toggle("hidden", !appInfo.mobile);
-  document.getElementById("app-zoom-section").classList.toggle("hidden", !!appInfo.mobile);
 }
 
 // На макбуке и в мобильном банере обновление показывает себя само,
@@ -275,6 +276,12 @@ async function loadAppPanel() {
 // только когда отпустили (change).
 function previewZoom(percent) {
   document.getElementById("app-zoom-value").textContent = zoomPercent(Number(percent));
+  // На компьютере окно применяет масштаб только по onchange (setZoom
+  // ниже, через нативный IPC) – здесь, пока ползунок ещё тащат, только
+  // подпись процента. На телефоне же это обычный CSS – его можно (и
+  // нужно, для живого отклика под пальцем) применять сразу по каждому
+  // движению, не дожидаясь отпускания.
+  if (appInfo?.mobile) document.documentElement.style.zoom = Number(percent) + "%";
 }
 
 async function setZoom(percent) {

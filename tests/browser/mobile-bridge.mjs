@@ -109,6 +109,56 @@ const src = await page.evaluate(async () => {
 });
 ok(src.includes("_cap_"), "адрес картинки переписан на тот, что отдаёт Capacitor");
 
+console.log("Масштаб");
+// applyMobileZoom() пишет прямо в document.documentElement.style.zoom —
+// той же странице, что грузит мост, поэтому проверяется без всякого
+// нативного плагина: обычный CSS.
+const zoomDefault = await page.evaluate(() => document.documentElement.style.zoom);
+ok(
+  zoomDefault === "100%",
+  `по умолчанию 100%, применяется ещё при разборе скрипта: "${zoomDefault}"`
+);
+
+const zoomAfterSet = await page.evaluate(async () => {
+  const r = await fetch("/api/app/zoom", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ percent: 150 }),
+  });
+  const data = await r.json();
+  return {
+    response: data.zoom,
+    style: document.documentElement.style.zoom,
+    stored: localStorage.getItem("tasteid_zoom"),
+  };
+});
+ok(zoomAfterSet.response === 150, "/api/app/zoom отвечает применённым процентом");
+ok(zoomAfterSet.style === "150%", "CSS zoom меняется сразу же, без перезагрузки");
+ok(zoomAfterSet.stored === "150", "масштаб сохраняется в localStorage — переживёт перезапуск");
+
+// «Перезапуск приложения» — localStorage переживает, style.zoom нет
+// (свежий документ). Масштаб обязан примениться заново до первой же
+// отрисовки, а не только по действию человека в настройках.
+await page.reload();
+await page.addScriptTag({ path: out });
+await page.waitForTimeout(200);
+const zoomAfterReload = await page.evaluate(() => document.documentElement.style.zoom);
+ok(
+  zoomAfterReload === "150%",
+  `сохранённый масштаб применяется заново при следующем запуске: "${zoomAfterReload}"`
+);
+
+// Значение вне 50–200% отсекается так же, как на компьютере (electron/main.js).
+const zoomClamped = await page.evaluate(async () => {
+  const r = await fetch("/api/app/zoom", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ percent: 9000 }),
+  });
+  return (await r.json()).zoom;
+});
+ok(zoomClamped === 200, `слишком большой процент обрезается до максимума: ${zoomClamped}`);
+
 console.log("Полоса состояния");
 const bar = await page.evaluate(async () => {
   const send = (bg) =>

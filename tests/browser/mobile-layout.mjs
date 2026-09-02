@@ -147,6 +147,30 @@ for (const [path, name] of PAGES) {
   if (bad) problems.push(name);
 }
 
+// «Вкладки» внутри настроек отдельно от общего цикла выше: баг, который
+// это поймал (#main схлопывался до ~200px из-за margin: 0 auto,
+// написанного для десктопного #app-в-ряд и не сброшенного для мобильного
+// #app-в-колонку), не считался ни горизонтальной прокруткой, ни мелкой
+// целью — контент просто вписывался в узкий столбец, оставляя честную
+// половину экрана пустой. Цикл выше проверяет вкладку «Настройки» только
+// на панели по умолчанию («Оформление»), сюда её не заводя.
+await page.goto(`http://127.0.0.1:${port}/#/settings-edit`, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(800);
+await page.click('[data-panel="tabs"]');
+await page.waitForSelector("#tabsList .tab-row");
+const mainWidth = await page.evaluate(
+  () => document.getElementById("main").getBoundingClientRect().width
+);
+const viewportWidth = PHONE.width;
+if (mainWidth < viewportWidth - 40) {
+  console.log(
+    `\n✗ настройки → вкладки (#main шире не растянут: ${Math.round(mainWidth)}px из ${viewportWidth}px)`
+  );
+  problems.push("настройки → вкладки (узкая колонка)");
+} else {
+  console.log(`\n✓ настройки → вкладки (#main во всю ширину: ${Math.round(mainWidth)}px)`);
+}
+
 await browser.close();
 server.kill();
 

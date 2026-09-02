@@ -157,11 +157,13 @@ function settingsViewHtml() {
       <div class="panel active" id="panel-appearance">
         <div class="theme-grid" id="themeGrid"></div>
 
-        <!-- Отдельно от «Масштаба» (Приложение) – тот через
-             webContents.setZoomFactor у Electron увеличивает вообще всё
-             (включая иконки и рамки в px) и недоступен на телефоне/сайте.
-             Это чистый CSS-множитель (--text-scale, см. style.css) –
-             растягивает только текст и то, что в rem, работает везде. -->
+        <!-- Отдельно от «Масштаба» (Приложение) – тот увеличивает вообще
+             всё (включая иконки и рамки в px) и недоступен только на
+             голом сайте без Electron/Capacitor вокруг (детектируется в
+             detectApp(), settings-app.js – там вкладки «Приложение»
+             попросту нет). Здесь же чистый CSS-множитель (--text-scale,
+             см. style.css) – растягивает только текст и то, что в rem,
+             работает вообще везде, включая сайт. -->
         <h2 class="section-h" data-i18n>Размер шрифта</h2>
         <p class="panel-intro" data-i18n>
           Только текст – иконки и отступы не меняются. Чтобы увеличить вообще
@@ -368,10 +370,12 @@ function settingsViewHtml() {
           </div>
         </div>
 
-        <!-- Масштаб – тоже только компьютер: там это webContents.setZoomLevel
-             у Electron. На телефоне такого понятия нет (страница уже
-             подогнана под экран самой системой), кнопки были декорацией,
-             которая ничего не меняла. -->
+        <!-- На компьютере – webContents.setZoomFactor у Electron (сам
+             механизм смены масштаба живёт в electron/main.js), на
+             телефоне – CSS zoom (mobile/src/main.js, applyMobileZoom):
+             разный способ добиться одного и того же result – растянуть
+             вообще всё, а не только текст (см. её же противопоставление
+             у «Размера шрифта» на вкладке «Оформление»). -->
         <div id="app-zoom-section">
           <h2 class="section-h" data-i18n>Масштаб</h2>
           <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">

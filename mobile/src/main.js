@@ -111,9 +111,36 @@ function clearImageCache() {
 
 // ── Настройки самого приложения ────────────────
 // На компьютере это /api/app/* в electron/main.js. Здесь тот же набор,
-// но короче: масштаб задаёт сама система, а вместо выбора папки –
-// выбор хранилища из списка (или создание нового по имени).
+// но короче: вместо выбора папки – выбор хранилища из списка (или
+// создание нового по имени).
+//
+// Масштаб раньше тоже считался «только для компьютера» (там это
+// win.webContents.setZoomFactor, отдельный от страницы уровень
+// нативного окна) – кнопки на телефоне были декорацией без всякого
+// эффекта. Но системный масштаб экрана далеко не то же самое, что
+// увеличить именно эту страницу, не трогая остальные приложения, а
+// system-виджеты вроде мелких кнопок-иконок в настройках всё равно
+// не растут. Android WebView (тот же движок, что Chrome) понимает CSS
+// zoom не хуже компьютерного браузера – applyMobileZoom() ниже его и
+// использует, персистентность – localStorage, а не файл настроек
+// (это свойство самого устройства/установки, не данных хранилища,
+// которое можно перенести на другой телефон).
 const LANG_KEY = "tasteid_lang";
+const ZOOM_KEY = "tasteid_zoom";
+
+function getMobileZoom() {
+  const saved = Number(localStorage.getItem(ZOOM_KEY));
+  return saved >= 50 && saved <= 200 ? saved : 100;
+}
+
+function applyMobileZoom(percent) {
+  // zoom, а не transform: scale – после transform пришлось бы вручную
+  // пересчитывать ширину/высоту, чтобы контент не обрезался и не
+  // оставлял пустых полей, а zoom честно меняет раскладку, как будто
+  // окно физически другого размера (то же самое, что делает
+  // webContents.setZoomFactor на компьютере).
+  document.documentElement.style.zoom = percent + "%";
+}
 
 async function appRoutes(pathname, body) {
   if (pathname === "/api/app/info") {
@@ -124,8 +151,15 @@ async function appRoutes(pathname, body) {
       lang: currentLang(),
       platform: window.Capacitor?.getPlatform?.() || "mobile",
       version: await appVersion(),
+      zoom: getMobileZoom(),
       mobile: true,
     };
+  }
+  if (pathname === "/api/app/zoom") {
+    const percent = Math.min(200, Math.max(50, Number(body?.percent) || 100));
+    localStorage.setItem(ZOOM_KEY, String(percent));
+    applyMobileZoom(percent);
+    return { zoom: percent };
   }
   if (pathname === "/api/app/switch-vault") {
     const entry = listVaults().find((v) => v.id === body?.id);
@@ -495,8 +529,8 @@ function describeUpdateError(e, ru) {
   }
 
   return ru
-    ? `Система отказала в установке${msg ? ` (${msg})` : ""}. Чаще всего это Play Защита – она проверяет любое приложение, поставленное не из Play Store, и либо предупреждает о нём, либо блокирует совсем, отдельно от разрешения «Установка неизвестных приложений». Чтобы установить: Play Store → значок профиля → «Play Защита» → шестерёнка настроек → выключите «Сканировать приложения с помощью Play Защиты», затем нажмите «Обновить» ещё раз. Либо нажмите «Поделиться» ниже и установите apk вручную.`
-    : `The system refused to install${msg ? ` (${msg})` : ""}. This is usually Play Protect – it scans any app installed outside Play Store and either warns about it or blocks it outright, separately from the "install unknown apps" permission. To install: Play Store → profile icon → "Play Protect" → settings gear → turn off "Scan apps with Play Protect", then press "Update" again. Or press "Share" below to install the apk manually.`;
+    ? `Система отказала в установке${msg ? ` (${msg})` : ""}. Чаще всего это Play Защита – она проверяет любое приложение, поставленное не из Play Store, и либо предупреждает о нём, либо блокирует совсем, отдельно от разрешения «Установка неизвестных приложений». Чтобы установить: Play Store → значок профиля → «Play Защита» → шестерёнка настроек → выключите «Сканировать приложения с помощью Play Защиты», затем нажмите «Обновить» ещё раз. Если на телефоне нет Play Store (некоторые модели Huawei) или он всё равно отказывает – поищите похожую настройку в своём фирменном приложении безопасности (обычно называется «Безопасность» или «Диспетчер телефона») и отключите там проверку устанавливаемых приложений. Либо нажмите «Поделиться» ниже и установите apk вручную.`
+    : `The system refused to install${msg ? ` (${msg})` : ""}. This is usually Play Protect – it scans any app installed outside Play Store and either warns about it or blocks it outright, separately from the "install unknown apps" permission. To install: Play Store → profile icon → "Play Protect" → settings gear → turn off "Scan apps with Play Protect", then press "Update" again. If your phone has no Play Store (some Huawei models) or it still refuses – look for a similar setting in your phone's own security app (often called "Security" or "Phone Manager") and turn off scanning of installed apps there. Or press "Share" below to install the apk manually.`;
 }
 
 function isNewerVersion(latest, current) {
@@ -645,6 +679,11 @@ async function checkForUpdate(force = false) {
 // ── Запуск ─────────────────────────────────────
 
 if (NATIVE) {
+  // До installFetch/seedLangCookie – этот файл выполняется во время
+  // разбора страницы (см. её же комментарий в шапке файла), поэтому
+  // масштаб успевает примениться раньше первой отрисовки, без мигания
+  // «сначала 100%, через мгновение нужный процент».
+  applyMobileZoom(getMobileZoom());
   seedLangCookie();
   installFetch();
   vault.ensure().catch(() => {});
