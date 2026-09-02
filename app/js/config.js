@@ -89,14 +89,21 @@ async function proxyImagesToDataUrls(container) {
   }
 
   await Promise.all(toProxy.map(async ({ img, src }) => {
-    // Сперва напрямую. Большинство обложек лежит на CDN, которые отдают
-    // Access-Control-Allow-Origin: * (AniList, TMDB) – тогда картинка
-    // берётся сама, без посредника. Уходить к чужому прокси в этом
-    // случае значит и рассказывать ему, что человек смотрит, и терять
-    // кнопку целиком, когда интернет есть, а до wsrv.nl не достучаться.
-    // Прокси остаётся запасным путём – для источников без CORS, где
-    // прямой fetch не даст прочитать картинку.
-    for (const url of [src, `https://wsrv.nl/?url=${encodeURIComponent(src)}`]) {
+    // Если резервная копия уже когда-то скачана (см. core/api.js,
+    // backupCover) – data-fallback у этой же картинки указывает прямо
+    // на неё, тем же сервером, что отдаёт страницу. Берём её первой и
+    // даже не пытаемся сходить за оригиналом: у AniList есть защита от
+    // ботов, которая иногда отсеивает именно такой запрос "из ниоткуда"
+    // (без интерактивной страницы вокруг, с другим набором заголовков,
+    // чем у обычной картинки на странице) – а сама обложка при этом уже
+    // лежит на диске и никуда ходить не нужно. Внешний адрес и wsrv.nl
+    // остаются запасным путём – на случай записи без резервной копии
+    // вовсе (например, обложка совсем свежая и ещё не успела
+    // сохраниться).
+    const candidates = img.dataset.fallback
+      ? [img.dataset.fallback, src, `https://wsrv.nl/?url=${encodeURIComponent(src)}`]
+      : [src, `https://wsrv.nl/?url=${encodeURIComponent(src)}`];
+    for (const url of candidates) {
       try {
         const dataUrl = await fetchAsDataUrl(url);
         origSrc.set(img, src);
