@@ -202,7 +202,7 @@ function favTitleCard(r, index, forExport) {
     ${editBtn}
     <div class="card" style="animation-delay:0ms">
       <span class="type-tag ${tagClass}">${esc(tagLabel)}</span>
-      <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
         ${r.year || info

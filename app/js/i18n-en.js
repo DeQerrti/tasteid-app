@@ -953,8 +953,8 @@ i18nRegister({
     "Delete “{name}”?\n\nThe entry disappears from reviews, favorites and the tier list.\nThe only way back is a rollback in “Version history”.",
   "Удалить раздел «{name}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.":
     "Delete the “{name}” section?\n\nEntries stay in the data but stop being shown. You can bring the section back right here.",
-  "Удалить коллекцию «{name}»?\n\nСам тир-лист останется лежать в {file}, вместе с картинками, – пропадёт только кнопка на вкладке.":
-    "Delete the “{name}” collection?\n\nThe tier list itself stays in {file}, images and all – only the button on the tab disappears.",
+  "Удалить тир-лист «{name}» вместе со всем содержимым – всеми тайтлами, тирами и персонажами внутри? Отменить это будет нельзя.":
+    "Delete the tier list “{name}” along with everything in it – all its titles, tiers and characters? This can't be undone.",
   "Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл – все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).":
     "Restore “{file}” to the version from {date}?\n\nThis replaces the current file – everything changed after that version is lost (though it stays in the history and can be restored back).",
 });

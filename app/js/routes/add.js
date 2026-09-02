@@ -2644,8 +2644,8 @@ async function uploadCoverFile() {
 
     // Обложка загружена напрямую – своя резервная копия ей не нужна.
     document.getElementById("f-cover").value = "";
-    document.getElementById("f-cover-backup").value = "/" + data.path;
-    previewCover("/" + data.path);
+    document.getElementById("f-cover-backup").value = data.url;
+    previewCover(data.url);
     status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {

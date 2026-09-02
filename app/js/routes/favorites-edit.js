@@ -751,8 +751,8 @@ async function uploadFavImage() {
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
     document.getElementById("f-image").value = "";
-    document.getElementById("f-image-backup").value = "/" + data.path;
-    previewAvatar("/" + data.path);
+    document.getElementById("f-image-backup").value = data.url;
+    previewAvatar(data.url);
     status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
@@ -793,7 +793,7 @@ async function backupImageNow() {
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
-    document.getElementById("f-image-backup").value = data.url || "/" + data.path;
+    document.getElementById("f-image-backup").value = data.url;
     status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {

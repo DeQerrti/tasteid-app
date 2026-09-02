@@ -117,7 +117,7 @@ function manualCard(r, index) {
     <div class="card" style="animation-delay:0ms">
       <span class="type-tag tag-manual">${esc(tagLabel)}</span>
       ${watchBadge ? `<span class="watch-badge">${esc(watchBadge)}</span>` : ""}
-      <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
         ${r.year || info

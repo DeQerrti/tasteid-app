@@ -114,7 +114,7 @@
     const PH = imagePlaceholder(120, 180);
     const items = titles
       .map((r, i) => {
-        const cover = r.cover || PH;
+        const cover = r.cover || r.cover_backup || PH;
         const label = TYPE_LABELS[r.type] || r.type || "–";
         return `<div class="dnd-item" draggable="true" data-id="${r.id}">
           <div class="dnd-item-num">${i + 1}</div>

@@ -279,7 +279,7 @@ function reviewModalBodyHtml(r) {
 
   return `
     <div class="review-modal-header">
-      <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" class="review-modal-cover" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" class="review-modal-cover" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div>
         <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
         <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
@@ -440,7 +440,7 @@ function reviewCard(r, i) {
     <div class="card" style="animation-delay:${Math.min(i * 40, 600)}ms">
       ${typeLabel ? `<span class="type-tag tag-manual">${esc(typeLabel)}</span>` : ""}
       ${rewatchHtml}
-      <img src="${esc(r.cover || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
         <div class="card-meta">

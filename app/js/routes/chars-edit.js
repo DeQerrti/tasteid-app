@@ -436,7 +436,7 @@ async function backupTitleCoverNow() {
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
-    document.getElementById("nt-cover-backup").value = data.url || "/" + data.path;
+    document.getElementById("nt-cover-backup").value = data.url;
     status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
@@ -477,7 +477,7 @@ async function uploadTitleCoverFile() {
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
     document.getElementById("nt-cover").value = "";
-    document.getElementById("nt-cover-backup").value = "/" + data.path;
+    document.getElementById("nt-cover-backup").value = data.url;
     status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
@@ -744,18 +744,29 @@ async function renameCurrentCollection() {
 }
 
 async function deleteCurrentCollection() {
-  const file = collectionFileFor(COLLECTION);
   if (
     !(await confirmDialog(
       i18n(
-        "Удалить коллекцию «{name}»?\n\nСам тир-лист останется лежать в {file}, вместе с картинками, – пропадёт только кнопка на вкладке.",
-        { name: COLLECTION_LABEL, file }
+        "Удалить тир-лист «{name}» вместе со всем содержимым – всеми тайтлами, тирами и персонажами внутри? Отменить это будет нельзя.",
+        { name: COLLECTION_LABEL }
       )
     ))
   ) {
     return;
   }
   try {
+    // Стираем сами данные (тайтлы/тиры/персонажи этой коллекции), а не
+    // только кнопку на вкладке – раньше файл tier-XXX.json оставался на
+    // диске нетронутым, и "удаление" было чисто визуальным.
+    const res = await fetch("/api/save-chars-tier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ collection: COLLECTION, data: [] }),
+    });
+    const resp = await res.json();
+    if (!res.ok || !resp.ok) throw new Error(resp.error || i18n("Ошибка удаления"));
+
     await patchSiteSettings((settings) => {
       settings.tierCollections = (Array.isArray(settings.tierCollections) ? settings.tierCollections : activeTierCollections()).filter(
         (c) => c.id !== COLLECTION
@@ -764,6 +775,7 @@ async function deleteCurrentCollection() {
     });
     window.SITE_TIER_COLLECTIONS = activeTierCollections().filter((c) => c.id !== COLLECTION);
     window.SITE_HIDDEN_TIER_MODES?.delete(COLLECTION);
+    delete tlState.collections[COLLECTION];
     leaveRoute();
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
@@ -1120,7 +1132,7 @@ async function backupModalImgNow() {
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
-    document.getElementById("m-img-backup").value = data.url || "/" + data.path;
+    document.getElementById("m-img-backup").value = data.url;
     status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
