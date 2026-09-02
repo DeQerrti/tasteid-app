@@ -366,6 +366,26 @@ function settingsViewHtml() {
         </div>
         <div class="status-msg" id="status-backup"></div>
 
+        <!-- Обложки по ссылке (AniList, TMDB и т.п.) уже получают
+             резервную копию автоматически при каждом сохранении отзыва
+             (js/routes/add.js, scheduleBackupCover) – но только с этого
+             момента. Отзывы, сохранённые до того, как эта копия
+             появилась, своей копии не получили, и если чужая ссылка
+             перестанет отдавать картинку – обложка просто пропадёт.
+             Кнопка ниже досоздаёт то же самое разом для всех, у кого
+             копии ещё нет: отзывов, персонажей, персон и любых своих
+             разделов «Любимого». -->
+        <h2 class="section-h" data-i18n>Резервные копии картинок</h2>
+        <p class="panel-intro" data-i18n>
+          Обложки и аватарки по ссылке получают резервную копию автоматически
+          при сохранении – но только с того момента, начиная с которого это
+          заработало. Кнопка ниже досоздаёт копии всем, у кого их ещё нет.
+        </p>
+        <div class="row">
+          <button class="btn btn-ghost" id="backfill-covers-btn" onclick="backfillCoverBackups()" data-i18n>Досоздать резервные копии</button>
+        </div>
+        <div class="status-msg" id="status-backfill-covers"></div>
+
         <h2 class="section-h" data-i18n>Язык</h2>
         <div class="row">
           <div style="flex:0 0 220px;">
