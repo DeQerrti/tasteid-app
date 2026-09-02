@@ -592,12 +592,26 @@ function showUpdateBanner(version, url) {
   const close = () => updateDialogEl.classList.add("hidden");
 
   updateBtn.onclick = async () => {
-    // Ссылка на страницу релиза (а не сам apk) добавлением через
-    // приложение не скачать осмысленно – сразу уходим в браузер,
-    // как раньше.
+    // Ссылка на страницу релиза (а не сам apk) – checkForUpdate() ниже
+    // подставляет её запасным вариантом, когда среди файлов релиза apk
+    // не нашёлся. Раньше здесь сразу и молча уходили в «Поделиться» –
+    // без единого слова объяснения, что случилось. А случиться может
+    // самое обычное: релиз собирается тремя параллельными джобами
+    // (build.yml – Windows/Mac/Linux и Android отдельно), и apk на
+    // GitHub иногда появляется на минуту-другую позже остальных
+    // файлов. Если телефон проверяет обновление ровно в эту паузу –
+    // apk среди assets ещё не значится, хотя через пару минут появится.
+    // Показываем это прямым текстом и оставляем «Поделиться» отдельным
+    // осознанным нажатием, а не тем, что срабатывает само.
     if (!/\.apk(\?|$)/i.test(url)) {
-      Share.share({ title: "TasteID", url }).catch(() => {});
-      close();
+      textEl.textContent = ru
+        ? "У этого релиза пока нет файла для Android – сборка обычно занимает пару минут после выхода версии. Попробуйте проверить обновление ещё раз чуть позже, либо откройте страницу релиза кнопкой «Поделиться» и установите оттуда вручную, когда файл появится."
+        : 'This release doesn\'t have an Android file yet – the build usually takes a couple of minutes after a new version goes out. Try checking for updates again in a bit, or open the release page with "Share" below and install from there once the file shows up.';
+      updateBtn.textContent = ru ? "Поделиться" : "Share";
+      updateBtn.onclick = () => {
+        Share.share({ title: "TasteID", url }).catch(() => {});
+        close();
+      };
       return;
     }
 

@@ -159,6 +159,70 @@ const zoomClamped = await page.evaluate(async () => {
 });
 ok(zoomClamped === 200, `слишком большой процент обрезается до максимума: ${zoomClamped}`);
 
+console.log("Обновление — релиз без apk ещё не молчит");
+// build.yml собирает Windows/Mac/Linux и Android параллельными джобами,
+// каждый заливает свой файл в один и тот же релиз по готовности — apk
+// у Android обычно самый долгий. Если проверка обновления попадает
+// ровно в эту паузу, среди assets ещё нет ни одного .apk, и
+// checkForUpdate() подставляет ссылку на страницу релиза вместо файла.
+// Раньше именно этот случай сразу и молча уходил в «Поделиться» — без
+// единого слова объяснения, хотя через минуту-другую apk появился бы
+// сам. Теперь ветка показывает причину и оставляет «Поделиться»
+// отдельным осознанным нажатием, а не тем, что срабатывает само.
+// showUpdateBanner/checkForUpdate — внутри IIFE-бандла, снаружи не видны
+// (в проде их и не зовут напрямую — ровно тот же /api/app/check-update,
+// что и кнопка «Проверить обновления» в настройках). Подделываем ответ
+// GitHub заранее через page.route, дальше идём тем же путём, что и
+// настоящая проверка.
+await page.route("https://api.github.com/repos/**/releases/latest", (r) =>
+  r.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({
+      tag_name: "v9.9.9",
+      html_url: "https://github.com/DeQerrti/tasteid-app/releases/tag/v9.9.9",
+      assets: [
+        { name: "TasteID-Setup-9.9.9.exe", browser_download_url: "https://example.invalid/x.exe" },
+      ],
+    }),
+  })
+);
+await page.evaluate(async () => {
+  await fetch("/api/app/check-update", { method: "POST", body: "{}" });
+});
+const updateNoApk = await page.evaluate(async () => {
+  const textBefore = document.getElementById("update-dialog-text").textContent;
+  document.getElementById("update-dialog-update").click();
+  await new Promise((r) => setTimeout(r, 50));
+  return {
+    textBefore,
+    textAfterClick: document.getElementById("update-dialog-text").textContent,
+    btnLabelAfterClick: document.getElementById("update-dialog-update").textContent,
+    sharedYet: window.__shared || null,
+  };
+});
+ok(!updateNoApk.sharedYet, "первый клик по «Обновить» не открывает «Поделиться» сам по себе");
+ok(
+  /пока нет файла для Android|doesn't have an Android file/i.test(updateNoApk.textAfterClick),
+  `показана настоящая причина, а не тишина: "${updateNoApk.textAfterClick}"`
+);
+ok(
+  /^(Поделиться|Share)$/.test(updateNoApk.btnLabelAfterClick),
+  `кнопка стала «Поделиться» для второго, уже осознанного нажатия: "${updateNoApk.btnLabelAfterClick}"`
+);
+
+await page.evaluate(() => {
+  delete window.__shared;
+}); // сброс перед вторым кликом
+const sharedAfterSecondClick = await page.evaluate(async () => {
+  document.getElementById("update-dialog-update").click();
+  await new Promise((r) => setTimeout(r, 50));
+  return window.__shared;
+});
+ok(
+  sharedAfterSecondClick?.url === "https://github.com/DeQerrti/tasteid-app/releases/tag/v9.9.9",
+  "второй, уже осознанный клик по «Поделиться» открывает страницу релиза"
+);
+
 console.log("Полоса состояния");
 const bar = await page.evaluate(async () => {
   const send = (bg) =>
