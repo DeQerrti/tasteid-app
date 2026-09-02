@@ -56,6 +56,20 @@ await page.addInitScript(() => {
 await page.route("**/blank", (r) =>
   r.fulfill({ contentType: "text/html", body: "<html><body></body></html>" })
 );
+// main.js сам вызывает checkForUpdate() (без force) сразу при разборе
+// страницы — то есть ещё до addScriptTag() ниже вернёт управление, а
+// значит и до того, как более специфичный page.route ниже (для теста
+// "Обновление") успеет встать на место. Без этой затычки тут в CI, где
+// есть настоящий доступ в интернет, этот самый первый, никем не
+// ожидаемый вызов улетает на настоящий api.github.com и подмешивает
+// туда реальный текущий релиз — тест ниже тогда видит чужой,
+// непредсказуемый текст диалога вместо того, что сам подставил.
+await page.route("https://api.github.com/repos/**/releases/latest", (r) =>
+  r.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ tag_name: "v0.0.1", html_url: "", assets: [] }),
+  })
+);
 await page.goto("http://localhost/blank");
 await page.addScriptTag({ path: out });
 await page.waitForTimeout(200);
