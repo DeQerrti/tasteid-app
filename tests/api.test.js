@@ -630,6 +630,84 @@ test("резервная копия скачивается с настоящим
   });
 });
 
+test("починка ссылок после разового сжатия находит переехавший файл по имени без расширения", async () => {
+  // Воспроизводим то, что натворила убранная кнопка "Сжать старые
+  // обложки": файл на диске переименован (jpg → webp), а ссылка в
+  // записи всё ещё указывает на старое имя, которого больше нет. Один
+  // файл трогать не нужно вовсе (правильная ссылка = ничего не менять),
+  // ещё один сослан на путь без пары вообще (ни исходного, ни
+  // переехавшего) – должен остаться как есть, а не завалить всю
+  // починку.
+  await withServer(async ({ api, root }) => {
+    await fs.mkdir(path.join(root, "covers-backup"), { recursive: true });
+    await fs.writeFile(path.join(root, "covers-backup", "one-a1b2c.webp"), "x");
+    await fs.writeFile(path.join(root, "covers-backup", "two-d3e4f.png"), "y");
+
+    await fs.writeFile(
+      path.join(root, "reviews.json"),
+      JSON.stringify([
+        { id: 1, title: "Сломанная", cover_backup: "/covers-backup/one-a1b2c.jpg" },
+        { id: 2, title: "Без пары", cover_backup: "/covers-backup/nothing-here.jpg" },
+      ]),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(root, "favorites.json"),
+      JSON.stringify([{ name: "Любимое", image_backup: "covers-backup/two-d3e4f.png" }]),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(root, "characters-tier.json"),
+      JSON.stringify([
+        {
+          name: "Тайтл",
+          cover_backup: "/covers-backup/one-a1b2c.jpg",
+          tierlists: [
+            { tiers: [{ chars: [{ name: "Герой", img_backup: "covers-backup/two-d3e4f.png" }] }] },
+          ],
+        },
+      ]),
+      "utf8"
+    );
+
+    const { status, data } = await api("POST", "/api/repair-cover-references", {});
+    assert.equal(status, 200);
+    assert.equal(data.ok, true);
+    assert.equal(
+      data.fixed,
+      2,
+      "поправлены только две реально сломанные ссылки – у отзыва и у тайтла"
+    );
+
+    const reviews = JSON.parse(await fs.readFile(path.join(root, "reviews.json"), "utf8"));
+    assert.equal(reviews[0].cover_backup, "/covers-backup/one-a1b2c.webp", "ведущий слэш сохранён");
+    assert.equal(
+      reviews[1].cover_backup,
+      "/covers-backup/nothing-here.jpg",
+      "без пары – не тронуто"
+    );
+
+    const favorites = JSON.parse(await fs.readFile(path.join(root, "favorites.json"), "utf8"));
+    assert.equal(
+      favorites[0].image_backup,
+      "covers-backup/two-d3e4f.png",
+      "уже верно – не тронуто"
+    );
+
+    const titles = JSON.parse(await fs.readFile(path.join(root, "characters-tier.json"), "utf8"));
+    assert.equal(
+      titles[0].cover_backup,
+      "/covers-backup/one-a1b2c.webp",
+      "обложка тайтла тоже поправлена"
+    );
+    assert.equal(
+      titles[0].tierlists[0].tiers[0].chars[0].img_backup,
+      "covers-backup/two-d3e4f.png",
+      "картинка персонажа уже верна – не тронута"
+    );
+  });
+});
+
 test("резервная копия обложки по ссылке сжимается в webp", async () => {
   // Раньше backupCover() сохранял обложку ровно в том виде, в каком её
   // отдал источник, – без сжатия и без пересборки, в отличие от ручной

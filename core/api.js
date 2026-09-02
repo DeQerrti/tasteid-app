@@ -478,6 +478,93 @@ function base64ToBuffer(data) {
   return out;
 }
 
+// ── Починка ссылок на обложки после разового сжатия ──
+// В версиях 0.5.21–0.5.25 была кнопка "Сжать старые обложки": она
+// пересжимала уже существующие файлы в covers-backup/ и при этом
+// переименовывала их (расширение меняется на webp), но НЕ обновляла
+// саму ссылку в reviews.json/favorites.json/тир-листах – те
+// продолжали указывать на файл под старым именем, которого больше нет
+// на диске. Кнопку убрали, но у тех, кто успел ею воспользоваться,
+// ссылки остались сломанными – отсюда пустые обложки на карточках и в
+// снимке тир-листа. Имя файла (без расширения) присваивается один раз
+// при первой резервной копии и больше не меняется (см. slug в
+// scheduleBackupCover, add.js) – меняется только расширение при
+// сжатии, поэтому по имени без расширения можно надёжно найти, куда
+// переехал файл, и поправить ссылку. Вызывается один раз тихо на
+// старте (см. js/config.js) – если чинить нечего, ничего и не пишет.
+async function repairCoverReferences({ vault }) {
+  const all = await vault.listAllMedia();
+  const existing = new Set(all);
+  const byBase = new Map();
+  for (const p of all) {
+    if (!p.startsWith("covers-backup/")) continue;
+    byBase.set(p.replace(/\.[^./]+$/, ""), p);
+  }
+
+  let fixed = 0;
+  const fixRef = (value) => {
+    if (!value) return value;
+    const hadSlash = value.startsWith("/");
+    const clean = value.replace(/^\/+/, "");
+    if (existing.has(clean)) return value;
+    const real = byBase.get(clean.replace(/\.[^./]+$/, ""));
+    if (!real || real === clean) return value;
+    fixed++;
+    return hadSlash ? "/" + real : real;
+  };
+
+  const reviews = await vault.readJson("reviews.json", []);
+  let reviewsTouched = false;
+  for (const r of reviews) {
+    const next = fixRef(r.cover_backup);
+    if (next !== r.cover_backup) {
+      r.cover_backup = next;
+      reviewsTouched = true;
+    }
+  }
+  if (reviewsTouched) await vault.writeJson("reviews.json", reviews);
+
+  const favorites = await vault.readJson("favorites.json", []);
+  let favoritesTouched = false;
+  for (const f of favorites) {
+    const next = fixRef(f.image_backup);
+    if (next !== f.image_backup) {
+      f.image_backup = next;
+      favoritesTouched = true;
+    }
+  }
+  if (favoritesTouched) await vault.writeJson("favorites.json", favorites);
+
+  const settings = await vault.readJson("site-settings.json", {});
+  const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+  const collectionIds = new Set(["characters", ...collections.map((c) => c.id).filter(isSafeName)]);
+  for (const id of collectionIds) {
+    const titles = await vault.readJson(collectionFile(id), []);
+    let touched = false;
+    for (const title of titles) {
+      const nextCover = fixRef(title.cover_backup);
+      if (nextCover !== title.cover_backup) {
+        title.cover_backup = nextCover;
+        touched = true;
+      }
+      for (const list of title.tierlists || []) {
+        for (const tier of list.tiers || []) {
+          for (const ch of tier.chars || []) {
+            const next = fixRef(ch.img_backup);
+            if (next !== ch.img_backup) {
+              ch.img_backup = next;
+              touched = true;
+            }
+          }
+        }
+      }
+    }
+    if (touched) await vault.writeJson(collectionFile(id), titles);
+  }
+
+  return { ok: true, fixed };
+}
+
 // ── Настройки ──────────────────────────────────
 
 async function getSiteSettings({ vault }) {
@@ -699,6 +786,7 @@ export const ROUTES = {
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/backup-cover": backupCover,
   "POST /api/delete-media": deleteMedia,
+  "POST /api/repair-cover-references": repairCoverReferences,
   "POST /api/restore-file-version": restoreFileVersion,
   "POST /api/clear-file-history": clearFileHistory,
   "POST /api/prune-history": pruneHistory,
