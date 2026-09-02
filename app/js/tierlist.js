@@ -312,7 +312,7 @@ function tlTitlesHtml() {
   }
 
   const hasAny = TIER_ROWS.some(t => byGrade[t.key]?.length);
-  const exportBtn = `<button class="admin-add-btn" id="tl-export-btn" onclick="tlExport('tl-titles-rows', '${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}')">${i18n("Сохранить как картинку")}</button>`;
+  const exportBtn = cameraButton(`tlExport('tl-titles-rows', '${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}')`, "tl-export-btn");
   let html = `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap">
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">${tlFiltersHtml()}${tlYearFiltersHtml(byType)}</div>
     <div style="flex-shrink:0">${exportBtn}</div>
@@ -486,7 +486,7 @@ function tlCharsHtml(collectionId) {
     ? `<a href="#/chars-edit?collection=${esc(collectionId)}" class="admin-add-btn">${i18n("Редактор")}</a>`
     : "";
 
-  const exportBtn = `<button class="admin-add-btn" id="tl-export-btn" onclick="tlExport('tl-chars-rows', '${esc(game.title)}')">${i18n("Сохранить как картинку")}</button>`;
+  const exportBtn = cameraButton(`tlExport('tl-chars-rows', '${esc(game.title)}')`, "tl-export-btn");
 
   // Ползунок размера – теперь до 1000px
   const slider = `<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem">
@@ -679,7 +679,16 @@ function tlMoveTip(e, tip) {
 
 async function tlExport(rowsId, label) {
   const btn = document.getElementById("tl-export-btn");
-  if (btn) { btn.textContent = i18n("⏳ Создаём…"); btn.disabled = true; }
+  let restoreBtn = () => {};
+  if (btn) {
+    const original = btn.innerHTML;
+    btn.innerHTML = `<span class="spinner-sm"></span>`;
+    btn.disabled = true;
+    restoreBtn = () => {
+      btn.innerHTML = original;
+      btn.disabled = false;
+    };
+  }
 
   const tip = document.getElementById("tl-tooltip");
   if (tip) tip.style.visibility = "hidden";
@@ -692,11 +701,7 @@ async function tlExport(rowsId, label) {
     const rows = document.getElementById(rowsId);
     if (!rows) throw new Error(i18n("Тир-лист не найден"));
 
-    if (typeof html2canvas === "undefined") {
-      if (btn) btn.textContent = i18n("⏳ Загружаем библиотеку…");
-      await loadHtml2Canvas();
-      if (btn) btn.textContent = i18n("⏳ Создаём…");
-    }
+    if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
     const imgs = Array.from(rows.querySelectorAll("img"));
     await Promise.all(imgs.map(img =>
@@ -713,11 +718,14 @@ async function tlExport(rowsId, label) {
     await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
 
     const canvas = await html2canvas(rows, {
-      backgroundColor: "#0a0a0c",
+      backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
       scale: 2,
       useCORS: true,
       allowTaint: false,
       logging: false,
+      onclone: (clonedDoc) => {
+        clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
+      },
     });
 
     const link = document.createElement("a");
@@ -741,6 +749,6 @@ async function tlExport(rowsId, label) {
     restoreImages();
     animated.forEach((el, i) => { el.style.animation = prevAnimation[i]; });
     if (tip) tip.style.visibility = "";
-    if (btn) { btn.textContent = i18n("Сохранить как картинку"); btn.disabled = false; }
+    restoreBtn();
   }
 }

@@ -62,7 +62,6 @@ function makeSection(id, title, items, collapsed) {
           ${esc(title)}
           <span class="section-count">${items.length}</span>
         </h2>
-        <span class="section-chevron${isCollapsed ? " collapsed" : ""}" aria-hidden="true"></span>
       </div>
       <div class="now-section-body${isCollapsed ? " hidden" : ""}">
         <div class="grid-now" style="margin-top:1.5rem">
@@ -76,16 +75,13 @@ function toggleSection(id) {
   const collapsed = getCollapsed();
   const section = document.querySelector(`.now-section[data-section="${id}"]`);
   if (!section) return;
-  const body    = section.querySelector(".now-section-body");
-  const chevron = section.querySelector(".section-chevron");
+  const body = section.querySelector(".now-section-body");
   if (collapsed.has(id)) {
     collapsed.delete(id);
     body.classList.remove("hidden");
-    chevron.classList.remove("collapsed");
   } else {
     collapsed.add(id);
     body.classList.add("hidden");
-    chevron.classList.add("collapsed");
   }
   saveCollapsed(collapsed);
 }
@@ -115,25 +111,6 @@ function renderNow({ buckets, completed }) {
       align-self: flex-end;
       padding-bottom: .1rem;
     }
-
-    /* Треугольник рисуется рамкой, а не берётся символом '▾' из шрифта:
-       ни один из самохостящихся шрифтов его не содержит (проверено по
-       cmap), и браузер подставлял системный запасной – на Android
-       вместо мелкой галочки выходил крупный сплошной ▼ вдвое больше
-       задуманного. Ровно тот же приём уже применён к стрелке у
-       выпадающих списков (.select-wrap::after в style.css) и к ромбу
-       над активной вкладкой (.tab-btn.active::before в index.html). */
-    .section-chevron {
-      width: 0; height: 0;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-top: 6px solid var(--text-dim);
-      transition: transform .22s ease, border-top-color .2s;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-    .now-section-header:hover .section-chevron { border-top-color: var(--text); }
-    .section-chevron.collapsed { transform: rotate(-90deg); }
 
     .now-section-body.hidden { display: none; }
   </style>`;
@@ -180,7 +157,6 @@ function renderNow({ buckets, completed }) {
             ${esc(siteLabel("statuses", "archive", i18n("Архив")))}
             <span class="section-count">${completed.length}</span>
           </h2>
-          <span class="section-chevron${isCollapsed ? " collapsed" : ""}" aria-hidden="true"></span>
         </div>
         <div class="now-section-body${isCollapsed ? " hidden" : ""}">
           ${archiveInner}

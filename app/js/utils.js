@@ -211,8 +211,8 @@ async function confirmLeaveIfDirty({ isDirty, save, message }) {
   if (!isDirty()) return true;
   const wantsSave = await confirmDialog(
     message || i18n("Есть несохранённые изменения."),
-    i18n("Сохранить изменения"),
-    i18n("Уйти без сохранения"),
+    i18n("Сохранить"),
+    i18n("Без сохранения"),
     { strict: true }
   );
   if (!wantsSave) return true;
@@ -355,6 +355,19 @@ function eyeIcon(hidden) {
 }
 function eyeButton(hidden, onclickExpr) {
   return `<button type="button" class="icon-btn" title="${hidden ? i18n("Показать") : i18n("Скрыть")}" onclick="${onclickExpr}">${eyeIcon(hidden)}</button>`;
+}
+
+// ── Камера – кнопка «Сохранить как картинку» ────
+// Раньше текстовая кнопка на всю подпись – рядом с другими короткими
+// кнопками (admin-add-btn) она была заметно длиннее и перетягивала
+// внимание. Теперь та же кнопка-иконка, что и у остальных
+// вспомогательных действий (eyeButton выше): подпись – через нативный
+// title при наведении, а не текстом на кнопке.
+function cameraIcon() {
+  return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.2l1.6-2.4A2 2 0 0 1 9.47 2.6h5.06a2 2 0 0 1 1.67.9L17.8 6H21a2 2 0 0 1 2 2Z"></path><circle cx="12" cy="13" r="3.6"></circle></svg>`;
+}
+function cameraButton(onclickExpr, id) {
+  return `<button type="button" class="icon-btn"${id ? ` id="${id}"` : ""} title="${i18n("Сохранить как картинку")}" onclick="${onclickExpr}">${cameraIcon()}</button>`;
 }
 
 // ── Тултипы [data-tip] – общий JS, а не CSS ::after ────────────────

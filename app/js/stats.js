@@ -60,7 +60,7 @@ function statsRender() {
 
   const filtersHtml = `<div class="stat-toolbar">
     ${statsYearFiltersHtml(years)}
-    <button class="admin-add-btn" id="stats-export-btn" onclick="statsExport()">${i18n("Сохранить как картинку")}</button>
+    ${cameraButton("statsExport()", "stats-export-btn")}
   </div>`;
   const bodyHtml = statsState.year === "all"
     ? renderAllTimeStats(reviews, completed)
@@ -452,18 +452,20 @@ async function statsExport() {
   const btn = document.getElementById("stats-export-btn");
   const grid = document.querySelector("#tab-stats .stat-grid");
   if (!grid) return;
+  let restoreBtn = () => {};
   if (btn) {
-    btn.textContent = i18n("⏳ Создаём…");
+    const original = btn.innerHTML;
+    btn.innerHTML = `<span class="spinner-sm"></span>`;
     btn.disabled = true;
+    restoreBtn = () => {
+      btn.innerHTML = original;
+      btn.disabled = false;
+    };
   }
 
   let restoreImages = () => {};
   try {
-    if (typeof html2canvas === "undefined") {
-      if (btn) btn.textContent = i18n("⏳ Загружаем библиотеку…");
-      await loadHtml2Canvas();
-      if (btn) btn.textContent = i18n("⏳ Создаём…");
-    }
+    if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
     restoreImages = await proxyImagesToDataUrls(grid);
 
@@ -473,6 +475,9 @@ async function statsExport() {
       useCORS: true,
       allowTaint: false,
       logging: false,
+      onclone: (clonedDoc) => {
+        clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
+      },
     });
 
     const link = document.createElement("a");
@@ -488,9 +493,6 @@ async function statsExport() {
     alert("Не удалось создать картинку 😢\n" + err.message);
   } finally {
     restoreImages();
-    if (btn) {
-      btn.textContent = i18n("Сохранить как картинку");
-      btn.disabled = false;
-    }
+    restoreBtn();
   }
 }

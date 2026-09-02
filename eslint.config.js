@@ -67,6 +67,8 @@ const sharedBrowserGlobals = [
   "extractIdsFromCover",
   "eyeButton",
   "eyeIcon",
+  "cameraButton",
+  "cameraIcon",
   "favPersonCard",
   "favTitleCard",
   "fetchAnilistMeta",

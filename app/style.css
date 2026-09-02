@@ -546,6 +546,19 @@ html:not(.kb-nav) *:focus {
   margin: 0 auto 1rem;
 }
 
+/* Тот же крутящийся ободок, но крохотный и без отступов – для кнопки
+   вроде камеры (cameraButton в js/utils.js), пока картинка создаётся:
+   эмодзи ⏳/⏳ не совпадают ни с одной темой и не входят в самохостящиеся
+   шрифты (тот же довод, что и у section-chevron когда-то). */
+.spinner-sm {
+  display: inline-block;
+  width: 13px; height: 13px;
+  border: 1px solid var(--border2);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+}
+
 /* ══ ТУЛТИП [data-tip] ═════════════════════════════
    Позиционируется в JS (js/utils.js) — см. её же комментарий про то,
    почему не чистым CSS ::after. */

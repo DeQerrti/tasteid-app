@@ -660,8 +660,6 @@ i18nRegister({
   ". Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.":
     ". The list must be public – if it’s private in the profile settings, nobody can see it.",
   "+ завести свой статус…": "+ create your own status…",
-  "⏳ Загружаем библиотеку…": "⏳ Loading the library…",
-  "⏳ Создаём…": "⏳ Creating…",
   "Аниме и манга": "Anime and manga",
   "Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) – там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.":
     "With no keys at all, covers for anime and manga (from AniList) and for books (from Open Library) already arrive – those are open to everyone. A key is only needed for movies: TMDB, the one open poster database, asks for one. It’s free and issued immediately.",
@@ -1193,6 +1191,6 @@ i18nRegister({
   "Закрыть без сохранения": "Close without saving",
   Остаться: "Stay",
   "Есть несохранённые изменения.": "You have unsaved changes.",
-  "Уйти без сохранения": "Leave without saving",
+  "Без сохранения": "Without saving",
   "Отзыв не сохранён.": "This review isn’t saved.",
 });
