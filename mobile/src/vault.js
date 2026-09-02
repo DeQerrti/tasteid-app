@@ -390,6 +390,20 @@ export class MobileVault {
     });
   }
 
+  // Удаление одного файла – резервных копий обложек, которые заменила
+  // новая (см. core/api.js: deleteMedia, js/routes/add.js). Уже
+  // отсутствующий файл – не ошибка: цель («этого файла на диске нет»)
+  // и так достигнута.
+  async deleteMedia(relPath) {
+    const parts = String(relPath)
+      .replace(/^\/+/, "")
+      .split("/")
+      .filter(Boolean)
+      .map((p) => this.#safeSegment(p));
+    if (!parts.length) throw new Error("Пустой путь");
+    await Filesystem.deleteFile({ path: this.#path(...parts), directory: DIR }).catch(() => {});
+  }
+
   // Все картинки хранилища одним списком, для резервной копии. Не
   // listImages – та отвечает под конкретную нужду интерфейса (список
   // папок ИЛИ список файлов в одной папке, порознь), а здесь нужно

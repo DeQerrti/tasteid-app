@@ -358,7 +358,7 @@ function settingsViewHtml() {
           <button class="btn btn-ghost" onclick="exportBackup()" data-i18n>Скачать резервную копию</button>
           <label class="btn btn-ghost file-btn">
             <input type="file" id="backup-file" data-no-dirty accept="application/json,.json" onchange="restoreBackup(this)">
-            <span data-i18n>Восстановить из файла…</span>
+            <span data-i18n>Восстановить из файла</span>
           </label>
         </div>
         <div class="status-msg" id="status-backup"></div>

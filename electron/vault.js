@@ -334,4 +334,21 @@ export class Vault {
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, Buffer.from(base64, "base64"));
   }
+
+  // Удаление одного файла – резервных копий обложек, которые заменила
+  // новая (см. core/api.js: deleteMedia, js/routes/add.js). Уже
+  // отсутствующий файл – не ошибка: цель («этого файла на диске нет»)
+  // и так достигнута.
+  async deleteMedia(relPath) {
+    const parts = String(relPath)
+      .split("/")
+      .filter(Boolean)
+      .map((p) => this.#safeSegment(p));
+    if (!parts.length) throw new Error("Пустой путь");
+    try {
+      await fs.unlink(path.join(this.root, ...parts));
+    } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+    }
+  }
 }

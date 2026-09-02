@@ -435,6 +435,21 @@ async function backupCover({ vault, body }) {
   return { ok: true, url: saved };
 }
 
+// Удаление файла обложки – резервной копии, которую заменила новая
+// (см. js/routes/add.js: пасту новой ссылки на обложку раньше не
+// сопровождалось удалением старого файла, и на диске годами копились
+// заброшенные копии никому уже не нужных обложек). Область
+// намеренно ограничена covers/covers-backup – это чистка своих же
+// файлов конкретной фичи, а не удаление чего угодно из хранилища.
+const DELETABLE_MEDIA_PATH = /^\/(covers|covers-backup)\/[^/]+$/;
+
+async function deleteMedia({ vault, body }) {
+  const relPath = String(body.path || "");
+  if (!DELETABLE_MEDIA_PATH.test(relPath)) throw new ApiError("Недопустимый путь для удаления");
+  await vault.deleteMedia(relPath.slice(1));
+  return { ok: true };
+}
+
 // Uint8Array, а не Buffer: этот файл делят настольное приложение и
 // телефон, а Buffer есть только в Node.
 function base64ToBuffer(data) {
@@ -665,6 +680,7 @@ export const ROUTES = {
   "POST /api/restore-backup": restoreBackup,
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/backup-cover": backupCover,
+  "POST /api/delete-media": deleteMedia,
   "POST /api/restore-file-version": restoreFileVersion,
   "POST /api/clear-file-history": clearFileHistory,
   "POST /api/prune-history": pruneHistory,

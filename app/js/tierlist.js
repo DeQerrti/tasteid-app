@@ -266,7 +266,14 @@ function tlTitlesHtml() {
 
   const hasAny = TIER_ROWS.some(t => byGrade[t.key]?.length);
   const exportBtn = cameraButton(`tlExport('tl-titles-rows', '${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}')`, "tl-export-btn");
-  let html = `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap">
+  // flex-wrap только на внутреннем ряду с фильтрами, а не на всём
+  // верхнем ряду разом: иначе на узком экране кнопка целиком уезжала
+  // на отдельную строку под фильтрами. align-items: flex-start вместо
+  // center – когда сами фильтры переносятся на два ряда (обычное дело
+  // на телефоне с несколькими типами), кнопка не должна центрироваться
+  // по высоте всего блока фильтров и съезжать вниз – она должна
+  // остаться на одном уровне с первой строкой, как остальные элементы.
+  let html = `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.5rem">
     <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">${tlFiltersHtml()}${tlYearFiltersHtml(byType)}</div>
     <div style="flex-shrink:0">${exportBtn}</div>
   </div>`;
@@ -450,7 +457,7 @@ function tlCharsHtml(collectionId) {
     <span id="tl-char-size-val" style="font-family:'DM Sans',sans-serif;font-size:.65rem;color:var(--text-dim);min-width:42px">${tlCharHeight}px</span>
   </div>`;
 
-  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem;flex-wrap:wrap">
+  return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.5rem">
     <div class="tl-filters">${gameButtons}</div>
     <div style="display:flex;gap:.5rem;flex-shrink:0">${adminBtn}${exportBtn}</div>
   </div>

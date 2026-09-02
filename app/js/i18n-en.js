@@ -455,7 +455,7 @@ i18nRegister({
   "Отзывы, любимое, тир-листы, настройки и загруженные вручную картинки – одним файлом, для себя.":
     "Reviews, favorites, tier lists, settings and manually uploaded pictures – in one file, for yourself.",
   "Скачать резервную копию": "Download backup",
-  "Восстановить из файла…": "Restore from file…",
+  "Восстановить из файла": "Restore from file",
   "Текущие отзывы, любимое, тир-листы и настройки будут заменены содержимым файла. Отменить это можно только другой резервной копией. Продолжить?":
     "Current reviews, favorites, tier lists and settings will be replaced with the file's contents. The only way to undo this is another backup. Continue?",
   "Это не похоже на файл резервной копии – внутри не JSON.":

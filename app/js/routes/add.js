@@ -76,6 +76,13 @@ let editingId = null;
 // дозапрошена у API (scripts/enrich-ids.js). Держим отдельно, чтобы
 // при сохранении не потерять то, что из ссылки уже не вывести.
 let editingIds = {};
+// Резервная копия обложки, с которой открыт редактор (null у нового
+// отзыва) – единственная, которую нельзя удалять сразу же по месту:
+// на неё ссылается уже сохранённый отзыв, и если правки не сохранить,
+// он должен остаться таким же, каким был. Удаляется только после
+// того, как сохранение подтвердит, что отзыв теперь ссылается на
+// другой файл или вообще ни на какой – см. saveReview().
+let originalCoverBackup = null;
 
 let addCleanupFns = [];
 let addPrevTitle = null;
@@ -107,6 +114,7 @@ async function mount(container, params) {
   selectedTags = new Set();
   editingId = null;
   editingIds = {};
+  originalCoverBackup = null;
   featuredCardTags = new Set();
   noTagsOnCard = false;
   tmTagEdit = null;
@@ -584,6 +592,7 @@ function unmount() {
   noTagsOnCard = false;
   editingId = null;
   editingIds = {};
+  originalCoverBackup = null;
   fromPassportModal = false;
   setAddDirty(false);
 }
@@ -2311,6 +2320,7 @@ function fillForm(r) {
   document.getElementById("f-format").value = r.format || "";
   document.getElementById("f-cover").value = r.cover || "";
   document.getElementById("f-cover-backup").value = r.cover_backup || "";
+  originalCoverBackup = r.cover_backup || null;
   document.getElementById("f-url").value = r.url || "";
   document.getElementById("f-preview").value = r.preview || "";
   document.getElementById("f-review-full").value = r.review_full || "";
@@ -2366,6 +2376,7 @@ function fillForm(r) {
 function resetToNew() {
   editingId = null;
   editingIds = {};
+  originalCoverBackup = null;
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("danger-zone").hidden = true;
   document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
@@ -2561,6 +2572,7 @@ function openCoverPanel() {
 }
 
 function closeCoverPanel() {
+  discardScratchCoverBackup();
   document.getElementById("f-cover").value = "";
   document.getElementById("f-cover-backup").value = "";
   document.getElementById("f-cover-upload").value = "";
@@ -2643,6 +2655,7 @@ async function uploadCoverFile() {
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
     // Обложка загружена напрямую – своя резервная копия ей не нужна.
+    discardScratchCoverBackup();
     document.getElementById("f-cover").value = "";
     document.getElementById("f-cover-backup").value = data.url;
     previewCover(data.url);
@@ -2654,6 +2667,33 @@ async function uploadCoverFile() {
   }
 }
 
+// ── Удаление заброшенных резервных копий обложки ────
+// Раньше вставка новой ссылки на обложку поверх старой создавала
+// новый файл в covers-backup/, а старый оставался лежать на диске
+// вечно, никем больше не используемый. Удалять его сразу же безопасно
+// только если он не совпадает с originalCoverBackup – это резервная
+// копия, на которую УЖЕ ссылается сохранённый отзыв, и трогать её до
+// подтверждённого сохранения новой нельзя: не сохранив правку и уйдя
+// из редактора, человек ожидает увидеть отзыв таким же, каким он был.
+async function deleteMediaFile(relPath) {
+  if (!relPath) return;
+  try {
+    await fetch("/api/delete-media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: relPath }),
+    });
+  } catch {
+    // Не получилось – не страшно, файл просто останется на диске,
+    // как и было до этой правки.
+  }
+}
+
+function discardScratchCoverBackup() {
+  const current = document.getElementById("f-cover-backup").value.trim();
+  if (current && current !== originalCoverBackup) deleteMediaFile(current);
+}
+
 // ── Автобэкап картинки по ссылке – качается на сервере, чтобы не
 //    упереться в CORS. Срабатывает через паузу после ввода, не на
 //    каждую напечатанную букву. ──
@@ -2661,6 +2701,7 @@ let backupCoverTimer = null;
 
 function scheduleBackupCover() {
   clearTimeout(backupCoverTimer);
+  discardScratchCoverBackup();
   document.getElementById("f-cover-backup").value = "";
   backupCoverTimer = setTimeout(backupCoverNow, 1200);
 }
@@ -2793,6 +2834,15 @@ async function saveReview() {
     if (res.ok) {
       setStatus("ok", editingId !== null ? `«${title}» обновлён.` : `«${title}» сохранён.`);
       setAddDirty(false);
+      // Отзыв только что сохранён с другой резервной копией (или вовсе
+      // без неё) – прежняя больше никем не используется, теперь это
+      // подтверждено, а не просто локальная правка в форме. Удалять
+      // раньше этого момента было нельзя: несохранённый уход из
+      // редактора должен был оставить отзыв таким, каким он был.
+      if (originalCoverBackup && originalCoverBackup !== review.cover_backup) {
+        deleteMediaFile(originalCoverBackup);
+      }
+      originalCoverBackup = review.cover_backup;
       // Тот же общий кэш, что читают favorites.js/tierlist.js между
       // вызовами fetchReviews() (js/api.js) – без сброса они ещё
       // мгновение показывали бы старые данные.
