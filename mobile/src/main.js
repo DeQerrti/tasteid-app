@@ -524,8 +524,8 @@ function describeUpdateError(e, ru) {
 
   if (isNetwork) {
     return ru
-      ? `Не получилось скачать файл${msg ? ` (${msg})` : ""}. Проверьте подключение и попробуйте ещё раз.`
-      : `Couldn't download the file${msg ? ` (${msg})` : ""}. Check your connection and try again.`;
+      ? `Не получилось скачать файл${msg ? ` (${msg})` : ""}. Это не обязательно проблема с интернетом – чаще всего так выглядит, когда телефон или Play Защита не дают приложению самому скачать файл, не входящий в Play Store. Надёжнее нажать «Поделиться» ниже и открыть ссылку в браузере (Chrome и т.п.) – он умеет скачивать такие файлы напрямую, в объяснении в настройках → «Приложение» → «Обновления» расписано по шагам.`
+      : `Couldn't download the file${msg ? ` (${msg})` : ""}. This isn't necessarily a connection problem – it usually looks like this when the phone or Play Protect won't let the app download a file that isn't from Play Store itself. It's more reliable to press "Share" below and open the link in a browser (Chrome, etc.) – it can download this kind of file directly; see Settings → "App" → "Updates" for the step-by-step version.`;
   }
 
   return ru

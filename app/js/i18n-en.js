@@ -1247,6 +1247,23 @@ i18nRegister({
   "Создаём код…": "Creating the code…",
 });
 
+// ── Настройки: обновления на телефоне ──────────
+i18nRegister({
+  "Обновления на телефоне": "Updates on the phone",
+  "TasteID для Android не из Play Store – его негде публиковать без ежегодного взноса разработчика. Из-за этого при каждом обновлении телефон видит файл, который прислал не Play Store, и по умолчанию ему не доверяет: может отказаться его качать, предупредить перед установкой или заблокировать установку совсем. Это не ошибка и не значит, что с приложением что-то не так, – так ведёт себя любое приложение не из магазина.":
+    "TasteID for Android isn't from Play Store – there's nowhere to publish it there without an annual developer fee. Because of that, on every update the phone sees a file that didn't come from Play Store and doesn't trust it by default: it may refuse to download it, warn before installing, or block the install outright. This isn't a bug and doesn't mean something's wrong with the app – any app from outside the store behaves this way.",
+  "Нажмите «Обновить» во всплывающем окне – в большинстве случаев файл скачается и установится сам, дальше только подтвердить установку, как для любого другого приложения.":
+    "Press “Update” in the pop-up – in most cases the file downloads and installs on its own, and all that's left is to confirm the install, same as for any other app.",
+  "Если вместо этого показывается ошибка скачивания – телефон, скорее всего, не дал приложению самому скачать файл, который пришёл не из Play Store. Нажмите «Поделиться» и выберите браузер (Chrome или любой другой) – в отличие от самого приложения, браузер умеет качать такие файлы напрямую с GitHub, откроется страница релиза и скачивание начнётся само.":
+    "If a download error shows up instead – the phone most likely didn't let the app download a file that isn't from Play Store on its own. Press “Share” and pick a browser (Chrome or any other) – unlike the app itself, a browser can download this kind of file directly from GitHub; the release page will open and the download will start on its own.",
+  "Если браузер или Play Защита предупредят, что файл «может быть опасен» (обычное дело для файла не из Play Store) – там же будет ссылка вроде «Подробнее» или «Всё равно скачать/установить»: нажмите её, чтобы продолжить.":
+    "If the browser or Play Protect warns that the file “may be harmful” (normal for a file outside Play Store) – there will be a link like “Details” or “Download/install anyway” right there: tap it to continue.",
+  "Если система прямо отказывается устанавливать скачанный файл – откройте Play Store → значок профиля → «Play Защита» → шестерёнка настроек → выключите «Сканировать приложения с помощью Play Защиты» и попробуйте установить ещё раз.":
+    "If the system flatly refuses to install the downloaded file – open Play Store → profile icon → “Play Protect” → settings gear → turn off “Scan apps with Play Protect” and try installing again.",
+  "На телефонах не от Google (Xiaomi/MIUI, Samsung, Huawei и похожих) то же самое может дополнительно перепроверять собственное приложение безопасности производителя – обычно называется «Безопасность» или «Диспетчер телефона»: там тоже стоит поискать похожий переключатель, если ничего из перечисленного выше не помогло.":
+    "On non-Google phones (Xiaomi/MIUI, Samsung, Huawei and similar) the manufacturer's own security app may double-check the same thing – usually called “Security” or “Phone Manager”: it's worth looking there for a similar switch if none of the above helped.",
+});
+
 // ── Синхронизация: пояснения для новичков ──────
 i18nRegister({
   "GitHub – бесплатный сайт, на котором разработчики хранят код; здесь он просто чужое хранилище вместо своего сервера, которого у TasteID нет. Приватный (закрытый от посторонних) репозиторий на нём – общая папка для всех ваших устройств: телефон, компьютер и любое ещё устройство с этим приложением по очереди кладут туда свои изменения и забирают чужие. Токен и служебные данные синхронизации при этом остаются только на этом устройстве, на github.com уходят только сами данные приложения.":
