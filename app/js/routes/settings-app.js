@@ -359,12 +359,15 @@ function backfillSlug(name) {
 async function backfillCoverBackups() {
   const btn = document.getElementById("backfill-covers-btn");
   const status = document.getElementById("status-backfill-covers");
+  const failList = document.getElementById("backfill-covers-failed");
   btn.disabled = true;
   status.style.color = "";
   status.textContent = i18n("Смотрим, у кого нет резервной копии…");
+  failList.innerHTML = "";
 
   let done = 0;
   let failed = 0;
+  const failedItems = [];
 
   try {
     const [reviews, favorites] = await Promise.all([
@@ -402,8 +405,9 @@ async function backfillCoverBackups() {
         const saved = await saveRes.json();
         if (!saveRes.ok || saved.error) throw new Error(saved.error || "save-review");
         done++;
-      } catch {
+      } catch (err) {
         failed++;
+        failedItems.push({ name: r.title, reason: err.message || String(err) });
       }
     }
 
@@ -428,8 +432,9 @@ async function backfillCoverBackups() {
         const saved = await saveRes.json();
         if (!saveRes.ok || saved.error) throw new Error(saved.error || "save-favorite");
         done++;
-      } catch {
+      } catch (err) {
         failed++;
+        failedItems.push({ name: r.name, reason: err.message || String(err) });
       }
     }
 
@@ -444,6 +449,9 @@ async function backfillCoverBackups() {
         false,
         i18n("Готово: {done} из {total}, {failed} не удалось (ссылка недоступна?).", { done, total, failed })
       );
+      failList.innerHTML = failedItems
+        .map((f) => `<div>«${esc(f.name || "?")}» – ${esc(f.reason)}</div>`)
+        .join("");
     } else {
       flashStatus("status-backfill-covers", true, i18n("Готово: резервных копий создано – {done}.", { done }));
     }

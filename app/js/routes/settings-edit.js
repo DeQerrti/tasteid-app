@@ -385,6 +385,7 @@ function settingsViewHtml() {
           <button class="btn btn-ghost" id="backfill-covers-btn" onclick="backfillCoverBackups()" data-i18n>Досоздать резервные копии</button>
         </div>
         <div class="status-msg" id="status-backfill-covers"></div>
+        <div id="backfill-covers-failed" style="font-size:.75rem;color:var(--text-dim);margin-top:.4rem;"></div>
 
         <h2 class="section-h" data-i18n>Язык</h2>
         <div class="row">
