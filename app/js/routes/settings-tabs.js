@@ -17,6 +17,9 @@ function updateSectionListHeadings() {
   const favH = document.getElementById("favSectionsHeading");
   if (favH)
     favH.textContent = i18n("Разделы вкладки «{name}»", { name: tabLabels.favorites || TAB_DEFS_BY_ID.favorites.def });
+  const tierH = document.getElementById("tierModesHeading");
+  if (tierH)
+    tierH.textContent = i18n("Разделы вкладки «{name}»", { name: tabLabels.tierlist || TAB_DEFS_BY_ID.tierlist.def });
 }
 
 // ── Разделы вкладки «Любимое» ──────────────────
@@ -431,7 +434,7 @@ function toggleTabEdit(id) {
     const def = TAB_DEFS.find((t) => t.id === id).def;
     tabLabels[id] = val || def;
     document.getElementById(`tabname-${id}`).textContent = tabLabels[id];
-    if (id === "now" || id === "favorites") updateSectionListHeadings();
+    if (id === "now" || id === "favorites" || id === "tierlist") updateSectionListHeadings();
   }
 }
 

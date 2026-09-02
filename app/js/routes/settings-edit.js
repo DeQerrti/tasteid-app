@@ -99,7 +99,6 @@ const SIDE_TAB_ICON_PATHS = {
     '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/>',
   stats: '<path d="M4 20V10M12 20V4M20 20v-7"/>',
   grades: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
-  collections: '<path d="M3 6h18M3 12h18M3 18h11"/>',
   labels:
     '<path d="M20.59 13.41L11 3.83A2 2 0 009.59 3.24L3 3v6.59a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.83 0l6.59-6.59a2 2 0 000-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
   passports: '<rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="10" r="2"/><path d="M14 9h6M14 13h6M6 16h6"/>',
@@ -138,7 +137,6 @@ function settingsViewHtml() {
       <button class="side-tab" data-panel="shortcuts">${sideTabIcon("shortcuts")}${sideTabLabel("Горячие клавиши")}</button>
       <button class="side-tab" data-panel="stats">${sideTabIcon("stats")}${sideTabLabel("Статистика")}</button>
       <button class="side-tab" data-panel="grades">${sideTabIcon("grades")}${sideTabLabel("Оценки и статусы")}</button>
-      <button class="side-tab" data-panel="collections">${sideTabIcon("collections")}${sideTabLabel("Тир-листы")}</button>
       <button class="side-tab" data-panel="labels">${sideTabIcon("labels")}${sideTabLabel("Подписи")}</button>
       <button class="side-tab" data-panel="passports">${sideTabIcon("passports")}${sideTabLabel("Обмен")}</button>
       <button class="side-tab hidden" data-panel="sync" id="tab-sync">${sideTabIcon("sync")}${sideTabLabel("Синхронизация")}</button>
@@ -222,6 +220,11 @@ function settingsViewHtml() {
         </div>
         <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
+
+        <h2 class="section-h" id="tierModesHeading"></h2>
+        <p class="panel-intro" data-i18n>Скрыть, переименовать, удалить и переставить местами можно все тир-листы разом – «Тайтлы» и свои коллекции. Завести новый тир-лист по-прежнему проще кнопкой «Создать» на самой вкладке «Тир-лист».</p>
+        <div id="tierModesList"></div>
+        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
       </div>
 
       <div class="panel" id="panel-shortcuts">
@@ -275,14 +278,6 @@ function settingsViewHtml() {
 
         <button class="btn-save" onclick="saveSettings()" style="margin-top:20px;" data-i18n>Сохранить</button>
         <div class="status-msg" id="status-grades"></div>
-      </div>
-
-      <div class="panel" id="panel-collections">
-        <p class="panel-intro" data-i18n>Здесь можно скрыть, переименовать, удалить и переставить местами все тир-листы разом – «Тайтлы» и свои коллекции. Завести новый тир-лист по-прежнему проще кнопкой «Создать» на самой вкладке «Тир-лист».</p>
-        <div id="tierModesList"></div>
-
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
-        <div class="status-msg" id="status-collections"></div>
       </div>
 
       <div class="panel" id="panel-labels">
