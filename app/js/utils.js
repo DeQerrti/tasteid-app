@@ -508,6 +508,58 @@ function safeCaptureScale(node, desiredScale, maxDim) {
   return longestSide > limit ? (desiredScale * limit) / longestSide : desiredScale;
 }
 
+// ── Захват очень высокого элемента – по строкам, а не целиком ──────
+// Три версии подряд объясняли пустые верхние тиры на большом снимке
+// по-разному (предел GPU-текстуры – см. safeCaptureScale выше; жёсткий
+// таймаут waitForImages; растр, не успевший обновиться после img.src =
+// dataUrl) – и ни одна не подтвердилась на живых данных владельца (237
+// отзывов, реальное хранилище). Прямая проверка показала: к моменту
+// вызова html2canvas все <img> в «пустых» верхних тирах уже
+// img.complete === true с настоящими naturalWidth/naturalHeight –
+// данные готовы, декодированы, лежат в DOM. И всё равно верхняя четверть
+// итогового холста выходит почти пустой (≈15% закрашенных пикселей
+// против 60–75% в середине и внизу того же снимка, при том что предел
+// холста из safeCaptureScale уже не превышен). Значит дело не в
+// загрузке и не в декодировании
+// вовсе, а в самом html2canvas – у очень высокого одиночного элемента
+// (тут – тысячи css-пикселей до масштабирования) он не дорисовывает
+// часть содержимого, и почему-то именно верхнюю часть.
+//
+// Обходной путь – не гадать дальше про внутренний баг библиотеки, а не
+// подсовывать ей одну гигантскую цель целиком: снимаем каждого прямого
+// ребёнка контейнера отдельным вызовом html2canvas (тир-лист и раньше
+// был построен построчно – каждая строка это один ребёнок) и склеиваем
+// результаты в один холст по их же getBoundingClientRect() – так
+// сохраняются те же отступы между строками, что и в живой вёрстке.
+// Контейнер с одним ребёнком или без детей тайлить нечем – тогда как и
+// раньше, один вызов на весь узел.
+async function captureTallElement(el, options) {
+  const children = Array.from(el.children);
+  if (children.length < 2) return html2canvas(el, options);
+
+  const parentRect = el.getBoundingClientRect();
+  const scale = options.scale ?? 1;
+  const shots = [];
+  for (const child of children) {
+    const rect = child.getBoundingClientRect();
+    const canvas = await html2canvas(child, options);
+    shots.push({ canvas, x: rect.left - parentRect.left, y: rect.top - parentRect.top });
+  }
+
+  const out = document.createElement("canvas");
+  out.width = Math.round(parentRect.width * scale);
+  out.height = Math.round(parentRect.height * scale);
+  const ctx = out.getContext("2d");
+  if (options.backgroundColor) {
+    ctx.fillStyle = options.backgroundColor;
+    ctx.fillRect(0, 0, out.width, out.height);
+  }
+  for (const shot of shots) {
+    ctx.drawImage(shot.canvas, Math.round(shot.x * scale), Math.round(shot.y * scale));
+  }
+  return out;
+}
+
 // ── Тултипы [data-tip] – общий JS, а не CSS ::after ────────────────
 // Раньше подсказка у тега (.rtag) и у оценки (.grade-chip) рисовалась
 // чистым CSS: ::after с content: attr(data-tip), position: absolute

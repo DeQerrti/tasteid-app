@@ -50,6 +50,7 @@ const sharedBrowserGlobals = [
   "compareSectionHtml",
   "coverFallbackAttrs",
   "createRepo",
+  "captureTallElement",
   "disableAnimations",
   "waitForImages",
   "withTimeout",

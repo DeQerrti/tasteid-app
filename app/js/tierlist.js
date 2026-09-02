@@ -678,7 +678,7 @@ async function tlExport(rowsId, label) {
     await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
 
     const canvas = await withTimeout(
-      html2canvas(rows, {
+      captureTallElement(rows, {
         backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
         scale: safeCaptureScale(rows, 2),
         useCORS: true,
