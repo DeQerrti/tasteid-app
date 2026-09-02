@@ -523,6 +523,107 @@ function matchTwoSets(myItems, theirItems) {
   return { both, onlyMine, onlyTheirs };
 }
 
+// ── Общая полоска-график ───────────────────────
+// Один и тот же ряд (подпись – полоска – число) и для «по годам» ниже
+// (две полоски на десятилетие, «вы»/«он»), и для «совпадение по
+// типам» (одна полоска на тип). Ширина в процентах уже посчитана
+// снаружи – сама функция ничего не знает про то, что сравнивается.
+function ppBarRow(label, valueText, pct, colorClass) {
+  return `<div class="pp-bar-row">
+    <span class="pp-bar-label">${esc(label)}</span>
+    <div class="pp-bar-track"><div class="pp-bar-fill ${colorClass}" style="width:${Math.max(0, Math.min(100, pct)).toFixed(1)}%"></div></div>
+    <span class="pp-bar-val">${esc(valueText)}</span>
+  </div>`;
+}
+
+// ── По годам ────────────────────────────────────
+// Не по пересечению (matchTwoSets), а по всей библиотеке каждого –
+// вопрос не «что мы оба смотрели в 90-х», а «кто вообще больше по
+// классике, кто по новинкам». Совсем без пересечения то есть.
+function decadeOf(year) {
+  const y = Number(year);
+  return Number.isFinite(y) && y > 0 ? Math.floor(y / 10) * 10 : null;
+}
+
+function decadeCounts(items) {
+  const counts = new Map();
+  for (const item of items) {
+    const d = decadeOf(item.year);
+    if (d === null) continue;
+    counts.set(d, (counts.get(d) || 0) + 1);
+  }
+  return counts;
+}
+
+function decadesCompareHtml(myItems, theirItems) {
+  const mineCounts = decadeCounts(myItems);
+  const theirCounts = decadeCounts(theirItems);
+  const decades = [...new Set([...mineCounts.keys(), ...theirCounts.keys()])].sort((a, b) => a - b);
+  if (!decades.length) return "";
+  const max = Math.max(1, ...mineCounts.values(), ...theirCounts.values());
+
+  const groups = decades
+    .map((decade) => {
+      const mineVal = mineCounts.get(decade) || 0;
+      const theirVal = theirCounts.get(decade) || 0;
+      return `<div class="pp-decade-group">
+        <div class="pp-decade-label">${esc(i18n("{decade}-е", { decade }))}</div>
+        ${ppBarRow(i18n("вы"), String(mineVal), (mineVal / max) * 100, "pp-bar-mine")}
+        ${ppBarRow(i18n("он"), String(theirVal), (theirVal / max) * 100, "pp-bar-theirs")}
+      </div>`;
+    })
+    .join("");
+
+  return `<section class="pp-section">
+    <h2 class="section-h">${esc(i18n("По годам"))}</h2>
+    <div class="pp-decades">${groups}</div>
+  </section>`;
+}
+
+// ── Совпадение по типам ─────────────────────────
+// «Совпадение вкусов» в сводке выше – одно число по всем сразу: если
+// в кино мнения совпадают, а в аниме расходятся, разница тонет в
+// среднем. Тот же gap, что уже посчитан для каждой пары (both/rated
+// выше), просто сгруппированный по типу вместо общего среднего.
+function accordByType(rated) {
+  const byType = new Map();
+  for (const pair of rated) {
+    const type = pair.mine.type || pair.theirs.type || "other";
+    if (!byType.has(type)) byType.set(type, []);
+    byType.get(type).push(pair.gap);
+  }
+  return [...byType.entries()]
+    .map(([type, gaps]) => ({
+      type,
+      count: gaps.length,
+      accord: Math.round((1 - gaps.reduce((s, g) => s + g, 0) / gaps.length) * 100),
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function typeAccordHtml(rated) {
+  const rows = accordByType(rated);
+  // При одном-единственном типе это просто повторило бы «совпадение
+  // вкусов» из сводки – смысла показывать нет.
+  if (rows.length < 2) return "";
+
+  const bars = rows
+    .map((r) =>
+      ppBarRow(
+        TYPE_LABELS[r.type] || r.type,
+        i18n("{percent}% ({count})", { percent: r.accord, count: r.count }),
+        r.accord,
+        "pp-bar-mine"
+      )
+    )
+    .join("");
+
+  return `<section class="pp-section">
+    <h2 class="section-h">${esc(i18n("Совпадение по типам"))}</h2>
+    <div class="pp-decades">${bars}</div>
+  </section>`;
+}
+
 function compareResultHtml() {
   ppAddQueue = [];
   const mine = myGradeInfo();
@@ -563,6 +664,7 @@ function compareResultHtml() {
       ${ppStat(onlyTheirs.length, i18n("можно забрать себе"))}
       ${ppStat(favMatch.both.length, i18n("любимое у обоих"))}
     </div>
+    ${typeAccordHtml(rated)}
     ${comparePairsHtml(i18n("Где разошлись"), argued, mine, theirs, i18n("Полное согласие – спорить не о чем."))}
     ${comparePairsHtml(i18n("Где сошлись"), agreed, mine, theirs, i18n("Общих оценок не нашлось."))}
     ${compareOneSidedHtml(i18n("Стоит забрать себе"), onlyTheirs, theirs, true)}
@@ -570,6 +672,7 @@ function compareResultHtml() {
     ${bothFavoritesHtml(favMatch.both)}
     ${compareOneSidedHtml(i18n("В любимом только у него"), favMatch.onlyTheirs, theirs, true)}
     ${compareOneSidedHtml(i18n("В любимом только у вас"), favMatch.onlyMine, mine)}
+    ${decadesCompareHtml(myItems, theirItems)}
   </div>`;
 }
 
@@ -838,6 +941,37 @@ function passportStyles() {
     .pp-vs {
       font-family: 'Playfair Display', serif;
       font-size: .95rem; color: var(--text-dim); flex-shrink: 0;
+    }
+
+    /* ── Полоски-графики: «По годам» и «Совпадение по типам» –
+       общий вид, разное число полосок в группе (две у годов – «вы»/
+       «он», одна у типов). ── */
+    .pp-decades { display: flex; flex-direction: column; gap: .9rem; }
+    .pp-decade-group { display: flex; flex-direction: column; gap: .25rem; }
+    .pp-decade-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: .64rem; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .pp-bar-row { display: flex; align-items: center; gap: .6rem; }
+    .pp-bar-label {
+      flex: 0 0 4.4rem; min-width: 0;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .64rem; letter-spacing: .04em; text-transform: uppercase;
+      color: var(--text-dim);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pp-bar-track {
+      flex: 1; height: 8px; background: var(--surface2);
+      border-radius: 2px; overflow: hidden;
+    }
+    .pp-bar-fill { height: 100%; border-radius: 2px; }
+    .pp-bar-mine { background: var(--red-hi); }
+    .pp-bar-theirs { background: var(--text-dim); }
+    .pp-bar-val {
+      flex: 0 0 auto; min-width: 2.6rem; text-align: right;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .68rem; color: var(--text-hi); white-space: nowrap;
     }
 
     @media (max-width: 620px) {
