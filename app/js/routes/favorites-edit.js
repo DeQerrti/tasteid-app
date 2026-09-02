@@ -92,11 +92,10 @@ async function mount(container) {
         <div class="field full">
           <label>${i18n("Или загрузить с компьютера")}</label>
           <label class="btn btn-ghost file-btn">
-            <input type="file" id="f-image-upload" accept="image/*" onchange="updateFileBtnName(this)">
+            <input type="file" id="f-image-upload" accept="image/*" onchange="updateFileBtnName(this); uploadFavImage()">
             <span>${i18n("Выбрать файл")}</span>
           </label>
           <span class="file-btn-name" id="f-image-upload-name"></span>
-          <button type="button" class="btn-new" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadFavImage()">${i18n("Загрузить и использовать")}</button>
           <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
         </div>
         <div class="field full" id="field-from">

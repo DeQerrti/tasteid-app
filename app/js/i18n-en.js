@@ -529,7 +529,6 @@ i18nRegister({
     "If it took a single day, fill in only “Finished” (or use the same date twice) – the card will show one date.",
   Завершено: "Finished",
   Завершил: "Finished",
-  "Загрузить и использовать": "Upload and use",
   "Загрузить как обложку": "Upload as cover",
   "Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».":
     "The entry disappears from reviews, favorites and the tier list. You can bring it back from “Version history”.",

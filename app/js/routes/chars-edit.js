@@ -105,11 +105,10 @@ async function mount(container, params) {
           <div class="field">
             <label data-i18n>Или загрузить с компьютера</label>
             <label class="btn btn-ghost file-btn">
-              <input type="file" id="nt-cover-upload" accept="image/*" onchange="updateFileBtnName(this)">
+              <input type="file" id="nt-cover-upload" accept="image/*" onchange="updateFileBtnName(this); uploadTitleCoverFile()">
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="nt-cover-upload-name"></span>
-            <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadTitleCoverFile()" data-i18n>Загрузить и использовать</button>
             <div id="nt-cover-upload-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
           </div>
           <div style="display:flex;gap:.5rem">
@@ -162,11 +161,10 @@ async function mount(container, params) {
         <div class="manual-section" id="upload-section">
           <div class="field">
             <label class="btn btn-ghost file-btn">
-              <input type="file" id="m-upload-file" accept="image/*" onchange="updateFileBtnName(this)">
+              <input type="file" id="m-upload-file" accept="image/*" onchange="updateFileBtnName(this); uploadCharImage()">
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="m-upload-file-name"></span>
-            <button class="btn btn-ghost" style="margin-top:.5rem;margin-left:.5rem" onclick="uploadCharImage()" data-i18n>Загрузить и использовать</button>
             <div id="upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
           </div>
         </div>
