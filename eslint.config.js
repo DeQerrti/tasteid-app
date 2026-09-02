@@ -84,6 +84,7 @@ const sharedBrowserGlobals = [
   "getCollapsed",
   "getSyncConfig",
   "getSyncState",
+  "githubApi",
   "GRADE_ORDER",
   "gradeInlineHtml",
   "gradeLabels",

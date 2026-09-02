@@ -1204,3 +1204,61 @@ i18nRegister({
   "Без сохранения": "Without saving",
   "Отзыв не сохранён.": "This review isn’t saved.",
 });
+
+// ── Паспорт: обмен по коду (гист на GitHub) ────
+i18nRegister({
+  "Поделиться кодом, без файла": "Share by code, no file",
+  "То же самое, что кнопки выше, только вместо файла, который нужно куда-то сохранить и переслать, – одна длинная строка («код»), которую можно просто скопировать и вставить в сообщение. За кулисами код – это ссылка на файл, который приложение на минуту кладёт на GitHub: бесплатный сайт для разработчиков (TasteID уже пользуется им для синхронизации между вашими устройствами, см. раздел «Синхронизация» в настройках) – здесь он просто временное хранилище для одного файла, без своего сервера.":
+    "The same thing as the buttons above, except instead of a file you have to save somewhere and send, it's one long string (a “code”) that you can just copy and paste into a message. Behind the scenes the code is a link to a file the app briefly puts on GitHub: a free site for developers (TasteID already uses it for syncing between your devices, see the “Sync” section in settings) – here it's just temporary storage for one file, no server of our own.",
+  "Вам прислали код – вставьте его сюда:": "Someone sent you a code – paste it here:",
+  "Код от другого человека": "Code from someone else",
+  Показать: "Show",
+  "Один раз нужно завести отдельный «пропуск» (он называется токеном) – он разрешает этому приложению класть на GitHub временные файлы от вашего имени, и больше ничего:":
+    "You need to set up a separate “pass” once (it's called a token) – it lets this app put temporary files on GitHub on your behalf, and nothing else:",
+  "Если аккаунта на github.com ещё нет – заведите, это бесплатно и нужна только почта. Если уже есть (например, для «Синхронизации») – этот же подойдёт.":
+    "If you don't have a github.com account yet, create one – it's free and only needs an email. If you already have one (say, for “Sync”) – it works too.",
+  Откройте: "Open",
+  "эту ссылку": "this link",
+  ". Откроется страница на github.com с уже отмеченной галочкой «gist» – ничего менять не нужно, только пролистать вниз страницы и нажать зелёную кнопку «Generate token».":
+    ". A page on github.com will open with the “gist” checkbox already ticked – nothing to change, just scroll to the bottom and press the green “Generate token” button.",
+  "GitHub покажет длинную строку, начинающуюся на «ghp_» или «github_pat_» – это и есть токен. Он показывается только один раз, поэтому сразу скопируйте его (кнопка со значком копирования рядом с ним на странице github.com) и вставьте сюда, в поле ниже.":
+    "GitHub will show a long string starting with “ghp_” or “github_pat_” – that's the token. It's shown only once, so copy it right away (the copy-icon button next to it on the github.com page) and paste it here, in the field below.",
+  "Токен для «Поделиться кодом»": "Token for “Share by code”",
+  "Сохранить токен": "Save token",
+  "Это отдельный токен от того, что для «Синхронизации» выше по настройкам, – специально с меньшими правами: галочка «gist» разрешает только класть отдельные временные файлы, но не даёт доступа к вашим репозиториям на GitHub. Как и токен синхронизации, он остаётся только на этом устройстве и никуда больше не отправляется.":
+    "This is a separate token from the one for “Sync” higher up in settings – deliberately with fewer rights: the “gist” checkbox only allows placing individual temporary files, it doesn't grant access to your repositories on GitHub. Just like the sync token, it stays only on this device and is never sent anywhere else.",
+  "Создать код": "Create a code",
+  "сменить токен": "change token",
+  "Готово. Это не шестизначный код, а длинная строка – её не нужно запоминать или печатать вручную, только скопировать целиком и переслать, например, в мессенджере:":
+    "Done. This isn't a six-digit code, it's a long string – no need to memorize or type it, just copy it whole and send it, for example, in a messenger:",
+  Скопировать: "Copy",
+  Скопировано: "Copied",
+  "Этот файл на GitHub не показан ни в поиске, ни в списке ваших гистов – но и не защищён паролем: у кого угодно с этой строкой получится посмотреть паспорт, поэтому передавайте её только тем, кому действительно собирались показать. Если код случайно ушёл не туда – удалить сам файл можно на странице github.com/(ваш логин)?tab=gists.":
+    "This file on GitHub isn't shown in search or in your list of gists – but it also isn't password-protected: anyone with this string can view the passport, so only share it with people you actually meant to show it to. If the code ends up in the wrong place by mistake, you can delete the file itself at github.com/(your login)?tab=gists.",
+  "Сначала сохраните токен для «Поделиться кодом».": "First save the token for “Share by code”.",
+  "Не получилось создать код.": "Couldn't create the code.",
+  "Паспорт TasteID": "TasteID passport",
+  "Это не похоже на код – проверьте, что скопирован целиком.":
+    "This doesn't look like a code – check that it was copied in full.",
+  "Код не найден – проверьте, что скопирован без ошибок, или попросите прислать заново.":
+    "Code not found – check that it was copied without mistakes, or ask for it to be sent again.",
+  "Не получилось загрузить код.": "Couldn't load the code.",
+  "По этому коду нет файла паспорта.": "There's no passport file for this code.",
+  "Создаём код…": "Creating the code…",
+});
+
+// ── Синхронизация: пояснения для новичков ──────
+i18nRegister({
+  "GitHub – бесплатный сайт, на котором разработчики хранят код; здесь он просто чужое хранилище вместо своего сервера, которого у TasteID нет. Приватный (закрытый от посторонних) репозиторий на нём – общая папка для всех ваших устройств: телефон, компьютер и любое ещё устройство с этим приложением по очереди кладут туда свои изменения и забирают чужие. Токен и служебные данные синхронизации при этом остаются только на этом устройстве, на github.com уходят только сами данные приложения.":
+    "GitHub is a free site where developers store code; here it's just someone else's storage instead of a server of its own, which TasteID doesn't have. A private (closed to outsiders) repository on it is a shared folder for all your devices: a phone, a computer, and any other device with this app in turn put their changes there and pick up others'. The token and sync's own bookkeeping stay only on this device – only the app's actual data goes to github.com.",
+  "Если аккаунта на github.com ещё нет – заведите, это бесплатно и нужна только почта.":
+    "If you don't have a github.com account yet, create one – it's free and only needs an email.",
+  "Заведите токен – это как пароль, но не от всего аккаунта, а только на одно конкретное разрешение (в данном случае – работать с репозиториями от вашего имени). Откройте":
+    "Set up a token – it's like a password, but not for the whole account, only for one specific permission (in this case, working with repositories on your behalf). Open",
+  ": откроется страница на github.com, где галочка «repo» уже отмечена – ничего менять не нужно, только пролистать вниз страницы и нажать зелёную кнопку «Generate token».":
+    ": a page on github.com will open with the “repo” checkbox already ticked – nothing to change, just scroll to the bottom and press the green “Generate token” button.",
+  "GitHub покажет длинную строку, начинающуюся на «ghp_» или «github_pat_», – это и есть токен. Он показывается только один раз, поэтому сразу скопируйте его (кнопка со значком копирования рядом с ним на странице github.com) и вставьте в поле ниже.":
+    "GitHub will show a long string starting with “ghp_” or “github_pat_” – that's the token. It's shown only once, so copy it right away (the copy-icon button next to it on the github.com page) and paste it into the field below.",
+  "Просто оставьте как есть, если не уверены, что означает это название, – это техническое имя папки-хранилища на GitHub, самим внешним видом приложения оно никак не пользуется. Если такого репозитория ещё нет на вашем GitHub – создадим сами, приватным. Если уже есть (например, второе устройство его уже завело) – подключимся к нему: на всех устройствах должно быть одно и то же название, иначе они будут синхронизировать разные хранилища и не увидят данные друг друга.":
+    "Just leave it as is if you're not sure what this name means – it's a technical name for the storage folder on GitHub, the app's appearance doesn't depend on it at all. If this repository doesn't exist on your GitHub yet, we'll create it, private. If it already exists (say, a second device already set it up) – we'll connect to it: all your devices need the same name, otherwise they'd sync different storages and never see each other's data.",
+});

@@ -84,13 +84,18 @@ function base64ToText(b64) {
 
 class SyncError extends Error {}
 
+// config.token может отсутствовать – например, чтение секретного гиста
+// по id не требует авторизации вовсе. Раньше здесь всегда стоял
+// заголовок Authorization: Bearer undefined – GitHub принимал его не
+// как «без токена», а как настоящий, но неверный токен, и отвечал 401
+// там, где анонимный запрос прошёл бы.
 async function githubApi(config, path, { method = "GET", body } = {}) {
   let res;
   try {
     res = await fetch(`https://api.github.com${path}`, {
       method,
       headers: {
-        Authorization: `Bearer ${config.token}`,
+        ...(config.token ? { Authorization: `Bearer ${config.token}` } : {}),
         Accept: "application/vnd.github+json",
         ...(body ? { "Content-Type": "application/json" } : {}),
       },

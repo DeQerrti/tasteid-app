@@ -10,10 +10,11 @@
 //  два паспорта рядом, с упором на расхождения: совпадения
 //  предсказуемы, спор интереснее.
 //
-//  Чужой паспорт приходит файлом: человек выгружает свой отсюда же и
-//  передаёт как хочет. Сервера для этого не нужно, всё считается в
-//  браузере. Когда появится обмен по коду, поменяется только способ
-//  доставки файла – формат и вся математика ниже останутся теми же.
+//  Чужой паспорт приходит файлом или кодом (секретный гист на GitHub,
+//  см. "Обмен по коду" ниже) – человек выгружает свой отсюда же и
+//  передаёт как хочет. Сервера для этого не нужно: файл считается
+//  прямо в браузере, а код – это просто другой способ доставки того
+//  же файла. Формат и вся математика ниже одни и те же для обоих.
 // ══════════════════════════════════════════════
 
 const PASSPORT_FORMAT = "tasteid-passport";
@@ -29,6 +30,20 @@ const DISAGREE_THRESHOLD = 0.2;
 let guestPassport = null;
 let passportMode = "view"; // view | compare
 let passportsBusy = false;
+
+// Код последнего созданного гиста – только чтобы не потерять его с
+// глаз при следующей перерисовке панели (renderPassports вызывается
+// часто, например после каждого клика). Не сохраняется никуда: если
+// страницу перезагрузить, старый код никуда не делся на GitHub, но
+// само поле для него просто станет пустым – это ожидаемо, отдельная
+// кнопка создаёт код заново в любой момент.
+let shareLastCode = null;
+
+// renderPassports() перерисовывает всё содержимое панели заново при
+// любом действии внутри неё (как и pp-file/pp-forget уже делают) –
+// без явного состояния блок "Поделиться кодом" каждый раз схлопывался
+// бы обратно в <details> сразу после того, как его открыли.
+let shareDetailsOpen = false;
 
 // Чужой тайтл можно забрать себе – в свой список, не поверх чужого
 // отзыва: у гостя нет ни текста, ни тегов, ни ссылки, только само
@@ -180,6 +195,74 @@ function parsePassport(text) {
     ...data,
     items: data.items.filter((i) => i && typeof i.title === "string" && i.title.trim()),
   };
+}
+
+// ── Обмен по коду (гист на GitHub вместо файла) ─────
+// Тот же паспорт, что и в файле выше – buildMyPassport() и
+// parsePassport() ниже не меняются, меняется только доставка: вместо
+// файла на почте/в мессенджере – секретный "гист" на GitHub (файл под
+// длинной, не угадываемой ссылкой, недоступный ни поиском, ни списком
+// чужих гистов) и его id как "код". Короче сделать нельзя без своего
+// сервера с базой "код → файл" – у GitHub нет подстановки короткого
+// кода вместо id, только точный id, поэтому "код" здесь – честно
+// длинная строка, которую пересылают целиком, а не печатают руками.
+const SHARE_TOKEN_KEY = "tasteid_share_token";
+
+function getShareToken() {
+  return localStorage.getItem(SHARE_TOKEN_KEY) || "";
+}
+function saveShareToken(token) {
+  localStorage.setItem(SHARE_TOKEN_KEY, token);
+}
+function clearShareToken() {
+  localStorage.removeItem(SHARE_TOKEN_KEY);
+}
+
+// Человек может вставить голый id или всю ссылку на страницу гиста
+// (https://gist.github.com/логин/id, иногда ещё с "#file-..." на
+// конце) – в обоих случаях нужен только сам id.
+function extractGistId(input) {
+  const match = String(input || "").match(/[0-9a-f]{20,40}/i);
+  return match ? match[0] : "";
+}
+
+async function createShareGist() {
+  const token = getShareToken();
+  if (!token) throw new Error(i18n("Сначала сохраните токен для «Поделиться кодом»."));
+  const res = await githubApi({ token }, "/gists", {
+    method: "POST",
+    body: {
+      description: i18n("Паспорт TasteID"),
+      public: false,
+      files: { "passport.json": { content: JSON.stringify(buildMyPassport()) } },
+    },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || i18n("Не получилось создать код."));
+  }
+  return (await res.json()).id;
+}
+
+// Без токена: чтение секретного гиста по точному id не требует
+// авторизации, только знания самого id.
+async function fetchGistPassport(codeOrLink) {
+  const id = extractGistId(codeOrLink);
+  if (!id) {
+    throw new Error(i18n("Это не похоже на код – проверьте, что скопирован целиком."));
+  }
+  const res = await githubApi({}, `/gists/${id}`);
+  if (res.status === 404) {
+    throw new Error(
+      i18n("Код не найден – проверьте, что скопирован без ошибок, или попросите прислать заново.")
+    );
+  }
+  if (!res.ok) throw new Error(i18n("Не получилось загрузить код."));
+  const data = await res.json();
+  const file = Object.values(data.files || {})[0];
+  if (!file) throw new Error(i18n("По этому коду нет файла паспорта."));
+  const text = file.truncated ? await (await fetch(file.raw_url)).text() : file.content;
+  return parsePassport(text);
 }
 
 // ── Сопоставление тайтлов ──────────────────────
@@ -371,8 +454,115 @@ function passportIntroHtml() {
       <button class="btn btn-ghost" id="pp-export" type="button">${i18n("Выгрузить свой")}</button>
     </div>
     <div class="status-msg" id="pp-status"></div>
+    ${shareCodeHtml()}
     ${loaded}
     ${modes}`;
+}
+
+// Свернуто по умолчанию (<details>): большинству людей файла из
+// кнопки выше хватает, а вставленное само по себе объяснение из шести
+// шагов про GitHub и токены не должно быть первым, что видно на панели.
+function shareCodeHtml() {
+  const token = getShareToken();
+  return `
+    <details class="pp-share"${shareDetailsOpen ? " open" : ""}>
+      <summary data-i18n>Поделиться кодом, без файла</summary>
+      <div class="pp-share-body">
+        <p class="panel-intro" data-i18n>
+          То же самое, что кнопки выше, только вместо файла, который
+          нужно куда-то сохранить и переслать, – одна длинная строка
+          («код»), которую можно просто скопировать и вставить в
+          сообщение. За кулисами код – это ссылка на файл, который
+          приложение на минуту кладёт на GitHub: бесплатный сайт для
+          разработчиков (TasteID уже пользуется им для синхронизации
+          между вашими устройствами, см. раздел «Синхронизация» в
+          настройках) – здесь он просто временное хранилище для одного
+          файла, без своего сервера.
+        </p>
+        ${token ? shareCreateHtml() : shareTokenSetupHtml()}
+        <hr class="pp-share-sep">
+        <p class="panel-intro" data-i18n>Вам прислали код – вставьте его сюда:</p>
+        <div class="pp-share-row">
+          <input type="text" id="pp-share-code-in" placeholder="${i18n("Код от другого человека")}">
+          <button class="btn btn-ghost" id="pp-share-open" type="button" data-i18n>Показать</button>
+        </div>
+        <div class="status-msg" id="pp-share-status"></div>
+      </div>
+    </details>`;
+}
+
+function shareTokenSetupHtml() {
+  return `
+    <div class="pp-share-setup">
+      <p class="panel-intro" data-i18n>
+        Один раз нужно завести отдельный «пропуск» (он называется
+        токеном) – он разрешает этому приложению класть на GitHub
+        временные файлы от вашего имени, и больше ничего:
+      </p>
+      <ol class="sync-intro" style="padding-left:1.2em;display:flex;flex-direction:column;gap:.5em;">
+        <li data-i18n>
+          Если аккаунта на github.com ещё нет – заведите, это бесплатно
+          и нужна только почта. Если уже есть (например, для
+          «Синхронизации») – этот же подойдёт.
+        </li>
+        <li>
+          <span data-i18n>Откройте</span>
+          <a href="https://github.com/settings/tokens/new?scopes=gist&description=TasteID-share" target="_blank" rel="noopener" data-i18n>эту ссылку</a><span data-i18n>. Откроется страница на github.com с уже отмеченной галочкой «gist» – ничего менять не нужно, только пролистать вниз страницы и нажать зелёную кнопку «Generate token».</span>
+        </li>
+        <li data-i18n>
+          GitHub покажет длинную строку, начинающуюся на «ghp_» или
+          «github_pat_» – это и есть токен. Он показывается только
+          один раз, поэтому сразу скопируйте его (кнопка со значком
+          копирования рядом с ним на странице github.com) и вставьте
+          сюда, в поле ниже.
+        </li>
+      </ol>
+      <div class="field">
+        <label data-i18n>Токен для «Поделиться кодом»</label>
+        <input type="password" id="pp-share-token" placeholder="ghp_…" autocomplete="off">
+      </div>
+      <button class="btn btn-ghost" id="pp-share-save-token" type="button" data-i18n>Сохранить токен</button>
+      <p class="panel-intro" data-i18n>
+        Это отдельный токен от того, что для «Синхронизации» выше по
+        настройкам, – специально с меньшими правами: галочка «gist»
+        разрешает только класть отдельные временные файлы, но не даёт
+        доступа к вашим репозиториям на GitHub. Как и токен
+        синхронизации, он остаётся только на этом устройстве и никуда
+        больше не отправляется.
+      </p>
+    </div>`;
+}
+
+function shareCreateHtml() {
+  return `
+    <div class="pp-share-create">
+      <div class="pp-share-row">
+        <button class="btn btn-ghost" id="pp-share-make" type="button" data-i18n>Создать код</button>
+        <button class="pp-link" id="pp-share-forget-token" type="button" data-i18n>сменить токен</button>
+      </div>
+      ${shareLastCode ? shareResultHtml(shareLastCode) : ""}
+    </div>`;
+}
+
+function shareResultHtml(id) {
+  return `
+    <p class="panel-intro" data-i18n>
+      Готово. Это не шестизначный код, а длинная строка – её не нужно
+      запоминать или печатать вручную, только скопировать целиком и
+      переслать, например, в мессенджере:
+    </p>
+    <div class="pp-share-row">
+      <input type="text" id="pp-share-code-out" value="${esc(id)}" readonly onclick="this.select()">
+      <button class="btn btn-ghost" id="pp-share-copy" type="button" data-i18n>Скопировать</button>
+    </div>
+    <p class="panel-intro" data-i18n>
+      Этот файл на GitHub не показан ни в поиске, ни в списке ваших
+      гистов – но и не защищён паролем: у кого угодно с этой строкой
+      получится посмотреть паспорт, поэтому передавайте её только тем,
+      кому действительно собирались показать. Если код случайно ушёл
+      не туда – удалить сам файл можно на странице
+      github.com/(ваш логин)?tab=gists.
+    </p>`;
 }
 
 // ── Режим «Просмотр» ───────────────────────────
@@ -779,6 +969,82 @@ function bindPassports() {
       status.textContent = err.message;
     }
   });
+
+  document.querySelector(".pp-share")?.addEventListener("toggle", (e) => {
+    shareDetailsOpen = e.target.open;
+  });
+
+  document.getElementById("pp-share-save-token")?.addEventListener("click", () => {
+    const input = document.getElementById("pp-share-token");
+    const value = input?.value.trim();
+    if (!value) return;
+    saveShareToken(value);
+    renderPassports();
+  });
+
+  document.getElementById("pp-share-forget-token")?.addEventListener("click", () => {
+    clearShareToken();
+    shareLastCode = null;
+    renderPassports();
+  });
+
+  document.getElementById("pp-share-make")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const status = document.getElementById("pp-share-status");
+    status.className = "status-msg";
+    status.textContent = i18n("Создаём код…");
+    btn.disabled = true;
+    try {
+      shareLastCode = await createShareGist();
+      status.className = "status-msg";
+      status.textContent = "";
+      renderPassports();
+    } catch (err) {
+      status.className = "status-msg err";
+      status.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("pp-share-copy")?.addEventListener("click", async (e) => {
+    const input = document.getElementById("pp-share-code-out");
+    if (!input) return;
+    try {
+      await navigator.clipboard.writeText(input.value);
+    } catch {
+      input.select();
+      document.execCommand("copy");
+    }
+    const btn = e.currentTarget;
+    const original = btn.textContent;
+    btn.textContent = i18n("Скопировано");
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 1500);
+  });
+
+  document.getElementById("pp-share-open")?.addEventListener("click", async () => {
+    const input = document.getElementById("pp-share-code-in");
+    const status = document.getElementById("pp-share-status");
+    const code = input?.value.trim();
+    if (!code) return;
+    status.className = "status-msg";
+    status.textContent = i18n("Загружаем…");
+    try {
+      const passport = await fetchGistPassport(code);
+      guestPassport = passport;
+      try {
+        localStorage.setItem(GUEST_KEY, JSON.stringify(passport));
+      } catch {
+        // Не поместился в хранилище браузера – не беда, покажем и так.
+      }
+      renderPassports();
+    } catch (err) {
+      status.className = "status-msg err";
+      status.textContent = err.message;
+    }
+  });
 }
 
 function passportStyles() {
@@ -795,6 +1061,22 @@ function passportStyles() {
       color: var(--red-hi); cursor: pointer; font: inherit;
       text-decoration: underline; text-underline-offset: .2em;
     }
+
+    .pp-share { margin-top: 1.2rem; }
+    .pp-share > summary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: .78rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: .2em;
+    }
+    .pp-share > summary:hover { color: var(--text); }
+    .pp-share-body { margin-top: .9rem; }
+    .pp-share-sep { border: none; border-top: 1px solid var(--border); margin: 1.4rem 0; }
+    .pp-share-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+    .pp-share-row input[type="text"] { flex: 1 1 14rem; min-width: 0; }
+    .pp-share-create .pp-share-row:first-child { margin-bottom: .8rem; }
 
     .pp-modes { display: flex; gap: .4rem; margin: 1.1rem 0 0; flex-wrap: wrap; }
     .pp-mode {
