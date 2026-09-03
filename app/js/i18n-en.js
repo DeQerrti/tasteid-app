@@ -869,6 +869,7 @@ i18nRegister({
   "Лучшее за год – несколько ({year})": "Best of the year – several ({year})",
   "Лучшее за год – одно ({year})": "Best of the year – one ({year})",
   "Не удалось загрузить отзыв:": "Couldn’t load the review:",
+  "Не удалось пересчитать оценки": "Couldn’t recalculate the grades",
   "Не удалось сконвертировать": "Couldn’t convert",
   "Не удалось сохранить копию": "Couldn’t save the copy",
   "Не удалось удалить:": "Couldn’t delete:",

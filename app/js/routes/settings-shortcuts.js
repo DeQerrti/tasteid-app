@@ -140,6 +140,15 @@ async function loadCurrentSettings() {
   scaleType = gradeScale?.type || "categorical";
   shelves = gradeScale?.shelves ? JSON.parse(JSON.stringify(gradeScale.shelves)) : [];
   document.getElementById("numericMax").value = gradeScale?.numericMax || (scaleType === "stars" ? 5 : 10);
+  // Снимок шкалы «как было до правки» – нужен в saveSettings(), чтобы
+  // понять, требует ли новая шкала пересчёта уже поставленных оценок
+  // (см. buildRegradeMap() в settings-labels.js). Копия, а не ссылка –
+  // shelves ниже правится прямо в этом же массиве по месту.
+  originalGradeScale = {
+    type: scaleType,
+    shelves: JSON.parse(JSON.stringify(shelves)),
+    numericMax: Number(document.getElementById("numericMax").value) || 10,
+  };
   renderScaleTypeGrid();
   updateScaleBlocks();
 

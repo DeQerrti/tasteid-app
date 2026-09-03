@@ -14,8 +14,94 @@ const SCALE_TYPES = [
 ];
 let scaleType = "categorical";
 let shelves = []; // [{key, name, color, min, max}]
+// Шкала на момент открытия страницы – см. её же присвоение в
+// settings-shortcuts.js/loadCurrentSettings() и buildRegradeMap() ниже.
+let originalGradeScale = null;
 
 const DEFAULT_SHELF_COLORS = ["#7c3aed", "#2563a8", "#2d8a4e", "#d4a017", "#6b7280", "#c0392b", "#8B6914"];
+
+// ── Пересчёт уже поставленных оценок при смене шкалы ──
+// «Названия» хранят оценку как строку-ключ полки, «Числа»/«Звёзды» –
+// как само число; переход между ними меняет сам формат хранения, и
+// без пересчёта старые оценки просто переставали бы находить свою
+// полку под новой шкалой (gradeToShelf() в config.js вернул бы null).
+// Смена только диапазонов (min/max) внутри «Чисел»/«Звёзд» без смены
+// максимума пересчёта не требует вовсе: сырое число не меняется, а
+// какой полке оно соответствует, gradeToShelf() и так решает заново
+// каждый раз по актуальной шкале – это и есть вся идея хранить сырое
+// число, а не готовую полку. Именно поэтому needsRegrade() ниже не
+// реагирует на правку названий/цветов/границ саму по себе: если
+// реагировать на любую правку scaleType-объекта, пересчёт заодно
+// схлопывал бы точные числа/звёзды до середины их полки даже там, где
+// в этом не было никакой необходимости, — а вот смена macimum (5
+// звёзд → 10) требует пересчёта ровно по той же причине, что и смена
+// типа: диапазоны становятся другими не только числом, но и смыслом
+// (5 из 5 – не то же самое, что 5 из 10).
+function needsRegrade(oldScale, newScale) {
+  if (!oldScale) return false; // нечего сравнивать – страница только открылась
+  const oldCategorical = oldScale.type === "categorical";
+  const newCategorical = newScale.type === "categorical";
+  if (oldCategorical !== newCategorical) return true;
+  if (!newCategorical && Number(oldScale.numericMax) !== Number(newScale.numericMax)) return true;
+  return false;
+}
+
+// Позиция полки в её же массиве (0 – лучшая) – единственное, что
+// переносится через смену шкалы: сама полка («Эталон») могла быть и
+// второй из семи, и второй из пяти, раз её порядковое место в списке
+// не изменилось. Пропорция, а не «столько же с конца», — чтобы более
+// короткая/длинная новая шкала не съезжала целиком к одному краю.
+function shelfPositionMap(oldShelves, newShelves) {
+  const map = new Map(); // старый key -> новая полка
+  const oldLen = oldShelves.length;
+  const newLen = newShelves.length;
+  if (!oldLen || !newLen) return map;
+  oldShelves.forEach((shelf, i) => {
+    const newIndex = oldLen === 1 ? 0 : Math.round((i * (newLen - 1)) / (oldLen - 1));
+    map.set(shelf.key, newShelves[Math.min(newIndex, newLen - 1)]);
+  });
+  return map;
+}
+
+// Сырое значение конкретного отзыва (строка-ключ или число) -> его
+// полка в СТАРОЙ шкале. Та же логика, что у gradeToShelf() в
+// config.js, но принимает шкалу параметром – gradeToShelf() всегда
+// читает текущую (window.SITE_GRADE_SCALE), а нам здесь ровно наоборот
+// нужна шкала ДО правки.
+function shelfForRawGrade(rawGrade, scale) {
+  if (rawGrade === null || rawGrade === undefined || rawGrade === "") return null;
+  if (scale.type === "categorical") return scale.shelves.find((s) => s.key === rawGrade) || null;
+  const num = Number(rawGrade);
+  if (Number.isNaN(num)) return null;
+  return scale.shelves.find((s) => num >= s.min && num <= s.max) || null;
+}
+
+// Готовое сырое значение отзыва под НОВУЮ шкалу для данной полки:
+// ключ для «Названий», середина диапазона (округлённая) для «Чисел»/
+// «Звёзд» – единственное разумное число, когда переносится не точная
+// оценка, а «примерно такая же полка», см. её же обсуждение с
+// владельцем про алгоритм по позиции полки.
+function rawGradeForShelf(shelf, scale) {
+  if (scale.type === "categorical") return shelf.key;
+  return Math.round((Number(shelf.min) + Number(shelf.max)) / 2);
+}
+
+// Строит { старое сырое значение (как строка) -> новое сырое значение }
+// по всем оценкам, реально встретившимся в отзывах, – не по всем
+// теоретически возможным числам шкалы (при «Числах» с максимумом 100
+// это была бы карта на 100 записей почти всегда впустую).
+function buildRegradeMap(usedRawGrades, oldScale, newScale) {
+  const shelfMap = shelfPositionMap(oldScale.shelves, newScale.shelves);
+  const map = {};
+  for (const raw of usedRawGrades) {
+    const oldShelf = shelfForRawGrade(raw, oldScale);
+    if (!oldShelf) continue; // уже ничья оценка – пересчитывать нечего
+    const newShelf = shelfMap.get(oldShelf.key);
+    if (!newShelf) continue;
+    map[String(raw)] = rawGradeForShelf(newShelf, newScale);
+  }
+  return map;
+}
 
 function renderScaleTypeGrid() {
   const grid = document.getElementById("scaleTypeGrid");

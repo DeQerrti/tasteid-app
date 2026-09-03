@@ -255,6 +255,30 @@ async function saveSettings() {
   flashStatus(statusId, true, i18n("Сохраняю..."));
 
   try {
+    // Пересчёт уже поставленных оценок – раньше самого сохранения
+    // шкалы: если он не удастся, новую шкалу лучше не сохранять вовсе
+    // (см. needsRegrade() в settings-grades.js), чем оставить отзывы с
+    // оценками, которые эта шкала больше не понимает.
+    if (needsRegrade(originalGradeScale, gradeScale)) {
+      const reviews = await fetch("/reviews.json?_=" + Date.now())
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []);
+      const usedRawGrades = [
+        ...new Set(reviews.map((r) => r.grade).filter((g) => g !== null && g !== undefined && g !== "")),
+      ];
+      const regradeMap = buildRegradeMap(usedRawGrades, originalGradeScale, gradeScale);
+      if (Object.keys(regradeMap).length) {
+        const rgRes = await fetch("/api/save-review", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ _regrade_map: regradeMap }),
+        });
+        const rgData = await rgRes.json();
+        if (!rgRes.ok) throw new Error(rgData.error || i18n("Не удалось пересчитать оценки"));
+      }
+    }
+
     const res = await fetch("/api/save-site-settings", {
       method: "POST",
       credentials: "include",
@@ -279,6 +303,11 @@ async function saveSettings() {
     // теперь на сервере – предупреждать при уходе с маршрута больше
     // не о чем, пока не появится новая правка.
     if (data.ok) settingsDirty = false;
+    // Иначе повторное «Сохранить» без единой новой правки шкалы снова
+    // посчитало бы needsRegrade() истинным (сравнение всё ещё со
+    // снимком при открытии страницы) и без нужды пересчитало бы уже
+    // пересчитанные оценки заново.
+    if (data.ok) originalGradeScale = JSON.parse(JSON.stringify(gradeScale));
     // Вкладка под #shell-root (Статистика, Любимое, Отзывы, Статусы,
     // Тир-лист) спрятана через .hidden, пока открыт этот маршрут, и
     // сама не перечитает site-settings.json – без этого правка вроде

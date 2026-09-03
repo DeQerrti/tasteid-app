@@ -208,6 +208,30 @@ test("_deleteMany в «Любимом» убирает разом только �
   });
 });
 
+test("_regrade_map переписывает оценку только у отзывов с указанным сырым значением", async () => {
+  // Смена шкалы (js/routes/settings-grades.js, needsRegrade()/
+  // buildRegradeMap()) присылает готовую карту «старое сырое значение
+  // -> новое»; сервер должен применить её ровно к тем отзывам, чьё
+  // текущее r.grade совпадает с ключом карты, остальные не трогая.
+  await withServer(async ({ api }) => {
+    const a = await api("POST", "/api/save-review", { title: "A", type: "anime", grade: "etalon" });
+    const b = await api("POST", "/api/save-review", { title: "B", type: "anime", grade: "attrakcion" });
+    const c = await api("POST", "/api/save-review", { title: "C", type: "anime" }); // без оценки
+
+    const { status, data } = await api("POST", "/api/save-review", {
+      _regrade_map: { etalon: 9, attrakcion: 5 },
+    });
+    assert.equal(status, 200);
+    assert.equal(data.touched, 2);
+
+    const list = await api("GET", "/reviews.json");
+    const byId = Object.fromEntries(list.data.map((r) => [r.id, r]));
+    assert.equal(byId[a.data.id].grade, 9);
+    assert.equal(byId[b.data.id].grade, 5);
+    assert.equal(byId[c.data.id].grade, undefined);
+  });
+});
+
 test("переименование тега проходит по всем отзывам и не плодит дублей", async () => {
   await withServer(async ({ api, base }) => {
     await api("POST", "/api/save-review", {

@@ -126,6 +126,30 @@ async function saveReview({ vault, body }) {
     return { ok: true, touched };
   }
 
+  // Пересчёт оценок при смене типа шкалы (js/routes/settings-labels.js,
+  // saveSettings()) – «Названия» ↔ «Числа»/«Звёзды» или смена макс.
+  // значения у чисел/звёзд хранят/читают сырое значение по-разному, и
+  // без пересчёта старые оценки просто переставали бы находить свою
+  // полку под новой шкалой – не удалялись бы из файла, но пропадали
+  // бы отовсюду, где их показывают. Карта строится на клиенте (там же,
+  // где посчитана и новая шкала), сюда приезжает уже готовым
+  // соответствием «старое сырое значение → новое», применяется одним
+  // проходом и одной записью на диск.
+  if (body._regrade_map && typeof body._regrade_map === "object") {
+    const map = body._regrade_map;
+    const list = await vault.readJson("reviews.json", []);
+    let touched = 0;
+    for (const r of list) {
+      if (r.grade === null || r.grade === undefined) continue;
+      const key = String(r.grade);
+      if (!Object.prototype.hasOwnProperty.call(map, key)) continue;
+      r.grade = map[key];
+      touched++;
+    }
+    if (touched) await vault.writeJson("reviews.json", list);
+    return { ok: true, touched };
+  }
+
   if (!body.title) throw new ApiError("Нужно название");
 
   const list = await vault.readJson("reviews.json", []);
