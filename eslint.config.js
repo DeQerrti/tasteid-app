@@ -391,6 +391,7 @@ const sharedBrowserGlobals = [
   "closeTypeDropdown",
   "closeTypePickerDropdown",
   "collapseAllSections",
+  "discardScratchCoverBackup",
   "editCategory",
   "editingId",
   "editingIds",
