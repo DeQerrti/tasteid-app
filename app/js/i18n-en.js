@@ -525,10 +525,9 @@ i18nRegister({
   "Добавить текст отзыва": "Add review text",
   "Добавить тип": "Add type",
   "Добавить тир": "Add tier",
-  "Если смотрели один день – заполните только «Завершили» или укажите одинаковые даты, на карточке покажется одна дата.":
+  "Если смотрели один день – заполните только «Завершено» или укажите одинаковые даты, на карточке покажется одна дата.":
     "If it took a single day, fill in only “Finished” (or use the same date twice) – the card will show one date.",
   Завершено: "Finished",
-  Завершили: "Finished",
   "Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».":
     "The entry disappears from reviews, favorites and the tier list. You can bring it back from “Version history”.",
   "Здесь появится превью…": "The preview will appear here…",
@@ -566,7 +565,7 @@ i18nRegister({
   "Например: Перечитываю": "For example: Rereading",
   "Например: Продюсер": "For example: Producer",
   "Например: Технические детали": "For example: Technical details",
-  Начали: "Started",
+  Начато: "Started",
   "Новая запись": "New entry",
   "Новая коллекция": "New collection",
   "Новый отзыв": "New review",
