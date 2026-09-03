@@ -663,6 +663,7 @@ i18nRegister({
   "Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) – там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.":
     "With no keys at all, covers for anime and manga (from AniList) and for books (from Open Library) already arrive – those are open to everyone. A key is only needed for movies: TMDB, the one open poster database, asks for one. It’s free and issued immediately.",
   "без оценки": "no rating",
+  "Больше {v0} полок для чисел/звёзд не бывает.": "There can't be more than {v0} shelves for numbers/stars.",
   "Больше всего пересмотрено:": "Most rewatched:",
   "{v0} записей пропущено – у них нет названия.": "{v0} entries skipped – they have no title.",
   "в выгрузке": "in the export",

@@ -273,8 +273,8 @@ function settingsViewHtml() {
         <div id="numericBlock" style="display:none;">
           <h2 class="section-h" data-i18n>Диапазон</h2>
           <div class="row">
-            <div style="flex:0 0 140px;"><label id="numericMaxLabel" data-i18n>Максимум</label><input type="number" id="numericMax" min="2" max="1000" value="10"
-              onchange="seedNumericShelves(); renderShelvesList('shelvesList', true);"></div>
+            <div style="flex:0 0 140px;"><label id="numericMaxLabel" data-i18n>Максимум</label><input type="number" id="numericMax" min="2" max="10" value="10"
+              onchange="clampNumericMax(); seedNumericShelves(); renderShelvesList('shelvesList', true);"></div>
           </div>
 
           <h2 class="section-h" data-i18n>Полки (от лучшей к худшей)</h2>

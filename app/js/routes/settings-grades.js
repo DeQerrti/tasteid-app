@@ -20,6 +20,21 @@ let originalGradeScale = null;
 
 const DEFAULT_SHELF_COLORS = ["#7c3aed", "#2563a8", "#2d8a4e", "#d4a017", "#6b7280", "#c0392b", "#8B6914"];
 
+// «Числа»/«Звёзды» показывают полку не своим именем, а самим числом
+// или нарисованными звёздами (см. shelfDisplayLabel() в config.js) –
+// больше десяти полок значило бы либо двузначные диапазоны такой
+// длины, что фильтр в «Отзывах» ими не помещался бы в разумную
+// ширину, либо (для звёзд) ряд из мало отличимых на глаз звёздочек.
+// «Названия» этим не ограничены – там полка это и есть имя, сколько
+// бы их ни было.
+const MAX_NUMERIC_SHELVES = 10;
+
+function clampNumericMax() {
+  const el = document.getElementById("numericMax");
+  const clamped = Math.min(MAX_NUMERIC_SHELVES, Math.max(2, Number(el.value) || 10));
+  el.value = clamped;
+}
+
 // ── Пересчёт уже поставленных оценок при смене шкалы ──
 // «Названия» хранят оценку как строку-ключ полки, «Числа»/«Звёзды» –
 // как само число; переход между ними меняет сам формат хранения, и
@@ -210,6 +225,10 @@ function addShelfRow(categorical) {
     shelves.push({ key, name, color: "#8b1a1a" });
     renderShelvesList("catShelvesList", false);
   } else {
+    if (shelves.length >= MAX_NUMERIC_SHELVES) {
+      alert(i18n("Больше {v0} полок для чисел/звёзд не бывает.", { v0: MAX_NUMERIC_SHELVES }));
+      return;
+    }
     const max = Number(document.getElementById("numericMax").value) || 10;
     shelves.push({
       key: "shelf_" + Date.now().toString(36).slice(-5),

@@ -594,14 +594,41 @@ function gradeValueLabel(rawGrade) {
   return `${rawGrade}/${scale.numericMax || 10}`;
 }
 
+// Подпись полки везде, где раньше стояло её имя (фильтр в «Отзывах»,
+// «Шкала послевкусия» в статистике, строки тир-листа, превью под
+// звёздами/числом в редакторе отзыва) – при «Названиях» это и есть имя
+// полки, а при «Числах»/«Звёздах» имя было чисто вспомогательным (для
+// «Названий», на случай если человек вернётся к ним) и не должно
+// маячить всюду вместо самих чисел/звёзд. Диапазон "8-9" без максимума
+// – максимум и так виден в самих настройках шкалы, а рядом с каждой
+// полкой был бы лишним; для одиночного значения (min===max) просто
+// само число. Для звёзд – реально нарисованные ★ (столько, сколько у
+// полки max) и ☆ до конца шкалы, а не текст "★ 8-9": просят именно
+// нарисовать, а не описать.
+function shelfDisplayLabel(shelf, scale) {
+  if (scale.type === "categorical") return shelf.name;
+  if (scale.type === "stars") {
+    const total = scale.numericMax || 5;
+    const filled = Math.max(0, Math.min(total, Number(shelf.max) || 0));
+    return "★".repeat(filled) + "☆".repeat(Math.max(0, total - filled));
+  }
+  // numeric
+  return Number(shelf.min) === Number(shelf.max) ? String(shelf.min) : `${shelf.min}-${shelf.max}`;
+}
+
 // Пересобирает GRADES/GRADE_ORDER/TIER_ROWS из настроенной шкалы –
 // вызывается один раз после того, как site-settings.json загрузится.
 function rebuildGradesFromScale() {
   const scale = window.SITE_GRADE_SCALE;
   if (!scale || !scale.shelves || !scale.shelves.length) return; // остаёмся на дефолте
-  GRADES = Object.fromEntries(scale.shelves.map(s => [s.key, { key: s.key, name: s.name, desc: s.desc || "", color: s.color }]));
-  GRADE_ORDER = scale.shelves.map(s => s.key);
-  TIER_ROWS = scale.shelves.map(s => ({ key: s.key, label: s.name, color: s.color }));
+  GRADES = Object.fromEntries(
+    scale.shelves.map((s) => [
+      s.key,
+      { key: s.key, name: shelfDisplayLabel(s, scale), desc: s.desc || "", color: s.color },
+    ])
+  );
+  GRADE_ORDER = scale.shelves.map((s) => s.key);
+  TIER_ROWS = scale.shelves.map((s) => ({ key: s.key, label: shelfDisplayLabel(s, scale), color: s.color }));
 }
 
 // ── Типы медиа ─────────────────────────────────
