@@ -11,6 +11,7 @@ import http from "node:http";
 import sharp from "sharp";
 import { Vault } from "../electron/vault.js";
 import { createServer, listen } from "../electron/server.js";
+import { ROUTES } from "../core/api.js";
 
 const APP_DIR = path.join(import.meta.dirname, "..", "app");
 
@@ -795,4 +796,45 @@ test("зависший источник картинки не вешает за�
       assert.match(data.error, /не ответил вовремя/);
     });
   });
+});
+
+// Список с MyAnimeList по нику (js/import.js, bindMalUser →
+// core/api.js, fetchMalUserList) не ходит в тесте в настоящий
+// интернет – malHttpGet подменяется на заглушку прямо здесь, минуя
+// HTTP-слой сервера целиком: withServer её подставить не даст
+// (electron/server.js своего malHttpGet не передаёт, как и на
+// компьютере), а сам обработчик достаётся из ROUTES напрямую.
+test("список с MyAnimeList по нику листает страницы и не падает на закрытой манге", async () => {
+  const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
+  const calls = [];
+  const page = (n) => Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
+
+  const malHttpGet = async (url) => {
+    calls.push(url);
+    if (url.includes("/mangalist/")) return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
+    const offset = Number(new URL(url).searchParams.get("offset"));
+    // Первая страница анимного списка полная (300), вторая – неполная:
+    // признак того, что дальше страниц больше нет.
+    return { status: 200, text: JSON.stringify(offset === 0 ? page(300) : page(40)) };
+  };
+
+  const result = await fetchMalUserList({ body: { username: "someone" }, malHttpGet });
+  assert.equal(result.ok, true);
+  assert.equal(result.anime.length, 340);
+  assert.equal(result.manga.length, 0);
+  // Ровно две страницы аниме (300 + неполные 40, дальше не пошли) и
+  // одна манги (сразу 400 – список закрыт/пуст, вторую страницу не
+  // спрашивали).
+  assert.equal(calls.filter((u) => u.includes("/animelist/")).length, 2);
+  assert.equal(calls.filter((u) => u.includes("/mangalist/")).length, 1);
+});
+
+test("список с MyAnimeList по нику отказывает, если и аниме, и манга оказались пустыми", async () => {
+  const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
+  const malHttpGet = async () => ({ status: 400, text: '{"errors":[{"message":"invalid request"}]}' });
+
+  await assert.rejects(
+    () => fetchMalUserList({ body: { username: "nobody" }, malHttpGet }),
+    /не знает пользователя.*nobody/
+  );
 });

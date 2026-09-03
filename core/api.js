@@ -488,6 +488,91 @@ async function backupCover({ vault, body, compressImage }) {
   return { ok: true, url: saved };
 }
 
+// Список с MyAnimeList по нику – так же, как список с AniList по нику
+// (js/import.js, fetchAnilistUserList): открытый список отдаётся кому
+// угодно, ключ не нужен. Но, в отличие от AniList, у этого эндпоинта
+// нет заголовков CORS – это тот же JSON, которым сама страница списка
+// подгружает следующую порцию при прокрутке, а не публичное API для
+// сторонних приложений. Прямой fetch из браузера такой ответ увидеть
+// не даст, поэтому запрос идёт отсюда, а не из js/import.js напрямую.
+//
+// Официальный API MAL (api.myanimelist.net) для этого не подходит: он
+// требует OAuth-регистрацию приложения и вход пользователя, то есть
+// то же самое усложнение, которого мы хотели избежать, добавляя вход
+// по одному нику, как у AniList.
+const MAL_LIST_PAGE = 300; // размер страницы у самого MAL, не наш выбор
+const MAL_MAX_PAGES = 20; // с запасом – 6000 записей на список
+
+// Сам HTTP-запрос вынесен наружу, как и compressImage чуть выше:
+// на компьютере это обычный fetch (electron/server.js работает в
+// Node, а не в браузере, и CORS для него не существует), а на
+// телефоне core/api.js исполняется прямо во WebView (см. заголовок
+// mobile/src/main.js) – там тот же fetch наткнулся бы на CORS, потому
+// что у этого JSON-эндпоинта нет заголовка Access-Control-Allow-Origin.
+// mobile/src/main.js подсовывает свою реализацию через нативный мост
+// CapacitorHttp, у которого запрос уходит не из WebView, а с телефона
+// напрямую.
+async function defaultMalHttpGet(url) {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      Accept: "application/json",
+    },
+  });
+  return { status: res.status, text: await res.text() };
+}
+
+async function fetchMalListPage(kind, username, offset, malHttpGet) {
+  const url = `https://myanimelist.net/${kind}list/${encodeURIComponent(username)}/load.json?status=7&offset=${offset}`;
+  let status, text;
+  try {
+    ({ status, text } = await malHttpGet(url));
+  } catch {
+    throw new ApiError("Не получилось достучаться до MyAnimeList. Проверьте интернет и попробуйте ещё раз.");
+  }
+  // MAL отвечает тем же 400 "invalid request" и на несуществующего/чужого
+  // закрытого пользователя, и на существующего, но с пустым списком этого
+  // вида (например, только мангу кто-то и не вёл) – различить эти два
+  // случая по ответу нечем, поэтому здесь это не ошибка, а просто пустая
+  // страница; собрать список хотя бы частично важнее точного диагноза.
+  if (status === 400) return null;
+  if (status === 429) {
+    throw new ApiError("MyAnimeList просит подождать – слишком много запросов подряд. Попробуйте через минуту.");
+  }
+  if (status < 200 || status >= 300) {
+    throw new ApiError(`MyAnimeList ответил ${status}. Попробуйте ещё раз через минуту.`, 502);
+  }
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  return Array.isArray(data) ? data : null;
+}
+
+async function fetchMalUserList({ body, malHttpGet }) {
+  const username = typeof body?.username === "string" ? body.username.trim() : "";
+  if (!username) throw new ApiError("Нужен ник");
+  const httpGet = malHttpGet || defaultMalHttpGet;
+
+  const result = { anime: [], manga: [] };
+  for (const kind of ["anime", "manga"]) {
+    for (let page = 0; page < MAL_MAX_PAGES; page++) {
+      const batch = await fetchMalListPage(kind, username, page * MAL_LIST_PAGE, httpGet);
+      if (!batch) break; // список закрыт/пуст с этой стороны – не повод рвать весь запрос
+      result[kind].push(...batch);
+      if (batch.length < MAL_LIST_PAGE) break;
+    }
+  }
+
+  if (!result.anime.length && !result.manga.length) {
+    throw new ApiError(`MyAnimeList не знает пользователя «${username}», либо его список закрыт настройками профиля.`);
+  }
+  return { ok: true, ...result };
+}
+
 // Удаление файла обложки – резервной копии, которую заменила новая
 // (см. js/routes/add.js: пасту новой ссылки на обложку раньше не
 // сопровождалось удалением старого файла, и на диске годами копились
@@ -820,6 +905,7 @@ export const ROUTES = {
   "POST /api/restore-backup": restoreBackup,
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/backup-cover": backupCover,
+  "POST /api/fetch-mal-list": fetchMalUserList,
   "POST /api/delete-media": deleteMedia,
   "POST /api/repair-cover-references": repairCoverReferences,
   "POST /api/restore-file-version": restoreFileVersion,

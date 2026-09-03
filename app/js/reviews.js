@@ -285,7 +285,7 @@ function reviewModalBodyHtml(r) {
         <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
         ${dateStr ? `<div class="review-dateline">${i18n("Ознакомился:")} <span>${esc(dateStr)}</span></div>` : ""}
         ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
-        ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(grade.name)}</div>` : ""}
+        ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
       </div>
     </div>
     ${tagsHtml}
@@ -426,7 +426,7 @@ function reviewCard(r, i) {
   // не символом из шрифта, чтобы отпечаток не гулял между
   // устройствами (см. комментарий у .tab-btn.active::before).
   const gradeHtml = grade
-    ? `<div class="card-grade-row" data-tip="${esc(grade.desc)}"><span class="card-grade-dot" style="--gc:${grade.color}"></span>${esc(grade.name)}</div>`
+    ? `<div class="card-grade-row" data-tip="${esc(grade.desc)}"><span class="card-grade-dot" style="--gc:${grade.color}"></span>${esc(gradeValueLabel(r.grade))}</div>`
     : "";
 
   // tabindex + role: карточка открывает модалку по клику, но до этой

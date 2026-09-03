@@ -449,6 +449,22 @@ function gradeToShelf(rawGrade) {
   return null;
 }
 
+// Подпись оценки в виде, соответствующем реальному типу шкалы – а не
+// всегда именем полки: у "Названий" оно и остаётся (полка – это и есть
+// оценка), у "Чисел" это "7/10", у "Звёзд" – "★ 7". Раньше карточки
+// отзывов/любимого показывали название полки всегда, даже когда
+// человек явно выбрал числа или звёзды.
+function gradeValueLabel(rawGrade) {
+  const scale = window.SITE_GRADE_SCALE;
+  if (!scale || scale.type === "categorical") {
+    const shelf = GRADES[gradeToShelf(rawGrade)];
+    return shelf ? shelf.name : null;
+  }
+  if (rawGrade === null || rawGrade === undefined || rawGrade === "") return null;
+  if (scale.type === "stars") return `★ ${rawGrade}`;
+  return `${rawGrade}/${scale.numericMax || 10}`;
+}
+
 // Пересобирает GRADES/GRADE_ORDER/TIER_ROWS из настроенной шкалы –
 // вызывается один раз после того, как site-settings.json загрузится.
 function rebuildGradesFromScale() {

@@ -193,7 +193,18 @@ function importFileHtml() {
              autocomplete="off" spellcheck="false">
       <button class="btn btn-ghost" id="imp-anilist-go" type="button">${i18n("Забрать список")}</button>
     </div>
-    <div class="status-msg" id="imp-anilist-status"></div>`;
+    <div class="status-msg" id="imp-anilist-status"></div>
+
+    <h2 class="section-h">${i18n("Или по нику с MyAnimeList")}</h2>
+    <p class="imp-note">
+      ${i18n("Ник тот же, что в адресе профиля: myanimelist.net/profile/")}<strong>${i18n("ник")}</strong>${i18n(". Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.")}
+    </p>
+    <div class="imp-actions">
+      <input type="text" id="imp-mal-user" placeholder="${i18n("ник на MyAnimeList")}"
+             autocomplete="off" spellcheck="false">
+      <button class="btn btn-ghost" id="imp-mal-go" type="button">${i18n("Забрать список")}</button>
+    </div>
+    <div class="status-msg" id="imp-mal-status"></div>`;
 }
 
 // ── Ключи сервисов ─────────────────────────────
@@ -740,6 +751,7 @@ async function runImport() {
 function bindImport() {
   bindImportKeys();
   bindAnilistUser();
+  bindMalUser();
 
   document.getElementById("imp-file")?.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
@@ -839,6 +851,59 @@ function bindAnilistUser() {
       });
       const parsed = parseAnilistLists(collections);
       parsed.source = `AniList – ${userName}`;
+      parsed.byName = true; // не файл: экран соответствий говорит об этом иначе
+      if (!parsed.items.length) {
+        throw new Error(`У «${userName}» в списке ничего нет – ни аниме, ни манги.`);
+      }
+      await startMapping(parsed);
+    } catch (err) {
+      status.className = "status-msg err";
+      status.textContent = err.message;
+    } finally {
+      importBusy = false;
+      btn.disabled = false;
+    }
+  };
+
+  btn.addEventListener("click", go);
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    go();
+  });
+}
+
+// Сам запрос идёт не отсюда: у списка на MyAnimeList нет CORS,
+// поэтому его спрашивает свой же сервер (core/api.js, fetchMalUserList) –
+// на компьютере он выполняется в Node, на телефоне уходит через
+// нативный мост (mobile/src/main.js, CapacitorHttp). Разбор ответа –
+// здесь же, тем же путём, что и у AniList выше.
+function bindMalUser() {
+  const input = document.getElementById("imp-mal-user");
+  const btn = document.getElementById("imp-mal-go");
+  const status = document.getElementById("imp-mal-status");
+  if (!input || !btn) return;
+
+  const go = async () => {
+    const userName = input.value.trim().replace(/^@/, "");
+    if (!userName) { input.focus(); return; }
+    if (importBusy) return;
+    importBusy = true;
+    btn.disabled = true;
+    status.className = "status-msg";
+    status.textContent = i18n("Спрашиваем MyAnimeList…");
+    try {
+      const res = await fetch("/api/fetch-mal-list", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: userName }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `MyAnimeList ответил ${res.status}`);
+
+      const parsed = parseMalJsonLists(data);
+      parsed.source = `MyAnimeList – ${userName}`;
       parsed.byName = true; // не файл: экран соответствий говорит об этом иначе
       if (!parsed.items.length) {
         throw new Error(`У «${userName}» в списке ничего нет – ни аниме, ни манги.`);

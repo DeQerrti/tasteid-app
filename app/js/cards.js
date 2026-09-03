@@ -28,12 +28,12 @@ function findReviewForTitle(title, type) {
   const shelf = gradeToShelf(found.grade);
   const grade = GRADES[shelf] || null;
   const score = gradeScore(shelf);
-  return grade ? { grade, score } : null;
+  return grade ? { grade, score, raw: found.grade } : null;
 }
 
 function gradeInlineHtml(info) {
   if (!info) return "";
-  return `<span class="card-grade-inline" style="color:${info.grade.color}" data-tip="${esc(info.grade.desc)}">${esc(info.grade.name)}</span>`;
+  return `<span class="card-grade-inline" style="color:${info.grade.color}" data-tip="${esc(info.grade.desc)}">${esc(gradeValueLabel(info.raw))}</span>`;
 }
 
 // Локаль – по языку интерфейса, а не жёстко "ru-RU": с английским
@@ -88,7 +88,7 @@ function manualCard(r, index) {
   // оценку на обеих карточках.
   const shelf    = gradeToShelf(r.grade);
   const grade    = GRADES[shelf] || null;
-  const info     = grade ? { grade, score: gradeScore(shelf) } : null;
+  const info     = grade ? { grade, score: gradeScore(shelf), raw: r.grade } : null;
   const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
 
   let watchBadge = "";

@@ -695,6 +695,7 @@ i18nRegister({
   "Игры пока не принимаем: у сервисов, где их ведут, нет общего формата выгрузки. Появится образец файла – разберём и его.":
     "Games aren’t accepted yet: the services that track them have no common export format. Send a sample file and it will be supported.",
   "Или по нику с AniList": "Or by AniList username",
+  "Или по нику с MyAnimeList": "Or by MyAnimeList username",
   "Импортировать ещё файл": "Import another file",
   История: "History",
   "Ключ появится тут же, в строке API Key (v3 auth) – скопируйте его сюда целиком.":
@@ -726,8 +727,11 @@ i18nRegister({
     "Nothing to import: every entry’s status is set to “don’t import”.",
   ник: "username",
   "ник на AniList": "AniList username",
+  "ник на MyAnimeList": "MyAnimeList username",
   "Ник тот же, что в адресе профиля: anilist.co/user/":
     "The same username as in the profile address: anilist.co/user/",
+  "Ник тот же, что в адресе профиля: myanimelist.net/profile/":
+    "The same username as in the profile address: myanimelist.net/profile/",
   новых: "new",
   обновлено: "updated",
   "Общих оценок не нашлось.": "No ratings in common.",
@@ -781,6 +785,7 @@ i18nRegister({
   "Нечего показывать – в этой группе пока пусто.": "Nothing to show – this group is empty.",
   "Сохраняем…": "Saving…",
   "Спрашиваем AniList…": "Asking AniList…",
+  "Спрашиваем MyAnimeList…": "Asking MyAnimeList…",
   "Спрашиваем TMDB, знает ли он такой ключ…": "Asking TMDB whether it knows this key…",
   "Сравнение со своим": "Compare with mine",
   "Стоит забрать себе": "Worth picking up",

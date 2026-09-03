@@ -24,7 +24,7 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 import { Share } from "@capacitor/share";
 import { App } from "@capacitor/app";
 import { FileOpener } from "@capawesome-team/capacitor-file-opener";
-import { registerPlugin } from "@capacitor/core";
+import { registerPlugin, CapacitorHttp } from "@capacitor/core";
 import { ROUTES, ApiError } from "../../core/api.js";
 import { MobileVault } from "./vault.js";
 // Свой маленький нативный плагин (android/app/src/main/java/ru/tasteid/
@@ -302,6 +302,27 @@ async function compressImage(bytes, contentType) {
   }
 }
 
+// ── Список с MyAnimeList по нику ────────────────
+// core/api.js делает этот запрос обычным fetch по умолчанию – хватает
+// на компьютере, где он выполняется в Node (electron/server.js), а не
+// в браузере. Здесь же, во WebView, тот же fetch упёрся бы в CORS: у
+// ответа MAL нет Access-Control-Allow-Origin. CapacitorHttp делает
+// запрос не из WebView, а с телефона напрямую – для него CORS не
+// существует, как и для обычного fetch на компьютере.
+async function malHttpGet(url) {
+  const res = await CapacitorHttp.get({
+    url,
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      Accept: "application/json",
+    },
+    responseType: "text",
+  });
+  const text = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+  return { status: res.status, text };
+}
+
 // ── Перехват запросов ──────────────────────────
 
 function jsonResponse(data, status = 200) {
@@ -329,7 +350,7 @@ async function handle(pathname, search, init) {
     if (!handler) return jsonResponse({ error: "Not Found" }, 404);
     try {
       const query = new URLSearchParams(search || "");
-      return jsonResponse((await handler({ vault, body, query, compressImage })) || { ok: true });
+      return jsonResponse((await handler({ vault, body, query, compressImage, malHttpGet })) || { ok: true });
     } catch (e) {
       return jsonResponse({ error: e.message }, e instanceof ApiError ? e.status : 500);
     }

@@ -155,6 +155,68 @@ function parseMalXml(text) {
   return { source: i18n("MyAnimeList / Шикимори"), scaleMin: 1, scaleMax: 10, items, skipped };
 }
 
+// ── MyAnimeList (ответ по нику, а не файл) ─────
+// Тот же список, что и в XML-выгрузке выше, но добытый через ник (см.
+// core/api.js, fetchMalUserList) – это другой, «постраничный» JSON
+// самого списка на сайте, а не файл ручного экспорта, поэтому у него
+// свои имена полей. Типы тайтлов сведены к тем же ключам через
+// MAL_TYPE_MAP, статусы – к тем же пяти, что и у XML-версии.
+
+const MAL_JSON_STATUS_MAP = { 1: "watching", 2: "completed", 3: "onhold", 4: "dropped", 6: "plantowatch" };
+
+// Личные даты начала/окончания (не путать с
+// anime_start_date_string/anime_end_date_string – это даты выхода
+// самого тайтла, а не когда его посмотрел человек), две цифры года.
+// Порядок дня и месяца в паре первых чисел зависит от формата даты,
+// выставленного в настройках профиля на самом MyAnimeList – он не
+// один и тот же у всех аккаунтов (проверено на двух живых списках:
+// у одного "10-18-02" явно месяц-день, у другого "28-01-18" явно
+// день-месяц). Разбираем только те даты, где один из компонентов
+// однозначно больше 12 – значит не может быть месяцем; если оба ≤12,
+// формат для этой пары неразличим, и лучше пропустить дату, чем
+// один раз из двух перепутать день с месяцем.
+function cleanMalJsonDate(value) {
+  const m = /^(\d{2})-(\d{2})-(\d{2})$/.exec(value || "");
+  if (!m) return null;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  const year = Number(m[3]) <= 69 ? 2000 + Number(m[3]) : 1900 + Number(m[3]);
+  let day, month;
+  if (a > 12 && b <= 12) { day = a; month = b; }
+  else if (b > 12 && a <= 12) { month = a; day = b; }
+  else return null;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function parseMalJsonLists({ anime, manga }) {
+  const items = [];
+  let skipped = 0;
+
+  const push = (el, isManga) => {
+    const malId = Number(isManga ? el.manga_id : el.anime_id);
+    const title = isManga ? el.manga_title : el.anime_title;
+    if (!malId || !title) { skipped++; return; }
+    const rawType = ((isManga ? el.manga_media_type_string : el.anime_media_type_string) || "")
+      .toLowerCase().replace(/[\s_-]/g, "");
+    items.push({
+      title,
+      type: MAL_TYPE_MAP[rawType] || (isManga ? "manga" : "anime"),
+      status: MAL_JSON_STATUS_MAP[el.status] || null,
+      score: Number(el.score) || 0,
+      rewatch: 0, // список на сайте не отдаёт число пересмотров, только флаг «пересматриваю сейчас»
+      dateStart: cleanMalJsonDate(el.start_date_string),
+      dateEnd: cleanMalJsonDate(el.finish_date_string),
+      cover: (isManga ? el.manga_image_path : el.anime_image_path) || null,
+      ids: { mal: malId },
+    });
+  };
+
+  for (const el of anime || []) push(el, false);
+  for (const el of manga || []) push(el, true);
+
+  return { source: "MyAnimeList", scaleMin: 1, scaleMax: 10, items, skipped };
+}
+
 // ── Goodreads (CSV) ────────────────────────────
 
 function parseGoodreads(rows) {
