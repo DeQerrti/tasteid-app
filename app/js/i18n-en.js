@@ -528,11 +528,11 @@ i18nRegister({
   "Если смотрели один день – заполните только «Завершено» или укажите одинаковые даты, на карточке покажется одна дата.":
     "If it took a single day, fill in only “Finished” (or use the same date twice) – the card will show one date.",
   Завершено: "Finished",
-  "Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».":
+  "Запись пропадёт из «Отзывов», «Любимого» и «Тир-листа». Вернуть можно через «Историю версий».":
     "The entry disappears from reviews, favorites and the tier list. You can bring it back from “Version history”.",
   "Здесь появится превью…": "The preview will appear here…",
   "Из какого произведения": "Which title it is from",
-  "Или загрузите файл – сожмётся и сконвертируется в WebP автоматически.":
+  "Или загрузить файл – сожмётся и сконвертируется в WebP автоматически.":
     "Or upload a file – it will be compressed and converted to WebP automatically.",
   "Или загрузить с компьютера": "Or upload from your computer",
   Импорт: "Import",
@@ -550,7 +550,6 @@ i18nRegister({
   Категория: "Category",
   Коллекции: "Collections",
   "Короткое пояснение, что значит тег": "A short note on what the tag means",
-  "Название *": "Title *",
   "Название категории": "Category name",
   "Название нового тира": "New tier name",
   "Название тайтла *": "Title *",
@@ -594,7 +593,7 @@ i18nRegister({
   Паспорта: "Passports",
   "Переименуйте, перекрасьте, удалите или добавьте свою.":
     "Rename, recolour, delete, or add your own.",
-  "Пересмотров (не считая первого раза)": "Rewatches (not counting the first time)",
+  Пересмотров: "Rewatches",
   "Перетащите за ⠿, чтобы изменить порядок, затем нажмите «Сохранить порядок»":
     "Drag by ⠿ to reorder, then press “Save order”",
   "Перетащите карточки, чтобы изменить порядок. Нажмите «Сохранить», когда готово.":
@@ -643,7 +642,7 @@ i18nRegister({
   "Удалить тир-лист": "Delete tier list",
   "Удалить список": "Delete list",
   "Удалить этот отзыв": "Delete this review",
-  "Формат (доп.)": "Format (extra)",
+  Формат: "Format",
   Цвет: "Colour",
   "Цвет не задан – теги будут нейтральными": "No colour set – tags will look neutral",
   "Цвет темы": "Theme colour",
@@ -948,7 +947,7 @@ i18nRegister({
   "Удалить «{name}» из тир-листа?": "Remove “{name}” from the tier list?",
   "Удалить тег «{name}»?\n\nОн пропадёт и из уже сохранённых отзывов.":
     "Delete the “{name}” tag?\n\nIt disappears from already saved reviews too.",
-  "Удалить «{name}»?\n\nЗапись пропадёт из отзывов, «Любимого» и тир-листа.\nВернуть её можно будет только откатом в «Истории версий».":
+  "Удалить «{name}»?\n\nЗапись пропадёт из «Отзывов», «Любимого» и «Тир-листа».\nВернуть её можно будет только откатом в «Истории версий».":
     "Delete “{name}”?\n\nThe entry disappears from reviews, favorites and the tier list.\nThe only way back is a rollback in “Version history”.",
   "Удалить раздел «{name}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.":
     "Delete the “{name}” section?\n\nEntries stay in the data but stop being shown. You can bring the section back right here.",

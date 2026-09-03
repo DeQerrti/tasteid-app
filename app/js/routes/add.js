@@ -184,7 +184,7 @@ async function mount(container, params) {
       <h2 class="section-title">${i18n("Основное")}</h2>
       <div class="grid">
         <div class="field">
-          <label>${i18n("Название *")}</label>
+          <label>${i18n("Название")}</label>
           <input type="text" id="f-title" placeholder="${i18n("Название")}">
         </div>
         <div class="field">
@@ -212,7 +212,7 @@ async function mount(container, params) {
           <input type="hidden" id="f-status" value="completed">
         </div>
         <div class="field">
-          <label>${i18n("Формат (доп.)")}</label>
+          <label>${i18n("Формат")}</label>
           <input type="text" id="f-format" placeholder="${i18n("Например: 12 серий")}">
         </div>
         <div class="field">
@@ -241,7 +241,7 @@ async function mount(container, params) {
               </div>
               <button type="button" class="icon-btn" title="Убрать обложку" onclick="closeCoverPanel()">✕</button>
             </div>
-            <div class="hint">${i18n("Или загрузите файл – сожмётся и сконвертируется в WebP автоматически.")}</div>
+            <div class="hint">${i18n("Или загрузить файл – сожмётся и сконвертируется в WebP автоматически.")}</div>
             <div class="cover-upload-row">
               <label class="btn btn-ghost file-btn">
                 <input type="file" id="f-cover-upload" accept="image/*" onchange="updateFileBtnName(this); uploadCoverFile()">
@@ -265,7 +265,7 @@ async function mount(container, params) {
           </div>
           <div id="dates-section"></div>
           <div class="field" style="max-width:220px;margin-bottom:0;">
-            <label>${i18n("Пересмотров (не считая первого раза)")}</label>
+            <label>${i18n("Пересмотров")}</label>
             <input type="number" id="rewatch-count" min="0" value="0" step="1">
           </div>
         </div>
@@ -368,7 +368,7 @@ async function mount(container, params) {
            чтобы не оказаться под пальцем рядом с «Сохранить». -->
       <div class="danger-zone" id="danger-zone" hidden>
         <button type="button" class="tm-link tm-danger" onclick="deleteReview()">${i18n("Удалить этот отзыв")}</button>
-        <span class="danger-hint">${i18n("Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».")}</span>
+        <span class="danger-hint">${i18n("Запись пропадёт из «Отзывов», «Любимого» и «Тир-листа». Вернуть можно через «Историю версий».")}</span>
       </div>
 
     </main>
