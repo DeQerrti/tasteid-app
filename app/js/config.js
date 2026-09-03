@@ -101,6 +101,59 @@ async function proxyImagesToDataUrls(container) {
     });
   }
 
+  // img.decode() – та же подстраховка, что и у остального экспорта
+  // (см. withTimeout вокруг html2canvas в tlExport/favExport), только
+  // здесь она обязательна, а не просто на всякий случай: decode()
+  // умеет не резолвиться и не отклоняться вовсе, если браузер решает
+  // не спешить с расшифровкой байт в растр для картинки, которую
+  // прямо сейчас некуда рисовать (офскрин-контейнер экспорта, вкладка
+  // не в фокусе) – поймано лично при проверке фикса ниже. Простой
+  // .catch(() => {}) такое не ловит: catch реагирует на отказ, а не
+  // на вечное ожидание. 3 секунды с запасом даже на медленный webp –
+  // и одна зависшая картинка не вешает всю очередь проксирования, у
+  // которой своего внешнего предела нет (в отличие от html2canvas).
+  function decodeWithTimeout(img) {
+    return withTimeout(img.decode(), 3000, "decode timeout").catch(() => {});
+  }
+
+  // html2canvas не применяет CSS filter на <img> при захвате – совсем,
+  // ни у одного из движков рендера, что у него есть внутри. У всех тем
+  // картинки карточек и постеров тир-листа затемнены/приглушены своим
+  // filter (--card-img-filter в themes.css, свой у каждой темы, плюс
+  // отдельный жёстко заданный у .tl-poster/.tl-char-poster) – без него
+  // снимок получается заметно ярче и контрастнее живой страницы, кое-где
+  // до самих карточек, слипающихся друг с другом на пёстром тир-листе.
+  // Раньше это не было заметно на превью с одной-двумя картинками, но
+  // проверено (лично, зумом на реальный снимок в сравнении с живой
+  // вкладкой) на «Любимом»: пиксель на снимке совпадал 1-в-1 с тем же
+  // пикселем без фильтра вовсе, не с тем, что видно на странице.
+  //
+  // Чиним не полагаясь на html2canvas – рисуем картинку на отдельном
+  // canvas через ctx.filter (Canvas 2D API его умеет, в отличие от
+  // html2canvas) и подменяем src на уже готовый, отфильтрованный
+  // результат: html2canvas такую картинку просто копирует как есть,
+  // ему разбираться в фильтре уже не нужно.
+  async function bakeCssFilter(img) {
+    const filterValue = getComputedStyle(img).filter;
+    if (!filterValue || filterValue === "none") return;
+    if (!img.naturalWidth || !img.naturalHeight) return;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.filter = filterValue;
+      ctx.drawImage(img, 0, 0);
+      img.src = canvas.toDataURL("image/webp", 0.92);
+      await decodeWithTimeout(img);
+    } catch {
+      // canvas.toDataURL() иногда падает на испорченном/непрочитанном
+      // растре (тот же класс проблем, что и у img.decode() выше) –
+      // тогда просто оставляем картинку без фильтра, а не роняем
+      // весь экспорт из-за одной обложки.
+    }
+  }
+
   async function proxyOne({ img, src }) {
     // Если резервная копия уже когда-то скачана (см. core/api.js,
     // backupCover) – data-fallback у этой же картинки указывает прямо
@@ -132,7 +185,8 @@ async function proxyImagesToDataUrls(container) {
         // (десятки, успевает всегда) – отсюда же. catch – на случай
         // повреждённых байт, тогда просто идём дальше со старым src, не
         // роняя весь экспорт.
-        await img.decode().catch(() => {});
+        await decodeWithTimeout(img);
+        await bakeCssFilter(img);
         return;
       } catch (e) {
         if (url !== src) console.warn(`[proxyImagesToDataUrls] не удалось получить ${src}: ${e.message}`);
@@ -151,7 +205,8 @@ async function proxyImagesToDataUrls(container) {
     if (placeholder) {
       origSrc.set(img, src);
       img.src = placeholder;
-      await img.decode().catch(() => {});
+      await decodeWithTimeout(img);
+      await bakeCssFilter(img);
     }
   }
 
