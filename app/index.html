@@ -751,9 +751,24 @@ section.group { margin-bottom: 3.5rem; }
 .grade-chip {
   font-family: 'Playfair Display', serif;
   font-size: 1rem; font-weight: 700;
-  color: var(--gc); flex: 1;
+  color: var(--gc);
   cursor: default; position: relative;
   min-width: 80px; white-space: nowrap;
+  /* Обычный <div> без display – блочный, тянется на всю ширину
+     родителя. В классической теме у .grade-chip нет ни фона, ни рамки,
+     и этого не видно – текст просто стоит слева, пустая часть строки
+     не бросается в глаза. У «рисованной» и неоморфизма («7/10» реже
+     умещается в то же место, что раньше занимало имя полки) chip
+     получает свои фон/рамку/тень (themes.css), и та же самая пустая
+     растянутая область превращается в заметную полосу через всю
+     карточку. display: inline-block – чтобы ширина всегда шла по
+     содержимому (не меньше min-width выше), а не по родителю, в любой
+     теме. flex-grow тут был не нужен уже сейчас: единственный
+     родитель chip – обычный блочный <div> в шапке модалки отзыва
+     (reviewModalBodyHtml), не flex-контейнер, свойство ни на что не
+     влияло и раньше.
+  */
+  display: inline-block;
 }
 /* ══ SOURCE BUTTONS ══════════════════════════════ */
 .source-buttons { display: flex; gap: .4rem; flex-shrink: 0; }

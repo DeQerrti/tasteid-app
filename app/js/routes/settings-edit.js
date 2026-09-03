@@ -204,6 +204,16 @@ function settingsViewHtml() {
       <div class="panel" id="panel-tabs">
         <div id="tabsList"></div>
 
+        <!-- Один общий "Сохранить" на всю панель – см. её же комментарий
+             ниже, у мест, откуда кнопку сюда перенесли. Стоит ДО первого
+             сворачиваемого h2.section-h намеренно: collapsibleizeSettingsSections()
+             заворачивает всё до следующего h2 включительно, и кнопка,
+             стоявшая физически последней (после «Тир-листов»), исчезала
+             вместе с этим разделом при его сворачивании – нажать «Сохранить»
+             можно было, только сначала раскрыв самый нижний блок. -->
+        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
+        <div class="status-msg" id="status-tabs"></div>
+
         <h2 class="section-h" id="statusesHeading"></h2>
         <div id="statusesList"></div>
         <div class="row" style="margin-top:14px;">
@@ -222,17 +232,6 @@ function settingsViewHtml() {
         <h2 class="section-h" id="tierModesHeading"></h2>
         <p class="panel-intro" data-i18n>Скрыть, переименовать, удалить и переставить местами можно все тир-листы разом – «Тайтлы» и свои коллекции. Завести новый тир-лист по-прежнему проще кнопкой «Создать» на самой вкладке «Тир-лист».</p>
         <div id="tierModesList"></div>
-
-        <!-- Один общий "Сохранить" на всю панель, а не по кнопке на
-             каждый из трёх разделов выше: saveSettings() и так пишет
-             site-settings.json целиком за один вызов, какую из кнопок
-             ни нажми (см. её же activePanel/statusId) – четыре кнопки
-             были чистой видимостью раздельного сохранения, а
-             единственный status-msg на всю панель стоял только под
-             самой первой из них, и результат клика по остальным трём
-             был не виден без прокрутки наверх. -->
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
-        <div class="status-msg" id="status-tabs"></div>
       </div>
 
       <div class="panel" id="panel-shortcuts">
