@@ -253,7 +253,7 @@ i18nRegister({
   "Переусложнённые системы": "Overcomplicated systems",
   "Слишком много механик, легко потеряться": "Too many mechanics, easy to get lost",
   "Короткая и ёмкая": "Short and dense",
-  "Прошли за вечер – и не пожалели": "Finished it in an evening and didn’t regret it",
+  "Пройдено на один вечер – понравилось": "One evening – and liked it",
   "Слабый финальный босс": "Weak final boss",
   "Финальный босс разочаровал геймплейно или сюжетно":
     "The final boss disappoints in play or in story",
