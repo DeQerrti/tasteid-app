@@ -24,3 +24,10 @@ export function registerPlugin(name) {
     }
   );
 }
+
+// mobile/src/main.js импортирует именованный CapacitorHttp напрямую
+// (не через registerPlugin(), как остальные плагины выше) – список
+// с MyAnimeList по нику идёт через него в обход CORS. Ни один
+// браузерный тест этот путь не дёргает – значит и здесь сама она
+// не нужна, только чтобы импорт не падал при сборке тестового бандла.
+export const CapacitorHttp = registerPlugin("CapacitorHttp");

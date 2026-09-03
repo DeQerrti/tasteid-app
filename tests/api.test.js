@@ -216,7 +216,11 @@ test("_regrade_map переписывает оценку только у отз�
   // текущее r.grade совпадает с ключом карты, остальные не трогая.
   await withServer(async ({ api }) => {
     const a = await api("POST", "/api/save-review", { title: "A", type: "anime", grade: "etalon" });
-    const b = await api("POST", "/api/save-review", { title: "B", type: "anime", grade: "attrakcion" });
+    const b = await api("POST", "/api/save-review", {
+      title: "B",
+      type: "anime",
+      grade: "attrakcion",
+    });
     const c = await api("POST", "/api/save-review", { title: "C", type: "anime" }); // без оценки
 
     const { status, data } = await api("POST", "/api/save-review", {
@@ -807,11 +811,13 @@ test("зависший источник картинки не вешает за�
 test("список с MyAnimeList по нику листает страницы и не падает на закрытой манге", async () => {
   const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
   const calls = [];
-  const page = (n) => Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
+  const page = (n) =>
+    Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
 
   const malHttpGet = async (url) => {
     calls.push(url);
-    if (url.includes("/mangalist/")) return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
+    if (url.includes("/mangalist/"))
+      return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
     const offset = Number(new URL(url).searchParams.get("offset"));
     // Первая страница анимного списка полная (300), вторая – неполная:
     // признак того, что дальше страниц больше нет.
@@ -831,7 +837,10 @@ test("список с MyAnimeList по нику листает страницы 
 
 test("список с MyAnimeList по нику отказывает, если и аниме, и манга оказались пустыми", async () => {
   const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
-  const malHttpGet = async () => ({ status: 400, text: '{"errors":[{"message":"invalid request"}]}' });
+  const malHttpGet = async () => ({
+    status: 400,
+    text: '{"errors":[{"message":"invalid request"}]}',
+  });
 
   await assert.rejects(
     () => fetchMalUserList({ body: { username: "nobody" }, malHttpGet }),

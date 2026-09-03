@@ -529,7 +529,9 @@ async function fetchMalListPage(kind, username, offset, malHttpGet) {
   try {
     ({ status, text } = await malHttpGet(url));
   } catch {
-    throw new ApiError("Не получилось достучаться до MyAnimeList. Проверьте интернет и попробуйте ещё раз.");
+    throw new ApiError(
+      "Не получилось достучаться до MyAnimeList. Проверьте интернет и попробуйте ещё раз."
+    );
   }
   // MAL отвечает тем же 400 "invalid request" и на несуществующего/чужого
   // закрытого пользователя, и на существующего, но с пустым списком этого
@@ -538,7 +540,9 @@ async function fetchMalListPage(kind, username, offset, malHttpGet) {
   // страница; собрать список хотя бы частично важнее точного диагноза.
   if (status === 400) return null;
   if (status === 429) {
-    throw new ApiError("MyAnimeList просит подождать – слишком много запросов подряд. Попробуйте через минуту.");
+    throw new ApiError(
+      "MyAnimeList просит подождать – слишком много запросов подряд. Попробуйте через минуту."
+    );
   }
   if (status < 200 || status >= 300) {
     throw new ApiError(`MyAnimeList ответил ${status}. Попробуйте ещё раз через минуту.`, 502);
@@ -568,7 +572,9 @@ async function fetchMalUserList({ body, malHttpGet }) {
   }
 
   if (!result.anime.length && !result.manga.length) {
-    throw new ApiError(`MyAnimeList не знает пользователя «${username}», либо его список закрыт настройками профиля.`);
+    throw new ApiError(
+      `MyAnimeList не знает пользователя «${username}», либо его список закрыт настройками профиля.`
+    );
   }
   return { ok: true, ...result };
 }

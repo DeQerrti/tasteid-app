@@ -350,7 +350,9 @@ async function handle(pathname, search, init) {
     if (!handler) return jsonResponse({ error: "Not Found" }, 404);
     try {
       const query = new URLSearchParams(search || "");
-      return jsonResponse((await handler({ vault, body, query, compressImage, malHttpGet })) || { ok: true });
+      return jsonResponse(
+        (await handler({ vault, body, query, compressImage, malHttpGet })) || { ok: true }
+      );
     } catch (e) {
       return jsonResponse({ error: e.message }, e instanceof ApiError ? e.status : 500);
     }
