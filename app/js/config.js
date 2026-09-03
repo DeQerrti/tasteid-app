@@ -613,9 +613,12 @@ function gradeValueLabel(rawGrade) {
 function shelfDisplayLabel(shelf, scale) {
   if (scale.type === "categorical") return shelf.name;
   if (scale.type === "stars") {
+    // Чисто ★, без ☆ до конца шкалы – та же правка, что и у
+    // gradeValueLabel() для оценки одного отзыва (см. её же
+    // комментарий): без пустых звёзд подпись короче и то же место в
+    // фильтре/статистике/тир-листе умещает больше полок в строку.
     const total = scale.numericMax || 5;
-    const filled = Math.max(0, Math.min(total, Number(shelf.max) || 0));
-    return "★".repeat(filled) + "☆".repeat(Math.max(0, total - filled));
+    return "★".repeat(Math.max(0, Math.min(total, Number(shelf.max) || 0)));
   }
   // numeric
   return Number(shelf.min) === Number(shelf.max) ? String(shelf.min) : `${shelf.min}-${shelf.max}`;
