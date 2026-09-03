@@ -537,7 +537,6 @@ i18nRegister({
   "Или загрузить с компьютера": "Or upload from your computer",
   Импорт: "Import",
   Имя: "Name",
-  "Имя *": "Name *",
   "Имя персонажа": "Character name",
   "Имя персонажа *": "Character name *",
   "имя-папки": "folder-name",
@@ -577,7 +576,7 @@ i18nRegister({
   "Описание – показывается подсказкой при наведении":
     "Description – shown as a tooltip on hover",
   Основное: "Basics",
-  "Откуда (необязательно)": "Where from (optional)",
+  Откуда: "Where from",
   "Отметьте тайтлы в редакторе отзыва.": "Mark titles in the review editor.",
   Оформление: "Appearance",
   "Оценка и теги": "Rating and tags",
@@ -951,6 +950,8 @@ i18nRegister({
     "Delete “{name}”?\n\nThe entry disappears from reviews, favorites and the tier list.\nThe only way back is a rollback in “Version history”.",
   "Удалить раздел «{name}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.":
     "Delete the “{name}” section?\n\nEntries stay in the data but stop being shown. You can bring the section back right here.",
+  "Удалить раздел «{name}»?\n\nЗаписи этого раздела ({count}) будут удалены без возможности восстановления.":
+    "Delete the “{name}” section?\n\nThis section’s entries ({count}) will be permanently deleted.",
   "Удалить тир-лист «{name}» вместе со всем содержимым – всеми тайтлами, тирами и персонажами внутри? Отменить это будет нельзя.":
     "Delete the tier list “{name}” along with everything in it – all its titles, tiers and characters? This can't be undone.",
   "Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл – все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).":

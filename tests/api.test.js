@@ -185,6 +185,29 @@ test("удаление убирает запись, повторное сооб�
   });
 });
 
+test("_deleteMany в «Любимом» убирает разом только перечисленные записи", async () => {
+  // Удаление своего раздела (favorites-edit.js, removeFavTypePicker)
+  // забирает с собой все его записи одним запросом – не по одной, чтобы
+  // не оставить хранилище в промежуточном состоянии, если что-то
+  // прервётся на середине списка. Проверяем именно это: список из трёх
+  // id убирает ровно три записи, а не всё хранилище и не одну.
+  await withServer(async ({ api }) => {
+    const a = await api("POST", "/api/save-favorite", { name: "Локация A", type: "locations" });
+    const b = await api("POST", "/api/save-favorite", { name: "Локация B", type: "locations" });
+    await api("POST", "/api/save-favorite", { name: "Widget", type: "character" });
+
+    const { status, data } = await api("POST", "/api/save-favorite", {
+      _deleteMany: [a.data.id, b.data.id],
+    });
+    assert.equal(status, 200);
+    assert.equal(data.deleted, 2);
+
+    const list = await api("GET", "/favorites.json");
+    assert.equal(list.data.length, 1);
+    assert.equal(list.data[0].name, "Widget");
+  });
+});
+
 test("переименование тега проходит по всем отзывам и не плодит дублей", async () => {
   await withServer(async ({ api, base }) => {
     await api("POST", "/api/save-review", {

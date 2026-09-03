@@ -302,6 +302,17 @@ async function saveFavorite({ vault, body }) {
     return { ok: true };
   }
 
+  // Удаление своего раздела «Любимого» (favorites-edit.js,
+  // removeFavTypePicker) забирает с собой все записи этого раздела разом –
+  // одним запросом, а не по одной на каждую, чтобы не оставить хранилище
+  // в промежуточном состоянии, если что-то прервётся на середине списка.
+  if (Array.isArray(body._deleteMany)) {
+    const ids = new Set(body._deleteMany.map(String));
+    const rest = list.filter((r) => !ids.has(String(r.id)));
+    await vault.writeJson("favorites.json", rest);
+    return { ok: true, deleted: list.length - rest.length };
+  }
+
   if (body._delete !== undefined && body._delete !== null) {
     const id = String(body._delete);
     const rest = list.filter((r) => String(r.id) !== id);

@@ -65,7 +65,7 @@ async function mount(container) {
       <h2 class="section-title">${i18n("Основное")}</h2>
       <div class="grid">
         <div class="field">
-          <label>${i18n("Имя *")}</label>
+          <label>${i18n("Имя")}</label>
           <input type="text" id="f-name" placeholder="${i18n("Имя")}">
         </div>
         <div class="field">
@@ -105,7 +105,7 @@ async function mount(container) {
           <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
         </div>
         <div class="field full" id="field-from">
-          <label>${i18n("Откуда (необязательно)")}</label>
+          <label>${i18n("Откуда")}</label>
           <input type="text" id="f-from" placeholder="${i18n("Из какого произведения")}">
         </div>
       </div>
@@ -583,17 +583,42 @@ async function removeFavTypePicker(id) {
     return;
   }
 
+  // Свой раздел, в отличие от встроенных выше, не привязан ни к чему,
+  // кроме собственных записей – скрывать их вслед за разделом (как для
+  // "character"/"person") было бы некуда: раздел пропадает из списка
+  // насовсем, вернуть его как раньше было бы уже нечем, значит и
+  // притворяться, что записи "просто перестанут показываться", не
+  // стоит – удаляем по-настоящему, вместе с разделом.
+  const toDelete = groupLists[id] || [];
   if (
     !(await confirmDialog(
       i18n(
-        "Удалить раздел «{name}»?\n\nЗаписи останутся в данных, но перестанут показываться. Вернуть раздел можно здесь же.",
-        { name: label }
+        "Удалить раздел «{name}»?\n\nЗаписи этого раздела ({count}) будут удалены без возможности восстановления.",
+        { name: label, count: toDelete.length }
       )
     ))
   ) {
     return;
   }
   try {
+    // Резервные копии обложек – первым делом и раньше самих записей:
+    // discardScratchImageBackup сравнивается с originalImageBackup только
+    // для формы редактирования, у уже сохранённых записей своей проверки
+    // на "используется ли ещё где-то" нет, поэтому чистим сами, иначе
+    // получили бы ровно те же осиротевшие файлы, что и до починки
+    // discardScratchImageBackup() (см. a99f485).
+    for (const entry of toDelete) {
+      if (entry.image_backup) deleteMediaFile(entry.image_backup);
+    }
+    const res = await fetch("/api/save-favorite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ _deleteMany: toDelete.map((r) => r.id) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || i18n("Ошибка удаления"));
+
     await patchSiteSettings((settings) => {
       settings.favCollections = (settings.favCollections || []).filter((c) => c.id !== id);
     });
@@ -602,6 +627,11 @@ async function removeFavTypePicker(id) {
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     if (favTypePickerOpen) renderFavTypePickerDropdown();
     if (document.getElementById("f-type").value === id) selectFavTypePicker("character");
+    // allEntries/groupLists у остальных разделов не менялись, но список
+    // мог показывать только что удалённые записи – проще перечитать
+    // с диска, чем вычищать их из локального состояния вручную.
+    await loadList();
+    refreshOpenReviewsTab();
     renderList();
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
@@ -1039,6 +1069,10 @@ async function deleteFavEntry(id) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || i18n("неизвестная"));
+    // Запись удалена по подтверждённому ответу сервера – резервная копия
+    // обложки теперь точно ничья, раньше этого момента удалять было
+    // нельзя (см. её же логику в saveReview()/add-save.js).
+    if (entry?.image_backup) deleteMediaFile(entry.image_backup);
     // Если удалили ту самую запись, что сейчас открыта в форме –
     // форма показывала бы то, чего уже нет.
     if (favEditingId === id) resetFavToNew();
