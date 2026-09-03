@@ -377,6 +377,67 @@ const sharedBrowserGlobals = [
   "typeLabels",
   "typePlural",
   "updateScaleBlocks",
+
+  // add.js разбит на несколько файлов (см. его же шапку) — состояние
+  // формы и функции ниже объявлены в одном файле и используются в
+  // соседних.
+  "addDirty",
+  "addLeaveTimer",
+  "backupCoverNow",
+  "backupCoverTimer",
+  "closeAddView",
+  "closeStatusPickerDropdown",
+  "closeTagModal",
+  "closeTypeDropdown",
+  "closeTypePickerDropdown",
+  "collapseAllSections",
+  "editCategory",
+  "editingId",
+  "editingIds",
+  "editTag",
+  "featuredCardTags",
+  "fromPassportModal",
+  "IN_SPA_SHELL",
+  "initAddPage",
+  "markAddDirty",
+  "mount",
+  "noTagsOnCard",
+  "openFilledSections",
+  "openSourceDropdown",
+  "originalCoverBackup",
+  "previewCover",
+  "renderCardTagsList",
+  "renderGradeInput",
+  "renderTmCatList",
+  "renderTmTagList",
+  "resetCatForm",
+  "resetTagForm",
+  "resetToNew",
+  "saveReview",
+  "scheduleBackupCover",
+  "selectedGrade",
+  "selectedTags",
+  "setAddDirty",
+  "setStatus",
+  "sourceLabel",
+  "srcIds",
+  "statusPickerOpen",
+  "statusRenamePending",
+  "syncCoverPanel",
+  "syncFavToggle",
+  "syncSourcePanel",
+  "syncStatusPickerLabel",
+  "syncTypePickerLabel",
+  "tmBulkMode",
+  "tmBulkSelected",
+  "tmBulkToggle",
+  "tmCatColorSet",
+  "tmCatEdit",
+  "tmTagEdit",
+  "typePickerOpen",
+  "typeRenamePending",
+  "unmount",
+  "updateDateFields",
 ];
 
 const commonRules = {
@@ -432,6 +493,14 @@ export default [
     // соседнего файла. В едином файле до разбиения этого предупреждения не
     // было — оно ложное, а не забытый рефакторинг.
     files: ["app/js/routes/settings-*.js"],
+    rules: { "prefer-const": "off" },
+  },
+  {
+    // Тот же ложный prefer-const, что и у settings-*.js выше, по той же
+    // причине: add.js (редактор отзыва) разбит на несколько файлов, и
+    // часть состояния (addLeaveTimer и т.д.) объявлена `let` в add.js, а
+    // переприсваивается в соседнем add-save.js.
+    files: ["app/js/routes/add.js", "app/js/routes/add-*.js"],
     rules: { "prefer-const": "off" },
   },
   {
