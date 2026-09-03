@@ -590,7 +590,12 @@ function gradeValueLabel(rawGrade) {
     return shelf ? shelf.name : null;
   }
   if (rawGrade === null || rawGrade === undefined || rawGrade === "") return null;
-  if (scale.type === "stars") return `★ ${rawGrade}`;
+  // Чисто звёзды, без цифры рядом и без пустых ☆ до конца шкалы – ровно
+  // столько ★, какая оценка: одна для 1, десять для 10. Не то же самое,
+  // что shelfDisplayLabel() выше – там подпись ПОЛКИ (диапазона), здесь
+  // конкретное сырое значение одного отзыва, у него нет "потолка",
+  // который стоило бы дорисовывать пустыми звёздами.
+  if (scale.type === "stars") return "★".repeat(Math.max(0, Number(rawGrade) || 0));
   return `${rawGrade}/${scale.numericMax || 10}`;
 }
 
