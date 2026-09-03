@@ -373,6 +373,7 @@ function importMapHtml() {
       ${impStat(scored, i18n("с оценкой"))}
     </div>
     ${importData.skipped ? `<p class="imp-note">${importData.skipped} записей пропущено – у них нет названия.</p>` : ""}
+    ${importData.truncatedNote ? `<p class="imp-note">${esc(importData.truncatedNote)}</p>` : ""}
     ${hasMovies && hasKey ? `<p class="imp-note">Постеры к фильмам возьмём у TMDB по названию и году – ключ подключён.</p>` : ""}
     ${hasMovies && !hasKey ? `
       <p class="imp-note">
@@ -907,6 +908,19 @@ function bindMalUser() {
       parsed.byName = true; // не файл: экран соответствий говорит об этом иначе
       if (!parsed.items.length) {
         throw new Error(`У «${userName}» в списке ничего нет – ни аниме, ни манги.`);
+      }
+      // truncated (core/api.js, fetchMalUserList) – список этого вида
+      // мог оборваться раньше времени (реальная ошибка на середине
+      // пагинации, а не штатный конец списка) или упереться в свой же
+      // потолок страниц. Молчать об этом – значит дать человеку
+      // подумать, что список полный, когда это не так.
+      const truncatedKinds = ["anime", "manga"].filter((k) => data.truncated?.[k]);
+      if (truncatedKinds.length) {
+        const labels = truncatedKinds.map((k) => (k === "anime" ? i18n("аниме") : i18n("манга")));
+        parsed.truncatedNote = i18n(
+          "Список ({v0}) мог получиться неполным – MyAnimeList прервал ответ на середине. Стоит попробовать ещё раз чуть позже.",
+          { v0: labels.join(", ") }
+        );
       }
       await startMapping(parsed);
     } catch (err) {

@@ -847,3 +847,50 @@ test("список с MyAnimeList по нику отказывает, если �
     /не знает пользователя.*nobody/
   );
 });
+
+test("список с MyAnimeList по нику: реальная ошибка на середине пагинации помечает список как неполный, но не выбрасывает уже собранное", async () => {
+  const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
+  const page = (n) =>
+    Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
+
+  const malHttpGet = async (url) => {
+    if (url.includes("/mangalist/"))
+      return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
+    const offset = Number(new URL(url).searchParams.get("offset"));
+    // Первая страница успешная и полная, вторая – настоящая ошибка
+    // сервера (не 400 "список закрыт", а 500), причём не на первой
+    // странице – значит список только что успешно листался и вдруг
+    // перестал, это не штатный конец.
+    if (offset === 0) return { status: 200, text: JSON.stringify(page(300)) };
+    return { status: 500, text: "" };
+  };
+
+  const result = await fetchMalUserList({ body: { username: "someone" }, malHttpGet });
+  assert.equal(result.ok, true);
+  assert.equal(result.anime.length, 300, "то, что успели собрать до ошибки, не выброшено");
+  assert.equal(result.truncated.anime, true);
+  assert.equal(result.truncated.manga, false);
+});
+
+test("список с MyAnimeList по нику: упирается в свой потолок страниц, если список длиннее ожидаемого", async () => {
+  const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
+  const page = (n) =>
+    Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
+
+  const malHttpGet = async (url) => {
+    if (url.includes("/mangalist/"))
+      return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
+    // Каждая страница аниме полная – настоящего конца списка (короткой
+    // страницы) так никогда и не будет, только собственный потолок.
+    return { status: 200, text: JSON.stringify(page(300)) };
+  };
+
+  const result = await fetchMalUserList({ body: { username: "someone" }, malHttpGet });
+  assert.equal(result.ok, true);
+  assert.equal(
+    result.truncated.anime,
+    true,
+    "полные страницы до самого потолка – список наверняка длиннее"
+  );
+  assert.equal(result.anime.length, 20 * 300, "потолок в 20 страниц (MAL_MAX_PAGES в core/api.js)");
+});

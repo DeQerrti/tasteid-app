@@ -512,48 +512,77 @@ const MAL_MAX_PAGES = 20; // с запасом – 6000 записей на сп
 // mobile/src/main.js подсовывает свою реализацию через нативный мост
 // CapacitorHttp, у которого запрос уходит не из WebView, а с телефона
 // напрямую.
+const MAL_HTTP_TIMEOUT = 8000; // тот же запас, что и у backupCover() ниже
+
 async function defaultMalHttpGet(url) {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      Accept: "application/json",
-    },
-  });
-  return { status: res.status, text: await res.text() };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MAL_HTTP_TIMEOUT);
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+    return { status: res.status, text: await res.text() };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
+// Возвращает { batch, fatal } вместо того, чтобы просто бросать или
+// отдавать null: страница 0 у каждого из двух списков (аниме/манга) –
+// частый и совершенно штатный случай 400 (список закрыт или пуст с
+// этой стороны, см. ниже), но 400/429/сетевая ошибка НЕ на первой
+// странице, когда предыдущие уже отдали данные, ведёт себя иначе –
+// список только что успешно листался и вдруг перестал, и списывать
+// это на «закрытый профиль» нечестно: профиль не закрывают на
+// середине запроса. fatal здесь – сигнал наверх остановиться и
+// пометить список как возможно неполный, а не тихо решить, что он
+// на этом кончился.
 async function fetchMalListPage(kind, username, offset, malHttpGet) {
   const url = `https://myanimelist.net/${kind}list/${encodeURIComponent(username)}/load.json?status=7&offset=${offset}`;
+  const firstPage = offset === 0;
   let status, text;
   try {
     ({ status, text } = await malHttpGet(url));
   } catch {
-    throw new ApiError(
-      "Не получилось достучаться до MyAnimeList. Проверьте интернет и попробуйте ещё раз."
-    );
+    if (firstPage) {
+      throw new ApiError(
+        "Не получилось достучаться до MyAnimeList. Проверьте интернет и попробуйте ещё раз."
+      );
+    }
+    return { batch: null, fatal: true };
   }
   // MAL отвечает тем же 400 "invalid request" и на несуществующего/чужого
   // закрытого пользователя, и на существующего, но с пустым списком этого
   // вида (например, только мангу кто-то и не вёл) – различить эти два
-  // случая по ответу нечем, поэтому здесь это не ошибка, а просто пустая
-  // страница; собрать список хотя бы частично важнее точного диагноза.
-  if (status === 400) return null;
+  // случая по ответу нечем, поэтому на первой странице это не ошибка,
+  // а просто пустая страница; собрать список хотя бы частично важнее
+  // точного диагноза.
+  if (status === 400) return { batch: null, fatal: !firstPage };
   if (status === 429) {
-    throw new ApiError(
-      "MyAnimeList просит подождать – слишком много запросов подряд. Попробуйте через минуту."
-    );
+    if (firstPage) {
+      throw new ApiError(
+        "MyAnimeList просит подождать – слишком много запросов подряд. Попробуйте через минуту."
+      );
+    }
+    return { batch: null, fatal: true };
   }
   if (status < 200 || status >= 300) {
-    throw new ApiError(`MyAnimeList ответил ${status}. Попробуйте ещё раз через минуту.`, 502);
+    if (firstPage)
+      throw new ApiError(`MyAnimeList ответил ${status}. Попробуйте ещё раз через минуту.`, 502);
+    return { batch: null, fatal: true };
   }
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    return null;
+    return { batch: null, fatal: false };
   }
-  return Array.isArray(data) ? data : null;
+  return { batch: Array.isArray(data) ? data : null, fatal: false };
 }
 
 async function fetchMalUserList({ body, malHttpGet }) {
@@ -562,13 +591,30 @@ async function fetchMalUserList({ body, malHttpGet }) {
   const httpGet = malHttpGet || defaultMalHttpGet;
 
   const result = { anime: [], manga: [] };
+  // truncated[kind] – список этого вида мог оказаться неполным: либо
+  // страница где-то за первой всё-таки отказала (см. fatal выше),
+  // либо упёрлись в MAL_MAX_PAGES, а последняя забранная страница
+  // была ещё полной (значит за ней наверняка есть ещё). Настоящий
+  // конец списка – страница короче MAL_LIST_PAGE – сюда не попадает.
+  const truncated = { anime: false, manga: false };
   for (const kind of ["anime", "manga"]) {
-    for (let page = 0; page < MAL_MAX_PAGES; page++) {
-      const batch = await fetchMalListPage(kind, username, page * MAL_LIST_PAGE, httpGet);
-      if (!batch) break; // список закрыт/пуст с этой стороны – не повод рвать весь запрос
+    let page = 0;
+    for (; page < MAL_MAX_PAGES; page++) {
+      const { batch, fatal } = await fetchMalListPage(
+        kind,
+        username,
+        page * MAL_LIST_PAGE,
+        httpGet
+      );
+      if (fatal) {
+        truncated[kind] = true;
+        break;
+      }
+      if (!batch) break; // штатный конец/пустой список с этой стороны
       result[kind].push(...batch);
       if (batch.length < MAL_LIST_PAGE) break;
     }
+    if (page === MAL_MAX_PAGES) truncated[kind] = true;
   }
 
   if (!result.anime.length && !result.manga.length) {
@@ -576,7 +622,7 @@ async function fetchMalUserList({ body, malHttpGet }) {
       `MyAnimeList не знает пользователя «${username}», либо его список закрыт настройками профиля.`
     );
   }
-  return { ok: true, ...result };
+  return { ok: true, ...result, truncated };
 }
 
 // Удаление файла обложки – резервной копии, которую заменила новая

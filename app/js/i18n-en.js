@@ -38,6 +38,8 @@ i18nRegister({
   Ошибка: "Error",
   "Пока пусто": "Nothing here yet",
   "Список пуст": "The list is empty",
+  "Список ({v0}) мог получиться неполным – MyAnimeList прервал ответ на середине. Стоит попробовать ещё раз чуть позже.":
+    "The list ({v0}) may be incomplete – MyAnimeList cut the response off partway through. Worth trying again in a bit.",
   "Ничего не найдено": "Nothing found",
   "Отзывов пока нет.": "No reviews yet.",
   Все: "All",

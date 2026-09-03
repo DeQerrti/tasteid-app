@@ -318,6 +318,12 @@ async function malHttpGet(url) {
       Accept: "application/json",
     },
     responseType: "text",
+    // Та же граница, что и у обычного fetch по умолчанию на компьютере
+    // (core/api.js, MAL_HTTP_TIMEOUT) – без неё зависший ответ MAL
+    // повесил бы запрос по нику на неопределённое время вместо понятной
+    // ошибки.
+    connectTimeout: 8000,
+    readTimeout: 8000,
   });
   const text = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
   return { status: res.status, text };

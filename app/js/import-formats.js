@@ -171,20 +171,39 @@ const MAL_JSON_STATUS_MAP = { 1: "watching", 2: "completed", 3: "onhold", 4: "dr
 // выставленного в настройках профиля на самом MyAnimeList – он не
 // один и тот же у всех аккаунтов (проверено на двух живых списках:
 // у одного "10-18-02" явно месяц-день, у другого "28-01-18" явно
-// день-месяц). Разбираем только те даты, где один из компонентов
-// однозначно больше 12 – значит не может быть месяцем; если оба ≤12,
-// формат для этой пары неразличим, и лучше пропустить дату, чем
-// один раз из двух перепутать день с месяцем.
-function cleanMalJsonDate(value) {
+// день-месяц). Но формат – свойство всего аккаунта, не отдельной
+// записи: если хотя бы у части дат один из компонентов однозначно
+// больше 12 (то есть не может быть месяцем), этого достаточно, чтобы
+// решить формат для ВСЕГО списка разом – и дальше применять его даже
+// к тем датам, где сами по себе оба числа ≤12 и различить формат было
+// бы нечем. Без этого раньше терялась примерно половина дат: ровно
+// столько, где день и месяц оба меньше 13.
+function detectMalDateOrder(rawDates) {
+  let dayFirst = 0;
+  let monthFirst = 0;
+  for (const value of rawDates) {
+    const m = /^(\d{2})-(\d{2})-(\d{2})$/.exec(value || "");
+    if (!m) continue;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    if (a > 12 && b <= 12) dayFirst++;
+    else if (b > 12 && a <= 12) monthFirst++;
+  }
+  // Ни одной однозначной даты вообще, или (в теории) они указывают в
+  // разные стороны сразу – формат решить не из чего, лучше не гадать.
+  if (dayFirst && !monthFirst) return "day-first";
+  if (monthFirst && !dayFirst) return "month-first";
+  return null;
+}
+
+function parseMalDateWithOrder(value, order) {
   const m = /^(\d{2})-(\d{2})-(\d{2})$/.exec(value || "");
-  if (!m) return null;
+  if (!m || !order) return null;
   const a = Number(m[1]);
   const b = Number(m[2]);
   const year = Number(m[3]) <= 69 ? 2000 + Number(m[3]) : 1900 + Number(m[3]);
-  let day, month;
-  if (a > 12 && b <= 12) { day = a; month = b; }
-  else if (b > 12 && a <= 12) { month = a; day = b; }
-  else return null;
+  const [day, month] = order === "day-first" ? [a, b] : [b, a];
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
@@ -192,9 +211,20 @@ function parseMalJsonLists({ anime, manga }) {
   const items = [];
   let skipped = 0;
 
+  const allEntries = [...(anime || []), ...(manga || [])];
+  const dateOrder = detectMalDateOrder(
+    allEntries.flatMap((el) => [el.start_date_string, el.finish_date_string])
+  );
+
   const push = (el, isManga) => {
     const malId = Number(isManga ? el.manga_id : el.anime_id);
-    const title = isManga ? el.manga_title : el.anime_title;
+    // String(...), не голое значение поля: у тайтлов, чьё название –
+    // одни цифры (аниме «86» – ровно такой случай, MAL id 41457),
+    // MAL отдаёт title числом, а не строкой в JSON. normTitle() ниже
+    // по цепочке (js/import.js → js/cards.js) вызывает .toLowerCase()
+    // без всякой защиты и без этого падал бы на первом же таком тайтле.
+    const rawTitle = isManga ? el.manga_title : el.anime_title;
+    const title = rawTitle === null || rawTitle === undefined ? "" : String(rawTitle);
     if (!malId || !title) { skipped++; return; }
     const rawType = ((isManga ? el.manga_media_type_string : el.anime_media_type_string) || "")
       .toLowerCase().replace(/[\s_-]/g, "");
@@ -203,9 +233,14 @@ function parseMalJsonLists({ anime, manga }) {
       type: MAL_TYPE_MAP[rawType] || (isManga ? "manga" : "anime"),
       status: MAL_JSON_STATUS_MAP[el.status] || null,
       score: Number(el.score) || 0,
-      rewatch: 0, // список на сайте не отдаёт число пересмотров, только флаг «пересматриваю сейчас»
-      dateStart: cleanMalJsonDate(el.start_date_string),
-      dateEnd: cleanMalJsonDate(el.finish_date_string),
+      // Список на сайте не отдаёт число пересмотров, только флаг
+      // «пересматриваю сейчас прямо в эту минуту» – если он стоит,
+      // значит пересмотр точно был хотя бы один, это надёжнее, чем
+      // сплошной 0 для всех подряд, но всё ещё не точное число (XML-
+      // выгрузка его знает и читается по-настоящему, см. parseMalXml).
+      rewatch: el.is_rewatching ? 1 : 0,
+      dateStart: parseMalDateWithOrder(el.start_date_string, dateOrder),
+      dateEnd: parseMalDateWithOrder(el.finish_date_string, dateOrder),
       cover: (isManga ? el.manga_image_path : el.anime_image_path) || null,
       ids: { mal: malId },
     });
