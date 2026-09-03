@@ -203,8 +203,6 @@ function settingsViewHtml() {
 
       <div class="panel" id="panel-tabs">
         <div id="tabsList"></div>
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
-        <div class="status-msg" id="status-tabs"></div>
 
         <h2 class="section-h" id="statusesHeading"></h2>
         <div id="statusesList"></div>
@@ -212,7 +210,6 @@ function settingsViewHtml() {
           <div><label data-i18n>Новый раздел</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
         </div>
         <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
 
         <h2 class="section-h" id="favSectionsHeading"></h2>
         <div id="favSectionsList"></div>
@@ -221,12 +218,21 @@ function settingsViewHtml() {
           <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги" onkeydown="if(event.key==='Enter'){event.preventDefault();addFavCollection();}"></div>
         </div>
         <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
 
         <h2 class="section-h" id="tierModesHeading"></h2>
         <p class="panel-intro" data-i18n>Скрыть, переименовать, удалить и переставить местами можно все тир-листы разом – «Тайтлы» и свои коллекции. Завести новый тир-лист по-прежнему проще кнопкой «Создать» на самой вкладке «Тир-лист».</p>
         <div id="tierModesList"></div>
+
+        <!-- Один общий "Сохранить" на всю панель, а не по кнопке на
+             каждый из трёх разделов выше: saveSettings() и так пишет
+             site-settings.json целиком за один вызов, какую из кнопок
+             ни нажми (см. её же activePanel/statusId) – четыре кнопки
+             были чистой видимостью раздельного сохранения, а
+             единственный status-msg на всю панель стоял только под
+             самой первой из них, и результат клика по остальным трём
+             был не виден без прокрутки наверх. -->
         <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
+        <div class="status-msg" id="status-tabs"></div>
       </div>
 
       <div class="panel" id="panel-shortcuts">

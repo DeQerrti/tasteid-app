@@ -256,16 +256,56 @@ function addFavCollection() {
 }
 
 async function removeFavCollection(id) {
+  const label = favCollections.find((c) => c.id === id)?.label || id;
   if (
     !(await confirmDialog(
-      i18n("Удалить раздел? Уже добавленные записи останутся в данных, но перестанут где-либо отображаться.")
+      i18n(
+        "Удалить раздел «{name}» вместе со всеми его записями? Отменить это будет нельзя.",
+        { name: label }
+      )
     ))
   ) {
     return;
   }
-  favCollections = favCollections.filter((c) => c.id !== id);
-  hiddenFavSectionsState.delete(id);
-  renderFavCollectionsList();
+  try {
+    // Та же логика, что у removeFavTypePicker() в favorites-edit.js
+    // (см. её же коммит c70228a) и у removeTierCollectionSetting() чуть
+    // ниже в этом файле: раздел без единой оставшейся записи убрать
+    // раньше было можно, но запись в нём делать записи ничьими, а не
+    // притворяться, что «данные остаются» – их и правда никто больше
+    // никогда бы не увидел, только с диска они не делись. Как и у
+    // removeTierCollectionSetting(), удаление сразу на сервер, а не в
+    // копилку общей кнопки «Сохранить»: «Отмена»/уход со страницы после
+    // такого удаления не должны делать вид, что записи можно вернуть.
+    const favData = await fetch("/favorites.json")
+      .then((r) => (r.ok ? r.json() : []))
+      .catch(() => []);
+    const toDelete = favData.filter((r) => r.type === id);
+    for (const entry of toDelete) {
+      if (entry.image_backup) deleteMediaFile(entry.image_backup);
+    }
+    if (toDelete.length) {
+      const res = await fetch("/api/save-favorite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ _deleteMany: toDelete.map((r) => r.id) }),
+      });
+      const resp = await res.json();
+      if (!res.ok) throw new Error(resp.error || i18n("Ошибка удаления"));
+    }
+
+    await patchSiteSettings((settings) => {
+      settings.favCollections = (settings.favCollections || []).filter((c) => c.id !== id);
+    });
+    favCollections = favCollections.filter((c) => c.id !== id);
+    hiddenFavSectionsState.delete(id);
+    window.SITE_FAV_COLLECTIONS = favCollections;
+    renderFavCollectionsList();
+    refreshOpenReviewsTab();
+  } catch (err) {
+    alert(err.message || i18n("Ошибка удаления"));
+  }
 }
 
 // Список тем берётся из реестра в js/theme.js. Раньше здесь лежала

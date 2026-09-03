@@ -279,6 +279,13 @@ async function saveSettings() {
     // теперь на сервере – предупреждать при уходе с маршрута больше
     // не о чем, пока не появится новая правка.
     if (data.ok) settingsDirty = false;
+    // Вкладка под #shell-root (Статистика, Любимое, Отзывы, Статусы,
+    // Тир-лист) спрятана через .hidden, пока открыт этот маршрут, и
+    // сама не перечитает site-settings.json – без этого правка вроде
+    // «скрыть блок в Статистике» была не видна, пока не переключиться
+    // на другую вкладку и обратно (см. её же комментарий у
+    // refreshOpenReviewsTab() в js/api.js).
+    if (data.ok) refreshOpenReviewsTab();
   } catch (e) {
     flashStatus(statusId, false, i18n("Ошибка: ") + e.message);
   }

@@ -920,8 +920,8 @@ i18nRegister({
   "Тегов пока нет": "No tags yet",
   Топ: "Top",
   "Топ тайтлы года": "Top titles of the year",
-  "Удалить раздел? Уже добавленные записи останутся в данных, но перестанут где-либо отображаться.":
-    "Delete this section? Existing entries stay in the data but stop appearing anywhere.",
+  "Удалить раздел «{name}» вместе со всеми его записями? Отменить это будет нельзя.":
+    "Delete the “{name}” section along with all its entries? This can’t be undone.",
   "Удалить тайтл и все его тир-листы?": "Delete the title and all of its tier lists?",
   "Удалить тир? Персонажи в нём тоже удалятся.":
     "Delete this tier? The characters in it are deleted too.",
