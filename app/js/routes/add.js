@@ -754,14 +754,14 @@ function updateDateFields() {
 
   if (status === "completed") {
     section.innerHTML = `
-      <div class="hint">${i18n("Если смотрел один день – заполните только «Завершил» или укажите одинаковые даты, на карточке покажется одна дата.")}</div>
+      <div class="hint">${i18n("Если смотрели один день – заполните только «Завершили» или укажите одинаковые даты, на карточке покажется одна дата.")}</div>
       <div class="grid">
         <div class="field">
-          <label>${i18n("Начал")} <span style="font-size:.6rem;opacity:.5">${i18n("(необязательно)")}</span></label>
+          <label>${i18n("Начали")} <span style="font-size:.6rem;opacity:.5">${i18n("(необязательно)")}</span></label>
           <input type="date" id="f-date-start" value="${prevStart}">
         </div>
         <div class="field">
-          <label>${i18n("Завершил")}</label>
+          <label>${i18n("Завершили")}</label>
           <input type="date" id="f-date-end" value="${prevEnd}">
         </div>
       </div>`;
@@ -772,7 +772,7 @@ function updateDateFields() {
   section.innerHTML = `
     <div class="grid">
       <div class="field">
-        <label>${i18n("Начал")}</label>
+        <label>${i18n("Начали")}</label>
         <input type="date" id="f-date-start" value="${prevStart}">
       </div>
     </div>`;

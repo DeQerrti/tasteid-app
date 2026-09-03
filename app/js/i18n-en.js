@@ -253,7 +253,7 @@ i18nRegister({
   "Переусложнённые системы": "Overcomplicated systems",
   "Слишком много механик, легко потеряться": "Too many mechanics, easy to get lost",
   "Короткая и ёмкая": "Short and dense",
-  "Прошёл за вечер – и не пожалел": "Finished it in an evening and didn’t regret it",
+  "Прошли за вечер – и не пожалели": "Finished it in an evening and didn’t regret it",
   "Слабый финальный босс": "Weak final boss",
   "Финальный босс разочаровал геймплейно или сюжетно":
     "The final boss disappoints in play or in story",
@@ -525,10 +525,10 @@ i18nRegister({
   "Добавить текст отзыва": "Add review text",
   "Добавить тип": "Add type",
   "Добавить тир": "Add tier",
-  "Если смотрел один день – заполните только «Завершил» или укажите одинаковые даты, на карточке покажется одна дата.":
+  "Если смотрели один день – заполните только «Завершили» или укажите одинаковые даты, на карточке покажется одна дата.":
     "If it took a single day, fill in only “Finished” (or use the same date twice) – the card will show one date.",
   Завершено: "Finished",
-  Завершил: "Finished",
+  Завершили: "Finished",
   "Запись пропадёт из отзывов, «Любимого» и тир-листа. Вернуть можно через «Историю версий».":
     "The entry disappears from reviews, favorites and the tier list. You can bring it back from “Version history”.",
   "Здесь появится превью…": "The preview will appear here…",
@@ -566,7 +566,7 @@ i18nRegister({
   "Например: Перечитываю": "For example: Rereading",
   "Например: Продюсер": "For example: Producer",
   "Например: Технические детали": "For example: Technical details",
-  Начал: "Started",
+  Начали: "Started",
   "Новая запись": "New entry",
   "Новая коллекция": "New collection",
   "Новый отзыв": "New review",
