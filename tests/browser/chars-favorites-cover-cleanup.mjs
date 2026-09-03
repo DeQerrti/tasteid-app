@@ -18,6 +18,13 @@
 // новых, не подменяет уже сохранённых) — там черновая копия удаляется
 // сразу же и при замене ссылки, и при закрытии модалки без добавления.
 //
+// Отдельная группа проверок ниже — не замена ссылки, а именно уход БЕЗ
+// сохранения (кнопка «Отмена», «Новая запись», переход на другой
+// маршрут): раньше discardScratch*Backup() в обоих редакторах звалась
+// только при повторном изменении поля в том же сеансе, а не при уходе
+// как таковом — черновик, вставленный один раз и оставленный как есть,
+// протекал мимо всех трёх проверок выше и оставался на диске навсегда.
+//
 // Запуск: node tests/browser/chars-favorites-cover-cleanup.mjs
 // playwright — обычная devDependency. В npm run check не входит (нужен
 // настоящий браузер), но гоняется отдельным CI-джобом (npm run test:browser).
@@ -206,6 +213,113 @@ await new Promise((r) => setTimeout(r, 300));
 ok(
   listBackups().length === 2,
   `после «Сохранить всё» по-прежнему два файла: тайтл и запись любимого (сейчас: ${listBackups().length})`
+);
+
+console.log("«Любимое»: черновик брошен уходом со страницы, а не заменой ссылки/сохранением");
+// Раньше discardScratchImageBackup() звалась только когда поле меняется
+// ЕЩЁ раз в том же сеансе (см. коммит) – просто уйти со страницы, не
+// тронув форму снова и не сохранив, оставляло файл ничьим навсегда.
+await page.goto(`http://127.0.0.1:${port}/#/favorites-edit`, { waitUntil: "domcontentloaded" });
+await page.waitForSelector("#f-name");
+await page.fill("#f-name", "Брошенная запись");
+await page.fill("#f-image", imgUrl("fav-abandoned"));
+await page.waitForFunction(() => document.getElementById("f-image-backup").value.length > 0, null, {
+  timeout: 5000,
+});
+await new Promise((r) => setTimeout(r, 300));
+ok(
+  listBackups().length === 3,
+  `черновик картинки создан — три файла (сейчас: ${listBackups().length})`
+);
+await page.goto(`http://127.0.0.1:${port}/#/chars-edit`, { waitUntil: "domcontentloaded" });
+await page.waitForSelector("#btn-add-title");
+await new Promise((r) => setTimeout(r, 300));
+ok(
+  listBackups().length === 2,
+  `уход со страницы без сохранения удалил черновик, снова два файла (сейчас: ${listBackups().length})`
+);
+ok(
+  !(await (
+    await fetch(`http://127.0.0.1:${port}/favorites.json`)
+  )
+    .json()
+    .then((f) => f.some((x) => x.name === "Брошенная запись"))),
+  "брошенная запись не попала в favorites.json"
+);
+
+console.log("Персонажи: черновая обложка тайтла брошена кнопкой «Отмена», без сохранения");
+await page.click("#btn-add-title");
+await page.waitForSelector("#nt-name", { state: "visible" });
+await page.fill("#nt-name", "Брошенный тайтл");
+await page.fill("#nt-folder", "Брошенная-папка");
+await page.fill("#nt-cover", imgUrl("cover-abandoned"));
+await page.waitForFunction(
+  () => document.getElementById("nt-cover-backup").value.length > 0,
+  null,
+  { timeout: 5000 }
+);
+await new Promise((r) => setTimeout(r, 300));
+ok(
+  listBackups().length === 3,
+  `черновик обложки тайтла создан — три файла (сейчас: ${listBackups().length})`
+);
+await page.click('[onclick="toggleNewTitleForm(false)"]');
+await new Promise((r) => setTimeout(r, 300));
+ok(
+  listBackups().length === 2,
+  `«Отмена» удалила черновик обложки, снова два файла (сейчас: ${listBackups().length})`
+);
+
+console.log(
+  "Персонажи: черновая обложка тайтла и черновая картинка персонажа брошены уходом со всей страницы"
+);
+await page.click("#btn-add-title");
+await page.waitForSelector("#nt-name", { state: "visible" });
+await page.fill("#nt-name", "Ещё один брошенный тайтл");
+await page.fill("#nt-folder", "Ещё-одна-брошенная-папка");
+await page.fill("#nt-cover", imgUrl("cover-abandoned-2"));
+await page.waitForFunction(
+  () => document.getElementById("nt-cover-backup").value.length > 0,
+  null,
+  { timeout: 5000 }
+);
+await page.click(".add-char-btn");
+await page.waitForSelector("#modal-overlay:not(.hidden)", { timeout: 5000 });
+await page.waitForSelector("#m-img", { state: "visible", timeout: 5000 });
+await page.fill("#m-name", "Брошенный герой");
+await page.fill("#m-img", imgUrl("char-abandoned"));
+await page.waitForFunction(() => document.getElementById("m-img-backup").value.length > 0, null, {
+  timeout: 5000,
+});
+await new Promise((r) => setTimeout(r, 300));
+ok(
+  listBackups().length === 4,
+  `два новых черновика разом (тайтл + персонаж в открытой модалке) — четыре файла (сейчас: ${listBackups().length})`
+);
+// page.goto на голый "/" (без хэша) – это уже полноценная навигация верхнего
+// уровня в Playwright/CDP, а не мягкий переход внутри уже открытой страницы:
+// без хэша в целевом URL нет гарантии, что браузер обойдётся без настоящей
+// перезагрузки (см. коммит) – а тогда unmount() просто не успевает
+// отработать до того, как контекст страницы обнулится. location.hash = ""
+// изнутри уже загруженной страницы – то же самое, что делает клик по
+// логотипу/кнопке «назад» в приложении, и гарантированно идёт через
+// hashchange/renderRoute(), не трогая сам документ.
+await page.evaluate(() => {
+  location.hash = "";
+});
+await page.waitForFunction(() => !location.hash, null, { timeout: 5000 });
+await new Promise((r) => setTimeout(r, 300));
+ok(
+  listBackups().length === 2,
+  `уход со всего маршрута #/chars-edit удалил оба черновика (форма + открытая модалка), снова два файла (сейчас: ${listBackups().length})`
+);
+ok(
+  !(await (
+    await fetch(`http://127.0.0.1:${port}/characters-tier.json`)
+  )
+    .json()
+    .then((list) => list.some((t) => t.title === "Ещё один брошенный тайтл"))),
+  "брошенный тайтл не попал в characters-tier.json"
 );
 
 ok(jsErrors.length === 0, `без ошибок в консоли: ${jsErrors.join("; ")}`);

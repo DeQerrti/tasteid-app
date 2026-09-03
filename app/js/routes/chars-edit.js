@@ -262,6 +262,19 @@ async function leaveCharsEdit() {
 }
 
 function unmount() {
+  // Та же дыра, что была в js/routes/add.js: форма тайтла (или модалка
+  // добавления персонажа) могла остаться открытой с уже скачанной, но
+  // ещё не подтверждённой резервной копией, если уйти с маршрута
+  // целиком, минуя toggleNewTitleForm(false)/closeModal() – ни один из
+  // них тогда не срабатывает, и черновик остаётся на диске ничьим.
+  // discardScratchTitleCoverBackup() безопасна и после успешной правки:
+  // originalTitleCoverBackup к этому моменту уже синхронизирован (см.
+  // saveTitleEdit()/addTitle()). У модалки персонажа своей пары
+  // originalXBackup нет – она только добавляет нового, поэтому то же,
+  // что в closeModal(): текущее значение всегда черновик, удалять можно
+  // безусловно.
+  discardScratchTitleCoverBackup();
+  deleteMediaFile(document.getElementById("m-img-backup")?.value.trim() || "");
   ceCleanupFns.forEach((fn) => fn());
   ceCleanupFns = [];
   document.title = cePrevTitle || document.title;
@@ -404,6 +417,15 @@ function toggleNewTitleForm(show) {
 }
 
 function resetTitleForm() {
+  // Форму закрывают (toggleNewTitleForm(false)) и после удачной правки, и
+  // просто отменой без сохранения – раньше только первый случай не терял
+  // резервную копию (она успевала уехать в data[]), а во втором черновик,
+  // созданный вводом ссылки, оставался на диске ничьим: originalTitleCoverBackup
+  // обнулялся ниже, ничего не сравнивая с полем. saveTitleEdit()/addTitle()
+  // синхронизируют originalTitleCoverBackup с уже закоммиченным значением
+  // ДО вызова toggleNewTitleForm(false), поэтому здесь безопасно звать
+  // discard в обоих случаях – после сохранения он не найдёт расхождения.
+  discardScratchTitleCoverBackup();
   originalTitleCoverBackup = null;
   document.getElementById("nt-name").value = "";
   document.getElementById("nt-folder").value = "";
@@ -569,6 +591,11 @@ async function saveTitleEdit() {
   if (originalTitleCoverBackup && originalTitleCoverBackup !== (coverBackup || null)) {
     pendingBackupCleanup.push(originalTitleCoverBackup);
   }
+  // Правка только что легла в data[] – теперь это подтверждённое значение
+  // формы, а не черновик, и resetTitleForm() ниже (через toggleNewTitleForm)
+  // не должна принимать его за брошенную копию и удалять (см. её же
+  // discardScratchTitleCoverBackup()).
+  originalTitleCoverBackup = coverBackup || null;
 
   title.title = name;
   title.folder = folder;
@@ -612,6 +639,9 @@ async function addTitle() {
       },
     ],
   });
+  // Та же синхронизация, что в saveTitleEdit(): значение только что легло
+  // в data[], resetTitleForm() дальше не должна принимать его за черновик.
+  originalTitleCoverBackup = coverBackup || null;
 
   ceDirty = true;
   toggleNewTitleForm(false);

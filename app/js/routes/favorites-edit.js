@@ -182,6 +182,15 @@ async function leaveFavoritesEdit() {
 }
 
 function unmount() {
+  // Та же дыра, что была в js/routes/add.js (см. её же коммит): вставили
+  // ссылку, автобэкап отработал, а дальше просто ушли со страницы – ни
+  // сохранением, ни отменой это не считалось, discardScratchImageBackup()
+  // звалась только при повторном изменении поля в том же сеансе. unmount –
+  // общий выход с #/favorites-edit при любом уходе, и вызывать здесь
+  // безопасно: после удачного сохранения originalImageBackup уже
+  // обновлён на то же значение, что в поле (см. saveEntry()), так что
+  // тут не находится ничего лишнего.
+  discardScratchImageBackup();
   feCleanupFns.forEach((fn) => fn());
   feCleanupFns = [];
   clearTimeout(backupImageTimer);
@@ -827,6 +836,14 @@ function setFavStatus(type, text) {
 }
 
 function resetFavToNew() {
+  // Тот же случай, что и в unmount() выше: кнопка «Новая запись» бросает
+  // текущую форму, не спрашивая про несохранённое (см. её же onclick) –
+  // если в ней успела набежать черновая резервная копия картинки, без
+  // этого вызова она осталась бы висеть ничьей. После удачного сохранения
+  // (saveEntry() зовёт resetFavToNew() сама) originalImageBackup уже
+  // обновлён на то же значение, что в поле, так что здесь не находится
+  // ничего лишнего.
+  discardScratchImageBackup();
   favEditingId = null;
   originalImageBackup = null;
   document.getElementById("edit-banner").style.display = "none";
