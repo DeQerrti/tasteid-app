@@ -666,6 +666,7 @@ async function tlExport(rowsId, label) {
 
   let restoreImages = () => {};
   let restoreAnim = () => {};
+  let restoreShadows = () => {};
 
   try {
     const rows = document.getElementById(rowsId);
@@ -686,6 +687,10 @@ async function tlExport(rowsId, label) {
     restoreImages = await proxyImagesToDataUrls(rows);
 
     restoreAnim = disableAnimations(rows);
+    // Неоморфизм иначе вышел бы на снимке плоским – см. bakeNeoShadows()
+    // в config.js (та же причина и тот же приём, что у favExport() в
+    // favorites.js).
+    restoreShadows = bakeNeoShadows(rows);
     await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
 
     const canvas = await withTimeout(
@@ -723,6 +728,7 @@ async function tlExport(rowsId, label) {
   } finally {
     restoreImages();
     restoreAnim();
+    restoreShadows();
     if (tip) tip.style.visibility = "";
     restoreBtn();
   }

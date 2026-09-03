@@ -465,6 +465,7 @@ async function statsExport() {
 
   let restoreImages = () => {};
   let restoreAnim = () => {};
+  let restoreShadows = () => {};
   try {
     if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
@@ -486,6 +487,10 @@ async function statsExport() {
     // ещё не успели проявиться полностью). См. её же комментарий у
     // disableAnimations() в js/utils.js.
     restoreAnim = disableAnimations(grid);
+    // Неоморфизм иначе вышел бы на снимке плоским – см. bakeNeoShadows()
+    // в config.js (та же причина и тот же приём, что у favExport() в
+    // favorites.js).
+    restoreShadows = bakeNeoShadows(grid);
     await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
 
     const canvas = await withTimeout(
@@ -517,6 +522,7 @@ async function statsExport() {
   } finally {
     restoreImages();
     restoreAnim();
+    restoreShadows();
     restoreBtn();
   }
 }

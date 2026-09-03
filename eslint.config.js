@@ -21,6 +21,7 @@ const sharedBrowserGlobals = [
   "applyTheme",
   "AUTOSYNC_CONFLICTS_KEY",
   "backupToastGlobal",
+  "bakeNeoShadows",
   "bindAnilistUser",
   "bindImport",
   "bindImportKeys",

@@ -355,6 +355,7 @@ async function favExport(sectionIds) {
 
   let restoreImages = () => {};
   let restoreAnim = () => {};
+  let restoreShadows = () => {};
   try {
     if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
@@ -372,6 +373,9 @@ async function favExport(sectionIds) {
 
     restoreImages = await proxyImagesToDataUrls(wrap);
     restoreAnim = disableAnimations(wrap);
+    // Неоморфизм (и любая другая тема с рельефными карточками) иначе
+    // вышел бы на снимке плоским – см. bakeNeoShadows() в config.js.
+    restoreShadows = bakeNeoShadows(wrap);
     await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
 
     const canvas = await withTimeout(
@@ -407,6 +411,7 @@ async function favExport(sectionIds) {
   } finally {
     restoreImages();
     restoreAnim();
+    restoreShadows();
     wrap.remove();
     restoreBtn();
   }

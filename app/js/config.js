@@ -227,6 +227,135 @@ async function proxyImagesToDataUrls(container) {
   };
 }
 
+// ── Печём box-shadow перед html2canvas ──────────
+// html2canvas-pro не рисует box-shadow с отрицательным смещением
+// вовсе – ни у одного из движков внутри. Проверено вручную: тень с
+// положительным сдвигом (8px 8px …) на снимок попадает, точно такая
+// же с отрицательным (-8px -8px …) – нет, ни отдельно, ни вместе с
+// первой. У большинства тем это не заметно (там одна простая тень с
+// положительным сдвигом), а у неоморфизма (--card-shadow в
+// themes.css) эффект составлен из ДВУХ теней – тёмной и светлой,
+// ровно по одной с каждым знаком, – и без светлой половины рельефные
+// карточки на снимке выглядят плоскими, хотя на самой странице
+// объёмные.
+//
+// Чиним не полагаясь на html2canvas – Canvas 2D API про знак смещения
+// ничего такого не знает, рисует тень с любым offsetX/offsetY как
+// договорились. Печём результат заранее и подсовываем как фон
+// отдельного слоя позади настоящего элемента (тот же приём, что у
+// bakeCssFilter выше, только тень, а не фильтр картинки), а сам
+// box-shadow на время снимка снимаем – иначе html2canvas всё равно
+// попробует нарисовать половину эффекта поверх уже испечённой.
+
+// "rgba(163, 177, 198, 0.55) 8px 8px 16px 0px" – computed-стиль всегда
+// в таком порядке (цвет, потом 4 длины), но сам цвет может быть и
+// rgba(...) с запятыми внутри – делить строку на слои по запятым
+// нужно только на верхнем уровне скобок, иначе разрежет сам rgba().
+function splitTopLevelCommas(str) {
+  const parts = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of str) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      parts.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) parts.push(cur);
+  return parts;
+}
+
+function parseBoxShadowLayer(layer) {
+  const m = layer
+    .trim()
+    .match(/^(.*?)\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px(\s+inset)?$/);
+  if (!m) return null;
+  return { color: m[1].trim(), x: +m[2], y: +m[3], blur: +m[4], inset: !!m[6] };
+}
+
+function roundedRectPath(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+// Печёт box-shadow каждого элемента внутри container, у которого он
+// есть (кроме inset – та красит область ВНУТРИ элемента поверх его же
+// заливки, сюда не подходит и живой странице снимка не портит: там,
+// где она встречается – поиск, активный фильтр, – в экспорт не
+// попадает). Возвращает restore() – её обязательно вызвать после
+// html2canvas, даже при ошибке, иначе offscreen-контейнер (который
+// потом удаляется целиком) унесёт с собой лишний DOM без вреда, но
+// сам оригинальный box-shadow на время подмены будет снят.
+function bakeNeoShadows(container) {
+  const PAD = 40; // с запасом на blur+offset у --card-shadow (16+8=24)
+  const restores = [];
+
+  for (const el of container.querySelectorAll("*")) {
+    const cs = getComputedStyle(el);
+    if (!cs.boxShadow || cs.boxShadow === "none") continue;
+    const layers = splitTopLevelCommas(cs.boxShadow)
+      .map(parseBoxShadowLayer)
+      .filter((l) => l && !l.inset);
+    if (!layers.length) continue;
+
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    if (!w || !h) continue;
+
+    const parent = el.parentNode;
+    if (!(parent instanceof HTMLElement)) continue;
+    let restoreParentPosition = null;
+    if (getComputedStyle(parent).position === "static") {
+      const prevPos = parent.style.position;
+      parent.style.position = "relative";
+      restoreParentPosition = () => {
+        parent.style.position = prevPos;
+      };
+    }
+
+    const radius = parseFloat(cs.borderRadius) || 0;
+    const canvas = document.createElement("canvas");
+    canvas.width = w + PAD * 2;
+    canvas.height = h + PAD * 2;
+    const ctx = canvas.getContext("2d");
+    for (const layer of layers) {
+      ctx.save();
+      ctx.shadowColor = layer.color;
+      ctx.shadowBlur = layer.blur;
+      ctx.shadowOffsetX = layer.x;
+      ctx.shadowOffsetY = layer.y;
+      ctx.fillStyle = cs.backgroundColor;
+      roundedRectPath(ctx, PAD, PAD, w, h, radius);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `position:absolute;left:${el.offsetLeft - PAD}px;top:${el.offsetTop - PAD}px;width:${canvas.width}px;height:${canvas.height}px;background-image:url(${canvas.toDataURL("image/png")});pointer-events:none;`;
+    parent.insertBefore(overlay, parent.firstChild);
+
+    const prevShadow = el.style.boxShadow;
+    el.style.boxShadow = "none";
+    restores.push(() => {
+      el.style.boxShadow = prevShadow;
+      overlay.remove();
+      if (restoreParentPosition) restoreParentPosition();
+    });
+  }
+
+  return () => restores.forEach((fn) => fn());
+}
+
 // ── Экранирование HTML ─────────────────────────
 // esc() переехал в js/utils.js – он нужен и страницам, которые config.js
 // не подключают (reviews-order), и лежать в пяти копиях больше не должен.
