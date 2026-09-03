@@ -736,8 +736,8 @@ i18nRegister({
   Оценки: "Ratings",
   "Ошибка сохранения": "Save failed",
   "Перенести в паспорт": "Import into the passport",
-  "Перенос списка из другого сервиса. Формат узнаётся сам, выбирать его не нужно. Файл разбирается прямо здесь, в браузере, и никуда не отправляется, а в паспорт попадает только после того, как вы подтвердите.":
-    "Moving a list over from another service. The format is detected automatically. The file is parsed right here and sent nowhere; nothing enters the passport until you confirm.",
+  "Перенос списка из другого сервиса. Формат узнаётся сам, выбирать его не нужно. Файл разбирается прямо здесь, на вашем компьютере, и никуда не отправляется, а в паспорт попадает только после того, как вы подтвердите.":
+    "Moving a list over from another service. The format is detected automatically. The file is parsed right here on your computer and sent nowhere; nothing enters the passport until you confirm.",
   "пересмотр всего": "rewatch in total",
   "пересмотра всего": "rewatches in total",
   "пересмотров всего": "rewatches in total",
@@ -792,8 +792,6 @@ i18nRegister({
   "уже есть": "already there",
   "Узнан формат": "Format recognised",
   "Фавориты:": "Favorites:",
-  "Файл не нужен и выгружать ничего не надо: открытый список AniList отдаёт кому угодно, и мы просто спросим его по нику. Поле для ника ниже. Обложки приезжают сразу вместе со списком.":
-    "No file and no export needed: a public AniList list is readable by anyone, so we just ask for it by username. The field is below. Covers arrive with the list.",
   "Файл не от TasteID – не тот формат.": "This file isn’t from TasteID – wrong format.",
   "Файл не читается как XML. Выгрузка иногда приходит в архиве – распакуй его сначала.":
     "The file doesn’t parse as XML. Exports sometimes arrive zipped – unpack it first.",
@@ -804,7 +802,7 @@ i18nRegister({
   "Читать полностью →": "Read in full →",
   "Что и откуда принимаем": "What is accepted, and from where",
   "Что уже есть в паспорте": "What the passport already has",
-  "Чужой паспорт – файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо в браузере, никуда не отправляется.":
+  "Чужой паспорт – файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо на вашем компьютере, никуда не отправляется.":
     "Someone else’s passport is a file: have them export theirs with the button below and send it over. Then you can view it or compare it with yours. Everything is computed right here and sent nowhere.",
   "Это не резервная копия: файл легче, чем ваши настоящие данные (без текста отзывов, без избранного, без тир-листов), и загрузка сюда чужого паспорта ничего своего не трогает и не заменяет.":
     "This isn't a backup: the file is lighter than your real data (no review text, no favorites, no tier lists), and loading someone else's passport here doesn't touch or replace anything of yours.",
