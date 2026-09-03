@@ -664,9 +664,21 @@ i18nRegister({
     "With no keys at all, covers for anime and manga (from AniList) and for books (from Open Library) already arrive – those are open to everyone. A key is only needed for movies: TMDB, the one open poster database, asks for one. It’s free and issued immediately.",
   "без оценки": "no rating",
   "Больше всего пересмотрено:": "Most rewatched:",
+  "{v0} записей пропущено – у них нет названия.": "{v0} entries skipped – they have no title.",
   "в выгрузке": "in the export",
   "в любимом": "in favorites",
+  "в списке": "in the list",
+  "В выгрузке нет ни одной оценки.": "There isn’t a single rating in the export.",
   "В паспорте нет списка тайтлов.": "There is no list of titles in this passport.",
+  "Забираем аниме…": "Fetching anime…",
+  "Не трогать {v0} {v1}, которые уже заведены": "Leave the {v0} {v1} that are already added alone",
+  "Обложек у фильмов в выгрузке нет. Без ключа TMDB они приедут без картинок – это не страшно, ключ можно добавить и потом, а обложки подтянуть повторным импортом того же файла. Аниме, манга и книги обложки получат в любом случае.":
+    "The export has no movie covers. Without a TMDB key they'll arrive without pictures – that's fine, the key can be added later and covers pulled in with a repeat import of the same file. Anime, manga and books get their covers either way.",
+  "Постеры к фильмам возьмём у TMDB по названию и году – ключ подключён.": "Movie posters will come from TMDB by title and year – the key is connected.",
+  "Слева то, что стоит {v0}, справа – куда это ляжет у вас.": "On the left is what's {v0}, on the right is where it'll land for you.",
+  Список: "List",
+  "Шкала сервиса (от {v0} до {v1}) разложена на ваши полки поровну. Поправьте, если у вас другое представление о том, что такое «восьмёрка».":
+    "The service's scale (from {v0} to {v1}) is spread evenly across your shelves. Adjust it if you see an “eight” differently.",
   "В паспорте нет шкалы оценок – показывать будет нечего.":
     "There is no rating scale in this passport – there would be nothing to show.",
   "В планах": "Planned",

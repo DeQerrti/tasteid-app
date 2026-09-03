@@ -601,15 +601,6 @@ async function removeFavTypePicker(id) {
     return;
   }
   try {
-    // Резервные копии обложек – первым делом и раньше самих записей:
-    // discardScratchImageBackup сравнивается с originalImageBackup только
-    // для формы редактирования, у уже сохранённых записей своей проверки
-    // на "используется ли ещё где-то" нет, поэтому чистим сами, иначе
-    // получили бы ровно те же осиротевшие файлы, что и до починки
-    // discardScratchImageBackup() (см. a99f485).
-    for (const entry of toDelete) {
-      if (entry.image_backup) deleteMediaFile(entry.image_backup);
-    }
     const res = await fetch("/api/save-favorite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -618,6 +609,16 @@ async function removeFavTypePicker(id) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || i18n("Ошибка удаления"));
+    // Записи удалены по подтверждённому ответу сервера – резервные копии
+    // обложек теперь точно ничьи, раньше этого момента удалять было
+    // нельзя (та же логика, что у одиночного удаления, см. её же
+    // комментарий в deleteFavEntry() ниже): удали их раньше и упади
+    // запрос на середине (сеть, сервер) – записи в favorites.json
+    // остались бы жить со ссылкой на уже стёртый файл, то есть с
+    // разбитой картинкой, которую было бы уже нечем чинить.
+    for (const entry of toDelete) {
+      if (entry.image_backup) deleteMediaFile(entry.image_backup);
+    }
 
     await patchSiteSettings((settings) => {
       settings.favCollections = (settings.favCollections || []).filter((c) => c.id !== id);

@@ -364,41 +364,39 @@ function importMapHtml() {
   const hasMovies = importData.items.some((i) => i.type === "movie");
   const hasKey = !!tmdbKey();
 
+  const sourceKindLabel = importData.byName ? i18n("Список") : i18n("Узнан формат");
+  const itemsKindLabel = importData.byName ? i18n("в списке") : i18n("в выгрузке");
+
   return `
-    <p class="imp-source-line">${importData.byName ? "Список" : i18n("Узнан формат")}: <strong>${esc(importData.source)}</strong></p>
+    <p class="imp-source-line">${sourceKindLabel}: <strong>${esc(importData.source)}</strong></p>
     <div class="imp-summary">
-      ${impStat(importData.items.length, importData.byName ? "в списке" : i18n("в выгрузке"))}
+      ${impStat(importData.items.length, itemsKindLabel)}
       ${impStat(fresh.length, i18n("новых"))}
       ${impStat(existing.length, i18n("уже есть"))}
       ${impStat(scored, i18n("с оценкой"))}
     </div>
-    ${importData.skipped ? `<p class="imp-note">${importData.skipped} записей пропущено – у них нет названия.</p>` : ""}
+    ${importData.skipped ? `<p class="imp-note">${i18n("{v0} записей пропущено – у них нет названия.", { v0: importData.skipped })}</p>` : ""}
     ${importData.truncatedNote ? `<p class="imp-note">${esc(importData.truncatedNote)}</p>` : ""}
-    ${hasMovies && hasKey ? `<p class="imp-note">Постеры к фильмам возьмём у TMDB по названию и году – ключ подключён.</p>` : ""}
+    ${hasMovies && hasKey ? `<p class="imp-note">${i18n("Постеры к фильмам возьмём у TMDB по названию и году – ключ подключён.")}</p>` : ""}
     ${hasMovies && !hasKey ? `
       <p class="imp-note">
-        Обложек у фильмов в выгрузке нет. Без ключа TMDB они приедут без
-        картинок – это не страшно, ключ можно добавить и потом, а обложки
-        подтянуть повторным импортом того же файла. Аниме, манга и книги
-        обложки получат в любом случае.
+        ${i18n("Обложек у фильмов в выгрузке нет. Без ключа TMDB они приедут без картинок – это не страшно, ключ можно добавить и потом, а обложки подтянуть повторным импортом того же файла. Аниме, манга и книги обложки получат в любом случае.")}
       </p>
       ${importKeysHtml()}` : ""}
 
     <h2 class="section-h">${i18n("Статусы")}</h2>
-    <p class="panel-intro">Слева то, что стоит ${importData.byName ? "в списке" : i18n("в выгрузке")}, справа – куда это ляжет у вас.</p>
+    <p class="panel-intro">${i18n("Слева то, что стоит {v0}, справа – куда это ляжет у вас.", { v0: itemsKindLabel })}</p>
     ${statusRows}
 
     <h2 class="section-h">${i18n("Оценки")}</h2>
     <p class="panel-intro">
-      Шкала сервиса (от ${esc(String(importData.scaleMin ?? 1))} до
-      ${esc(String(importData.scaleMax ?? 10))}) разложена на ваши полки поровну.
-      Поправьте, если у вас другое представление о том, что такое «восьмёрка».
+      ${i18n("Шкала сервиса (от {v0} до {v1}) разложена на ваши полки поровну. Поправьте, если у вас другое представление о том, что такое «восьмёрка».", { v0: String(importData.scaleMin ?? 1), v1: String(importData.scaleMax ?? 10) })}
     </p>
-    ${scoreRows.join("") || `<p class="imp-note">В выгрузке нет ни одной оценки.</p>`}
+    ${scoreRows.join("") || `<p class="imp-note">${i18n("В выгрузке нет ни одной оценки.")}</p>`}
 
     <h2 class="section-h">${i18n("Что уже есть в паспорте")}</h2>
     <div class="imp-row imp-row-plain">
-      <label><input type="checkbox" id="imp-skip" ${importSkipExisting ? "checked" : ""}> Не трогать ${existing.length} ${plural(existing.length, [i18n("запись"), i18n("записи"), i18n("записей")])}, которые уже заведены</label>
+      <label><input type="checkbox" id="imp-skip" ${importSkipExisting ? "checked" : ""}> ${i18n("Не трогать {v0} {v1}, которые уже заведены", { v0: existing.length, v1: plural(existing.length, [i18n("запись"), i18n("записи"), i18n("записей")]) })}</label>
     </div>
     <p class="panel-intro">
       ${i18n("Снятая галочка перезапишет у них статус и оценку значениями из выгрузки. Тексты отзывов не пострадают в любом случае.")}
@@ -848,7 +846,7 @@ function bindAnilistUser() {
     status.textContent = i18n("Спрашиваем AniList…");
     try {
       const collections = await fetchAnilistUserList(userName, (type) => {
-        status.textContent = type === "ANIME" ? "Забираем аниме…" : i18n("Забираем мангу…");
+        status.textContent = type === "ANIME" ? i18n("Забираем аниме…") : i18n("Забираем мангу…");
       });
       const parsed = parseAnilistLists(collections);
       parsed.source = `AniList – ${userName}`;

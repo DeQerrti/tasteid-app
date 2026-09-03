@@ -144,12 +144,23 @@ async function loadCharGames(collectionId) {
   if (existing?.loaded) return;
 
   let games = [];
+  let loaded = false;
   try {
     const res = await fetch(collectionFileFor(collectionId));
-    if (res.ok) games = await res.json();
-  } catch {}
+    if (res.ok) {
+      games = await res.json();
+      loaded = true;
+    }
+  } catch (err) {
+    // loaded остаётся false – при следующем заходе на эту вкладку тир-
+    // листа (см. вызов выше) коллекция попробует загрузиться заново,
+    // а не так и останется навсегда молча пустой из-за одной сетевой
+    // заминки: res.ok===false выше (например, временная недоступность
+    // сервера) молчаливо ведёт сюда же.
+    console.error(`Не удалось загрузить коллекцию тир-листа «${collectionId}»:`, err);
+  }
 
-  tlState.collections[collectionId] = { games, loaded: true };
+  tlState.collections[collectionId] = { games, loaded };
 
   if (games.length && !tlState.gameId) {
     tlState.gameId = games[0].id;

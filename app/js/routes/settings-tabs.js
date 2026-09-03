@@ -281,9 +281,6 @@ async function removeFavCollection(id) {
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => []);
     const toDelete = favData.filter((r) => r.type === id);
-    for (const entry of toDelete) {
-      if (entry.image_backup) deleteMediaFile(entry.image_backup);
-    }
     if (toDelete.length) {
       const res = await fetch("/api/save-favorite", {
         method: "POST",
@@ -293,6 +290,13 @@ async function removeFavCollection(id) {
       });
       const resp = await res.json();
       if (!res.ok) throw new Error(resp.error || i18n("Ошибка удаления"));
+    }
+    // Резервные копии обложек – только теперь, по подтверждённому ответу
+    // сервера (см. deleteFavEntry() в favorites-edit.js): удали их раньше
+    // и упади запрос на середине – записи остались бы жить со ссылкой на
+    // уже стёртый файл, то есть с разбитой картинкой, которую нечем чинить.
+    for (const entry of toDelete) {
+      if (entry.image_backup) deleteMediaFile(entry.image_backup);
     }
 
     await patchSiteSettings((settings) => {
