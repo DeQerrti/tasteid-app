@@ -90,17 +90,29 @@ function rawGradeForShelf(shelf, scale) {
 // по всем оценкам, реально встретившимся в отзывах, – не по всем
 // теоретически возможным числам шкалы (при «Числах» с максимумом 100
 // это была бы карта на 100 записей почти всегда впустую).
+//
+// orphaned – сырые значения, для которых полка не нашлась уже в
+// СТАРОЙ шкале (например, полку с таким ключом когда-то удалили, а
+// оценка у отзыва осталась) – такие оценки не видны нигде в
+// приложении ещё до этой правки, регрейд их не портит и не чинит, но
+// раньше человек об этом узнавал только сам, наткнувшись на отзыв без
+// оценки. Возвращаем список наружу, чтобы saveSettings() мог хотя бы
+// предупредить, а не промолчать.
 function buildRegradeMap(usedRawGrades, oldScale, newScale) {
   const shelfMap = shelfPositionMap(oldScale.shelves, newScale.shelves);
   const map = {};
+  const orphaned = [];
   for (const raw of usedRawGrades) {
     const oldShelf = shelfForRawGrade(raw, oldScale);
-    if (!oldShelf) continue; // уже ничья оценка – пересчитывать нечего
+    if (!oldShelf) {
+      orphaned.push(raw);
+      continue;
+    }
     const newShelf = shelfMap.get(oldShelf.key);
-    if (!newShelf) continue;
+    if (!newShelf) continue; // shelfPositionMap покрывает все ключи oldScale.shelves – сюда дойти не должны
     map[String(raw)] = rawGradeForShelf(newShelf, newScale);
   }
-  return map;
+  return { map, orphaned };
 }
 
 function renderScaleTypeGrid() {

@@ -254,6 +254,7 @@ async function saveSettings() {
   const statusId = `status-${activePanel}`;
   flashStatus(statusId, true, i18n("Сохраняю..."));
 
+  let orphanedGradeCount = 0;
   try {
     // Пересчёт уже поставленных оценок – раньше самого сохранения
     // шкалы: если он не удастся, новую шкалу лучше не сохранять вовсе
@@ -266,7 +267,8 @@ async function saveSettings() {
       const usedRawGrades = [
         ...new Set(reviews.map((r) => r.grade).filter((g) => g !== null && g !== undefined && g !== "")),
       ];
-      const regradeMap = buildRegradeMap(usedRawGrades, originalGradeScale, gradeScale);
+      const { map: regradeMap, orphaned } = buildRegradeMap(usedRawGrades, originalGradeScale, gradeScale);
+      orphanedGradeCount = orphaned.length;
       if (Object.keys(regradeMap).length) {
         const rgRes = await fetch("/api/save-review", {
           method: "POST",
@@ -288,7 +290,19 @@ async function saveSettings() {
     const data = await res.json();
     // Приложение – не сайт: страница и есть само хранилище, никакой
     // отдельно выложенной копии со своей задержкой публикации нет.
-    flashStatus(statusId, data.ok, data.ok ? "Сохранено ✓" : i18n("Ошибка: ") + data.error);
+    //
+    // orphanedGradeCount – отзывы, у которых оценка уже не находила
+    // полку в СТАРОЙ шкале (например, полку с таким ключом когда-то
+    // удалили) – эта правка их не портит, но и не чинит, а без
+    // предупреждения человек узнавал об этом только сам, наткнувшись
+    // на отзыв без оценки где-то в интерфейсе.
+    const savedMsg =
+      data.ok && orphanedGradeCount
+        ? i18n("Сохранено ✓, но у {v0} оценок не нашлось полки уже в старой шкале – проверьте их вручную", {
+            v0: orphanedGradeCount,
+          })
+        : "Сохранено ✓";
+    flashStatus(statusId, data.ok, data.ok ? savedMsg : i18n("Ошибка: ") + data.error);
     // previewPalette() выше красит только текущий экран вживую и кэш
     // для FOUC (localStorage, см. инлайновый скрипт в начале <head>)
     // не трогает. Без этого на следующей странице после сохранения

@@ -908,6 +908,8 @@ i18nRegister({
   Слабо: "Weak",
   "Сначала выберите папку выше": "Pick a folder above first",
   "Сохранено ✓": "Saved ✓",
+  "Сохранено ✓, но у {v0} оценок не нашлось полки уже в старой шкале – проверьте их вручную":
+    "Saved ✓, but {v0} grades had no shelf already in the old scale – check them by hand",
   "Сохранено.": "Saved.",
   "Сохранить изменения": "Save changes",
   "Справочник обновлён, но старые отзывы поправить не удалось":
