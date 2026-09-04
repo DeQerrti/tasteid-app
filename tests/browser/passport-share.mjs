@@ -184,8 +184,12 @@ ok(
   !!(await page2.evaluate(() => document.querySelector(".pp-loaded")?.textContent)),
   "чужой паспорт загрузился по коду, без файла — тем же путём, что и файловая загрузка"
 );
+// vaultScopedKey(), а не голый ключ localStorage – он теперь привязан
+// к хранилищу (см. её же комментарий в app/js/sync.js). GUEST_KEY сам
+// по себе – const верхнего уровня, а не свойство window, изнутри
+// page.evaluate() до него так просто не достать.
 const guest = await page2.evaluate(() =>
-  JSON.parse(localStorage.getItem("tasteid_guest_passport"))
+  JSON.parse(localStorage.getItem(window.vaultScopedKey("tasteid_guest_passport")))
 );
 ok(
   guest?.items?.some((i) => i.title === "Берсерк"),
@@ -195,7 +199,7 @@ ok(
 console.log("Неверный код");
 await page2.evaluate(() => {
   window.guestPassport = null;
-  localStorage.removeItem("tasteid_guest_passport");
+  localStorage.removeItem(window.vaultScopedKey("tasteid_guest_passport"));
   window.renderPassports();
 });
 await page2.waitForTimeout(200);

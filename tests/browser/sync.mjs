@@ -196,9 +196,9 @@ ok(
   "после подключения показана кнопка «Синхронизировать сейчас»"
 );
 ok(gh.repoExists, "репозитория не было — приложение создало его само");
-const savedConfig = await page.evaluate(() =>
-  JSON.parse(localStorage.getItem("tasteid_sync_config"))
-);
+// getSyncConfig(), а не голый ключ localStorage – он теперь привязан к
+// хранилищу (см. её же комментарий у vaultScopedKey в app/js/sync.js).
+const savedConfig = await page.evaluate(() => window.getSyncConfig());
 ok(
   savedConfig?.owner === "tester" && savedConfig?.repo === "tasteid-vault" && savedConfig?.token,
   "токен, владелец и репозиторий сохранились на устройстве"
@@ -315,7 +315,7 @@ await page.evaluate(() => (window.confirmDialog = async () => true));
 await page.click('#panel-sync button[onclick="disconnectSync()"]');
 await page.waitForTimeout(300);
 ok(
-  await page.evaluate(() => localStorage.getItem("tasteid_sync_config") === null),
+  await page.evaluate(() => window.getSyncConfig() === null),
   "отключение стирает токен и репозиторий с устройства"
 );
 ok(
