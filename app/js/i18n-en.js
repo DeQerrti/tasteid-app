@@ -469,6 +469,9 @@ i18nRegister({
   Мельче: "Smaller",
   Крупнее: "Larger",
   Сбросить: "Reset",
+  Применить: "Apply",
+  Фильтры: "Filters",
+  "Тегов пока нет.": "No tags yet.",
   "О программе": "About",
   "не выбрана": "not selected",
 });
@@ -742,6 +745,7 @@ i18nRegister({
   "В любимом только у вас": "In favorites, only yours",
   "Общего любимого не нашлось.": "No favorites in common.",
   "Название…": "Name…",
+  "Поиск по названию…": "Search by title…",
   "Настройки профиля → раздел API → Request an API Key.":
     "Profile settings → API section → Request an API Key.",
   "не импортировать": "don’t import",

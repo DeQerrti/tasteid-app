@@ -689,6 +689,30 @@ html:not(.kb-nav) *:focus {
   border-color: var(--accent-line);
 }
 
+/* ══ ПЕРЕКЛЮЧАЕМЫЙ ТЕГ ═══════════════════════════
+   Раньше жила только в add.html (выбор тегов у самого отзыва) – общей
+   стала вместе с фильтром по тегам на вкладке «Отзывы» (js/reviews.js,
+   полный список вместо поиска по подстроке на телефоне). */
+.tag-toggle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .63rem;
+  padding: .25rem .65rem;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid var(--tint-line);
+  background: var(--tint);
+  color: var(--text-dim);
+  transition: all .15s;
+  user-select: none;
+  letter-spacing: .03em;
+}
+.tag-toggle:hover { color: var(--text); border-color: var(--tint-line-hi); }
+.tag-toggle.active {
+  background: var(--accent-fill);
+  border-color: rgba(192,57,43,.4);
+  color: var(--err);
+}
+
 /* ══ ПАЛЕЦ ВМЕСТО КУРСОРА ═════════════════════════
    Всё это рисовалось для мыши: кнопка высотой 23px курсором нажимается
    без промаха, а пальцем — нет. И Apple, и Google просят не меньше

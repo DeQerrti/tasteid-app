@@ -1256,6 +1256,47 @@ section.group { margin-bottom: 3.5rem; }
   border: 1px solid var(--border);
   border-radius: 2px;
 }
+
+/* ── Мобильная панель «Отзывов» ────────────────────
+   На столе есть место под всегда открытые фильтры (.rv-filters
+   выше) – на телефоне то же самое заняло бы полэкрана до самих
+   карточек. Вместо этого – поиск сверху и одна кнопка «Фильтры»,
+   открывающая модалку с тем же набором плюс полным списком тегов
+   (js/reviews.js: rvTagToggleHtml) вместо поиска по подстроке –
+   тапнуть по паре нужных проще, чем печатать на телефонной
+   клавиатуре. Обе панели рисуются всегда, показ/скрытие решает только
+   media-запрос ниже – тот же приём, что у рельсы/нижней панели вкладок. */
+.rv-mobile-toolbar { display: none; }
+@media (max-width: 700px) {
+  .rv-filters { display: none; }
+  .rv-mobile-toolbar {
+    display: flex;
+    gap: .6rem;
+    width: 100%;
+  }
+  .rv-mobile-toolbar .rv-search-input { flex: 1; width: auto; }
+}
+.rv-filters-open-btn { position: relative; white-space: nowrap; }
+.rv-filters-count {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .68rem;
+  color: var(--red-hi);
+}
+.rv-filters-modal .rv-filters-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin: 1rem 0;
+}
+.rv-tag-cloud { display: flex; flex-wrap: wrap; gap: .4rem; }
+.rv-filters-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
   /* ══ TIERLIST MODE TOGGLE ════════════════════════ */
 .tl-mode-toggle {
   display: flex;

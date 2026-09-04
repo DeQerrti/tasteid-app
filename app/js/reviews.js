@@ -15,9 +15,17 @@ const rvState = {
   source: "all",
   search: "",
   tagSearch: "",
+  // Отдельно от tagSearch (поиск по подстроке, десктопная панель) –
+  // выбор тегов тапом по полному списку, панель «Фильтры» на телефоне
+  // (см. её же комментарий у rvTagCloudHtml ниже). Разные механики на
+  // разных экранах, поэтому и состояние разное – applyRvFilters()
+  // применяет оба, если заполнены оба, но реально живым бывает только
+  // то, с которым человек и правда взаимодействовал.
+  tags: [],
 };
 try {
   Object.assign(rvState, JSON.parse(localStorage.getItem(RV_FILTERS_KEY)) || {});
+  if (!Array.isArray(rvState.tags)) rvState.tags = [];
 } catch {}
 function rvPersistFilters() {
   try {
@@ -26,6 +34,10 @@ function rvPersistFilters() {
 }
 
 let rvLastFiltered = [];
+// Полный (нефильтрованный) список – reset по кнопке «Сбросить» в
+// модалке фильтров зовётся из голого onclick, без доступа к reviews
+// из замыкания renderReviews().
+let rvAllReviews = [];
 
 // Вкладка «Отзывы» показывает только записи, у которых реально есть
 // отзыв (текст или оценка) – «в процессе»/«планирую» без того и
@@ -83,6 +95,7 @@ function sortByOrder(arr, order) {
 }
 
 function renderReviews(reviews) {
+  rvAllReviews = reviews;
   const types   = sortByOrder([...new Set(reviews.map(r => r.type).filter(Boolean))],   TYPE_FILTER_ORDER);
   const grades  = sortByOrder([...new Set(reviews.map(r => gradeToShelf(r.grade)).filter(Boolean))],  GRADE_ORDER);
   const sources = sortByOrder([...new Set(
@@ -92,6 +105,17 @@ function renderReviews(reviews) {
   const adminBtn = isAdmin()
     ? `<a href="#/add" class="admin-add-btn">${i18n("Добавить")}</a>`
     : "";
+
+  // Тип/Оценка/Ссылки – одна и та же разметка что в десктопной панели,
+  // что в мобильной модалке (см. её же комментарий у .rv-mobile-toolbar
+  // в index.html): querySelectorAll в bindRvFilters/applyRvFilters ниже
+  // и так проходит по ВСЕМ найденным кнопкам разом, независимо от того,
+  // сколько копий на странице, – дублировать разметку безопасно.
+  const filterGroupsHtml = `
+    ${renderRvFilterGroup("type",   siteLabel("filters", "type", i18n("Тип")),     types,   TYPE_LABELS,   rvState.type)}
+    ${renderRvFilterGroup("grade",  siteLabel("filters", "grade", i18n("Оценка")), grades,  gradeLabels(), rvState.grade)}
+    ${renderRvFilterGroup("source", siteLabel("filters", "source", i18n("Ссылки")), sources, SOURCE_LABELS, rvState.source)}
+  `;
 
   const box = document.getElementById("tab-reviews");
   box.innerHTML = `
@@ -119,23 +143,67 @@ function renderReviews(reviews) {
             value="${esc(rvState.tagSearch)}"
           >
         </div>
-        ${renderRvFilterGroup("type",   siteLabel("filters", "type", i18n("Тип")),     types,   TYPE_LABELS,   rvState.type)}
-        ${renderRvFilterGroup("grade",  siteLabel("filters", "grade", i18n("Оценка")), grades,  gradeLabels(), rvState.grade)}
-        ${renderRvFilterGroup("source", siteLabel("filters", "source", i18n("Ссылки")), sources, SOURCE_LABELS, rvState.source)}
+        ${filterGroupsHtml}
+      </div>
+
+      <!-- Только телефон (см. её же CSS в index.html) – поиск сверху и
+           одна кнопка «Фильтры», открывающая модалку с тем же самым
+           набором фильтров плюс полным списком тегов вместо поиска по
+           подстроке: тапнуть по паре нужных проще, чем печатать на
+           маленькой клавиатуре. -->
+      <div class="rv-mobile-toolbar">
+        <input
+          type="text"
+          id="rv-search-mobile"
+          class="rv-search-input"
+          placeholder="${i18n("Поиск по названию…")}"
+          autocomplete="off"
+          value="${esc(rvState.search)}"
+        >
+        <button type="button" class="btn btn-ghost rv-filters-open-btn" id="rv-filters-open-btn">
+          ${i18n("Фильтры")}<span class="rv-filters-count" id="rv-filters-count"></span>
+        </button>
       </div>
       ${adminBtn}
     </div>
+
+    <div class="modal-overlay hidden" id="rv-filters-modal-overlay" onclick="closeRvFiltersModalOnOverlay(event)">
+      <div class="modal rv-filters-modal">
+        <button class="modal-close" onclick="closeRvFiltersModal()">✕</button>
+        <h2 class="section-title" data-i18n>Фильтры</h2>
+        <div class="rv-filters-modal-body">
+          ${filterGroupsHtml}
+          <div class="rv-filter-group">
+            <span class="rv-filter-label">${esc(siteLabel("filters", "tags", i18n("Теги")))}</span>
+            <div class="rv-tag-cloud">${rvTagToggleHtml()}</div>
+          </div>
+        </div>
+        <div class="rv-filters-modal-actions">
+          <button class="btn btn-ghost" type="button" onclick="resetRvFilters()" data-i18n>Сбросить</button>
+          <button class="btn btn-primary" type="button" onclick="closeRvFiltersModal()" data-i18n>Применить</button>
+        </div>
+      </div>
+    </div>
+
     <section class="group">
       <div class="reviews-grid" id="rv-grid"></div>
     </section>`;
 
-  // Поиск
+  // Поиск – два поля (десктопная панель и мобильный тулбар), одно
+  // состояние: держим их значения синхронными, чтобы при изменении
+  // ширины окна (или просто по случайности) второе поле не осталось
+  // со старым текстом, пока фильтр уже поменялся через первое.
   const searchInput = document.getElementById("rv-search");
-  searchInput.addEventListener("input", () => {
-    rvState.search = searchInput.value.trim().toLowerCase();
+  const searchInputMobile = document.getElementById("rv-search-mobile");
+  const onSearchInput = (src, other) => {
+    rvState.search = src.value.trim().toLowerCase();
+    other.value = src.value;
     rvPersistFilters();
     applyRvFilters(reviews);
-  });
+  };
+  searchInput.addEventListener("input", () => onSearchInput(searchInput, searchInputMobile));
+  searchInputMobile.addEventListener("input", () => onSearchInput(searchInputMobile, searchInput));
+
   const tagSearchInput = document.getElementById("rv-tag-search");
   tagSearchInput.addEventListener("input", () => {
     rvState.tagSearch = tagSearchInput.value.trim().toLowerCase();
@@ -143,8 +211,77 @@ function renderReviews(reviews) {
     applyRvFilters(reviews);
   });
 
+  document.getElementById("rv-filters-open-btn").addEventListener("click", openRvFiltersModal);
+
   bindRvFilters(reviews);
+  bindRvTagToggles(reviews);
   applyRvFilters(reviews);
+}
+
+// ── Полный список тегов (телефон) ──────────────
+// TAGS_MAP (js/config.js) – тот же справочник, из которого строится
+// выбор тегов у самого отзыва (add.js): имя → {cat, tip}, уже без
+// скрытых (см. её же комментарий у SITE_HIDDEN_TAGS там). Тапнуть по
+// нескольким сразу проще, чем печатать по одному в поиске по
+// подстроке, – то же самое обычно означает «фильтр по тегам» в
+// каталогах вроде MangaLib.
+function rvTagToggleHtml() {
+  const names = Object.keys(TAGS_MAP).sort((a, b) => a.localeCompare(b, "ru"));
+  if (!names.length) return `<span class="panel-intro">${esc(i18n("Тегов пока нет."))}</span>`;
+  return names
+    .map((name) => {
+      const active = rvState.tags.includes(name);
+      return `<span class="tag-toggle${active ? " active" : ""}" data-tag="${esc(name)}" title="${esc(TAGS_MAP[name]?.tip || "")}">${esc(name)}</span>`;
+    })
+    .join("");
+}
+
+function bindRvTagToggles(reviews) {
+  document.querySelectorAll(".rv-tag-cloud .tag-toggle").forEach((el) => {
+    el.addEventListener("click", () => {
+      const tag = el.dataset.tag;
+      const active = rvState.tags.includes(tag);
+      rvState.tags = active ? rvState.tags.filter((t) => t !== tag) : [...rvState.tags, tag];
+      document.querySelectorAll(`.rv-tag-cloud .tag-toggle[data-tag="${CSS.escape(tag)}"]`)
+        .forEach((t) => t.classList.toggle("active", !active));
+      rvPersistFilters();
+      applyRvFilters(reviews);
+    });
+  });
+}
+
+function rvFiltersActiveCount() {
+  let n = 0;
+  if (rvState.type !== "all") n++;
+  if (rvState.grade !== "all") n++;
+  if (rvState.source !== "all") n++;
+  n += rvState.tags.length;
+  return n;
+}
+
+function openRvFiltersModal() {
+  document.getElementById("rv-filters-modal-overlay").classList.remove("hidden");
+}
+function closeRvFiltersModal() {
+  document.getElementById("rv-filters-modal-overlay").classList.add("hidden");
+}
+function closeRvFiltersModalOnOverlay(e) {
+  if (e.target === document.getElementById("rv-filters-modal-overlay")) closeRvFiltersModal();
+}
+
+// Возвращает всё к «Все»/пусто одной кнопкой – проще, чем снимать
+// каждый фильтр по отдельности, когда их накопилось несколько.
+function resetRvFilters() {
+  rvState.type = "all";
+  rvState.grade = "all";
+  rvState.source = "all";
+  rvState.tags = [];
+  rvPersistFilters();
+  document.querySelectorAll(".rv-filter-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.val === "all");
+  });
+  document.querySelectorAll(".rv-tag-cloud .tag-toggle").forEach((t) => t.classList.remove("active"));
+  applyRvFilters(rvAllReviews);
 }
 
 // Лейблы оценок для фильтра
@@ -209,6 +346,17 @@ function applyRvFilters(reviews) {
     filtered = filtered.filter(r =>
       (r.tags || []).some(t => t.toLowerCase().includes(rvState.tagSearch))
     );
+  }
+  if (rvState.tags.length) {
+    filtered = filtered.filter(r =>
+      (r.tags || []).some(t => rvState.tags.includes(t))
+    );
+  }
+
+  const countEl = document.getElementById("rv-filters-count");
+  if (countEl) {
+    const n = rvFiltersActiveCount();
+    countEl.textContent = n ? ` ${n}` : "";
   }
 
   const grid = document.getElementById("rv-grid");
