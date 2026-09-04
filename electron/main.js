@@ -174,6 +174,8 @@ const NATIVE_EN = {
   "Нельзя убрать последнее хранилище.": "Can't remove the last vault.",
   "Сначала переключись на другое хранилище.": "Switch to another vault first.",
   "Не получилось удалить папку: ": "Couldn't delete the folder: ",
+  "Папка с таким именем уже есть — выбери другое имя.":
+    "A folder with that name already exists — pick a different name.",
   "Доступно обновление": "Update available",
   "Обновление готово": "Update ready",
   "Обновить сейчас": "Update now",
@@ -184,8 +186,15 @@ const tr = (ru) => (appLanguage() === "en" ? NATIVE_EN[ru] || ru : ru);
 
 // ── Хранилище ──────────────────────────────────
 
+// mode "open" – указывают саму папку хранилища напрямую (адоптируем как
+// есть, это и есть смысл кнопки). mode "new" – указывают только МЕСТО, где
+// завести хранилище: сама папка под него создаётся кодом отдельно (см.
+// use-vault ниже, createSubfolder), а не берётся как есть – иначе можно
+// было по невнимательности выбрать уже занятую папку вроде Рабочего стола
+// и получить собственное хранилище, слепленное с чужими файлами.
 async function askForVault({ mode, previous } = {}) {
-  const suggested = previous || path.join(app.getPath("documents"), "TasteID");
+  const suggested =
+    mode === "open" ? previous || app.getPath("documents") : app.getPath("documents");
   const { canceled, filePaths } = await dialog.showOpenDialog(win ?? undefined, {
     title: mode === "open" ? tr("Где находится хранилище") : tr("Где создать хранилище"),
     defaultPath: suggested,
@@ -193,6 +202,19 @@ async function askForVault({ mode, previous } = {}) {
     buttonLabel: tr("Выбрать папку"),
   });
   return canceled ? null : filePaths[0];
+}
+
+// Имя хранилища → безопасное имя папки: то же, что нельзя в имени файла
+// на Windows, плюс на всякий случай точки/пробелы по краям (Windows сама
+// их обрезает молча, но path.join с пустым хвостом лучше не проверять
+// на его капризах).
+function safeFolderName(name) {
+  const cleaned = String(name || "")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/[. ]+$/, "")
+    .slice(0, 80);
+  return cleaned || tr("Хранилище");
 }
 
 async function useVault(root) {
@@ -277,22 +299,29 @@ function appRoutes() {
 
     "POST /api/app/check-update": async () => checkForUpdatesManual(),
 
-    "POST /api/app/pick-vault": async ({ body }) => {
-      const picked = await askForVault({ mode: body.mode, previous: vault?.root });
-      // Только для "новое хранилище": сюда можно указать вообще любую
-      // существующую папку, и дальше приложение считает её "своей" целиком
-      // – в том числе при последующем удалении хранилища (см. remove-vault
-      // выше). Если папка уже не пуста, фронт (addVault() в
-      // settings-app.js) отдельно спросит "точно эта?", чтобы не связать
-      // хранилище с папкой вроде Рабочего стола по невнимательности.
-      const notEmpty =
-        picked && body.mode !== "open" ? (await fs.readdir(picked)).length > 0 : false;
-      return { path: picked, notEmpty };
-    },
+    "POST /api/app/pick-vault": async ({ body }) => ({
+      path: await askForVault({ mode: body.mode, previous: vault?.root }),
+    }),
 
     "POST /api/app/use-vault": async ({ body }) => {
       if (!body.path) throw new Error(tr("Не указана папка"));
-      const entry = await useVaultPath(body.path, body.name);
+      let root = body.path;
+      // createSubfolder – "новое хранилище" (см. её же комментарий у
+      // askForVault): body.path тут МЕСТО, а не сама будущая папка
+      // хранилища. Заводим отдельную новую подпапку под конкретным именем
+      // – как Обсидиан – вместо того чтобы просто занять выбранную папку
+      // целиком, кем бы она ни была занята раньше.
+      if (body.createSubfolder) {
+        root = path.join(body.path, safeFolderName(body.name));
+        try {
+          await fs.mkdir(root);
+        } catch (e) {
+          if (e.code === "EEXIST")
+            throw new Error(tr("Папка с таким именем уже есть — выбери другое имя."));
+          throw e;
+        }
+      }
+      const entry = await useVaultPath(root, body.name);
       return { ok: true, vault: entry };
     },
 

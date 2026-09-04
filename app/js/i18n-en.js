@@ -492,9 +492,6 @@ i18nRegister({
   "Имя нового хранилища:": "Name for the new vault:",
   "Новое хранилище": "New vault",
   "Имя для этого хранилища:": "Name for this vault:",
-  "Эта папка не пустая. Всё, что в ней уже лежит, станет частью хранилища — и будет удалено вместе с ним, если хранилище потом удалить. Использовать её всё равно?":
-    "This folder isn't empty. Everything already in it will become part of the vault — and will be deleted along with it if the vault is ever removed. Use it anyway?",
-  "Использовать эту папку": "Use this folder",
   Хранилище: "Vault",
   "Хранилище будет убрано из списка. Сама папка на диске никуда не денется – её можно будет открыть заново через «Открыть существующее».":
     "The vault will be removed from the list. The folder itself stays right where it is on disk – you can open it again later via “Open an existing one”.",

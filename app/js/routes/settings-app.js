@@ -221,24 +221,21 @@ async function addVault(mode) {
       const name = await promptDialog(i18n("Имя нового хранилища:"), i18n("Новое хранилище"));
       if (name === null) return; // отмена
       await appApi("/api/app/add-vault", { name: name.trim() });
+    } else if (mode === "new") {
+      // Как в Обсидиане: выбираем не саму папку хранилища, а место, где
+      // её завести – саму папку под введённым именем создаёт бэкенд
+      // (createSubfolder, см. её же комментарий у use-vault в
+      // electron/main.js), а не занимает выбранную папку целиком, какой
+      // бы она ни была.
+      const picked = await appApi("/api/app/pick-vault", { mode });
+      if (!picked.path) return; // отмена в системном диалоге выбора папки
+      const name = await promptDialog(i18n("Имя нового хранилища:"), i18n("Хранилище"));
+      if (name === null) return;
+      await appApi("/api/app/use-vault", { path: picked.path, name: name.trim(), createSubfolder: true });
     } else {
       const picked = await appApi("/api/app/pick-vault", { mode });
       if (!picked.path) return; // отмена в системном диалоге выбора папки
       path = picked.path;
-      // Папка для нового хранилища не пуста – например, выбрали Рабочий
-      // стол вместо новой подпапки. Приложение будет считать всё внутри
-      // "своим", а при удалении хранилища сотрёт это вместе с ним –
-      // предупреждаем прямо сейчас, а не постфактум.
-      if (mode === "new" && picked.notEmpty) {
-        const sure = await confirmDialog(
-          i18n(
-            "Эта папка не пустая. Всё, что в ней уже лежит, станет частью хранилища — и будет удалено вместе с ним, если хранилище потом удалить. Использовать её всё равно?"
-          ),
-          i18n("Использовать эту папку"),
-          i18n("Отмена")
-        );
-        if (!sure) return;
-      }
       const suggested = path.split(/[\\/]/).filter(Boolean).pop() || i18n("Хранилище");
       const name = await promptDialog(i18n("Имя для этого хранилища:"), suggested);
       if (name === null) return;
