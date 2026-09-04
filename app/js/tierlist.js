@@ -75,34 +75,43 @@ function closeCollectionModalOnOverlay(e) {
   if (e.target === document.getElementById("collection-modal-overlay")) closeCollectionModal();
 }
 
+// Сам факт заведения новой коллекции – общий для модалки на вкладке
+// «Тир-лист» (submitNewCollection ниже) и для строки ввода в Настройках
+// (addTierCollectionInline в settings-tabs.js, вид как у «Статусов» и
+// разделов «Любимого» рядом – унифицировано по месту). Каждый вызов
+// сам решает, что показать вокруг: модалка закрывается и переключает
+// вкладку на новую коллекцию, строка ввода просто очищается на месте.
+async function createTierCollection(name) {
+  const newCollection = { id: tlSlugify(name), label: name };
+  await patchSiteSettings((settings) => {
+    settings.tierCollections = Array.isArray(settings.tierCollections)
+      ? settings.tierCollections
+      : activeTierCollections(); // сохраняем встроенную i18n("Персонажи"), если настроек ещё не было
+    settings.tierCollections.push(newCollection);
+  });
+  window.SITE_TIER_COLLECTIONS = (Array.isArray(window.SITE_TIER_COLLECTIONS)
+    ? window.SITE_TIER_COLLECTIONS
+    : activeTierCollections()).concat([newCollection]);
+  // И вкладка «Тир-лист» (кнопки режима), и панель настроек держат
+  // свою копию списка коллекций, загруженную один раз при заходе – без
+  // явного обновления новый тир-лист появлялся в другом месте только
+  // после повторного захода туда (см. её же комментарий в
+  // js/routes/chars-edit.js).
+  refreshTierCollectionsElsewhere();
+  return newCollection;
+}
+
 async function submitNewCollection() {
   const name = document.getElementById("cm-collection-name").value.trim();
   const statusEl = document.getElementById("collection-modal-status");
   if (!name) { statusEl.textContent = i18n("Введите название"); statusEl.className = "status-msg err"; return; }
 
-  const newCollection = { id: tlSlugify(name), label: name };
   const btn = document.getElementById("cm-collection-save");
   btn.disabled = true;
   statusEl.textContent = i18n("Сохраняем…");
   statusEl.className = "status-msg";
   try {
-    await patchSiteSettings((settings) => {
-      settings.tierCollections = Array.isArray(settings.tierCollections)
-        ? settings.tierCollections
-        : activeTierCollections(); // сохраняем встроенную i18n("Персонажи"), если настроек ещё не было
-      settings.tierCollections.push(newCollection);
-    });
-    window.SITE_TIER_COLLECTIONS = (Array.isArray(window.SITE_TIER_COLLECTIONS)
-      ? window.SITE_TIER_COLLECTIONS
-      : activeTierCollections()).concat([newCollection]);
-    // Эта же модалка открывается и с самой вкладки «Тир-лист», и
-    // кнопкой «Создать» в Настройках (#/settings-edit) – там свой,
-    // отдельный список тир-листов (см. её же комментарий у
-    // refreshTierCollectionsElsewhere в js/routes/chars-edit.js),
-    // загруженный один раз при заходе на панель. Без явного обновления
-    // новый тир-лист появлялся в нём только после того, как настройки
-    // открыли заново.
-    refreshTierCollectionsElsewhere();
+    const newCollection = await createTierCollection(name);
     closeCollectionModal();
     tlState.mode = newCollection.id;
     tlState.gameId = null;

@@ -77,7 +77,23 @@ async function loadFavorites() {
     const characters = favData.filter(r => r.type === "character");
     const persons    = favData.filter(r => r.type === "person");
 
-    const snapshot = JSON.stringify({ titles, characters, persons, favData });
+    // Разделы «Любимого» (свои – SITE_FAV_COLLECTIONS, их порядок и
+    // видимость – тоже SITE_*) заводятся, переименовываются и
+    // переставляются в /settings-edit, а не через reviews.json/
+    // favorites.json – без них в снимке пустой новый раздел (в этих
+    // двух файлах после его создания ничего не меняется вообще) не
+    // отличался от снимка ДО создания, и вкладка молча не показывала
+    // его, пока в нём не появлялась хотя бы одна запись.
+    const snapshot = JSON.stringify({
+      titles,
+      characters,
+      persons,
+      favData,
+      collections: window.SITE_FAV_COLLECTIONS,
+      order: window.SITE_FAV_SECTION_ORDER,
+      hidden: window.SITE_HIDDEN_FAV_SECTIONS && [...window.SITE_HIDDEN_FAV_SECTIONS],
+      labels: window.SITE_LABELS,
+    });
     if (snapshot === favLastSnapshot) return;
     favLastSnapshot = snapshot;
 
@@ -161,19 +177,33 @@ function renderFavorites({ titles, characters, persons, favData }) {
       );
     },
   };
-  const sectionOrder = window.SITE_FAV_SECTION_ORDER || Object.keys(builtinSectionBuilders);
+  // Встроенные разделы и свои (заводятся в /settings-edit) – один общий
+  // порядок (window.SITE_FAV_SECTION_ORDER, хранит вперемешку ключи
+  // встроенных и id своих – см. её же комментарий у
+  // favSectionOrderedKeys() в settings-tabs.js). Раньше свои разделы
+  // всегда шли следом за всеми встроенными отдельным проходом – и
+  // перетащить свой раздел выше встроенного в настройках было
+  // некуда: этот порядок его всё равно не слушал.
+  const collections = window.SITE_FAV_COLLECTIONS || [];
+  const collectionById = Object.fromEntries(collections.map((c) => [c.id, c]));
+  const knownKeys = [...Object.keys(builtinSectionBuilders), ...collections.map((c) => c.id)];
+  const savedOrder = Array.isArray(window.SITE_FAV_SECTION_ORDER) ? window.SITE_FAV_SECTION_ORDER : [];
+  const sectionOrder = [
+    ...savedOrder.filter((k) => knownKeys.includes(k)),
+    ...knownKeys.filter((k) => !savedOrder.includes(k)),
+  ];
   let sawTitlesHeader = false;
   sectionOrder.forEach((key) => {
-    if (!builtinSectionBuilders[key] || !isFavSectionVisible(key)) return;
-    html += builtinSectionBuilders[key]();
-    if (key === "favTitles") sawTitlesHeader = true;
-  });
-
-  // ── Свои разделы (сверх Тайтлов/Персонажей/Персон) ─
-  // Данные – те же записи favorites.json, отфильтрованные по своему
-  // type; список самих разделов заводится в /settings-edit.
-  (window.SITE_FAV_COLLECTIONS || []).forEach((c) => {
-    if (!isFavSectionVisible(c.id)) return;
+    if (builtinSectionBuilders[key]) {
+      if (!isFavSectionVisible(key)) return;
+      html += builtinSectionBuilders[key]();
+      if (key === "favTitles") sawTitlesHeader = true;
+      return;
+    }
+    // Свой раздел – данные те же записи favorites.json, отфильтрованные
+    // по своему type.
+    const c = collectionById[key];
+    if (!c || !isFavSectionVisible(c.id)) return;
     const entries = favData.filter((r) => r.type === c.id);
     favExportSections.push({ id: c.id, label: c.label });
     html += favSectionHtml(

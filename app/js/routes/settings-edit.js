@@ -217,13 +217,12 @@ function settingsViewHtml() {
         <h2 class="section-h" id="statusesHeading"></h2>
         <div id="statusesList"></div>
         <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новый раздел</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
+          <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
         </div>
-        <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
+        <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить статус</button>
 
         <h2 class="section-h" id="favSectionsHeading"></h2>
         <div id="favSectionsList"></div>
-        <div id="favCollectionsList"></div>
         <div class="row" style="margin-top:14px;">
           <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги" onkeydown="if(event.key==='Enter'){event.preventDefault();addFavCollection();}"></div>
         </div>
@@ -231,13 +230,11 @@ function settingsViewHtml() {
 
         <h2 class="section-h" id="tierModesHeading"></h2>
         <div id="tierModesList"></div>
-        <!-- Та же кнопка и та же модалка (openCollectionModal() в
-             tierlist.js), что и на самой вкладке «Тир-лист» – модалка
-             живёт в общей разметке (index.html), а не внутри вкладки,
-             поэтому одинаково открывается из обоих мест. Дублирование
-             намеренное: тут человек уже смотрит на список тир-листов,
-             удобно тут же и завести новый, не уходя на другую вкладку. -->
-        <button class="btn btn-ghost" onclick="openCollectionModal()" data-i18n>Создать</button>
+        <div class="row" style="margin-top:14px;">
+          <div><label data-i18n>Новый раздел</label><input type="text" id="newTierCollectionName" data-no-dirty placeholder="Например: Игры" data-i18n-placeholder="Например: Игры" onkeydown="if(event.key==='Enter'){event.preventDefault();addTierCollectionInline();}"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="addTierCollectionInline()" id="tier-add-btn" data-i18n>Добавить раздел</button>
+        <div class="status-msg" id="status-tier-add"></div>
       </div>
 
       <div class="panel" id="panel-shortcuts">

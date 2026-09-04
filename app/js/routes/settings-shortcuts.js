@@ -112,17 +112,20 @@ async function loadCurrentSettings() {
   };
   hiddenFavSectionsState = new Set(settings.hiddenFavSections || []);
   removedFavSections = new Set(settings.removedFavSections || []);
+  favCollections = settings.favCollections ? JSON.parse(JSON.stringify(settings.favCollections)) : [];
   {
+    // Один порядок на встроенные разделы И свои (favCollections) – см.
+    // её же комментарий у favSectionOrderedKeys() в settings-tabs.js:
+    // favCollections нужно загрузить до этого места, иначе их id ещё
+    // не с чем сверить.
+    const known = [...FAV_SECTIONS.map((s) => s.key), ...favCollections.map((c) => c.id)];
     const saved = Array.isArray(settings.favSectionOrder)
-      ? settings.favSectionOrder.filter((key) => FAV_SECTIONS.some((s) => s.key === key))
+      ? settings.favSectionOrder.filter((key) => known.includes(key))
       : [];
-    const missing = FAV_SECTIONS.map((s) => s.key).filter((key) => !saved.includes(key));
+    const missing = known.filter((key) => !saved.includes(key));
     favSectionOrderState = [...saved, ...missing];
   }
   renderFavSectionsList();
-
-  favCollections = settings.favCollections ? JSON.parse(JSON.stringify(settings.favCollections)) : [];
-  renderFavCollectionsList();
 
   const statuses = labels.statuses || {};
   const builtinDefaults = [

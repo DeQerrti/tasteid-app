@@ -47,21 +47,54 @@ let removedFavSections = new Set();
 // (window.SITE_FAV_SECTION_ORDER), см. её же комментарий там.
 let favSectionOrderState = FAV_SECTIONS.map((s) => s.key);
 
+// Встроенные разделы (Тайтлы/Персонажи/Персоны) и свои (favCollections,
+// заводятся кнопкой ниже) раньше жили в двух раздельных списках со
+// своим порядком и своим drag-and-drop каждый – в одном списке
+// человек не мог перетащить свой раздел выше встроенного (или
+// наоборот), их перетаскивание просто не знало друг о друге. Теперь
+// один общий порядок (favSectionOrderState хранит вперемешку и ключи
+// встроенных, и id своих) и один список на оба вида – так же, как уже
+// сделано у коллекций тир-листа (tierModeOrderedKeys/renderTierModesList
+// в settings-grades.js). js/favorites.js на самой вкладке «Любимое»
+// читает тот же порядок (window.SITE_FAV_SECTION_ORDER), тоже одним
+// списком, а не встроенные-потом-свои, как было раньше.
+function favSectionOrderedKeys() {
+  const known = [
+    ...FAV_SECTIONS.filter((s) => !removedFavSections.has(s.key)).map((s) => s.key),
+    ...favCollections.map((c) => c.id),
+  ];
+  const ordered = favSectionOrderState.filter((k) => known.includes(k));
+  const missing = known.filter((k) => !ordered.includes(k));
+  return [...ordered, ...missing];
+}
+
 function renderFavSectionsList() {
   const container = document.getElementById("favSectionsList");
-  const rows = favSectionOrderState
-    .filter((key) => !removedFavSections.has(key))
+  const rows = favSectionOrderedKeys()
     .map((key) => {
-      const s = FAV_SECTIONS.find((x) => x.key === key);
-      const label = favSectionLabels[key] || s.def;
+      const builtin = FAV_SECTIONS.find((x) => x.key === key);
+      if (builtin) {
+        const label = favSectionLabels[key] || builtin.def;
+        return `
+        <div class="tab-row" id="favsecrow-${key}" data-key="${key}" draggable="true">
+          <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
+          ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList();`)}
+          <span class="tab-name" id="favsecname-${key}">${esc(label)}</span>
+          <input type="text" id="favsecinput-${key}" value="${esc(label)}" onkeydown="if(event.key==='Enter')this.blur();">
+          <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${key}')">✎</button>
+          <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection('${key}')">✕</button>
+        </div>`;
+      }
+      const c = favCollections.find((x) => x.id === key);
+      if (!c) return "";
       return `
-      <div class="tab-row" id="favsecrow-${key}" data-key="${key}" draggable="true">
+      <div class="tab-row" id="favcollrow-${c.id}" data-key="${c.id}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-        ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList();`)}
-        <span class="tab-name" id="favsecname-${key}">${esc(label)}</span>
-        <input type="text" id="favsecinput-${key}" value="${esc(label)}" onkeydown="if(event.key==='Enter')this.blur();">
-        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${key}')">✎</button>
-        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection('${key}')">✕</button>
+        ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavSectionsList();`)}
+        <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
+        <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}" onkeydown="if(event.key==='Enter')this.blur();">
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavCollectionEdit('${c.id}')">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavCollection('${c.id}')">✕</button>
       </div>`;
     })
     .join("");
@@ -112,16 +145,18 @@ function bindFavSectionsDnd() {
 
       const srcKey = favSecDragSrc.dataset.key;
       const targetKey = row.dataset.key;
-      const srcIdx = favSectionOrderState.indexOf(srcKey);
-      let targetIdx = favSectionOrderState.indexOf(targetKey);
+      const order = favSectionOrderedKeys();
+      const srcIdx = order.indexOf(srcKey);
+      let targetIdx = order.indexOf(targetKey);
       if (srcIdx === -1 || targetIdx === -1) return;
 
       const rect = row.getBoundingClientRect();
       const before = e.clientY < rect.top + rect.height / 2;
 
-      favSectionOrderState.splice(srcIdx, 1);
-      targetIdx = favSectionOrderState.indexOf(targetKey);
-      favSectionOrderState.splice(before ? targetIdx : targetIdx + 1, 0, srcKey);
+      order.splice(srcIdx, 1);
+      targetIdx = order.indexOf(targetKey);
+      order.splice(before ? targetIdx : targetIdx + 1, 0, srcKey);
+      favSectionOrderState = order;
 
       renderFavSectionsList();
     });
@@ -177,69 +212,6 @@ function toggleFavSecEdit(key) {
 // проще: не нужен модальный шаг с загрузкой.
 let favCollections = [];
 
-function renderFavCollectionsList() {
-  const container = document.getElementById("favCollectionsList");
-  container.innerHTML = favCollections
-    .map(
-      (c) => `
-      <div class="tab-row" id="favcollrow-${c.id}" data-id="${esc(c.id)}" draggable="true">
-        <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-        ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavCollectionsList();`)}
-        <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
-        <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}" onkeydown="if(event.key==='Enter')this.blur();">
-        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavCollectionEdit('${c.id}')">✎</button>
-        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavCollection('${c.id}')">✕</button>
-      </div>
-    `
-    )
-    .join("");
-  bindFavCollectionsDnd();
-}
-
-let favCollDragSrc = null;
-
-function bindFavCollectionsDnd() {
-  const container = document.getElementById("favCollectionsList");
-  container.querySelectorAll(".tab-row[draggable]").forEach((row) => {
-    row.addEventListener("dragstart", (e) => {
-      favCollDragSrc = row;
-      row.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-    });
-    row.addEventListener("dragend", () => {
-      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("dragging", "drag-over"));
-      favCollDragSrc = null;
-    });
-    row.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      if (!favCollDragSrc || row === favCollDragSrc) return;
-      container.querySelectorAll(".tab-row").forEach((el) => el.classList.remove("drag-over"));
-      row.classList.add("drag-over");
-    });
-    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
-    row.addEventListener("drop", (e) => {
-      e.preventDefault();
-      row.classList.remove("drag-over");
-      if (!favCollDragSrc || row === favCollDragSrc) return;
-
-      const srcId = favCollDragSrc.dataset.id;
-      const targetId = row.dataset.id;
-      const srcIdx = favCollections.findIndex((c) => c.id === srcId);
-      let targetIdx = favCollections.findIndex((c) => c.id === targetId);
-      if (srcIdx === -1 || targetIdx === -1) return;
-
-      const rect = row.getBoundingClientRect();
-      const before = e.clientY < rect.top + rect.height / 2;
-
-      const [moved] = favCollections.splice(srcIdx, 1);
-      targetIdx = favCollections.findIndex((c) => c.id === targetId);
-      favCollections.splice(before ? targetIdx : targetIdx + 1, 0, moved);
-
-      renderFavCollectionsList();
-    });
-  });
-}
-
 function toggleFavCollectionEdit(id) {
   const row = document.getElementById(`favcollrow-${id}`);
   const editing = row.classList.toggle("editing");
@@ -258,7 +230,38 @@ function addFavCollection() {
   if (!name) return;
   favCollections.push({ id: slugify(name), label: name });
   document.getElementById("newFavCollectionName").value = "";
-  renderFavCollectionsList();
+  renderFavSectionsList();
+  // Та же причина, что у addStatusBucket() выше – кнопка, а не поле
+  // ввода, markSettingsDirty() её клик не видит.
+  settingsDirty = true;
+}
+
+// Тот же вид (подпись + поле + кнопка), что у addStatusBucket()/
+// addFavCollection() выше – раньше тир-лист заводился здесь только
+// кнопкой «Создать», открывавшей отдельную модалку, хотя два соседних
+// раздела этой же панели заводят новое прямо на месте. createTierCollection()
+// – в js/tierlist.js, общая с модалкой (та же функция открывает и
+// закрывает вкладку «Тир-лист» на новую коллекцию – здесь это не нужно,
+// просто очищаем поле). settingsDirty тут не нужен: в отличие от
+// статусов/разделов «Любимого», коллекция тир-листа пишется на диск
+// сразу же (patchSiteSettings внутри createTierCollection), не дожидаясь
+// общей кнопки «Сохранить».
+async function addTierCollectionInline() {
+  const input = document.getElementById("newTierCollectionName");
+  const name = input.value.trim();
+  if (!name) return;
+  const btn = document.getElementById("tier-add-btn");
+  btn.disabled = true;
+  flashStatus("status-tier-add", true, i18n("Сохраняем…"));
+  try {
+    await createTierCollection(name);
+    input.value = "";
+    flashStatus("status-tier-add", true, i18n("Готово."));
+  } catch (err) {
+    flashStatus("status-tier-add", false, err.message || i18n("Ошибка сохранения"));
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function removeFavCollection(id) {
@@ -311,7 +314,7 @@ async function removeFavCollection(id) {
     favCollections = favCollections.filter((c) => c.id !== id);
     hiddenFavSectionsState.delete(id);
     window.SITE_FAV_COLLECTIONS = favCollections;
-    renderFavCollectionsList();
+    renderFavSectionsList();
     refreshOpenReviewsTab();
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
@@ -625,6 +628,12 @@ function addStatusBucket() {
   statusBuckets.push({ key, label: name, removable: true });
   document.getElementById("newStatusName").value = "";
   renderStatusesList();
+  // Кнопка, не поле ввода – markSettingsDirty() в settings-edit.js
+  // висит на input/change, клик их не поднимает. Без этого явного
+  // флага новый статус оставался только в памяти этой панели: уйти
+  // можно было без единого вопроса про несохранённое, и правка тихо
+  // терялась.
+  settingsDirty = true;
 }
 
 async function countReviewsByStatus(key) {
