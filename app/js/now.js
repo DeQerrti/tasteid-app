@@ -27,6 +27,17 @@ function saveCollapsed(set) {
   localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set]));
 }
 
+// Снимок того, что уже нарисовано – см. её же комментарий выше про
+// "кэша больше нет": reviews.json перечитывается заново при КАЖДОМ
+// заходе на вкладку, и на компьютере это правда дёшево (локальный
+// fetch), а на телефоне идёт через нативный мост Capacitor Filesystem
+// – заметно медленнее. Без этой проверки каждый заход пересобирал всю
+// разметку заново, даже когда данные не изменились ни на йоту: все
+// <img> оказывались новыми узлами, и карточки заметно мигали при
+// каждом переключении вкладки. Перерисовываем только когда снимок
+// (данные + подписи статусов) и правда стал другим.
+let nowLastSnapshot = null;
+
 async function loadNow() {
   if (loading.now) return;
   loading.now = true;
@@ -42,8 +53,12 @@ async function loadNow() {
     const completed = reviews.filter(r =>
       r.status === "completed" || (!r.status && (r.preview || r.grade))
     );
+    const snapshot = JSON.stringify({ buckets, completed });
+    if (snapshot === nowLastSnapshot) return;
+    nowLastSnapshot = snapshot;
     renderNow({ buckets, completed });
   } catch (err) {
+    nowLastSnapshot = null; // при следующей успешной загрузке перерисовать точно
     box.innerHTML = `<div class="state-box">
       <div style="font-size:2rem;margin-bottom:.75rem">⚠️</div>
       ${i18n("Ошибка:")} ${esc(err.message)}

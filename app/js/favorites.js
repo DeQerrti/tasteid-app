@@ -51,6 +51,14 @@ function favSectionHtml(id, title, headerExtra, bodyHtml, collapsed) {
   </section>`;
 }
 
+// Снимок уже нарисованного – та же причина, что у nowLastSnapshot в
+// js/now.js: reviews.json/favorites.json перечитываются заново при
+// каждом заходе на вкладку, а на телефоне это идёт через нативный мост
+// Capacitor Filesystem, заметно медленнее локального fetch на
+// компьютере. Без этой проверки каждый заход пересобирал всю разметку
+// заново, даже когда ничего не изменилось, – карточки заметно мигали.
+let favLastSnapshot = null;
+
 async function loadFavorites() {
   if (loading.fav) return;
   loading.fav = true;
@@ -69,9 +77,14 @@ async function loadFavorites() {
     const characters = favData.filter(r => r.type === "character");
     const persons    = favData.filter(r => r.type === "person");
 
+    const snapshot = JSON.stringify({ titles, characters, persons, favData });
+    if (snapshot === favLastSnapshot) return;
+    favLastSnapshot = snapshot;
+
     renderFavorites({ titles, characters, persons, favData });
 
   } catch (err) {
+    favLastSnapshot = null; // при следующей успешной загрузке перерисовать точно
     document.getElementById("tab-favorites").innerHTML =
       `<div class="state-box">
         <div style="font-size:2rem;margin-bottom:.75rem">⚠️</div>

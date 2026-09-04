@@ -45,9 +45,20 @@ document.addEventListener("tags-map-updated", () => {
   if (cache.reviews && document.getElementById("rv-grid")) applyRvFilters(reviewsWithReview(cache.reviews));
 });
 
+// Снимок уже нарисованного – та же причина, что у nowLastSnapshot в
+// js/now.js: reviews.json перечитывается заново при каждом заходе на
+// вкладку, а на телефоне это идёт через нативный мост Capacitor
+// Filesystem, заметно медленнее локального fetch на компьютере. Без
+// этой проверки каждый заход пересобирал всю сетку карточек и фильтры
+// заново, даже когда ничего не изменилось, – карточки заметно мигали.
+let reviewsLastSnapshot = null;
+
 async function loadReviews() {
   const data = await fetchReviews();
   const withReview = reviewsWithReview(data);
+  const snapshot = JSON.stringify(withReview);
+  if (snapshot === reviewsLastSnapshot) return;
+  reviewsLastSnapshot = snapshot;
   if (withReview.length) {
     renderReviews(withReview);
   } else {
