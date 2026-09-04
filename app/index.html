@@ -219,18 +219,16 @@ body.rail-collapsed #rail-edge-trigger {
    голая <a> строчная, паддинг сверху/снизу на ней визуально не
    работает), а это ID-селектор – специфичнее класса .hidden выше.
    Без явного переопределения тут .hidden ничего не скрывал бы на
-   этой конкретной ссылке, специфичность есть специфичность: тот же
-   приём, что уже применён к #mobile-fab-add.hidden ниже. */
+   этой конкретной ссылке. */
 #admin-settings-link.hidden { display: none; }
 .admin-link-icon { display: none; }
 
-/* Иконки вкладок и сама FAB скрыты на столе намеренно: в рельсе и так
-   достаточно места под подпись целиком, а рисованный значок рядом с
-   уже говорящим словом только грузит рельсу шире. Нужны они ровно там,
-   где вкладки сжаты в пять узких стоблцов нижней панели – то есть
-   только под мобильным медиа-запросом ниже. */
+/* Иконка вкладки скрыта на столе намеренно: в рельсе и так достаточно
+   места под подпись целиком, а рисованный значок рядом с уже говорящим
+   словом только грузит рельсу шире. Нужна она ровно там, где вкладки
+   сжаты в пять узких стоблцов нижней панели – то есть только под
+   мобильным медиа-запросом ниже. */
 .tab-icon { display: none; }
-#mobile-fab-add { display: none; }
 
 /* Телефон. 236px рельсы там съедали бы больше половины ширины – как и
    в settings-edit.html при той же проблеме, но лечится иначе: там
@@ -342,31 +340,6 @@ body.rail-collapsed #rail-edge-trigger {
      на самой ссылке (см. разметку) остаётся для скринридера. */
   .admin-link-label { display: none; }
   .admin-link-icon { display: block; width: 20px; height: 20px; }
-
-  /* ── Плавающая кнопка «Добавить» ──────────────────
-     Висит над нижней панелью, а не внутри неё – шестой вкладкой она
-     не была бы: «Добавить» не раздел с собственным содержимым, а
-     действие, и role="tab" ей не подходит по смыслу. Отступ снизу
-     считает высоту самой панели (см. её же комментарий у nav#rail:
-     padding 4px сверху и снизу + safe-area, плюс сама кнопка вкладки)
-     с запасом, чтобы не наезжать на неё даже на iPhone с самой узкой
-     жестовой полосой. */
-  #mobile-fab-add {
-    display: flex; align-items: center; justify-content: center;
-    position: fixed;
-    right: 16px;
-    bottom: calc(68px + env(safe-area-inset-bottom));
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: var(--red);
-    color: var(--text-hi);
-    box-shadow: 0 6px 18px var(--shadow-soft);
-    z-index: 51;
-    transition: background .15s, transform .12s;
-  }
-  #mobile-fab-add:active { transform: scale(.94); }
-  #mobile-fab-add.hidden { display: none; }
-  #mobile-fab-add svg { width: 24px; height: 24px; }
 }
 
 /* Видимая рамка фокуса. Карточка отзыва теперь фокусируема
@@ -2603,15 +2576,6 @@ section.group { margin-bottom: 3.5rem; }
   <div class="rail-resize" id="rail-resize" aria-hidden="true"></div>
 </nav>
 <div id="rail-edge-trigger" aria-hidden="true"></div>
-<!-- Плавающая кнопка добавления – только телефон, только у владельца
-     (см. её же CSS в мобильном медиа-запросе и JS-переключатель
-     видимости рядом с #admin-settings-link ниже). На столе то же самое
-     действие уже есть в .admin-add-btn на вкладке «Отзывы» и по
-     горячей клавише – здесь дублировать незачем, там и без FAB
-     дотянуться пальцем некуда не выходит. -->
-<a href="#/add" id="mobile-fab-add" class="hidden" aria-label="Добавить">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-</a>
 
 <script>
   // .hidden у ссылки настроек – обычный CSS-класс, а не HTML-атрибут
@@ -2624,7 +2588,6 @@ section.group { margin-bottom: 3.5rem; }
   document.addEventListener("DOMContentLoaded", () => {
     if (typeof isAdmin === "function" && isAdmin()) {
       document.getElementById("admin-settings-link").classList.remove("hidden");
-      document.getElementById("mobile-fab-add").classList.remove("hidden");
     }
   });
 
