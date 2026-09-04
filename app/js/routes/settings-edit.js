@@ -230,7 +230,6 @@ function settingsViewHtml() {
         <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
 
         <h2 class="section-h" id="tierModesHeading"></h2>
-        <p class="panel-intro" data-i18n>Скрыть, переименовать, удалить и переставить местами можно все тир-листы разом – «Тайтлы» и свои коллекции.</p>
         <div id="tierModesList"></div>
         <!-- Та же кнопка и та же модалка (openCollectionModal() в
              tierlist.js), что и на самой вкладке «Тир-лист» – модалка
