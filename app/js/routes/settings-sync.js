@@ -188,10 +188,16 @@ async function connectSync() {
     const config = { token, owner: user.login, repo };
 
     flashStatus("status-sync", true, i18n("Проверяем репозиторий…"));
-    if (!(await repoExists(config))) {
+    let repoInfo = await getRepoInfo(config);
+    if (!repoInfo) {
       flashStatus("status-sync", true, i18n("Репозитория ещё нет – создаём…"));
-      await createRepo(config);
+      repoInfo = await createRepo(config);
     }
+    // default_branch нужен Git Trees API при синхронизации (см. её же
+    // комментарий у ensureBranch в sync.js) – раз уж он и так пришёл
+    // вместе с остальными данными о репозитории, сохраняем сразу, а не
+    // спрашиваем отдельным запросом при первой же синхронизации.
+    config.branch = repoInfo.default_branch || "main";
 
     saveSyncConfig(config);
     renderSyncPanel();

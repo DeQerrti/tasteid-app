@@ -236,11 +236,13 @@ async function checkGithubUser(token) {
   return res.json(); // { login, ... }
 }
 
-async function repoExists(config) {
+// Возвращает данные репозитория (в т.ч. default_branch – нужен ниже
+// для Git Trees API) или null, если репозитория ещё нет.
+async function getRepoInfo(config) {
   const res = await githubApi(config, `/repos/${config.owner}/${config.repo}`);
-  if (res.status === 404) return false;
+  if (res.status === 404) return null;
   if (!res.ok) throw new SyncError(i18n("Не получилось проверить репозиторий."));
-  return true;
+  return res.json();
 }
 
 async function createRepo(config) {
@@ -257,6 +259,49 @@ async function createRepo(config) {
     const data = await res.json().catch(() => ({}));
     throw new SyncError(data.message || i18n("Не получилось создать репозиторий."));
   }
+  return res.json();
+}
+
+// config.branch – ветка репозитория, нужна Git Trees API ниже. У новых
+// подключений (см. connectSync()) она уже приходит вместе с остальным
+// конфигом – сюда попадают только конфиги, сохранённые до появления
+// этого поля: тогда спрашиваем и запоминаем на будущее, чтобы не
+// делать этот же запрос при каждой следующей синхронизации.
+async function ensureBranch(config) {
+  if (config.branch) return config.branch;
+  const info = await getRepoInfo(config);
+  config.branch = info?.default_branch || "main";
+  saveSyncConfig(config);
+  return config.branch;
+}
+
+// ── Список файлов репозитория одним запросом ────
+// Раньше syncOne() узнавал состояние КАЖДОГО файла отдельным запросом
+// Contents API – при 800+ файлах в хранилище это 800+ запросов на
+// каждую синхронизацию, даже когда поменялась одна запись. Git Trees
+// API отдаёт путь и sha сразу всех файлов репозитория одним запросом –
+// runSync() дальше зовёт Contents API поштучно только для файлов,
+// которые эта сверка и правда пометила спорными (см. её же комментарий
+// у syncOne).
+async function getRepoTree(config) {
+  const branch = await ensureBranch(config);
+  const res = await githubApi(
+    config,
+    `/repos/${config.owner}/${config.repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`
+  );
+  if (res.status === 404) return new Map(); // ветки/коммитов ещё нет – пустой репозиторий
+  if (!res.ok) throw new SyncError(i18n("Не получилось получить список файлов репозитория."));
+  const data = await res.json();
+  // truncated – список неполный (десятки тысяч файлов, за пределы
+  // этого приложения на практике не выходит, но на всякий случай не
+  // делаем вид, что список полный: null дальше по коду включает
+  // прежний, поштучный способ проверки для этой конкретной синхронизации.
+  if (data.truncated) return null;
+  const map = new Map();
+  for (const entry of data.tree || []) {
+    if (entry.type === "blob") map.set(entry.path, entry.sha);
+  }
+  return map;
 }
 
 function encodePath(path) {
@@ -310,25 +355,46 @@ async function contentHash(base64) {
 // ── Один файл: решить, что с ним делать, и сделать ─
 // localBase64 – текущее содержимое, уже в base64. entry – {hash, sha}
 // из прошлой синхронизации, либо undefined, если файл ещё ни разу не
-// синхронизировался.
-async function syncOne(config, path, localBase64, entry) {
+// синхронизировался. remoteTree – Map(путь → sha) из getRepoTree(),
+// одна на всю синхронизацию: с её помощью решаем, менялся ли файл в
+// репозитории, без отдельного запроса на каждый файл. Содержимое
+// (Contents API, отдельный запрос) тянем только там, где sha одного
+// bulk-списка не хватает – сравнить контент при споре или правда
+// забрать то, что изменилось только на стороне репозитория.
+async function syncOne(config, path, localBase64, entry, remoteTree) {
   const localHash = await contentHash(localBase64);
-  const remote = await getRemoteFile(config, path);
 
+  // remoteTree === null – Git Trees API вернул усечённый список (см.
+  // её же комментарий у getRepoTree): для этой синхронизации бы
+  // рискнули пропустить часть файлов, поэтому просто возвращаемся к
+  // прежнему способу – проверить именно этот файл отдельным запросом.
+  if (!remoteTree) return syncOneByFetch(config, path, localBase64, localHash, entry);
+
+  const remoteSha = remoteTree.get(path);
   const localChanged = !entry || entry.hash !== localHash;
-  const remoteChanged = !entry || !remote || entry.sha !== remote.sha;
+  const remoteChanged = !entry || remoteSha === undefined || entry.sha !== remoteSha;
 
   if (!localChanged && !remoteChanged) {
-    return { action: "none", hash: localHash, sha: remote?.sha };
+    return { action: "none", hash: localHash, sha: remoteSha };
   }
 
-  if (!remote) {
+  if (remoteSha === undefined) {
     // В репозитории файла ещё нет вообще – отправляем, конфликтовать не с чем.
     const sha = await putRemoteFile(config, path, localBase64);
     return { action: "push", hash: localHash, sha };
   }
 
   if (localChanged && remoteChanged) {
+    // Спорный файл – здесь и только здесь нужно настоящее содержимое
+    // с той стороны, не только его sha из общего списка.
+    const remote = await getRemoteFile(config, path);
+    if (!remote) {
+      // Файл успели удалить в промежутке между списком и этим запросом
+      // (гонка, крайне маловероятная) – отправляем свою версию, как при
+      // отсутствующем файле выше.
+      const sha = await putRemoteFile(config, path, localBase64);
+      return { action: "push", hash: localHash, sha };
+    }
     // Сперва самый частый случай: содержимое совпадает. Так бывает не
     // только «на всякий случай» – так выглядит любая синхронизация без
     // entry: переустановили приложение, почистили данные браузера,
@@ -347,11 +413,54 @@ async function syncOne(config, path, localBase64, entry) {
   }
 
   if (localChanged) {
+    // Remote не менялся – его sha из общего списка уже точно тот, что
+    // нужен для PUT, отдельным запросом за содержимым идти незачем.
+    const sha = await putRemoteFile(config, path, localBase64, remoteSha);
+    return { action: "push", hash: localHash, sha };
+  }
+
+  // Только remote изменился – содержимое нужно забрать по-настоящему,
+  // одного sha для этого недостаточно.
+  const remote = await getRemoteFile(config, path);
+  if (!remote) {
+    // Файл удалили в репозитории в промежутке между списком и этим
+    // запросом – ничего не делаем, следующая синхронизация разберётся
+    // по свежему списку.
+    return { action: "none", hash: localHash, sha: entry?.sha };
+  }
+  return { action: "pull", base64: remote.base64, sha: remote.sha };
+}
+
+// Прежний, поштучный способ – запасной вариант на случай усечённого
+// bulk-списка (см. её же комментарий у syncOne). Логика ровно та же,
+// что была раньше, просто больше не единственный путь.
+async function syncOneByFetch(config, path, localBase64, localHash, entry) {
+  const remote = await getRemoteFile(config, path);
+
+  const localChanged = !entry || entry.hash !== localHash;
+  const remoteChanged = !entry || !remote || entry.sha !== remote.sha;
+
+  if (!localChanged && !remoteChanged) {
+    return { action: "none", hash: localHash, sha: remote?.sha };
+  }
+
+  if (!remote) {
+    const sha = await putRemoteFile(config, path, localBase64);
+    return { action: "push", hash: localHash, sha };
+  }
+
+  if (localChanged && remoteChanged) {
+    if ((await contentHash(remote.base64)) === localHash) {
+      return { action: "none", hash: localHash, sha: remote.sha };
+    }
+    return { action: "conflict", localBase64, remote, localHash };
+  }
+
+  if (localChanged) {
     const sha = await putRemoteFile(config, path, localBase64, remote.sha);
     return { action: "push", hash: localHash, sha };
   }
 
-  // Только remote изменился – забираем.
   return { action: "pull", base64: remote.base64, sha: remote.sha };
 }
 
@@ -362,6 +471,11 @@ async function syncOne(config, path, localBase64, entry) {
 async function runSync(config, onProgress) {
   const state = getSyncState();
   const backup = await (await fetch("/api/export-backup")).json();
+  // Один запрос на весь список файлов репозитория вместо одного на
+  // каждый файл (см. её же комментарий у getRepoTree/syncOne) – самая
+  // частая синхронизация (несколько файлов реально изменились из
+  // сотен) обходится парой запросов вместо сотен.
+  const remoteTree = await getRepoTree(config);
 
   const result = {
     pushed: 0,
@@ -386,7 +500,7 @@ async function runSync(config, onProgress) {
     onProgress?.(++done, items.length, item.path);
 
     const entry = state[item.kind][item.path];
-    const outcome = await syncOne(config, item.path, item.base64, entry);
+    const outcome = await syncOne(config, item.path, item.base64, entry, remoteTree);
 
     if (outcome.action === "none") {
       result.skipped++;

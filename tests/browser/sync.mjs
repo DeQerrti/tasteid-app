@@ -80,12 +80,29 @@ async function handleGithub(route) {
   if (p === "/user" && method === "GET") return respond(200, { login: gh.login });
 
   if (/^\/repos\/[^/]+\/[^/]+$/.test(p) && method === "GET") {
-    return gh.repoExists ? respond(200, {}) : respond(404, { message: "Not Found" });
+    return gh.repoExists
+      ? respond(200, { default_branch: "main" })
+      : respond(404, { message: "Not Found" });
   }
 
   if (p === "/user/repos" && method === "POST") {
     gh.repoExists = true;
-    return respond(201, {});
+    return respond(201, { default_branch: "main" });
+  }
+
+  // Git Trees API – см. её же комментарий у getRepoTree() в app/js/sync.js:
+  // один запрос на список всех файлов репозитория вместо одного на
+  // каждый. Слепок собирается прямо из gh.files, а не хранится отдельно –
+  // в тесте это одно и то же дерево, других веток тут не бывает.
+  if (/^\/repos\/[^/]+\/[^/]+\/git\/trees\/main$/.test(p) && method === "GET") {
+    return respond(200, {
+      truncated: false,
+      tree: [...gh.files.entries()].map(([path, entry]) => ({
+        path,
+        type: "blob",
+        sha: entry.sha,
+      })),
+    });
   }
 
   const contentsMatch = p.match(/^\/repos\/[^/]+\/[^/]+\/contents\/(.+)$/);
