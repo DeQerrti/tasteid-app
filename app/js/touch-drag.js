@@ -49,6 +49,32 @@
   let start = null; // точка касания
   let dragged = false; // было ли перетаскивание – чтобы погасить клик
 
+  // Прокрутка вручную (см. её же комментарий у touchmove ниже) без
+  // инерции листала ровно на длину самого свайпа и резко останавливалась
+  // на отпускании – в отличие от обычной прокрутки, которая после
+  // быстрого свайпа ещё едет по инерции и тормозит сама. FLING* ниже –
+  // тот же "доезд": на отпускании берём скорость последних мс движения
+  // и гасим её трением, кадр за кадром, пока не станет пренебрежимо мала.
+  let velY = 0; // px/мс на момент отпускания
+  let lastMoveT = 0;
+  let flingRaf = null;
+  const FLING_FRICTION = 0.94; // за кадр (~16мс)
+  const FLING_MIN_V = 0.02; // px/мс, дальше это уже не движение, а дрожание
+
+  function stopFling() {
+    if (flingRaf) cancelAnimationFrame(flingRaf);
+    flingRaf = null;
+  }
+  function fling() {
+    velY *= FLING_FRICTION;
+    if (Math.abs(velY) < FLING_MIN_V) {
+      flingRaf = null;
+      return;
+    }
+    scrollBy(0, velY * 16);
+    flingRaf = requestAnimationFrame(fling);
+  }
+
   const point = (e) => e.touches[0] || e.changedTouches[0];
 
   // DragEvent конструируется по-настоящему, с настоящим DataTransfer:
@@ -127,8 +153,11 @@
       if (src || e.touches.length !== 1) return;
       const el = e.target.closest?.('[draggable="true"]');
       if (!el) return;
+      stopFling(); // новое касание – прошлый доезд (если ещё катился) больше не в счёт
+      velY = 0;
       const p = point(e);
       start = { el, x: p.clientX, y: p.clientY };
+      lastMoveT = performance.now();
       hold = setTimeout(() => begin(el, start.x, start.y), HOLD);
     },
     { passive: true }
@@ -145,12 +174,21 @@
         // целиком, ровно на тех элементах, где палец мог опуститься для
         // захвата, – без повтора вручную список нельзя было бы пролистать,
         // начав касание прямо на строке, а не в промежутке между ними.
-        scrollBy(0, start.y - p.clientY);
+        const dy = start.y - p.clientY;
+        scrollBy(0, dy);
         // Если палец поехал – это (по крайней мере уже) не захват,
         // отменяем таймер удержания. Точку отсчёта для прокрутки выше
         // при этом не обнуляем – прокрутка продолжается, пока палец на
         // экране, отмена захвата её не останавливает.
         if (Math.hypot(p.clientX - start.x, p.clientY - start.y) > SLIP) clearTimeout(hold);
+        // Скорость этого шага – для доезда по инерции на отпускании
+        // (см. fling() выше). Старые шаги не усредняем нарочно: важна
+        // именно скорость самого последнего движения перед отрывом
+        // пальца, а не средняя за весь свайп.
+        const now = performance.now();
+        const dt = now - lastMoveT;
+        if (dt > 0) velY = dy / dt;
+        lastMoveT = now;
         start.x = p.clientX;
         start.y = p.clientY;
         return;
@@ -173,8 +211,15 @@
 
   const end = (e) => {
     clearTimeout(hold);
+    const wasScrolling = !src && start;
     start = null;
-    if (!src) return;
+    if (!src) {
+      // Не захват, а обычная прокрутка (см. её же ручную scrollBy() в
+      // touchmove) – отпустили после быстрого свайпа, доезжаем по
+      // инерции тем же приёмом, что и настоящая прокрутка списков.
+      if (wasScrolling && e.type === "touchend") fling();
+      return;
+    }
     const p = point(e);
     finish(p.clientX, p.clientY, e.type === "touchend");
   };

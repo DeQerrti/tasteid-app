@@ -355,7 +355,7 @@ function renderTabsList() {
       return `
       <div class="tab-row" id="tabrow-${id}" data-id="${id}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-        ${eyeButton(hiddenTabsState.has(id), `hiddenTabsState.has('${id}') ? hiddenTabsState.delete('${id}') : hiddenTabsState.add('${id}'); renderTabsList();`)}
+        ${eyeButton(hiddenTabsState.has(id), `hiddenTabsState.has('${id}') ? hiddenTabsState.delete('${id}') : hiddenTabsState.add('${id}'); renderTabsList(); settingsDirty = true;`)}
         <span class="tab-name" id="tabname-${id}">${tabLabels[id] || def.def}</span>
         <input type="text" id="tabinput-${id}" value="${tabLabels[id] || def.def}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTabEdit('${id}')">✎</button>

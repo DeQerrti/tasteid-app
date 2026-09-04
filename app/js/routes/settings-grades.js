@@ -311,7 +311,7 @@ function renderTierModesList() {
         return `
         <div class="tab-row" id="tiermoderow-titles" data-key="titles" draggable="true">
           <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-          ${eyeButton(hiddenTierModesState.has("titles"), "hiddenTierModesState.has('titles') ? hiddenTierModesState.delete('titles') : hiddenTierModesState.add('titles'); renderTierModesList();")}
+          ${eyeButton(hiddenTierModesState.has("titles"), "hiddenTierModesState.has('titles') ? hiddenTierModesState.delete('titles') : hiddenTierModesState.add('titles'); renderTierModesList(); settingsDirty = true;")}
           <span class="tab-name" id="tiermodename-titles">${esc(tierTitlesLabel)}</span>
           <input type="text" id="tiermodeinput-titles" value="${esc(tierTitlesLabel)}" onkeydown="if(event.key==='Enter')this.blur();">
           <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTierModeEdit('titles')">✎</button>
@@ -322,7 +322,7 @@ function renderTierModesList() {
       return `
       <div class="tab-row" id="tiermoderow-${esc(c.id)}" data-key="${esc(c.id)}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-        ${eyeButton(hiddenTierModesState.has(c.id), `hiddenTierModesState.has('${c.id}') ? hiddenTierModesState.delete('${c.id}') : hiddenTierModesState.add('${c.id}'); renderTierModesList();`)}
+        ${eyeButton(hiddenTierModesState.has(c.id), `hiddenTierModesState.has('${c.id}') ? hiddenTierModesState.delete('${c.id}') : hiddenTierModesState.add('${c.id}'); renderTierModesList(); settingsDirty = true;`)}
         <span class="tab-name" id="tiermodename-${esc(c.id)}">${esc(c.label || c.id)}</span>
         <input type="text" id="tiermodeinput-${esc(c.id)}" value="${esc(c.label || c.id)}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTierModeEdit('${c.id}')">✎</button>

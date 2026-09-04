@@ -78,7 +78,7 @@ function renderFavSectionsList() {
         return `
         <div class="tab-row" id="favsecrow-${key}" data-key="${key}" draggable="true">
           <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-          ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList();`)}
+          ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList(); settingsDirty = true;`)}
           <span class="tab-name" id="favsecname-${key}">${esc(label)}</span>
           <input type="text" id="favsecinput-${key}" value="${esc(label)}" onkeydown="if(event.key==='Enter')this.blur();">
           <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${key}')">✎</button>
@@ -90,7 +90,7 @@ function renderFavSectionsList() {
       return `
       <div class="tab-row" id="favcollrow-${c.id}" data-key="${c.id}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-        ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavSectionsList();`)}
+        ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavSectionsList(); settingsDirty = true;`)}
         <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
         <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavCollectionEdit('${c.id}')">✎</button>
@@ -520,7 +520,7 @@ function renderStatusesList() {
         return `
         <div class="tab-row" id="statusrow-archive" data-key="archive" draggable="true">
           <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-          ${eyeButton(hiddenStatusesState.has("archive"), `hiddenStatusesState.has('archive') ? hiddenStatusesState.delete('archive') : hiddenStatusesState.add('archive'); renderStatusesList();`)}
+          ${eyeButton(hiddenStatusesState.has("archive"), `hiddenStatusesState.has('archive') ? hiddenStatusesState.delete('archive') : hiddenStatusesState.add('archive'); renderStatusesList(); settingsDirty = true;`)}
           <span class="tab-name" id="statusname-archive">${archiveLabel}</span>
           <input type="text" id="statusinput-archive" value="${archiveLabel}" onkeydown="if(event.key==='Enter')this.blur();">
           <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('archive')">✎</button>
@@ -531,7 +531,7 @@ function renderStatusesList() {
       return `
       <div class="tab-row" id="statusrow-${b.key}" data-key="${b.key}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-        ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList();`)}
+        ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList(); settingsDirty = true;`)}
         <span class="tab-name" id="statusname-${b.key}">${b.label}</span>
         <input type="text" id="statusinput-${b.key}" value="${b.label}" onkeydown="if(event.key==='Enter')this.blur();">
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('${b.key}')">✎</button>

@@ -620,9 +620,18 @@ async function mount(container, params) {
       updateSettingsPanelTitle(btn);
       // На ПК ничего не меняет (сайдбар виден всегда), а на телефоне –
       // тот самый переход от списка разделов к открытой панели (см.
-      // .mobile-panel-open в index.html).
-      appEl.classList.add("mobile-panel-open");
-      seMobilePanelOpen = true;
+      // .mobile-panel-open в index.html, класс действует только внутри
+      // @media (max-width: 720px)). Раньше seMobilePanelOpen тоже
+      // взводился безусловно, хотя визуально на ПК ничего не менялось, –
+      // и Escape там же путался: settingsBackAction() видел флаг
+      // «открыта мобильная панель» и первым нажатием просто гасил
+      // подсветку вкладки (closeMobileSettingsPanel()) вместо настоящего
+      // выхода, второе нажатие уже выходило по-нормальному. Флаг теперь
+      // ставим только тогда, когда мобильная раскладка правда активна.
+      if (matchMedia("(max-width: 720px)").matches) {
+        appEl.classList.add("mobile-panel-open");
+        seMobilePanelOpen = true;
+      }
       // Паспорта грузятся при первом открытии панели, а не вместе со
       // страницей: они тянут reviews.json целиком, а заходят сюда редко.
       if (btn.dataset.panel === "passports") loadPassports();

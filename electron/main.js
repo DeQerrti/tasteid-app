@@ -604,7 +604,7 @@ async function createWindow({ compact = false } = {}) {
     // quitAndInstall() тоже закрывает это окно (это первый шаг его
     // собственной последовательности «закрыться → поставить →
     // перезапуститься») – и раньше натыкался на этот же самый
-    // preventDefault. До 6 секунд задержки ради синхронизации, которую
+    // preventDefault. До нескольких секунд задержки ради синхронизации, которую
     // мы сами тут устраиваем, ломали (не всегда, не на всех машинах,
     // поэтому и не было явной ошибки в логах) внутренний расчёт
     // electron-updater на то, что происходит именно быстрый выход –
@@ -617,7 +617,7 @@ async function createWindow({ compact = false } = {}) {
     // чтобы файл всегда показывал только самую последнюю попытку, а не
     // копил историю за месяцы работы.
     quitLog = [];
-    debugLog("close: preventDefault, жду __syncBeforeQuit до 6с");
+    debugLog("close: preventDefault, жду __syncBeforeQuit до 3с");
     e.preventDefault();
     // synced и timeout ниже оба зовут finish() – раньше только
     // победитель гонки (Promise.race) делал это один раз, теперь
@@ -650,8 +650,16 @@ async function createWindow({ compact = false } = {}) {
         app.exit(0);
       }, 3000).unref();
     };
-    const timeout = new Promise((resolve) => setTimeout(resolve, 6000)).then(() =>
-      finish("timeout-6s")
+    // Раньше 6с – это была ЕДИНСТВЕННАЯ причина долгого закрытия
+    // (Promise.race с synced ниже: чем бы ни закончилось раньше, столько
+    // и ждём). Настоящий fix – закрываться сразу, а синхронизацию
+    // доводить до конца в фоне независимо от окна – требует переезда
+    // сетевых запросов sync.js из рендерера в главный процесс (сейчас
+    // они живут в window.__syncBeforeQuit, а после закрытия окна
+    // webContents уничтожается вместе с ними); это отдельная, более
+    // крупная переделка. Пока просто уменьшил потолок ожидания вдвое.
+    const timeout = new Promise((resolve) => setTimeout(resolve, 3000)).then(() =>
+      finish("timeout-3s")
     );
     const synced = closingWin.webContents
       .executeJavaScript("window.__syncBeforeQuit ? window.__syncBeforeQuit() : null")

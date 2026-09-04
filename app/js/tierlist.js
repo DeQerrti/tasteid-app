@@ -49,8 +49,17 @@ function visibleTierCollections() {
   return activeTierCollections().filter(c => isTierModeVisible(c.id));
 }
 
+// Со слэшем спереди, как и все остальные fetch() по данным хранилища
+// (/reviews.json, /favorites.json – см. js/api.js, js/favorites.js) –
+// без него это была не абсолютная ссылка на корень, а относительная от
+// текущей страницы, что на компьютере (страница и так лежит в корне)
+// случайно совпадало с нужным адресом, а на телефоне вообще не
+// перехватывалось мостом (installFetch() в mobile/src/main.js смотрит
+// именно на "/" в начале) – запрос уходил в настоящую сеть и просто
+// зависал навсегда, а не отвечал ошибкой. "Загружаем «Персонажи»…"
+// оставалось на экране бессрочно ровно из-за этого.
 function collectionFileFor(id) {
-  return id === "characters" ? "characters-tier.json" : `tier-${id}.json`;
+  return id === "characters" ? "/characters-tier.json" : `/tier-${id}.json`;
 }
 
 // ── Модалка: новый тир-лист (коллекция) – только для админа ────

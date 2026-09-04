@@ -66,6 +66,12 @@
         leaveRO();
       }
     });
+    // Без этого свайп/аппаратная кнопка «назад» на телефоне
+    // (installBackButton() в mobile/src/main.js) уходили в
+    // window.history.back() напрямую, в обход leaveRO() – несохранённый
+    // порядок терялся молча, хотя стрелка сверху и Escape уже спрашивали
+    // правильно. Тот же приём, что у #/add и #/settings-edit.
+    setLeaveGuard(leaveRO);
 
     await load();
   }
@@ -79,6 +85,7 @@
   }
 
   function unmount() {
+    setLeaveGuard(null);
     cleanupFns.forEach((fn) => fn());
     cleanupFns = [];
     titles = [];
