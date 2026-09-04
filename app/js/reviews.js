@@ -14,13 +14,11 @@ const rvState = {
   grade:  "all",
   source: "all",
   search: "",
-  tagSearch: "",
-  // Отдельно от tagSearch (поиск по подстроке, десктопная панель) –
-  // выбор тегов тапом по полному списку, панель «Фильтры» на телефоне
-  // (см. её же комментарий у rvTagCloudHtml ниже). Разные механики на
-  // разных экранах, поэтому и состояние разное – applyRvFilters()
-  // применяет оба, если заполнены оба, но реально живым бывает только
-  // то, с которым человек и правда взаимодействовал.
+  // Раньше был текстовый поиск по подстроке (tagSearch) – заменён
+  // выбором тегов тапом по полному списку (модалка и на телефоне, и
+  // на компьютере, см. её же комментарий у rvTagToggleHtml ниже):
+  // держать в голове точные названия десятков тегов и печатать их
+  // руками не нужно.
   tags: [],
 };
 try {
@@ -131,17 +129,16 @@ function renderReviews(reviews) {
             autocomplete="off"
             value="${esc(rvState.search)}"
           >
-        </div>
-        <div class="rv-filter-group">
-          <span class="rv-filter-label">${esc(siteLabel("filters", "tags", i18n("Теги")))}</span>
-          <input
-            type="text"
-            id="rv-tag-search"
-            class="rv-search-input"
-            placeholder="${i18n("Название тега…")}"
-            autocomplete="off"
-            value="${esc(rvState.tagSearch)}"
-          >
+          <!-- Точную сотню тегов наизусть никто не держит – проще
+               потыкать по знакомым названиям в списке, чем гадать,
+               как именно тег назван (модалка – #rv-tags-modal-overlay
+               ниже, тот же список и то же состояние, что и в мобильной
+               панели «Фильтры»). Кнопка на той же строке, что «Поиск»
+               – рядом с ним и так есть свободное место, отдельная
+               строка под неё одну не нужна. -->
+          <button type="button" class="btn btn-ghost rv-tags-open-btn" id="rv-tags-open-btn">
+            ${i18n("Поиск по тегу")}<span class="rv-filters-count" id="rv-tags-btn-count"></span>
+          </button>
         </div>
         ${filterGroupsHtml}
       </div>
@@ -185,6 +182,24 @@ function renderReviews(reviews) {
       </div>
     </div>
 
+    <!-- Компьютер: та же самая идея, что и мобильная модалка выше, но
+         без Типа/Оценки/Ссылок – они и так уже видны рядом на панели,
+         дублировать их тут незачем. Только список тегов – ровно то,
+         что просила кнопка «Поиск по тегу». -->
+    <div class="modal-overlay hidden" id="rv-tags-modal-overlay" onclick="closeRvTagsModalOnOverlay(event)">
+      <div class="modal rv-filters-modal">
+        <button class="modal-close" onclick="closeRvTagsModal()">✕</button>
+        <h2 class="section-title" data-i18n>Поиск по тегу</h2>
+        <div class="rv-filters-modal-body">
+          <div class="rv-tag-cloud">${rvTagToggleHtml()}</div>
+        </div>
+        <div class="rv-filters-modal-actions">
+          <button class="btn btn-ghost" type="button" onclick="resetRvTags()" data-i18n>Сбросить</button>
+          <button class="btn btn-primary" type="button" onclick="closeRvTagsModal()" data-i18n>Применить</button>
+        </div>
+      </div>
+    </div>
+
     <section class="group">
       <div class="reviews-grid" id="rv-grid"></div>
     </section>`;
@@ -204,14 +219,8 @@ function renderReviews(reviews) {
   searchInput.addEventListener("input", () => onSearchInput(searchInput, searchInputMobile));
   searchInputMobile.addEventListener("input", () => onSearchInput(searchInputMobile, searchInput));
 
-  const tagSearchInput = document.getElementById("rv-tag-search");
-  tagSearchInput.addEventListener("input", () => {
-    rvState.tagSearch = tagSearchInput.value.trim().toLowerCase();
-    rvPersistFilters();
-    applyRvFilters(reviews);
-  });
-
   document.getElementById("rv-filters-open-btn").addEventListener("click", openRvFiltersModal);
+  document.getElementById("rv-tags-open-btn").addEventListener("click", openRvTagsModal);
 
   bindRvFilters(reviews);
   bindRvTagToggles(reviews);
@@ -267,6 +276,28 @@ function closeRvFiltersModal() {
 }
 function closeRvFiltersModalOnOverlay(e) {
   if (e.target === document.getElementById("rv-filters-modal-overlay")) closeRvFiltersModal();
+}
+
+// Отдельная, чисто тег-модалка для кнопки «Поиск по тегу» на
+// компьютере (см. её же комментарий у разметки в renderReviews) –
+// то же состояние (rvState.tags) и та же разметка тегов
+// (rvTagToggleHtml), что и в мобильной панели «Фильтры» выше, просто
+// без Типа/Оценки/Ссылок – они и так уже на виду рядом на десктопной
+// панели.
+function openRvTagsModal() {
+  document.getElementById("rv-tags-modal-overlay").classList.remove("hidden");
+}
+function closeRvTagsModal() {
+  document.getElementById("rv-tags-modal-overlay").classList.add("hidden");
+}
+function closeRvTagsModalOnOverlay(e) {
+  if (e.target === document.getElementById("rv-tags-modal-overlay")) closeRvTagsModal();
+}
+function resetRvTags() {
+  rvState.tags = [];
+  rvPersistFilters();
+  document.querySelectorAll(".rv-tag-cloud .tag-toggle").forEach((t) => t.classList.remove("active"));
+  applyRvFilters(rvAllReviews);
 }
 
 // Возвращает всё к «Все»/пусто одной кнопкой – проще, чем снимать
@@ -342,11 +373,6 @@ function applyRvFilters(reviews) {
       r.title.toLowerCase().includes(rvState.search)
     );
   }
-  if (rvState.tagSearch) {
-    filtered = filtered.filter(r =>
-      (r.tags || []).some(t => t.toLowerCase().includes(rvState.tagSearch))
-    );
-  }
   if (rvState.tags.length) {
     filtered = filtered.filter(r =>
       (r.tags || []).some(t => rvState.tags.includes(t))
@@ -358,6 +384,8 @@ function applyRvFilters(reviews) {
     const n = rvFiltersActiveCount();
     countEl.textContent = n ? ` ${n}` : "";
   }
+  const tagsCountEl = document.getElementById("rv-tags-btn-count");
+  if (tagsCountEl) tagsCountEl.textContent = rvState.tags.length ? ` ${rvState.tags.length}` : "";
 
   const grid = document.getElementById("rv-grid");
   if (!grid) return;
