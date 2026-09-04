@@ -68,6 +68,71 @@ function getSyncError() {
   }
 }
 
+// ── Плашка о сломанной синхронизации ────────────
+// Панель настроек и так показывает последнюю ошибку (см. её же
+// комментарий у SYNC_LAST_ERROR_KEY выше), но человек заглядывает туда
+// не каждый день – токен может быть мёртв неделями незамеченным.
+// Плашка посреди экрана, как у обновления версии (см. showUpdateBanner
+// в mobile/src/main.js – тот же приём: одна и та же .modal-overlay
+// строится один раз и переиспользуется), не даёт синхронизации молча
+// сломаться навсегда.
+//
+// Показываем один раз на каждую ОШИБКУ, а не один раз за сеанс: если
+// человек нажал «Скрыть», а следом синхронизация подряд ещё раз
+// упадёт с новой ошибкой (новым `at`), это уже другая проблема (или та
+// же, но не решённая) – стоит напомнить снова, а не молчать до
+// перезапуска.
+const SYNC_ERROR_DISMISSED_KEY = "tasteid_sync_error_dismissed_at";
+let syncErrorBannerEl = null;
+
+function hideSyncErrorBanner() {
+  syncErrorBannerEl?.classList.add("hidden");
+}
+
+function showSyncErrorBanner(error) {
+  if (!syncErrorBannerEl) {
+    syncErrorBannerEl = document.createElement("div");
+    syncErrorBannerEl.id = "sync-error-overlay";
+    syncErrorBannerEl.className = "modal-overlay hidden";
+    syncErrorBannerEl.innerHTML =
+      '<div class="modal confirm-dialog">' +
+      '<div class="confirm-dialog-text" id="sync-error-text"></div>' +
+      '<div class="confirm-dialog-actions">' +
+      '<button type="button" class="btn btn-ghost" id="sync-error-dismiss"></button>' +
+      '<button type="button" class="btn btn-primary" id="sync-error-settings"></button>' +
+      "</div></div>";
+    document.body.appendChild(syncErrorBannerEl);
+  }
+
+  const textEl = syncErrorBannerEl.querySelector("#sync-error-text");
+  const dismissBtn = syncErrorBannerEl.querySelector("#sync-error-dismiss");
+  const settingsBtn = syncErrorBannerEl.querySelector("#sync-error-settings");
+
+  textEl.textContent = i18n("Синхронизация с GitHub не работает: {message}", { message: error.message });
+  dismissBtn.textContent = i18n("Скрыть");
+  settingsBtn.textContent = i18n("Настройки");
+
+  const dismiss = () => {
+    localStorage.setItem(SYNC_ERROR_DISMISSED_KEY, error.at);
+    hideSyncErrorBanner();
+  };
+  dismissBtn.onclick = dismiss;
+  settingsBtn.onclick = () => {
+    localStorage.setItem(SYNC_ERROR_DISMISSED_KEY, error.at);
+    hideSyncErrorBanner();
+    openSettingsPanel("sync");
+  };
+
+  syncErrorBannerEl.classList.remove("hidden");
+}
+
+function checkSyncErrorBanner() {
+  if (!getSyncConfig()) return;
+  const error = getSyncError();
+  if (!error || localStorage.getItem(SYNC_ERROR_DISMISSED_KEY) === error.at) return;
+  showSyncErrorBanner(error);
+}
+
 function getSyncConfig() {
   try {
     return JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY)) || null;
@@ -85,6 +150,17 @@ function clearSyncConfig() {
   localStorage.removeItem(SYNC_STATE_KEY);
   localStorage.removeItem(AUTOSYNC_CONFLICTS_KEY);
   localStorage.removeItem(SYNC_LAST_ERROR_KEY);
+  localStorage.removeItem(SYNC_ERROR_DISMISSED_KEY);
+  hideSyncErrorBanner();
+}
+
+// Переход на вкладку «Синхронизация» в настройках из плашки об ошибке
+// выше – через хэш-навигацию: #/settings-edit сам может быть уже
+// открыт (тогда просто перечитает ?panel= заново, см. её же комментарий
+// в settings-edit.js) или ещё нет (тогда смонтируется с нуля сразу на
+// нужном разделе).
+function openSettingsPanel(panel) {
+  location.hash = `#/settings-edit?panel=${panel}`;
 }
 
 function getSyncState() {
@@ -423,13 +499,18 @@ async function runAutoSync() {
       });
     }
     clearSyncError();
+    hideSyncErrorBanner();
   } catch (e) {
     // Сама попытка тихая – никакого алерта посреди работы с чем-то
     // другим, сеть могла быть просто недоступна прямо сейчас. Но не
     // молчим совсем: причина остаётся в localStorage до следующего
     // успеха и всплывает плашкой на панели настроек, как только
     // человек туда заглянет – см. её же комментарий у SYNC_LAST_ERROR_KEY.
+    // А поверх неё – ещё и плашка посреди экрана (см. её же комментарий
+    // у SYNC_ERROR_DISMISSED_KEY), сама попытка при этом всё равно
+    // тихая: никакого alert() посреди чего-то другого.
     recordSyncError(e.message);
+    checkSyncErrorBanner();
   } finally {
     syncInFlight = false;
   }
@@ -467,6 +548,17 @@ function isAutoSyncTrigger(pathname, method) {
 // другого устройства уже есть что забрать, а на этой странице никто
 // ничего сохранять и не планировал.
 if (typeof window !== "undefined") scheduleAutoSync(AUTOSYNC_ON_OPEN_DELAY);
+
+// Плашка о сломанной синхронизации – по уже накопленной ошибке
+// (localStorage), не дожидаясь новой попытки: если токен истёк неделю
+// назад, следующая же автосинхронизация выше просто повторит ту же
+// ошибку, а до неё (AUTOSYNC_ON_OPEN_DELAY) человек уже мог уйти с
+// открытой страницы. document.body ещё может быть не готов на самом
+// первом такте разбора – ждём DOMContentLoaded, как и остальной запуск
+// приложения (см. её же приём в js/reviews.js).
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", () => setTimeout(checkSyncErrorBanner, 1500));
+}
 
 // Перед закрытием приложения – то самое место, где стоит успеть
 // отправить накопленное: закрыв TasteID, человек с большой вероятностью

@@ -511,7 +511,8 @@ function settingsViewHtml() {
   </div>`;
 }
 
-async function mount(container) {
+async function mount(container, params) {
+  const openPanel = params?.get("panel") || null;
   sePrevTitle = document.title;
   sePrevSkin = document.documentElement.getAttribute("data-skin");
   document.title = `TasteID – ${i18n("Настройки")}`;
@@ -752,7 +753,17 @@ async function mount(container) {
   );
 
   loadCurrentSettings();
-  detectApp();
+  // openPanel – переход по ссылке вида #/settings-edit?panel=sync (см.
+  // openSettingsPanel() в sync.js: так на панель попадает плашка о
+  // сломанной синхронизации). Разделы вроде «Синхронизация» скрыты в
+  // разметке до detectApp() (обычный сайт без /api/app/* их не
+  // получает вовсе), поэтому клик по .side-tab здесь ждёт её ответа, а
+  // не бьёт по ещё скрытой кнопке.
+  detectApp().then(() => {
+    if (!openPanel) return;
+    const btn = container.querySelector(`.side-tab[data-panel="${openPanel}"]`);
+    if (btn && !btn.classList.contains("hidden")) btn.click();
+  });
 }
 
 function unmount() {

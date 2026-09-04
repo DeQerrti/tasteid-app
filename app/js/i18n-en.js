@@ -1010,6 +1010,7 @@ i18nRegister({
   "Подключено к": "Connected to",
   "Последняя попытка синхронизации не удалась ({when}): {message}":
     "The last sync attempt failed ({when}): {message}",
+  "Синхронизация с GitHub не работает: {message}": "Sync with GitHub isn't working: {message}",
   "Последняя синхронизация: {when}.": "Last synced: {when}.",
   "ещё не было": "never",
   "Синхронизировать сейчас": "Sync now",
