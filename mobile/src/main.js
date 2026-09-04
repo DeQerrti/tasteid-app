@@ -112,6 +112,46 @@ function currentVaultId() {
   return localStorage.getItem(CURRENT_VAULT_KEY) || "default";
 }
 
+// ── Корзина хранилищ ────────────────────────────
+// На компьютере «удалить» переносит папку в системную корзину
+// (electron/main.js: shell.trashItem) – здесь своей системной корзины
+// нет, поэтому список удалённых {id, name, deletedAt} ведём сами, тем
+// же приёмом, что и список живых хранилищ выше. Сами файлы лежат в
+// TasteID/.trash/<id> (см. её же комментарий в vault.js), это только
+// метаданные для экрана «Корзина» в настройках.
+const TRASH_KEY = "tasteid_vaults_trash";
+const TRASH_RETENTION_DAYS = 30;
+
+function listTrash() {
+  try {
+    const list = JSON.parse(localStorage.getItem(TRASH_KEY) || "null");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTrash(list) {
+  localStorage.setItem(TRASH_KEY, JSON.stringify(list));
+}
+
+// Тот же принцип, что у vault.pruneHistoryByAge (см. её же вызов в
+// самом низу файла) – фоном, не блокирует запуск, молчит при неудаче:
+// не найти что почистить не страшнее, чем найти и не суметь.
+async function purgeTrashByAge() {
+  const cutoff = Date.now() - TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const list = listTrash();
+  const keep = [];
+  for (const entry of list) {
+    if (entry.deletedAt < cutoff) {
+      await new MobileVault(entry.id).purge().catch(() => {});
+    } else {
+      keep.push(entry);
+    }
+  }
+  if (keep.length !== list.length) saveTrash(keep);
+}
+
 // Пути картинок кэшируются по имени файла – общий на все хранилища,
 // поэтому при переключении его обязательно чистить, иначе после
 // смены хранилища будут какое-то время показываться обложки из
@@ -204,11 +244,33 @@ async function appRoutes(pathname, body) {
     if (body?.id === currentVaultId()) throw new Error("Сначала переключись на другое хранилище.");
     const entry = list.find((v) => v.id === body?.id);
     if (!entry) throw new Error("Хранилище не найдено");
-    // В отличие от компьютера – тут это настоящее удаление файлов, а
-    // не просто снятие с полки: заново открыть отвязанную папку на
-    // телефоне нечем, проводника нет.
-    await new MobileVault(entry.id).remove();
+    // Как и на компьютере (см. её же комментарий у remove-vault в
+    // electron/main.js) – не стирается сразу, а переезжает в корзину,
+    // откуда его можно вернуть экраном «Корзина» в настройках, пока
+    // purgeTrashByAge() не сотрёт его сама по возрасту.
+    await new MobileVault(entry.id).trash();
     saveVaults(list.filter((v) => v.id !== entry.id));
+    saveTrash([...listTrash(), { id: entry.id, name: entry.name, deletedAt: Date.now() }]);
+    return { ok: true };
+  }
+  if (pathname === "/api/app/trash") {
+    return { items: listTrash(), retentionDays: TRASH_RETENTION_DAYS };
+  }
+  if (pathname === "/api/app/trash/restore") {
+    const list = listTrash();
+    const entry = list.find((v) => v.id === body?.id);
+    if (!entry) throw new Error("Хранилище не найдено в корзине");
+    await new MobileVault(entry.id).restore();
+    saveTrash(list.filter((v) => v.id !== entry.id));
+    saveVaults([...listVaults(), { id: entry.id, name: entry.name }]);
+    return { ok: true, vault: entry };
+  }
+  if (pathname === "/api/app/trash/purge") {
+    const list = listTrash();
+    const entry = list.find((v) => v.id === body?.id);
+    if (!entry) throw new Error("Хранилище не найдено в корзине");
+    await new MobileVault(entry.id).purge();
+    saveTrash(list.filter((v) => v.id !== entry.id));
     return { ok: true };
   }
   // Полоса состояния наверху экрана – то же, что рамка окна на
@@ -785,6 +847,10 @@ if (NATIVE) {
     .readJson("site-settings.json", {})
     .then((settings) => vault.pruneHistoryByAge(settings.historyRetentionDays))
     .catch(() => {});
+  // Та же логика для корзины хранилищ – см. её же комментарий у
+  // purgeTrashByAge выше, только тут срок фиксированный (TRASH_RETENTION_DAYS),
+  // не настраиваемый из site-settings.json.
+  purgeTrashByAge().catch(() => {});
   const ready = () => {
     installImages();
     installDownloads();

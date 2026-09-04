@@ -134,13 +134,92 @@ async function renderVaultsPanel() {
           <button class="btn btn-ghost" onclick="addVault('mobile')" data-i18n>Добавить хранилище…</button>
         </div>
         <div class="status-msg" id="status-vaults"></div>
+        <div class="hidden" id="vaults-trash-section" style="margin-top:24px;">
+          <h2 class="section-h" data-i18n>Корзина</h2>
+          <p class="panel-intro" data-i18n>
+            Удалённые хранилища ждут здесь 30 дней, потом стираются сами
+          </p>
+          <div id="vaultsTrashList"></div>
+        </div>
       `;
     document.getElementById("vaults-add-desktop").classList.toggle("hidden", !!appInfo.mobile);
     document.getElementById("vaults-add-mobile").classList.toggle("hidden", !appInfo.mobile);
+    document.getElementById("vaults-trash-section").classList.toggle("hidden", !appInfo.mobile);
     applyI18n(box);
     renderVaultsList();
+    if (appInfo.mobile) renderVaultsTrashList();
   } catch (e) {
     box.innerHTML = `<p class="panel-intro">${esc(e.message)}</p>`;
+  }
+}
+
+// ── Корзина (только телефон) ───────────────────
+// Тот же вид списка, что у самих хранилищ выше – строка на запись,
+// действие справа. Срок жизни фиксированный (TRASH_RETENTION_DAYS в
+// mobile/src/main.js), здесь только показываем, сколько от него
+// осталось, обратного отсчёта настройками нет.
+async function renderVaultsTrashList() {
+  const box = document.getElementById("vaultsTrashList");
+  try {
+    const { items, retentionDays } = await appApi("/api/app/trash");
+    if (!items.length) {
+      box.innerHTML = `<p class="panel-intro" data-i18n>Корзина пуста</p>`;
+      applyI18n(box);
+      return;
+    }
+    box.innerHTML = items
+      .map((v) => {
+        const daysLeft = Math.max(
+          0,
+          retentionDays - Math.floor((Date.now() - v.deletedAt) / 86400000)
+        );
+        return `
+      <div class="tab-row">
+        <span class="tab-name">${esc(v.name)}</span>
+        <span class="vault-current">${esc(
+          i18n("сотрётся через {n} {d}", {
+            n: daysLeft,
+            d: plural(daysLeft, [i18n("день"), i18n("дня"), i18n("дней")]),
+          })
+        )}</span>
+        <button class="btn btn-ghost" onclick="restoreVaultFromTrash('${v.id}')" data-i18n>Восстановить</button>
+        <button class="icon-btn" title="${i18n("Стереть навсегда")}" onclick="purgeVaultFromTrash('${v.id}')">✕</button>
+      </div>`;
+      })
+      .join("");
+    applyI18n(box);
+  } catch (e) {
+    box.innerHTML = `<p class="panel-intro">${esc(e.message)}</p>`;
+  }
+}
+
+async function restoreVaultFromTrash(id) {
+  try {
+    await appApi("/api/app/trash/restore", { id });
+    appInfo = await appApi("/api/app/info");
+    renderVaultsList();
+    renderVaultsTrashList();
+  } catch (e) {
+    flashStatus("status-vaults", false, e.message);
+  }
+}
+
+async function purgeVaultFromTrash(id) {
+  const item = (await appApi("/api/app/trash")).items.find((v) => v.id === id);
+  const name = item?.name || id;
+  if (
+    !(await confirmDialog(
+      i18n("Стереть хранилище «{name}» навсегда? Восстановить будет нельзя.", { name }),
+      i18n("Стереть навсегда")
+    ))
+  ) {
+    return;
+  }
+  try {
+    await appApi("/api/app/trash/purge", { id });
+    renderVaultsTrashList();
+  } catch (e) {
+    flashStatus("status-vaults", false, e.message);
   }
 }
 
@@ -248,21 +327,21 @@ async function addVault(mode) {
 }
 
 // Из списка можно убрать только не-текущее хранилище (кнопка вообще
-// не показывается у активного). И на телефоне, и на компьютере это
-// теперь настоящее удаление: папка/раздел стираются с диска, а не
-// только забываются из списка (см. её же комментарий у remove-vault в
-// electron/main.js и /api/app/remove-vault в mobile/src/main.js).
-// На компьютере это по-настоящему безвозвратно и трогает файлы,
-// которые человек мог сложить в эту же папку сам, – одного окна
-// подтверждения тут мало: просим напечатать название хранилища,
-// тем же приёмом, каким GitHub подтверждает удаление репозитория.
+// не показывается у активного). На компьютере папка при этом уезжает
+// в системную корзину (см. её же комментарий у remove-vault в
+// electron/main.js), на телефоне – в свою, экранную (см. её же
+// комментарий у /api/app/remove-vault в mobile/src/main.js и у
+// vaults-trash-section выше): восстановить можно, но не бесконечно –
+// через TRASH_RETENTION_DAYS сотрётся уже само.
 async function removeVault(id) {
   const vault = (appInfo.vaults || []).find((v) => v.id === id);
   const name = vault?.name || id;
   if (appInfo.mobile) {
     if (
       !(await confirmDialog(
-        i18n("Хранилище и все его данные будут стёрты с телефона. Продолжить?"),
+        i18n(
+          "Хранилище переедет в корзину (Настройки → Хранилища → Корзина) и полежит там 30 дней — можно будет вернуть. Продолжить?"
+        ),
         i18n("Удалить")
       ))
     ) {
@@ -271,11 +350,11 @@ async function removeVault(id) {
   } else {
     const typed = await promptDialog(
       i18n(
-        "Это навсегда удалит папку хранилища «{name}» со всем содержимым – отзывами, картинками, историей версий. Отменить не получится.\n\nЧтобы подтвердить, напечатайте название хранилища:",
+        "Папка хранилища «{name}» со всем содержимым – отзывами, картинками, историей версий – переедет в системную корзину. Оттуда её можно вернуть, пока не очистишь корзину вручную.\n\nЧтобы подтвердить, напечатайте название хранилища:",
         { name }
       ),
       "",
-      i18n("Удалить навсегда")
+      i18n("Удалить")
     );
     if (typed !== name) {
       if (typed !== null) flashStatus("status-vaults", false, i18n("Название не совпало – хранилище не тронуто."));
@@ -286,6 +365,7 @@ async function removeVault(id) {
     await appApi("/api/app/remove-vault", { id });
     appInfo.vaults = (appInfo.vaults || []).filter((v) => v.id !== id);
     renderVaultsList();
+    if (appInfo.mobile) renderVaultsTrashList();
   } catch (e) {
     flashStatus("status-vaults", false, e.message);
   }

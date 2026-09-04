@@ -486,17 +486,26 @@ i18nRegister({
   текущее: "current",
   "Удалить хранилище": "Delete vault",
   "Удалить навсегда": "Delete forever",
-  "Это навсегда удалит папку хранилища «{name}» со всем содержимым – отзывами, картинками, историей версий. Отменить не получится.\n\nЧтобы подтвердить, напечатайте название хранилища:":
-    "This will permanently delete the vault folder “{name}” along with everything in it – reviews, images, version history. This can't be undone.\n\nTo confirm, type the vault's name:",
+  "Папка хранилища «{name}» со всем содержимым – отзывами, картинками, историей версий – переедет в системную корзину. Оттуда её можно вернуть, пока не очистишь корзину вручную.\n\nЧтобы подтвердить, напечатайте название хранилища:":
+    "The vault folder “{name}”, along with everything in it – reviews, images, version history – will move to the system recycle bin. You can get it back from there until you empty the bin yourself.\n\nTo confirm, type the vault's name:",
   "Название не совпало – хранилище не тронуто.": "Name didn't match – the vault wasn't touched.",
   "Имя нового хранилища:": "Name for the new vault:",
   "Новое хранилище": "New vault",
   "Имя для этого хранилища:": "Name for this vault:",
   Хранилище: "Vault",
-  "Хранилище будет убрано из списка. Сама папка на диске никуда не денется – её можно будет открыть заново через «Открыть существующее».":
-    "The vault will be removed from the list. The folder itself stays right where it is on disk – you can open it again later via “Open an existing one”.",
-  "Хранилище и все его данные будут стёрты с телефона. Продолжить?":
-    "The vault and all of its data will be erased from the phone. Continue?",
+  "Хранилище переедет в корзину (Настройки → Хранилища → Корзина) и полежит там 30 дней — можно будет вернуть. Продолжить?":
+    "The vault will move to the trash (Settings → Vaults → Trash) and stay there for 30 days — you'll be able to get it back. Continue?",
+  Корзина: "Trash",
+  "Удалённые хранилища ждут здесь 30 дней, потом стираются сами":
+    "Deleted vaults wait here for 30 days, then get erased on their own",
+  "Корзина пуста": "Trash is empty",
+  "сотрётся через {n} {d}": "erases in {n} {d}",
+  день: "day",
+  дня: "days",
+  дней: "days",
+  "Стереть навсегда": "Erase forever",
+  "Стереть хранилище «{name}» навсегда? Восстановить будет нельзя.":
+    "Erase the vault “{name}” forever? It won't be possible to restore it.",
 });
 
 // ── Разметка страниц ──────────────────────────

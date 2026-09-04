@@ -42,6 +42,16 @@ function rootFor(id) {
   return id && id !== "default" ? `${APP_DIR}/vaults/${id}` : APP_DIR;
 }
 
+// Корзина – та же папка данных приложения, отдельная от vaults/, чтобы
+// удалённое не путалось с живыми хранилищами при списке/бэкапе (см. её
+// же исключение в listAllMedia ниже). Имя подпапки – id хранилища: он
+// уникален и не переиспользуется, так что коллизий при восстановлении
+// не бывает.
+const TRASH_DIR = `${APP_DIR}/.trash`;
+function trashRootFor(id) {
+  return `${TRASH_DIR}/${id}`;
+}
+
 // «Файла нет» приезжает от разных платформ по-разному, а отличать его
 // от настоящей ошибки нужно везде: отсутствующий файл – это первый
 // запуск, а не поломка.
@@ -97,15 +107,38 @@ export class MobileVault {
     }
   }
 
-  // Стереть хранилище целиком – на телефоне это единственный способ
-  // «убрать» его: тут нет проводника, чтобы потом заново открыть
-  // отвязанную папку, как на компьютере через «Открыть существующее».
-  // Для default не делаем ничего – у него нет своей подпапки, она же
-  // TasteID/, стирать было бы вообще всё, включая другие хранилища.
-  async remove() {
+  // Убрать хранилище – на телефоне это единственный способ «удалить»
+  // его: тут нет проводника, чтобы потом заново открыть отвязанную
+  // папку, как на компьютере через «Открыть существующее». Раньше это
+  // стирало папку сразу и навсегда (Filesystem.rmdir) – теперь, как и
+  // на компьютере (см. её же комментарий в electron/vault.js про
+  // shell.trashItem), просто переезжает в свою корзину: обычное
+  // переименование, ничего не читается и не пишется заново, и его
+  // можно откатить restore()-ом, пока mobile/src/main.js сам не сотрёт
+  // старое по возрасту (purgeTrashByAge). Для default не делаем ничего
+  // – у него нет своей подпапки, она же TasteID/, переносить/стирать
+  // пришлось бы вообще всё, включая другие хранилища.
+  async trash() {
     if (this.id === "default") return;
+    await mkdirp(TRASH_DIR);
     try {
-      await Filesystem.rmdir({ path: this.root, directory: DIR, recursive: true });
+      await Filesystem.rename({ from: this.root, to: trashRootFor(this.id), directory: DIR });
+    } catch (e) {
+      if (!isMissing(e)) throw e;
+    }
+  }
+
+  // Обратная сторона trash() – возвращает хранилище туда, откуда взяли.
+  async restore() {
+    await Filesystem.rename({ from: trashRootFor(this.id), to: this.root, directory: DIR });
+  }
+
+  // Стереть по-настоящему – вручную из корзины в настройках или
+  // автоматически по возрасту (purgeTrashByAge в mobile/src/main.js).
+  // Обратной дороги отсюда уже нет.
+  async purge() {
+    try {
+      await Filesystem.rmdir({ path: trashRootFor(this.id), directory: DIR, recursive: true });
     } catch (e) {
       if (!isMissing(e)) throw e;
     }
@@ -423,6 +456,7 @@ export class MobileVault {
         const entry = typeof raw === "string" ? { name: raw, type: "file" } : raw;
         if (entry.name === ".history") continue;
         if (!rel && entry.name === "vaults") continue; // соседние хранилища, не наши
+        if (!rel && entry.name === ".trash") continue; // удалённые хранилища, не наши
         const childRel = rel ? `${rel}/${entry.name}` : entry.name;
         if (entry.type === "directory") await walk(`${dir}/${entry.name}`, childRel);
         else if (IMG.test(entry.name)) out.push(childRel);

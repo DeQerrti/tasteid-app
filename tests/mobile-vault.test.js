@@ -48,6 +48,23 @@ async function makeFakeFilesystem(root) {
       async deleteFile({ path: p }) {
         await fs.rm(abs(p), { force: true });
       },
+      async rmdir({ path: p, recursive }) {
+        try {
+          await fs.rm(abs(p), { recursive: !!recursive, force: false });
+        } catch (e) {
+          if (e.code === "ENOENT") throw new Error(`Directory does not exist: ${p}`);
+          throw e;
+        }
+      },
+      async rename({ from, to }) {
+        try {
+          await fs.mkdir(path.dirname(abs(to)), { recursive: true });
+          await fs.rename(abs(from), abs(to));
+        } catch (e) {
+          if (e.code === "ENOENT") throw new Error(`File does not exist: ${from}`);
+          throw e;
+        }
+      },
       async readdir({ path: p }) {
         let entries;
         try {
@@ -73,8 +90,21 @@ async function makeFakeFilesystem(root) {
 // Модуль хранилища импортирует "@capacitor/filesystem" по имени, а
 // пакета в тестах нет. Подменяем через loader-хук node:module — это
 // честнее, чем прокидывать зависимость параметром только ради теста:
-// проверяем тот же файл, который поедет в приложение.
-async function loadVault(root) {
+// проверяем тот же файл, который поедет в приложение. Отдаёт сам класс
+// (не готовое хранилище) – withVault() ниже так заводит и "default", и
+// хранилища НЕ "default" (для корзины он и нужен: "default" в неё
+// принципиально не убрать, см. её же комментарий у trash() в
+// mobile/src/vault.js) в одной временной папке.
+//
+// Виртуальный модуль "fake-capacitor:fs" вычисляется движком ОДИН раз
+// за весь процесс (обычное кэширование ES-модулей по url) – значит,
+// прямой "export const Filesystem = globalThis.__fakeCapFs.Filesystem"
+// навсегда запомнил бы САМУЮ ПЕРВУЮ подставную файловую систему: второй
+// (и любой следующий) withVault() со своей временной папкой молча писал
+// бы в первую. Filesystem – Proxy, который каждый метод достаёт из
+// globalThis.__fakeCapFs заново при самом вызове, а не один раз при
+// импорте, поэтому переключение работает и после первого withVault().
+async function loadVaultClass(root) {
   const { register } = await import("node:module");
   const fake = await makeFakeFilesystem(root);
   globalThis.__fakeCapFs = fake;
@@ -89,27 +119,38 @@ async function loadVault(root) {
         return {
           format: "module",
           shortCircuit: true,
-          source: "const f = globalThis.__fakeCapFs;" +
-                  "export const Filesystem = f.Filesystem;" +
-                  "export const Directory = f.Directory;" +
-                  "export const Encoding = f.Encoding;",
+          source: "export const Filesystem = new Proxy({}, { get: (_, m) => (...a) => globalThis.__fakeCapFs.Filesystem[m](...a) });" +
+                  "export const Directory = globalThis.__fakeCapFs.Directory;" +
+                  "export const Encoding = globalThis.__fakeCapFs.Encoding;",
         };
       }
       return next(url, ctx);
     }`;
   register(`data:text/javascript,${encodeURIComponent(loader)}`, import.meta.url);
 
-  const { MobileVault } = await import("../mobile/src/vault.js");
+  return (await import("../mobile/src/vault.js")).MobileVault;
+}
+
+async function loadVault(root) {
+  const MobileVault = await loadVaultClass(root);
   return new MobileVault();
 }
 
 async function withVault(run) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "tasteid-mobile-"));
+  // Filesystem дозванивается до globalThis.__fakeCapFs при каждом вызове
+  // (см. её же комментарий у loadVaultClass) – значит, и переключать его
+  // обратно нужно самим, а не полагаться на то, что об этом кто-то ещё
+  // позаботится, иначе тест ПОСЛЕ этого блока молча унаследовал бы чужую
+  // (уже стёртую ниже) временную папку.
+  const prevFakeFs = globalThis.__fakeCapFs;
   try {
-    const vault = await loadVault(root);
+    const MobileVault = await loadVaultClass(root);
+    const vault = new MobileVault();
     await vault.ensure();
-    await run({ vault, root });
+    await run({ vault, root, MobileVault });
   } finally {
+    globalThis.__fakeCapFs = prevFakeFs;
     await fs.rm(root, { recursive: true, force: true });
   }
 }
@@ -225,6 +266,55 @@ test("наружу хранилища выйти нельзя", async () => {
   await assert.rejects(() => vault.listImages("chars", "../.."));
 });
 
-// withVault оставлен для будущих тестов, которым нужна своя чистая
-// папка; сейчас все они делят одну и не мешают друг другу.
-void withVault;
+test("корзина: удаление переносит папку, а не стирает, и restore() возвращает как было", async () => {
+  await withVault(async ({ MobileVault, root }) => {
+    const doomed = new MobileVault("doomed-1");
+    await doomed.ensure();
+    await doomed.writeJson("reviews.json", [{ title: "На вынос" }]);
+
+    await doomed.trash();
+
+    // Файл жив, просто переехал – не rm, а rename.
+    assert.deepEqual(
+      JSON.parse(
+        await fs.readFile(path.join(root, "TasteID", ".trash", "doomed-1", "reviews.json"), "utf8")
+      ),
+      [{ title: "На вынос" }]
+    );
+    await assert.rejects(() =>
+      fs.access(path.join(root, "TasteID", "vaults", "doomed-1", "reviews.json"))
+    );
+
+    await doomed.restore();
+    assert.deepEqual(await doomed.readJson("reviews.json", []), [{ title: "На вынос" }]);
+    await assert.rejects(() =>
+      fs.access(path.join(root, "TasteID", ".trash", "doomed-1", "reviews.json"))
+    );
+  });
+});
+
+test("корзина: purge() стирает по-настоящему, без возврата", async () => {
+  await withVault(async ({ MobileVault, root }) => {
+    const doomed = new MobileVault("doomed-2");
+    await doomed.ensure();
+    await doomed.writeJson("reviews.json", [{ title: "Уйдёт навсегда" }]);
+    await doomed.trash();
+
+    await doomed.purge();
+
+    await assert.rejects(() => fs.access(path.join(root, "TasteID", ".trash", "doomed-2")));
+    // И restore() после purge() честно падает, а не создаёт хранилище
+    // из ничего – переименовывать уже нечего.
+    await assert.rejects(() => doomed.restore());
+  });
+});
+
+test('корзина: хранилище "default" в неё не убрать', async () => {
+  await withVault(async ({ vault, root }) => {
+    await vault.writeJson("reviews.json", [{ title: "Я тут живу" }]);
+    await vault.trash(); // no-op для default, см. её же комментарий в vault.js
+
+    assert.deepEqual(await vault.readJson("reviews.json", []), [{ title: "Я тут живу" }]);
+    await assert.rejects(() => fs.access(path.join(root, "TasteID", ".trash", "default")));
+  });
+});

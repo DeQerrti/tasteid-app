@@ -28,6 +28,32 @@ export const Filesystem = {
   async deleteFile({ path }) {
     files.delete(path);
   },
+  async rmdir({ path }) {
+    const prefix = path.endsWith("/") ? path : path + "/";
+    for (const key of [...files.keys()]) if (key.startsWith(prefix)) files.delete(key);
+    for (const d of [...dirs]) if (d === path || d.startsWith(prefix)) dirs.delete(d);
+  },
+  async rename({ from, to }) {
+    const prefix = from.endsWith("/") ? from : from + "/";
+    for (const key of [...files.keys()]) {
+      if (key === from) {
+        files.set(to, files.get(key));
+        files.delete(key);
+      } else if (key.startsWith(prefix)) {
+        files.set(to + key.slice(from.length), files.get(key));
+        files.delete(key);
+      }
+    }
+    for (const d of [...dirs]) {
+      if (d === from) {
+        dirs.add(to);
+        dirs.delete(d);
+      } else if (d.startsWith(prefix)) {
+        dirs.add(to + d.slice(from.length));
+        dirs.delete(d);
+      }
+    }
+  },
   async readdir({ path }) {
     const prefix = path.endsWith("/") ? path : path + "/";
     const seen = new Map();
