@@ -233,8 +233,7 @@ function settingsViewHtml() {
         <div class="row" style="margin-top:14px;">
           <div><label data-i18n>Новый раздел</label><input type="text" id="newTierCollectionName" data-no-dirty placeholder="Например: Игры" data-i18n-placeholder="Например: Игры" onkeydown="if(event.key==='Enter'){event.preventDefault();addTierCollectionInline();}"></div>
         </div>
-        <button class="btn btn-ghost" onclick="addTierCollectionInline()" id="tier-add-btn" data-i18n>Добавить раздел</button>
-        <div class="status-msg" id="status-tier-add"></div>
+        <button class="btn btn-ghost" onclick="addTierCollectionInline()" data-i18n>Добавить раздел</button>
       </div>
 
       <div class="panel" id="panel-shortcuts">

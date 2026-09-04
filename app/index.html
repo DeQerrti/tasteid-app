@@ -392,15 +392,19 @@ section.group { margin-bottom: 3.5rem; }
 .year-divider::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
 
 /* ══ GRIDS ═══════════════════════════════════════ */
-.grid-now { display: grid; gap: .85rem; grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 640px)  { .grid-now { grid-template-columns: repeat(3, 1fr); } }
+/* На телефоне – 4 колонки, не 2: та же правка и по той же причине,
+   что уже сделана для .reviews-grid (см. её же комментарий там) –
+   два тайтла в ряд отдавали пол-экрана под обложки и не показывали
+   ни одного полного ряда без прокрутки. */
+.grid-now { display: grid; gap: .6rem; grid-template-columns: repeat(4, 1fr); }
+@media (min-width: 640px)  { .grid-now { gap: .85rem; grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 860px)  { .grid-now { grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 1060px) { .grid-now { grid-template-columns: repeat(5, 1fr); } }
 @media (min-width: 1280px) { .grid-now { grid-template-columns: repeat(6, 1fr); } }
 @media (min-width: 1520px) { .grid-now { grid-template-columns: repeat(7, 1fr); } }
 
-.grid-chars { display: grid; gap: .85rem; grid-template-columns: repeat(3, 1fr); }
-@media (min-width: 640px)  { .grid-chars { grid-template-columns: repeat(4, 1fr); } }
+.grid-chars { display: grid; gap: .6rem; grid-template-columns: repeat(4, 1fr); }
+@media (min-width: 640px)  { .grid-chars { gap: .85rem; grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 860px)  { .grid-chars { grid-template-columns: repeat(6, 1fr); } }
 @media (min-width: 1100px) { .grid-chars { grid-template-columns: repeat(8, 1fr); } }
 
@@ -519,6 +523,16 @@ section.group { margin-bottom: 3.5rem; }
   justify-content: space-between;
   align-items: center;
   gap: .3rem;
+}
+/* На телефоне карточка вчетверо уже настольной (4 колонки против
+   плавающего числа больше), а отступы/шрифт были подобраны под неё же –
+   на узкой карточке текст выглядел прижатым к краям. Отступы и кегль
+   чуть меньше именно здесь, а не переопределены глобально – на
+   десктопе карточка достаточно широкая, там ужимать нечего. */
+@media (max-width: 700px) {
+  .card-body { padding: .4rem .45rem .5rem; }
+  .card-title { font-size: .82rem; line-height: 1.25; }
+  .card-meta { font-size: .64rem; gap: .2rem; }
 }
 .card-grade-inline {
   font-family: 'Cormorant Garamond', serif;
@@ -1321,6 +1335,7 @@ section.group { margin-bottom: 3.5rem; }
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 2px;
+    gap: .35rem;
   }
   .tl-mode-toggle::-webkit-scrollbar { display: none; }
   .tl-mode-btn, .tl-mode-add-btn { flex-shrink: 0; }
@@ -1344,6 +1359,20 @@ section.group { margin-bottom: 3.5rem; }
   color: var(--text-hi);
   border-color: var(--red);
   background: var(--surface2);
+}
+/* Меньше, чтобы обычный набор (Статусы: 4 кнопки, Любимое: 3-4)
+   помещался в один экран без прокрутки – она остаётся страховкой на
+   случай, если своих тир-листов/разделов заведено много (см. её же
+   комментарий у .tl-mode-toggle выше), а не обычным способом
+   посмотреть соседнюю кнопку. После, а не внутри того @media –
+   иначе безусловное правило .tl-mode-btn ниже по файлу и с той же
+   специфичностью побеждает как более позднее в каскаде. */
+@media (max-width: 700px) {
+  .tl-mode-btn {
+    font-size: .64rem;
+    letter-spacing: 0;
+    padding: .45rem .4rem;
+  }
 }
 .tl-mode-add-btn {
   font-family: 'Cormorant Garamond', serif;

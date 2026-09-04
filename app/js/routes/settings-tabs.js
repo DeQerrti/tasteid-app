@@ -236,32 +236,25 @@ function addFavCollection() {
   settingsDirty = true;
 }
 
-// Тот же вид (подпись + поле + кнопка), что у addStatusBucket()/
-// addFavCollection() выше – раньше тир-лист заводился здесь только
-// кнопкой «Создать», открывавшей отдельную модалку, хотя два соседних
-// раздела этой же панели заводят новое прямо на месте. createTierCollection()
-// – в js/tierlist.js, общая с модалкой (та же функция открывает и
-// закрывает вкладку «Тир-лист» на новую коллекцию – здесь это не нужно,
-// просто очищаем поле). settingsDirty тут не нужен: в отличие от
-// статусов/разделов «Любимого», коллекция тир-листа пишется на диск
-// сразу же (patchSiteSettings внутри createTierCollection), не дожидаясь
-// общей кнопки «Сохранить».
-async function addTierCollectionInline() {
+// Тот же вид (подпись + поле + кнопка) и то же поведение, что у
+// addStatusBucket()/addFavCollection() выше – раньше эта кнопка звала
+// createTierCollection() (js/tierlist.js) и писала на диск сразу же, в
+// обход общей кнопки «Сохранить» этой панели: уйти через Esc без
+// сохранения и вернуться значило увидеть тир-лист, который вроде бы
+// никогда не сохранял, но он уже там. createTierCollection() тут
+// больше не зовём – та нужна модалке на самой вкладке «Тир-лист»,
+// которой действительно нужно создать раздел мгновенно (и сразу на
+// него переключиться); здесь только локальный список, который и так
+// уходит на сервер вместе с остальной панелью (см. tierCollections в
+// saveSettings(), settings-labels.js).
+function addTierCollectionInline() {
   const input = document.getElementById("newTierCollectionName");
   const name = input.value.trim();
   if (!name) return;
-  const btn = document.getElementById("tier-add-btn");
-  btn.disabled = true;
-  flashStatus("status-tier-add", true, i18n("Сохраняем…"));
-  try {
-    await createTierCollection(name);
-    input.value = "";
-    flashStatus("status-tier-add", true, i18n("Готово."));
-  } catch (err) {
-    flashStatus("status-tier-add", false, err.message || i18n("Ошибка сохранения"));
-  } finally {
-    btn.disabled = false;
-  }
+  tierCollections.push({ id: tlSlugify(name), label: name });
+  input.value = "";
+  renderTierModesList();
+  settingsDirty = true;
 }
 
 async function removeFavCollection(id) {
