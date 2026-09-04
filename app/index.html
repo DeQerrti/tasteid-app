@@ -423,8 +423,6 @@ section.group { margin-bottom: 3.5rem; }
   cursor: pointer;
   font-size: .9rem;
 }
-.fav-section-body.hidden { display: none; }
-
 /* ══ CARDS ═══════════════════════════════════════ */
 .card {
   display: flex;
@@ -1317,6 +1315,33 @@ section.group { margin-bottom: 3.5rem; }
   transition: color .2s, border-color .2s, background .2s;
 }
 .tl-mode-add-btn:hover { color: var(--red-hi); border-color: var(--red-dim); }
+
+/* Счётчик записей на кнопке переключателя (js/now.js, js/favorites.js
+   – та же .tl-mode-btn, что и у тир-листа) – раньше жил инлайновым
+   <style> внутри renderNow(), общим стал вместе с самим переключателем. */
+.section-count {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem;
+  font-weight: 400;
+  font-style: normal;
+  color: var(--text-dim);
+  letter-spacing: .05em;
+  margin-left: .1rem;
+}
+
+/* Выпадашка "перейти к году" в Архиве (js/now.js) – прокручивает к
+   нужному году, а не фильтрует список. */
+.now-archive-jump { margin-bottom: 1.2rem; }
+.now-archive-jump select {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .8rem;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .45rem .7rem;
+  cursor: pointer;
+}
 
 /* ══ МОДАЛКА: новый тир-лист (коллекция) ═════════ */
 .modal-overlay.hidden { display: none; }

@@ -8,48 +8,11 @@
 let favExportData = null;
 let favExportSections = [];
 
-// ── Сворачивание разделов ───────────────────────
-// Тот же приём, что у «Статусов» (js/now.js, COLLAPSE_KEY) – свой ключ,
-// чтобы id разделов (favTitles и т.п.) не путались со статусами при
-// случайном совпадении. Без треугольника – он и там оказался лишним
-// визуальным шумом (см. её же обсуждение в js/now.js), здесь его
-// никогда и не было.
-const FAV_COLLAPSE_KEY = "tasteid_fav_collapsed";
-function favGetCollapsed() {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(FAV_COLLAPSE_KEY)) || []);
-  } catch {
-    return new Set();
-  }
-}
-function favToggleSection(id) {
-  const collapsed = favGetCollapsed();
-  const section = document.querySelector(`.fav-section[data-fav-section="${CSS.escape(id)}"]`);
-  if (!section) return;
-  const body = section.querySelector(".fav-section-body");
-  if (collapsed.has(id)) {
-    collapsed.delete(id);
-    body.classList.remove("hidden");
-  } else {
-    collapsed.add(id);
-    body.classList.add("hidden");
-  }
-  localStorage.setItem(FAV_COLLAPSE_KEY, JSON.stringify([...collapsed]));
-}
-
-// headerExtra – кнопки справа от заголовка (камера, «Порядок»,
-// «Добавить»); свой onclick со stopPropagation, иначе клик по ним же
-// сворачивал бы раздел.
-function favSectionHtml(id, title, headerExtra, bodyHtml, collapsed) {
-  const isCollapsed = collapsed.has(id);
-  return `<section class="group fav-section" data-fav-section="${esc(id)}">
-    <div class="section-header" onclick="favToggleSection('${esc(id)}')" style="cursor:pointer;user-select:none">
-      <h2 class="section-title" style="margin-bottom:0">${esc(title)}</h2>
-      <div style="display:flex;gap:.4rem;align-items:center;flex-shrink:0" onclick="event.stopPropagation()">${headerExtra}</div>
-    </div>
-    <div class="fav-section-body${isCollapsed ? " hidden" : ""}">${bodyHtml}</div>
-  </section>`;
-}
+// Текущая выбранная вкладка-переключатель (favTitles/favCharacters/
+// favPersons или id своей коллекции) – см. её же комментарий у
+// renderFavorites() ниже. Сбрасывается на первую по порядку при каждой
+// загрузке страницы, как и режим тир-листа (tlState.mode).
+const favState = { mode: null };
 
 // Снимок уже нарисованного – та же причина, что у nowLastSnapshot в
 // js/now.js: reviews.json/favorites.json перечитываются заново при
@@ -111,122 +74,111 @@ async function loadFavorites() {
   }
 }
 
-function renderFavorites({ titles, characters, persons, favData }) {
-  const box       = document.getElementById("tab-favorites");
-  const admin     = isAdmin();
-  const collapsed = favGetCollapsed();
-  let html        = "";
-
-  favExportData = { titles, characters, persons, favData };
-  // Список разделов, которые сейчас реально на экране – ровно то, что
-  // предложит модалка экспорта (openFavExportModal): чекбоксом можно
-  // выбрать любой из них по отдельности, включая свои разделы, а не
-  // только «всё» / «только тайтлы» / «только персонажи», как было.
-  favExportSections = [];
-
-  const cameraBtn = cameraButton("openFavExportModal()", "fav-camera-btn");
-
-  // ── Тайтлы / Персонажи / Персоны ─────────────
-  // Порядок этих трёх встроенных разделов настраивается в /settings-edit
-  // перетаскиванием (favSectionOrderState) – раньше был зашит намертво.
-  // window.SITE_FAV_SECTION_ORDER = null, пока настроек ещё не было.
-  const builtinSectionBuilders = {
-    favTitles: () => {
-      const title = siteLabel("sections", "favTitles", i18n("Тайтлы"));
-      favExportSections.push({ id: "favTitles", label: title });
-      return favSectionHtml(
-        "favTitles",
-        title,
-        `${cameraBtn}${admin ? `<a href="#/reviews-order" class="admin-add-btn">${i18n("Порядок")}</a>` : ""}`,
-        `<div class="grid-now">
-          ${titles.length
-            ? titles.map((r, i) => favTitleCard(r, i)).join("")
-            : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
-        </div>`,
-        collapsed
-      );
-    },
-    favCharacters: () => {
-      const title = siteLabel("sections", "favCharacters", i18n("Персонажи"));
-      favExportSections.push({ id: "favCharacters", label: title });
-      return favSectionHtml(
-        "favCharacters",
-        title,
-        admin ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>` : "",
-        `<div class="grid-chars">
-          ${characters.length
-            ? characters.map((r, i) => favPersonCard(r, i)).join("")
-            : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
-        </div>`,
-        collapsed
-      );
-    },
-    favPersons: () => {
-      const title = siteLabel("sections", "favPersons", i18n("Персоны"));
-      favExportSections.push({ id: "favPersons", label: title });
-      return favSectionHtml(
-        "favPersons",
-        title,
-        admin ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>` : "",
-        `<div class="grid-chars">
-          ${persons.length
-            ? persons.map((r, i) => favPersonCard(r, i)).join("")
-            : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
-        </div>`,
-        collapsed
-      );
-    },
-  };
-  // Встроенные разделы и свои (заводятся в /settings-edit) – один общий
-  // порядок (window.SITE_FAV_SECTION_ORDER, хранит вперемешку ключи
-  // встроенных и id своих – см. её же комментарий у
-  // favSectionOrderedKeys() в settings-tabs.js). Раньше свои разделы
-  // всегда шли следом за всеми встроенными отдельным проходом – и
-  // перетащить свой раздел выше встроенного в настройках было
-  // некуда: этот порядок его всё равно не слушал.
-  const collections = window.SITE_FAV_COLLECTIONS || [];
-  const collectionById = Object.fromEntries(collections.map((c) => [c.id, c]));
-  const knownKeys = [...Object.keys(builtinSectionBuilders), ...collections.map((c) => c.id)];
+// Один общий порядок на встроенные разделы (Тайтлы/Персонажи/Персоны) и
+// свои (заводятся в /settings-edit) – window.SITE_FAV_SECTION_ORDER
+// хранит вперемешку ключи встроенных и id своих (см. её же комментарий
+// у favSectionOrderedKeys() в settings-tabs.js).
+function favOrderedKeys(collections) {
+  const knownKeys = ["favTitles", "favCharacters", "favPersons", ...collections.map((c) => c.id)];
   const savedOrder = Array.isArray(window.SITE_FAV_SECTION_ORDER) ? window.SITE_FAV_SECTION_ORDER : [];
-  const sectionOrder = [
+  return [
     ...savedOrder.filter((k) => knownKeys.includes(k)),
     ...knownKeys.filter((k) => !savedOrder.includes(k)),
   ];
-  let sawTitlesHeader = false;
-  sectionOrder.forEach((key) => {
-    if (builtinSectionBuilders[key]) {
-      if (!isFavSectionVisible(key)) return;
-      html += builtinSectionBuilders[key]();
-      if (key === "favTitles") sawTitlesHeader = true;
-      return;
-    }
-    // Свой раздел – данные те же записи favorites.json, отфильтрованные
-    // по своему type.
-    const c = collectionById[key];
-    if (!c || !isFavSectionVisible(c.id)) return;
-    const entries = favData.filter((r) => r.type === c.id);
-    favExportSections.push({ id: c.id, label: c.label });
-    html += favSectionHtml(
-      c.id,
-      c.label,
-      admin ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>` : "",
-      `<div class="grid-chars">
-        ${entries.length
-          ? entries.map((r, i) => favPersonCard(r, i)).join("")
-          : `<div class="state-box" style="padding:2rem 1rem;grid-column:1/-1;font-size:.95rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`}
-      </div>`,
-      collapsed
-    );
+}
+
+// Переключатель вкладок сверху (то же самое, чем в статистике
+// переключают год, а в тир-листе – коллекцию: быстрее найти нужный
+// раздел, чем бесконечно листать вниз через все сразу). Каждый раздел
+// сам по себе не меняется – меняется только то, что видно на экране;
+// экспорт картинкой (favExportData/favExportSections ниже) по-прежнему
+// собирает данные ВСЕХ разделов разом, не только открытого сейчас –
+// favExport() строит свою независимую разметку из этих данных, а не
+// из того, что нарисовано на экране.
+function renderFavorites({ titles, characters, persons, favData }) {
+  const box = document.getElementById("tab-favorites");
+  const admin = isAdmin();
+
+  favExportData = { titles, characters, persons, favData };
+  favExportSections = [];
+
+  const builtinMeta = {
+    favTitles: { title: siteLabel("sections", "favTitles", i18n("Тайтлы")), items: titles },
+    favCharacters: { title: siteLabel("sections", "favCharacters", i18n("Персонажи")), items: characters },
+    favPersons: { title: siteLabel("sections", "favPersons", i18n("Персоны")), items: persons },
+  };
+  const collections = window.SITE_FAV_COLLECTIONS || [];
+  const collectionById = Object.fromEntries(collections.map((c) => [c.id, c]));
+
+  const visibleKeys = favOrderedKeys(collections).filter((key) =>
+    builtinMeta[key] ? isFavSectionVisible(key) : collectionById[key] && isFavSectionVisible(key)
+  );
+  visibleKeys.forEach((key) => {
+    favExportSections.push({
+      id: key,
+      label: builtinMeta[key] ? builtinMeta[key].title : collectionById[key].label,
+    });
   });
 
-  // Раздел «Тайтлы» скрыт/удалён – кнопке камеры некуда встать рядом с
-  // «Порядок», но экспорт остальных разделов всё равно должен остаться
-  // доступным: отдельная строка с одной только камерой сверху.
-  if (!sawTitlesHeader && favExportSections.length) {
-    html = `<div style="display:flex;justify-content:flex-end;margin-bottom:.75rem">${cameraBtn}</div>` + html;
+  if (!visibleKeys.includes(favState.mode)) favState.mode = visibleKeys[0] ?? null;
+
+  if (!favState.mode) {
+    box.innerHTML = `<div class="state-box">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`;
+    return;
   }
 
-  box.innerHTML = html || `<div class="state-box">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`;
+  const cameraBtn = cameraButton("openFavExportModal()", "fav-camera-btn");
+  const toggleBtns = visibleKeys
+    .map((key) => {
+      const label = builtinMeta[key] ? builtinMeta[key].title : collectionById[key].label;
+      const count = builtinMeta[key] ? builtinMeta[key].items.length : favData.filter((r) => r.type === key).length;
+      return `<button class="tl-mode-btn${favState.mode === key ? " active" : ""}" data-mode="${esc(key)}">${esc(label)} <span class="section-count">${count}</span></button>`;
+    })
+    .join("");
+  const actionLink =
+    favState.mode === "favTitles"
+      ? admin
+        ? `<a href="#/reviews-order" class="admin-add-btn">${i18n("Порядок")}</a>`
+        : ""
+      : admin
+        ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>`
+        : "";
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.8rem">
+      <div class="tl-mode-toggle" style="margin-bottom:0">${toggleBtns}</div>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">${cameraBtn}${actionLink}</div>
+    </div>
+    <div id="fav-mode-body">${favModeBodyHtml()}</div>`;
+  bindFavModeToggle();
+}
+
+function favModeBodyHtml() {
+  const key = favState.mode;
+  const { titles, characters, persons, favData } = favExportData;
+  const empty = `<div class="state-box" style="padding:2rem 1rem">${esc(siteLabel("empty", "generic", i18n("Пока пусто")))}</div>`;
+
+  if (key === "favTitles") {
+    return `<div class="grid-now">${titles.length ? titles.map((r, i) => favTitleCard(r, i)).join("") : empty}</div>`;
+  }
+  if (key === "favCharacters") {
+    return `<div class="grid-chars">${characters.length ? characters.map((r, i) => favPersonCard(r, i)).join("") : empty}</div>`;
+  }
+  if (key === "favPersons") {
+    return `<div class="grid-chars">${persons.length ? persons.map((r, i) => favPersonCard(r, i)).join("") : empty}</div>`;
+  }
+  const entries = favData.filter((r) => r.type === key);
+  return `<div class="grid-chars">${entries.length ? entries.map((r, i) => favPersonCard(r, i)).join("") : empty}</div>`;
+}
+
+function bindFavModeToggle() {
+  document.querySelectorAll("#tab-favorites .tl-mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.mode === favState.mode) return;
+      favState.mode = btn.dataset.mode;
+      renderFavorites(favExportData);
+    });
+  });
 }
 
 // Карточка тайтла (из reviews.json с favorite: true)

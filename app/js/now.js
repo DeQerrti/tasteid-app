@@ -17,16 +17,6 @@ document.addEventListener("site-labels-ready", () => {
   if (tab && !tab.classList.contains("hidden")) loadNow();
 });
 
-// ── Сохранение состояния секций ────────────────
-const COLLAPSE_KEY = "tasteid_collapsed";
-function getCollapsed() {
-  try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY)) || []); }
-  catch { return new Set(); }
-}
-function saveCollapsed(set) {
-  localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set]));
-}
-
 // Снимок того, что уже нарисовано – см. её же комментарий выше про
 // "кэша больше нет": reviews.json перечитывается заново при КАЖДОМ
 // заходе на вкладку, и на компьютере это правда дёшево (локальный
@@ -37,6 +27,12 @@ function saveCollapsed(set) {
 // каждом переключении вкладки. Перерисовываем только когда снимок
 // (данные + подписи статусов) и правда стал другим.
 let nowLastSnapshot = null;
+
+// Текущая выбранная вкладка-переключатель (ключ статуса или "archive") –
+// см. её же комментарий у nowModeToggleHtml() ниже. Сбрасывается на
+// первую по порядку при каждой загрузке страницы, не запоминается
+// между сеансами – так же, как режим самого тир-листа (tlState.mode).
+const nowState = { buckets: [], completed: [], mode: null };
 
 async function loadNow() {
   if (loading.now) return;
@@ -68,44 +64,100 @@ async function loadNow() {
   }
 }
 
-function makeSection(id, title, items, collapsed) {
-  const isCollapsed = collapsed.has(id);
-  return `
-    <section class="group now-section" data-section="${esc(id)}">
-      <div class="now-section-header" onclick="toggleSection('${esc(id)}')">
-        <h2 class="section-title" style="margin-bottom:0;cursor:pointer;user-select:none">
-          ${esc(title)}
-          <span class="section-count">${items.length}</span>
-        </h2>
-      </div>
-      <div class="now-section-body${isCollapsed ? " hidden" : ""}">
-        <div class="grid-now" style="margin-top:1.5rem">
-          ${items.map((r, i) => manualCard(r, i)).join("")}
-        </div>
-      </div>
-    </section>`;
+// Порядок статусов вместе с «Архивом» – настраивается в /settings-edit
+// перетаскиванием (statusOrderState там же): «Архив» раньше был жёстко
+// зашит последним, теперь может стоять где угодно. Скрытые статусы
+// (SITE_HIDDEN_STATUSES) сюда не попадают вовсе – ни отдельной секцией,
+// как раньше, ни вкладкой переключателя.
+function nowOrderedKeys() {
+  const known = [...nowState.buckets.map((b) => b.key), "archive"].filter(
+    (key) => !window.SITE_HIDDEN_STATUSES?.has(key)
+  );
+  const saved = window.SITE_STATUS_ORDER || [];
+  const ordered = saved.filter((k) => known.includes(k));
+  const missing = known.filter((k) => !ordered.includes(k));
+  return [...ordered, ...missing];
 }
 
-function toggleSection(id) {
-  const collapsed = getCollapsed();
-  const section = document.querySelector(`.now-section[data-section="${id}"]`);
-  if (!section) return;
-  const body = section.querySelector(".now-section-body");
-  if (collapsed.has(id)) {
-    collapsed.delete(id);
-    body.classList.remove("hidden");
-  } else {
-    collapsed.add(id);
-    body.classList.add("hidden");
-  }
-  saveCollapsed(collapsed);
+// Если текущая вкладка вдруг пропала (статус скрыли/удалили, пока была
+// выбрана) или ещё не выбрана вовсе – берём первую по порядку.
+function nowEnsureMode() {
+  const keys = nowOrderedKeys();
+  if (!keys.includes(nowState.mode)) nowState.mode = keys[0] ?? null;
+}
+
+// Переключатель вкладок сверху – тот же вид (.tl-mode-toggle/.tl-mode-btn
+// в index.html), что уже есть у режимов тир-листа: расчёт был на то,
+// что бесконечно листать вниз через все статусы разом медленнее, чем
+// сразу переключиться на нужный, – то же самое время от времени
+// делает Статистика для годов и Тир-лист для своих коллекций.
+function nowModeToggleHtml() {
+  const bucketsByKey = Object.fromEntries(nowState.buckets.map((b) => [b.key, b]));
+  const btns = nowOrderedKeys()
+    .map((key) => {
+      if (key === "archive") {
+        return `<button class="tl-mode-btn${nowState.mode === "archive" ? " active" : ""}" data-mode="archive">${esc(siteLabel("statuses", "archive", i18n("Архив")))} <span class="section-count">${nowState.completed.length}</span></button>`;
+      }
+      const b = bucketsByKey[key];
+      if (!b) return "";
+      return `<button class="tl-mode-btn${nowState.mode === key ? " active" : ""}" data-mode="${esc(key)}">${esc(b.label)} <span class="section-count">${b.items.length}</span></button>`;
+    })
+    .join("");
+  return `<div class="tl-mode-toggle">${btns}</div>`;
+}
+
+function bindNowModeToggle() {
+  document.querySelectorAll("#tab-now .tl-mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.mode === nowState.mode) return;
+      nowState.mode = btn.dataset.mode;
+      renderNowBody();
+    });
+  });
+}
+
+// Год, к которому подскочить, – см. её же комментарий у
+// scrollToArchiveYear() ниже. Список лет для выпадашки – по самим
+// записям архива, не выдуманный диапазон: если человек смотрел кино
+// только в 2019–2024, промежуточные пустые года туда не попадают.
+function makeArchiveYearJumpHtml(completed) {
+  const years = [
+    ...new Set(
+      completed
+        .map((r) => {
+          const raw = r.date_end || r.date_start || r.date;
+          return raw ? new Date(raw).getFullYear() : null;
+        })
+        .filter((y) => y !== null)
+    ),
+  ].sort((a, b) => b - a);
+  if (years.length < 2) return ""; // один год – прыгать некуда
+  return `<div class="now-archive-jump">
+    <select onchange="scrollToArchiveYear(this.value)">
+      <option value="" data-i18n>Перейти к году…</option>
+      ${years.map((y) => `<option value="${y}">${y}</option>`).join("")}
+    </select>
+  </div>`;
+}
+
+// Прокручивает (не фильтрует – весь архив как был, просто быстрее
+// добраться до места) к первой карточке нужного года. Год не фильтр:
+// уводить одним выбором в СПИСКЕ год из выпадашки и обратно на "все
+// года" – лишний шаг там, где достаточно долистать глазами то, что и
+// так на экране, просто начиная с нужного места.
+function scrollToArchiveYear(year) {
+  if (!year) return;
+  const el = document.querySelector(`#tab-now .year-divider[data-year="${CSS.escape(year)}"]`);
+  el?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // «Архив» – группируем по году. Не элемент activeStatusBuckets() (это
 // просто все завершённые, а не отдельный ручной статус), поэтому своя
 // функция, а не ещё одна запись в buckets.
-function makeArchiveSection(completed, collapsed) {
-  if (!completed.length || window.SITE_HIDDEN_STATUSES?.has("archive")) return "";
+function archiveBodyHtml(completed) {
+  if (!completed.length) {
+    return `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
+  }
 
   const sorted = [...completed].sort((a, b) => {
     const da = new Date(a.date_end || a.date_start || a.date || 0);
@@ -120,89 +172,47 @@ function makeArchiveSection(completed, collapsed) {
     byYear[y].push(r);
   }
 
-  const isCollapsed = collapsed.has("archive");
-  let archiveInner = "";
+  let inner = "";
   for (const year of Object.keys(byYear).sort((a, b) => b - a)) {
-    archiveInner += `<div class="year-divider">${esc(String(year))}</div>
+    inner += `<div class="year-divider" data-year="${esc(String(year))}">${esc(String(year))}</div>
       <div class="grid-now">
         ${byYear[year].map((r, i) => manualCard(r, i)).join("")}
       </div>`;
   }
 
-  return `
-    <section class="group now-section" data-section="archive">
-      <div class="now-section-header" onclick="toggleSection('archive')">
-        <h2 class="section-title" style="margin-bottom:0;cursor:pointer;user-select:none">
-          ${esc(siteLabel("statuses", "archive", i18n("Архив")))}
-          <span class="section-count">${completed.length}</span>
-        </h2>
-      </div>
-      <div class="now-section-body${isCollapsed ? " hidden" : ""}">
-        ${archiveInner}
-      </div>
-    </section>`;
+  return makeArchiveYearJumpHtml(completed) + inner;
+}
+
+function nowModeBodyHtml() {
+  if (nowState.mode === "archive") return archiveBodyHtml(nowState.completed);
+  const bucketsByKey = Object.fromEntries(nowState.buckets.map((b) => [b.key, b]));
+  const b = bucketsByKey[nowState.mode];
+  if (!b || !b.items.length) {
+    return `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
+  }
+  return `<div class="grid-now">${b.items.map((r, i) => manualCard(r, i)).join("")}</div>`;
+}
+
+function renderNowBody() {
+  const body = document.getElementById("now-mode-body");
+  if (!body) return;
+  document.querySelectorAll("#tab-now .tl-mode-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.mode === nowState.mode);
+  });
+  body.innerHTML = nowModeBodyHtml();
 }
 
 function renderNow({ buckets, completed }) {
   const box = document.getElementById("tab-now");
-  const collapsed = getCollapsed();
-  const html = `<style>
-    .now-section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: .35rem 0;
-      cursor: pointer;
-    }
-    .now-section-header:hover .section-title { color: var(--text-hi); }
+  nowState.buckets = buckets;
+  nowState.completed = completed;
+  nowEnsureMode();
 
-    .section-count {
-      font-family: 'DM Sans', sans-serif;
-      font-size: .65rem;
-      font-weight: 400;
-      font-style: normal;
-      color: var(--text-dim);
-      letter-spacing: .05em;
-      margin-left: .1rem;
-      align-self: flex-end;
-      padding-bottom: .1rem;
-    }
-
-    .now-section-body.hidden { display: none; }
-  </style>`;
-
-  // Секции копятся отдельно от html: тот всегда начинается с блока
-  // <style> выше, то есть пустым не бывает никогда. Раньше заглушка
-  // «список пуст» висела на `html || …` и поэтому не показывалась –
-  // на пустых данных вкладка оставалась просто белым листом.
-  let sections = "";
-
-  // Порядок статусов вместе с «Архивом» – настраивается в /settings-edit
-  // перетаскиванием (statusOrderState там же): «Архив» раньше был
-  // жёстко зашит последним, теперь может стоять где угодно.
-  // window.SITE_STATUS_ORDER = null, пока настроек ещё не было.
-  const bucketsByKey = Object.fromEntries(buckets.map((b) => [b.key, b]));
-  const order = window.SITE_STATUS_ORDER || [...buckets.map((b) => b.key), "archive"];
-  const seen = new Set();
-  for (const key of order) {
-    seen.add(key);
-    if (window.SITE_HIDDEN_STATUSES?.has(key)) continue;
-    if (key === "archive") {
-      sections += makeArchiveSection(completed, collapsed);
-    } else if (bucketsByKey[key]?.items.length) {
-      sections += makeSection(key, bucketsByKey[key].label, bucketsByKey[key].items, collapsed);
-    }
+  if (!nowState.mode) {
+    box.innerHTML = `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
+    return;
   }
-  // Статус, заведённый уже после того, как порядок сохранился (или
-  // сама «Архив», если её вдруг нет в сохранённом порядке) – просто
-  // дописывается в конец, а не пропадает молча.
-  for (const bucket of buckets) {
-    if (seen.has(bucket.key) || window.SITE_HIDDEN_STATUSES?.has(bucket.key)) continue;
-    if (bucket.items.length) sections += makeSection(bucket.key, bucket.label, bucket.items, collapsed);
-  }
-  if (!seen.has("archive")) sections += makeArchiveSection(completed, collapsed);
 
-  box.innerHTML = html +
-    (sections || `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`);
+  box.innerHTML = `${nowModeToggleHtml()}<div id="now-mode-body">${nowModeBodyHtml()}</div>`;
+  bindNowModeToggle();
 }
