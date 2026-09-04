@@ -1008,6 +1008,8 @@ i18nRegister({
   "Проверяем репозиторий…": "Checking the repository…",
   "Репозитория ещё нет – создаём…": "The repository doesn't exist yet – creating it…",
   "Подключено к": "Connected to",
+  "Последняя попытка синхронизации не удалась ({when}): {message}":
+    "The last sync attempt failed ({when}): {message}",
   "Последняя синхронизация: {when}.": "Last synced: {when}.",
   "ещё не было": "never",
   "Синхронизировать сейчас": "Sync now",

@@ -80,6 +80,16 @@ function syncSetupHtml() {
       <div class="field">
         <label data-i18n>Название репозитория</label>
         <input type="text" id="sync-repo" value="tasteid-vault">
+        <p class="panel-intro" data-i18n>
+          Просто оставьте как есть, если не уверены, что означает это
+          название, – это техническое имя папки-хранилища на GitHub,
+          самим внешним видом приложения оно никак не пользуется. Если
+          такого репозитория ещё нет на вашем GitHub – создадим сами,
+          приватным. Если уже есть (например, второе устройство его уже
+          завело) – подключимся к нему: на всех устройствах должно быть
+          одно и то же название, иначе они будут синхронизировать
+          разные хранилища и не увидят данные друг друга.
+        </p>
       </div>
       <button class="btn btn-primary" onclick="connectSync()" id="sync-connect-btn" data-i18n>Подключить</button>
       <div class="status-msg" id="status-sync"></div>
@@ -89,12 +99,31 @@ function syncSetupHtml() {
 function syncConnectedHtml(config) {
   const state = getSyncState();
   const last = state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString(dateLocale()) : i18n("ещё не было");
+  // Фоновая синхронизация падает тихо (см. её же комментарий у
+  // recordSyncError() в sync.js) – «Подключено» и дата последней
+  // синхронизации сами по себе при сбое не меняются, и открыв эту
+  // панель месяц спустя, можно не заметить, что синхронизации давно
+  // нет (истёкший или отозванный токен – самый частый случай). Плашка
+  // ниже показывает последнюю ошибку, даже если её вызвал не сам
+  // человек нажатием кнопки, а фоновый запуск где-то между делом –
+  // и остаётся видна, пока её не сменит либо новая ошибка, либо
+  // успешная синхронизация (см. clearSyncError()).
+  const lastError = getSyncError();
+  const errorHtml = lastError
+    ? `<p class="panel-intro" style="color:var(--red-hi);">
+        ${i18n("Последняя попытка синхронизации не удалась ({when}): {message}", {
+          when: new Date(lastError.at).toLocaleString(dateLocale()),
+          message: esc(lastError.message),
+        })}
+      </p>`
+    : "";
   return `
       <p class="panel-intro">
         ${i18n("Подключено к")}
         <a href="https://github.com/${esc(config.owner)}/${esc(config.repo)}" target="_blank" rel="noopener">${esc(config.owner)}/${esc(config.repo)}</a>.
         ${i18n("Последняя синхронизация: {when}.", { when: last })}
       </p>
+      ${errorHtml}
       <div class="row" style="gap:10px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="startSync()" id="sync-now-btn" data-i18n>Синхронизировать сейчас</button>
         <button class="btn btn-ghost" onclick="disconnectSync()" data-i18n>Отключить</button>
@@ -194,6 +223,7 @@ async function startSync() {
       // потом показать статус – иначе renderSyncPanel() тут же стирает
       // status-sync вместе со всей панелью, и человек не успевает
       // увидеть «Готово» ни на миг.
+      clearSyncError();
       renderSyncPanel();
       flashStatus(
         "status-sync",
@@ -206,6 +236,12 @@ async function startSync() {
       setTimeout(() => location.reload(), 1200);
     }
   } catch (e) {
+    // Тот же приём, что и у «Готово» чуть выше: сперва перерисовать
+    // панель – плашка последней ошибки (см. syncConnectedHtml()) сразу
+    // покажет то же самое, чем не только эта конкретная попытка, но и
+    // любая следующая фоновая обернётся, если причина не разовая.
+    recordSyncError(e.message);
+    renderSyncPanel();
     flashStatus("status-sync", false, e.message);
   } finally {
     syncInFlight = false;

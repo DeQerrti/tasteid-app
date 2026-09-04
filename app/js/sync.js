@@ -36,6 +36,37 @@
 
 const SYNC_CONFIG_KEY = "tasteid_sync_config"; // { token, owner, repo }
 const SYNC_STATE_KEY = "tasteid_sync_state"; // { files: {путь:{hash,sha}}, images: {путь:{hash,sha}}, lastSyncAt }
+// { message, at } последней неудачной попытки – фоновая runAutoSync()
+// раньше падала совсем тихо (см. её же комментарий ниже): токен истёк
+// или отозван – а панель настроек продолжала как ни в чём не бывало
+// показывать «Подключено» и старую дату последней синхронизации,
+// потому что ни то, ни другое не меняется при сбое. Разница видна
+// только если руками нажать «Синхронизировать сейчас» и прочитать
+// ошибку – через месяц-другой человек может об этом уже не вспомнить.
+// Сохраняем последнюю ошибку сюда и показываем её в самой панели, пока
+// её не сменит либо новая ошибка, либо успешная синхронизация.
+const SYNC_LAST_ERROR_KEY = "tasteid_sync_last_error";
+
+function recordSyncError(message) {
+  try {
+    localStorage.setItem(SYNC_LAST_ERROR_KEY, JSON.stringify({ message, at: new Date().toISOString() }));
+  } catch {
+    // localStorage недоступен (приватный режим и т.п.) – без плашки, но
+    // хотя бы сама синхронизация уже отработала своё, ничего не роняем.
+  }
+}
+
+function clearSyncError() {
+  localStorage.removeItem(SYNC_LAST_ERROR_KEY);
+}
+
+function getSyncError() {
+  try {
+    return JSON.parse(localStorage.getItem(SYNC_LAST_ERROR_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
 
 function getSyncConfig() {
   try {
@@ -53,6 +84,7 @@ function clearSyncConfig() {
   localStorage.removeItem(SYNC_CONFIG_KEY);
   localStorage.removeItem(SYNC_STATE_KEY);
   localStorage.removeItem(AUTOSYNC_CONFLICTS_KEY);
+  localStorage.removeItem(SYNC_LAST_ERROR_KEY);
 }
 
 function getSyncState() {
@@ -390,9 +422,14 @@ async function runAutoSync() {
         }),
       });
     }
-  } catch {
-    // Тихая синхронизация: сеть могла быть недоступна, токен – истечь.
-    // Ручная кнопка покажет причину явно, если человек попробует сам.
+    clearSyncError();
+  } catch (e) {
+    // Сама попытка тихая – никакого алерта посреди работы с чем-то
+    // другим, сеть могла быть просто недоступна прямо сейчас. Но не
+    // молчим совсем: причина остаётся в localStorage до следующего
+    // успеха и всплывает плашкой на панели настроек, как только
+    // человек туда заглянет – см. её же комментарий у SYNC_LAST_ERROR_KEY.
+    recordSyncError(e.message);
   } finally {
     syncInFlight = false;
   }
