@@ -2698,7 +2698,24 @@ section.group { margin-bottom: 3.5rem; }
   <div id="tab-tierlist" role="tabpanel" tabindex="0"  class="tab-content hidden"><div class="state-box"><div class="spinner"></div>Загружаем рецензии…</div></div>
 </main>
 
-<!-- Модалка: новый тир-лист (коллекция) – доступна только админу -->
+<!-- Модалка: список горячих клавиш, вызывается «?» – тот же список,
+     что и справочная панель в настройках (js/utils.js: keyboardShortcutsHtml) -->
+<div class="modal-overlay hidden" id="shortcuts-modal-overlay" onclick="closeShortcutsModalOnOverlay(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShortcutsModal()">✕</button>
+    <div class="modal-title" data-i18n>Горячие клавиши</div>
+    <div id="shortcuts-modal-list"></div>
+  </div>
+</div>
+</div><!-- /#shell-root -->
+
+<!-- Модалка: новый тир-лист (коллекция) – доступна только админу.
+     Вне #shell-root нарочно: #shell-root.hidden { display:none } целиком
+     скрывает всё внутри, пока открыт другой маршрут (см. её же
+     комментарий выше), а эта модалка теперь открывается ещё и из
+     /settings-edit (кнопка «Создать» в разделе «Тир-лист») – внутри
+     #shell-root там просто ничего не было бы видно, хотя .hidden с
+     самой модалки и снимался бы. -->
 <div class="modal-overlay hidden" id="collection-modal-overlay" onclick="closeCollectionModalOnOverlay(event)">
   <div class="modal">
     <button class="modal-close" onclick="closeCollectionModal()">✕</button>
@@ -2711,17 +2728,6 @@ section.group { margin-bottom: 3.5rem; }
     <div class="status-msg" id="collection-modal-status"></div>
   </div>
 </div>
-
-<!-- Модалка: список горячих клавиш, вызывается «?» – тот же список,
-     что и справочная панель в настройках (js/utils.js: keyboardShortcutsHtml) -->
-<div class="modal-overlay hidden" id="shortcuts-modal-overlay" onclick="closeShortcutsModalOnOverlay(event)">
-  <div class="modal">
-    <button class="modal-close" onclick="closeShortcutsModal()">✕</button>
-    <div class="modal-title" data-i18n>Горячие клавиши</div>
-    <div id="shortcuts-modal-list"></div>
-  </div>
-</div>
-</div><!-- /#shell-root -->
 
 <!-- #view-root – сюда роутер подставляет содержимое отдельных
      маршрутов (см. #shell-root выше и js/router.js). Пусто и скрыто,

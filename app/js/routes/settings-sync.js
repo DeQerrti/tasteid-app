@@ -72,16 +72,6 @@ function syncSetupHtml() {
       <div class="field">
         <label data-i18n>Название репозитория</label>
         <input type="text" id="sync-repo" value="tasteid-vault">
-        <p class="panel-intro" data-i18n>
-          Просто оставьте как есть, если не уверены, что означает это
-          название, – это техническое имя папки-хранилища на GitHub,
-          самим внешним видом приложения оно никак не пользуется. Если
-          такого репозитория ещё нет на вашем GitHub – создадим сами,
-          приватным. Если уже есть (например, второе устройство его уже
-          завело) – подключимся к нему: на всех устройствах должно быть
-          одно и то же название, иначе они будут синхронизировать
-          разные хранилища и не увидят данные друг друга.
-        </p>
       </div>
       <button class="btn btn-primary" onclick="connectSync()" id="sync-connect-btn" data-i18n>Подключить</button>
       <div class="status-msg" id="status-sync"></div>

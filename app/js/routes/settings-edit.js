@@ -230,8 +230,15 @@ function settingsViewHtml() {
         <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
 
         <h2 class="section-h" id="tierModesHeading"></h2>
-        <p class="panel-intro" data-i18n>Скрыть, переименовать, удалить и переставить местами можно все тир-листы разом – «Тайтлы» и свои коллекции. Завести новый тир-лист по-прежнему проще кнопкой «Создать» на самой вкладке «Тир-лист».</p>
+        <p class="panel-intro" data-i18n>Скрыть, переименовать, удалить и переставить местами можно все тир-листы разом – «Тайтлы» и свои коллекции.</p>
         <div id="tierModesList"></div>
+        <!-- Та же кнопка и та же модалка (openCollectionModal() в
+             tierlist.js), что и на самой вкладке «Тир-лист» – модалка
+             живёт в общей разметке (index.html), а не внутри вкладки,
+             поэтому одинаково открывается из обоих мест. Дублирование
+             намеренное: тут человек уже смотрит на список тир-листов,
+             удобно тут же и завести новый, не уходя на другую вкладку. -->
+        <button class="btn btn-ghost" onclick="openCollectionModal()" data-i18n>Создать</button>
       </div>
 
       <div class="panel" id="panel-shortcuts">
@@ -271,14 +278,12 @@ function settingsViewHtml() {
         </div>
 
         <div id="numericBlock" style="display:none;">
-          <h2 class="section-h" data-i18n>Диапазон</h2>
           <div class="row">
             <div style="flex:0 0 140px;"><label id="numericMaxLabel" data-i18n>Максимум</label><input type="number" id="numericMax" min="2" max="10" value="10"
               onchange="clampNumericMax(); seedNumericShelves(); renderShelvesList('shelvesList', true);"></div>
           </div>
 
-          <h2 class="section-h" data-i18n>Полки (от лучшей к худшей)</h2>
-          <p class="panel-intro" data-i18n>Каждая полка – диапазон значений с названием и цветом. Именно эти полки станут строками тир-листа.</p>
+          <h2 class="section-h" data-i18n>Полки</h2>
           <div id="shelvesList"></div>
           <button class="btn btn-ghost" onclick="addShelfRow()" data-i18n>Добавить полку</button>
         </div>
