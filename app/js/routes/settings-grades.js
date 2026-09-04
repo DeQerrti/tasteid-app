@@ -435,11 +435,15 @@ async function removeTierCollectionSetting(id) {
     });
     window.SITE_TIER_COLLECTIONS = activeTierCollections().filter((x) => x.id !== id);
     window.SITE_HIDDEN_TIER_MODES?.delete(id);
-
-    tierCollections = (tierCollections || []).filter((x) => x.id !== id);
     hiddenTierModesState.delete(id);
     tierModeOrderState = tierModeOrderState.filter((k) => k !== id);
-    renderTierModesList();
+    // refreshTierCollectionsElsewhere() (chars-edit.js) сама обновляет
+    // tierCollections/renderTierModesList() здесь же и, если вкладка
+    // «Тир-лист» уже открыта фоном, перерисовывает и её – без этого
+    // вызова удалённый раздел висел там до перезахода: настройки
+    // писали на диск сразу, но никто не говорил уже отрисованной
+    // вкладке, что список изменился.
+    refreshTierCollectionsElsewhere();
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
   }

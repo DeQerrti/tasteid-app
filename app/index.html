@@ -585,9 +585,12 @@ section.group { margin-bottom: 3.5rem; }
 /* minmax(0, 1fr), а не просто 1fr: колонка по умолчанию не даёт себе стать
    уже min-content своего содержимого, а карточка отзыва с обложкой в 150px
    и текстом внутри как раз шире экрана телефона – из-за этого вся страница
-   уезжала вбок примерно на 20px. */
-.reviews-grid { display: grid; gap: .85rem; grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 640px)  { .reviews-grid { grid-template-columns: repeat(3, 1fr); } }
+   уезжала вбок примерно на 20px (см. и overflow-wrap на .card-title выше –
+   тот же класс бага, вторая подстраховка). На телефоне – 4 колонки, а не
+   2: две отдавали ползаписи только на обложки и не помещали ни одного
+   ряда без прокрутки.*/
+.reviews-grid { display: grid; gap: .6rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (min-width: 640px)  { .reviews-grid { gap: .85rem; grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 860px)  { .reviews-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 1060px) { .reviews-grid { grid-template-columns: repeat(5, 1fr); } }
 @media (min-width: 1280px) { .reviews-grid { grid-template-columns: repeat(6, 1fr); } }
