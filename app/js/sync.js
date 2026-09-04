@@ -34,8 +34,36 @@
 //  отклоняется сервером, а не тихо затирает чужую правку.
 // ══════════════════════════════════════════════
 
-const SYNC_CONFIG_KEY = "tasteid_sync_config"; // { token, owner, repo }
-const SYNC_STATE_KEY = "tasteid_sync_state"; // { files: {путь:{hash,sha}}, images: {путь:{hash,sha}}, lastSyncAt }
+// ── Ключи в localStorage – привязаны к хранилищу ────
+// window.__TASTEID.vaultId – то же самое место, откуда i18n.js
+// синхронно берёт lang (см. её же комментарий там): на компьютере его
+// вписывает electron/protocol.js прямо в HTML, на телефоне –
+// mobile/src/main.js тем же приёмом. Не меняется без полной
+// перезагрузки страницы – переключение хранилища всегда её делает
+// (см. switchVault() в settings-app.js), поэтому его можно прочитать
+// один раз здесь же, при загрузке файла.
+//
+// Токен синхронизации, её состояние и загруженный чужой паспорт
+// (см. GUEST_KEY в passports.js) – это данные ПРО ОДНО хранилище: у
+// каждого свой репозиторий на GitHub, своя библиотека для сравнения.
+// А localStorage при этом общий на всё приложение – один и тот же
+// браузерный склад видит любое хранилище, открытое на этом
+// устройстве, одинаково. Без разделения по хранилищу это означало:
+// завёл новое (по описанию – "абсолютно чистое, с нуля") – а в нём
+// тут же оказывалась синхронизация и загруженный чужой паспорт из
+// старого. Хуже того – фоновая автосинхронизация нового, пустого
+// хранилища тут же отправляла эту пустоту в чужой репозиторий, а
+// следующая синхронизация СТАРОГО хранилища следом забирала пустоту
+// обратно и стирала настоящие данные. Реальный случай, не гипотеза.
+function currentVaultId() {
+  return (typeof window !== "undefined" && window.__TASTEID?.vaultId) || "default";
+}
+function vaultScopedKey(base) {
+  return `${base}:${currentVaultId()}`;
+}
+
+const SYNC_CONFIG_KEY = vaultScopedKey("tasteid_sync_config"); // { token, owner, repo }
+const SYNC_STATE_KEY = vaultScopedKey("tasteid_sync_state"); // { files: {путь:{hash,sha}}, images: {путь:{hash,sha}}, lastSyncAt }
 // { message, at } последней неудачной попытки – фоновая runAutoSync()
 // раньше падала совсем тихо (см. её же комментарий ниже): токен истёк
 // или отозван – а панель настроек продолжала как ни в чём не бывало
@@ -45,7 +73,42 @@ const SYNC_STATE_KEY = "tasteid_sync_state"; // { files: {путь:{hash,sha}}, 
 // ошибку – через месяц-другой человек может об этом уже не вспомнить.
 // Сохраняем последнюю ошибку сюда и показываем её в самой панели, пока
 // её не сменит либо новая ошибка, либо успешная синхронизация.
-const SYNC_LAST_ERROR_KEY = "tasteid_sync_last_error";
+const SYNC_LAST_ERROR_KEY = vaultScopedKey("tasteid_sync_last_error");
+// Тот же флаг читают и ручная кнопка, и автосинхронизация – не важно,
+// кто досчитал до конфликта последним, важно, что он есть или его нет
+// (см. её же использование у runSync/clearSyncConfig ниже).
+const AUTOSYNC_CONFLICTS_KEY = vaultScopedKey("tasteid_sync_has_conflicts");
+
+// Мигрируем то, что уже сохранено под старым, общим на все хранилища
+// ключом, – но только один раз и только если под новым, привязанным к
+// хранилищу ключом ещё пусто (не затираем то, что уже разделили).
+// Для всех, кто подключил синхронизацию до этого исправления, она
+// продолжает работать без переподключения – просто теперь считается
+// принадлежащей тому хранилищу, которое было открыто первым после
+// обновления (обычно оно и есть единственное, которое у человека уже
+// было). Хранилища, заведённые позже, начинают с чистого листа, как и
+// должны.
+(function migrateLegacySyncKeys() {
+  const LEGACY_TO_SCOPED = {
+    tasteid_sync_config: SYNC_CONFIG_KEY,
+    tasteid_sync_state: SYNC_STATE_KEY,
+    tasteid_sync_last_error: SYNC_LAST_ERROR_KEY,
+    tasteid_sync_has_conflicts: AUTOSYNC_CONFLICTS_KEY,
+  };
+  try {
+    for (const [legacyKey, scopedKey] of Object.entries(LEGACY_TO_SCOPED)) {
+      if (legacyKey === scopedKey) continue; // "default" хранилище – уже тот же ключ
+      if (localStorage.getItem(scopedKey) !== null) continue;
+      const legacyValue = localStorage.getItem(legacyKey);
+      if (legacyValue === null) continue;
+      localStorage.setItem(scopedKey, legacyValue);
+      localStorage.removeItem(legacyKey);
+    }
+  } catch {
+    // localStorage недоступен (приватный режим и т.п.) – без миграции,
+    // но не роняем остальной код из-за этого.
+  }
+})();
 
 function recordSyncError(message) {
   try {
@@ -82,7 +145,7 @@ function getSyncError() {
 // упадёт с новой ошибкой (новым `at`), это уже другая проблема (или та
 // же, но не решённая) – стоит напомнить снова, а не молчать до
 // перезапуска.
-const SYNC_ERROR_DISMISSED_KEY = "tasteid_sync_error_dismissed_at";
+const SYNC_ERROR_DISMISSED_KEY = vaultScopedKey("tasteid_sync_error_dismissed_at");
 let syncErrorBannerEl = null;
 
 function hideSyncErrorBanner() {
@@ -202,6 +265,15 @@ async function githubApi(config, path, { method = "GET", body } = {}) {
   try {
     res = await fetch(`https://api.github.com${path}`, {
       method,
+      // GitHub отдаёт список файлов репозитория (getRepoTree ниже) с
+      // обычными заголовками кеширования – две синхронизации подряд
+      // (например, сразу после создания нового файла) иначе могли бы
+      // получить старый список из кеша браузера, ещё не знающий об
+      // только что созданном файле. Дальше код решает "этого файла
+      // нет" и пытается создать его снова без sha – GitHub отвечает
+      // "sha wasn't supplied", хотя файл уже есть. Синхронизации важна
+      // именно свежая правда, не что угодно из кеша.
+      cache: "no-store",
       headers: {
         ...(config.token ? { Authorization: `Bearer ${config.token}` } : {}),
         Accept: "application/vnd.github+json",
@@ -336,6 +408,15 @@ async function putRemoteFile(config, path, base64, sha) {
   );
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    // Отправляли без sha, думая, что файла на GitHub ещё нет (см. её
+    // же комментарий у cache: "no-store" в githubApi – обычно дело в
+    // кеше), а он там уже есть – GitHub отвечает как раз про sha.
+    // Не роняем синхронизацию из-за одного файла: узнаём настоящий
+    // sha и пробуем ещё раз, один раз.
+    if (!sha && /sha/i.test(data.message || "")) {
+      const remote = await getRemoteFile(config, path);
+      if (remote) return putRemoteFile(config, path, base64, remote.sha);
+    }
     throw new SyncError(data.message || i18n("Не получилось отправить файл: {path}", { path }));
   }
   return (await res.json()).content.sha;
@@ -578,7 +659,6 @@ async function resolveConflict(config, conflict, choice) {
 //  туда же, где решает конфликты вручную.
 // ══════════════════════════════════════════════
 
-const AUTOSYNC_CONFLICTS_KEY = "tasteid_sync_has_conflicts";
 const AUTOSYNC_DELAY = 8000;
 const AUTOSYNC_ON_OPEN_DELAY = 3000;
 

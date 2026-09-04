@@ -813,8 +813,28 @@ async function renameCurrentCollection() {
     document.title = `TasteID – ${i18n("Редактор")}: ${COLLECTION_LABEL}`;
     const headerEl = document.getElementById("header-sub");
     if (headerEl) headerEl.textContent = `${i18n("Редактор")}: ${COLLECTION_LABEL}`;
+    refreshTierCollectionsElsewhere();
   } catch (err) {
     alert(err.message || i18n("Ошибка сохранения"));
+  }
+}
+
+// Тир-лист переименовывают/удаляют либо отсюда (редактор одной
+// коллекции), либо кнопкой «Создать» с самой вкладки «Тир-лист»
+// (tierlist.js: submitNewCollection). И вкладка «Тир-лист» (кнопки
+// переключения режима, tlRender), и панель настроек «Разделы вкладки
+// «Тир-лист»» (settings-grades.js: tierCollections/renderTierModesList)
+// держат СВОИ копии списка коллекций, загруженные один раз при заходе
+// – без явного обновления они не видели правку до повторного захода
+// на вкладку/панель. Дальше только там, где разметка правда есть:
+// #shell-root остаётся в DOM (просто скрыт), пока открыт этот
+// редактор или настройки, но других маршрутов вроде #/add там нет
+// вовсе.
+function refreshTierCollectionsElsewhere() {
+  if (document.getElementById("tab-tierlist")) tlRender();
+  if (typeof tierCollections !== "undefined" && document.getElementById("tierModesList")) {
+    tierCollections = window.SITE_TIER_COLLECTIONS;
+    renderTierModesList();
   }
 }
 
@@ -851,6 +871,8 @@ async function deleteCurrentCollection() {
     window.SITE_TIER_COLLECTIONS = activeTierCollections().filter((c) => c.id !== COLLECTION);
     window.SITE_HIDDEN_TIER_MODES?.delete(COLLECTION);
     delete tlState.collections[COLLECTION];
+    if (tlState.mode === COLLECTION) tlState.mode = "titles";
+    refreshTierCollectionsElsewhere();
     leaveRoute();
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));

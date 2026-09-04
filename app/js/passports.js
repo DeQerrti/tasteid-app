@@ -19,8 +19,11 @@
 
 const PASSPORT_FORMAT = "tasteid-passport";
 const PASSPORT_VERSION = 1;
-const GUEST_KEY = "tasteid_guest_passport";
-const MODE_KEY = "tasteid_passport_mode";
+// Привязаны к хранилищу (см. её же комментарий у vaultScopedKey в
+// sync.js) – загруженный чужой паспорт сравнивают именно с этим
+// хранилищем, и в другом хранилище его быть не должно.
+const GUEST_KEY = vaultScopedKey("tasteid_guest_passport");
+const MODE_KEY = vaultScopedKey("tasteid_passport_mode");
 
 // Насколько далеко должны разойтись оценки, чтобы считать это спором.
 // Меряется в долях шкалы (0 – та же полка, 1 – с лучшей на худшую),

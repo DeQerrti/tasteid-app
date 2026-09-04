@@ -63,6 +63,17 @@ const VAULT_DIRS = /^\/(covers|covers-backup|chars|[^/]+)\/.+\.(png|jpe?g|webp|g
 
 let vault = new MobileVault(currentVaultId());
 
+// window.__TASTEID – то же самое место, откуда i18n.js синхронно берёт
+// lang на компьютере (там его вписывает electron/protocol.js прямо в
+// HTML, см. её же комментарий). На телефоне такой строки никто не
+// пишет – заводим её сами, только с vaultId: sync.js и passports.js
+// используют его, чтобы разделить свои ключи в localStorage по
+// хранилищам (см. её же комментарий у vaultScopedKey в sync.js).
+// Только под NATIVE – вне телефона тот же window.__TASTEID уже
+// вписан Electron-ом (lang/admin), и голое присваивание здесь стёрло
+// бы его вместо того, чтобы просто добавить своё поле.
+if (NATIVE) window.__TASTEID = { vaultId: currentVaultId() };
+
 // ── Несколько хранилищ ──────────────────────────
 // На компьютере список {name, path} живёт в конфиге и путь выбирают
 // проводником. На телефоне своего проводника нет: список – просто
@@ -168,6 +179,7 @@ async function appRoutes(pathname, body) {
     vault = new MobileVault(entry.id);
     await vault.ensure();
     clearImageCache();
+    if (NATIVE) window.__TASTEID = { ...window.__TASTEID, vaultId: entry.id };
     return { ok: true, vault: entry };
   }
   if (pathname === "/api/app/add-vault") {

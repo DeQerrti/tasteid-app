@@ -95,7 +95,7 @@ function injectEnv(html, env) {
   return HEAD_TAG.test(html) ? html.replace(HEAD_TAG, (m) => m + script) : script + html;
 }
 
-async function serveFile(filePath, { store = true, lang } = {}) {
+async function serveFile(filePath, { store = true, lang, vaultId } = {}) {
   let stat;
   try {
     stat = await fs.stat(filePath);
@@ -105,7 +105,7 @@ async function serveFile(filePath, { store = true, lang } = {}) {
   if (!stat.isFile()) return null;
   const isHtml = path.extname(filePath).toLowerCase() === ".html";
   let body = await fs.readFile(filePath, isHtml ? "utf8" : undefined);
-  if (isHtml) body = injectEnv(body, { admin: true, lang });
+  if (isHtml) body = injectEnv(body, { admin: true, lang, vaultId });
   return new Response(body, {
     status: 200,
     headers: {
@@ -130,11 +130,22 @@ async function readJsonBody(request) {
   }
 }
 
-export function createHandler({ appDir, getVault, appRoutes = {}, getLang }) {
+export function createHandler({ appDir, getVault, appRoutes = {}, getLang, getVaultId }) {
   return async function handle(request) {
     const url = new URL(request.url);
     const pathname = url.pathname;
     const lang = (getLang && getLang()) || "ru";
+    // Страница читает его синхронно, ещё до первого <script> (см.
+    // её же комментарий у injectEnv) – так же, как lang. Нужен, чтобы
+    // sync.js и passports.js могли по имени хранилища разделить свои
+    // ключи в localStorage: это общий на всё приложение браузерный
+    // склад, одна и та же вкладка/окно видит его одинаково независимо
+    // от того, какое хранилище выбрано сейчас на диске (см. её же
+    // историю у vaultScopedKey в sync.js – раньше токен синхронизации
+    // и загруженный чужой паспорт "утекали" из одного хранилища в
+    // другое при переключении, а автосинхронизация нового, пустого
+    // хранилища затирала данные в репозитории первого).
+    const vaultId = (getVaultId && getVaultId()) || "default";
 
     try {
       // ── API самого приложения ──
@@ -186,13 +197,13 @@ export function createHandler({ appDir, getVault, appRoutes = {}, getLang }) {
       const clean = pathname === "/" ? "/index.html" : pathname;
       const direct = resolveInside(appDir, clean);
       if (direct) {
-        const res = await serveFile(direct, { lang });
+        const res = await serveFile(direct, { lang, vaultId });
         if (res) return res;
       }
       // Красивые адреса вида /add – так же, как их разворачивал хостинг.
       const asPage = resolveInside(appDir, `${clean}.html`);
       if (asPage) {
-        const res = await serveFile(asPage, { lang });
+        const res = await serveFile(asPage, { lang, vaultId });
         if (res) return res;
       }
 

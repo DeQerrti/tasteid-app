@@ -211,6 +211,7 @@ const sharedBrowserGlobals = [
   "proxyImagesToDataUrls",
   "rebuildGradesFromScale",
   "refreshOpenReviewsTab",
+  "refreshTierCollectionsElsewhere",
   "registerRoute",
   "renderAllTimeStats",
   "renderCounters",
@@ -299,6 +300,7 @@ const sharedBrowserGlobals = [
   "unitForms",
   "updateFileBtnName",
   "updateSectionListHeadings",
+  "vaultScopedKey",
   "visibleTierCollections",
   // грузится по требованию из app/js/vendor (см. loadHtml2Canvas)
   "html2canvas",

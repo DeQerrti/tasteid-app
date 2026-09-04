@@ -1016,8 +1016,6 @@ i18nRegister({
   "Синхронизация с GitHub не работает: {message}": "Sync with GitHub isn't working: {message}",
   "Не получилось получить список файлов репозитория.": "Couldn't get the repository's file list.",
   "Показать токен": "Show token",
-  "Тот же токен, что был вставлен при подключении, – пригодится, если решите подключить ещё одно устройство позже, когда страница github.com с этим токеном уже наверняка будет закрыта.":
-    "The same token you entered when connecting – handy if you decide to connect another device later, once the github.com page with this token is almost certainly closed by then.",
   "Токен скопирован.": "Token copied.",
   "Не получилось скопировать – выделите его в поле выше и скопируйте вручную.":
     "Couldn't copy it – select it in the field above and copy it by hand.",

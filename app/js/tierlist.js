@@ -95,6 +95,14 @@ async function submitNewCollection() {
     window.SITE_TIER_COLLECTIONS = (Array.isArray(window.SITE_TIER_COLLECTIONS)
       ? window.SITE_TIER_COLLECTIONS
       : activeTierCollections()).concat([newCollection]);
+    // Эта же модалка открывается и с самой вкладки «Тир-лист», и
+    // кнопкой «Создать» в Настройках (#/settings-edit) – там свой,
+    // отдельный список тир-листов (см. её же комментарий у
+    // refreshTierCollectionsElsewhere в js/routes/chars-edit.js),
+    // загруженный один раз при заходе на панель. Без явного обновления
+    // новый тир-лист появлялся в нём только после того, как настройки
+    // открыли заново.
+    refreshTierCollectionsElsewhere();
     closeCollectionModal();
     tlState.mode = newCollection.id;
     tlState.gameId = null;

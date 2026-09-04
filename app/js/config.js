@@ -983,12 +983,14 @@ const SUBTYPE_LABELS = {
 // менялось на webp), но не поправляла ссылку на них в самих записях.
 // У тех, кто этой кнопкой воспользовался, часть обложек с тех пор
 // битая (см. core/api.js: repairCoverReferences). Кнопку убрали, чинить
-// вручную не на что нажать – поэтому чиним сами, один раз, без единого
-// диалога: localStorage – на каждом устройстве отдельно (не через
-// sync.js), но повторный вызов ничего не ломает, если вдруг всё же
-// понадобится ещё раз.
-if (!localStorage.getItem("tasteid-cover-refs-repaired-1")) {
+// вручную не на что нажать – поэтому чиним сами, один раз на каждое
+// хранилище (см. её же комментарий у vaultScopedKey в sync.js – битые
+// обложки у каждого хранилища свои), без единого диалога: localStorage
+// – на каждом устройстве отдельно (не через sync.js), но повторный
+// вызов ничего не ломает, если вдруг всё же понадобится ещё раз.
+const coverRepairFlagKey = vaultScopedKey("tasteid-cover-refs-repaired-1");
+if (!localStorage.getItem(coverRepairFlagKey)) {
   fetch("/api/repair-cover-references", { method: "POST" })
-    .then((res) => res.ok && localStorage.setItem("tasteid-cover-refs-repaired-1", "1"))
+    .then((res) => res.ok && localStorage.setItem(coverRepairFlagKey, "1"))
     .catch(() => {});
 }

@@ -913,6 +913,7 @@ app.whenReady().then(async () => {
       getVault: () => vault,
       appRoutes: appRoutes(),
       getLang: appLanguage,
+      getVaultId: () => config.currentVaultId || "default",
     })
   );
 

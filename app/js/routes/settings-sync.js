@@ -133,12 +133,6 @@ function syncConnectedHtml(config) {
       <div id="sync-conflicts"></div>
       <div class="field" id="sync-token-field">
         <button type="button" class="btn btn-ghost" onclick="revealSyncToken()" id="sync-token-reveal-btn" data-i18n>Показать токен</button>
-        <p class="panel-intro" data-i18n>
-          Тот же токен, что был вставлен при подключении, – пригодится,
-          если решите подключить ещё одно устройство позже, когда
-          страница github.com с этим токеном уже наверняка будет
-          закрыта.
-        </p>
       </div>
     `;
 }
