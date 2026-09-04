@@ -145,9 +145,14 @@ async function saveSettings() {
   customTypeKeys.forEach((key) => {
     if (typeLabels[key] !== undefined) customTypes[key] = typeLabels[key];
   });
+  // Только реально переименованные встроенные типы – если писать сюда
+  // все подряд, любое сохранение (даже с другой панели настроек)
+  // замораживало бы название каждого типа в языке, который был активен
+  // именно в этот момент, и оно переставало бы переводиться при смене
+  // языка (см. ту же историю у toggleTabEdit в settings-tabs.js).
   const typeRenames = {};
   Object.keys(BUILTIN_TYPE_DEFAULTS).forEach((key) => {
-    typeRenames[key] = typeLabels[key];
+    if (typeLabels[key] !== BUILTIN_TYPE_DEFAULTS[key]) typeRenames[key] = typeLabels[key];
   });
 
   customTypeKeys.forEach((key) => {
@@ -174,18 +179,20 @@ async function saveSettings() {
   customSubtypeKeys.forEach((key) => {
     if (subtypeLabels[key] !== undefined) customSubtypes[key] = subtypeLabels[key];
   });
+  // Та же причина, что у typeRenames выше – только реально переименованные.
   const subtypeRenames = {};
   Object.keys(BUILTIN_SUBTYPE_DEFAULTS).forEach((key) => {
-    subtypeRenames[key] = subtypeLabels[key];
+    if (subtypeLabels[key] !== BUILTIN_SUBTYPE_DEFAULTS[key]) subtypeRenames[key] = subtypeLabels[key];
   });
 
   Object.keys(allCatLabels).forEach((key) => {
     const input = document.getElementById(`cat-input-${key}`);
     if (input) allCatLabels[key] = input.value;
   });
+  // Та же причина, что у typeRenames выше – только реально переименованные.
   const categories = {};
   Object.keys(BUILTIN_CAT_DEFAULTS).forEach((key) => {
-    categories[key] = allCatLabels[key];
+    if (allCatLabels[key] !== BUILTIN_CAT_DEFAULTS[key]) categories[key] = allCatLabels[key];
   });
   const customCategoriesPayload = {};
   const categoryColors = {};
@@ -233,11 +240,13 @@ async function saveSettings() {
       // из остальных экранов – они по этим же группам не пересекаются.
       ...collectLabelOverrides(),
       nav: { ...tabLabels },
-      statuses: {
-        archive: archiveLabel,
-      },
+      // archive/tierTitles – та же причина, что у typeRenames выше:
+      // писать их всегда, даже когда они всё ещё равны живому переводу
+      // по умолчанию, означало бы замораживать оба на любом сохранении
+      // настроек, с любой панели.
+      statuses: archiveLabel !== i18n("Архив") ? { archive: archiveLabel } : {},
       sections: {
-        tierTitles: tierTitlesLabel,
+        ...(tierTitlesLabel !== i18n("Тайтлы") ? { tierTitles: tierTitlesLabel } : {}),
         ...favSectionLabels,
       },
       types: typeRenames,

@@ -20,7 +20,7 @@ const IMPORT_TMDB_ENDPOINT = "https://api.themoviedb.org/3";
 const IMPORT_TMDB_IMAGES = "https://image.tmdb.org/t/p/w500";
 const IMPORT_TMDB_BATCH = 5; // у TMDB лимит по запросам в секунду, а не по пачке
 
-// Ключ TMDB лежит в localStorage браузера и больше нигде.
+// Ключ TMDB лежит в localStorage этого устройства и больше нигде.
 //
 // Соблазн положить его в site-settings.json велик – он бы синхронизировался
 // между устройствами сам. Но репозиторий сайта открытый, и всё, что в нём
@@ -233,7 +233,9 @@ function saveTmdbKey(value) {
 async function checkTmdbKey(key) {
   const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/configuration?api_key=${encodeURIComponent(key)}`);
   if (res.status === 401) throw new Error(i18n("TMDB не узнал этот ключ. Проверьте, что скопирован он целиком."));
-  if (!res.ok) throw new Error(`TMDB ответил ${res.status}. Попробуйте ещё раз через минуту.`);
+  if (!res.ok) {
+    throw new Error(i18n("TMDB ответил {status}. Попробуйте ещё раз через минуту.", { status: res.status }));
+  }
   return true;
 }
 
@@ -242,8 +244,8 @@ function importKeysHtml() {
   return `
     <details class="imp-keys"${importKeysOpen ? " open" : ""}>
       <summary>
-        Ключи сервисов – по желанию
-        ${key ? `<span class="imp-key-on">TMDB подключён</span>` : ""}
+        ${i18n("Ключи сервисов – по желанию")}
+        ${key ? `<span class="imp-key-on">${i18n("TMDB подключён")}</span>` : ""}
       </summary>
       <div class="imp-keys-body">
         <p class="imp-note">
@@ -265,13 +267,13 @@ function importKeysHtml() {
             <input type="password" id="imp-tmdb-key" value="${esc(key)}"
                    placeholder="${i18n("ключ v3, 32 знака")}" autocomplete="off" spellcheck="false">
             <button class="btn btn-ghost" id="imp-tmdb-save" type="button">${i18n("Проверить и сохранить")}</button>
-            ${key ? `<button class="btn btn-ghost" id="imp-tmdb-clear" type="button">Убрать</button>` : ""}
+            ${key ? `<button class="btn btn-ghost" id="imp-tmdb-clear" type="button">${i18n("Убрать")}</button>` : ""}
           </div>
           <div class="status-msg" id="imp-key-status"></div>
         </div>
 
         <p class="imp-note imp-key-warn">
-          ${i18n("Ключ хранится только в этом браузере и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая – репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.")}
+          ${i18n("Ключ хранится только на этом устройстве и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая – репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.")}
         </p>
       </div>
     </details>`;

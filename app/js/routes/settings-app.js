@@ -123,10 +123,7 @@ async function renderVaultsPanel() {
     if (!appInfo) appInfo = await appApi("/api/app/info");
     box.innerHTML = `
         <p class="panel-intro" data-i18n>
-          Несколько независимых хранилищ на одном устройстве – со своими
-          отзывами, тир-листами и синхронизацией у каждого. Переключение
-          между ними ничего не стирает: данные остаются каждое в своей
-          папке.
+          Несколько независимых хранилищ на одном устройстве
         </p>
         <div id="vaultsList"></div>
         <div class="row" id="vaults-add-desktop" style="gap:10px;flex-wrap:wrap;margin-top:14px;">

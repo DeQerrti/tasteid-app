@@ -47,9 +47,14 @@ files.push(join(ROOT, "electron", "ui", "welcome.html"));
 
 const missing = new Map(); // текст → где встретился
 
-function note(raw, file) {
-  // Тот же ключ, что получится в рантайме (см. applyI18n).
-  const text = String(raw).replace(/\s+/g, " ").trim();
+// trim=true – для разметки (см. applyI18n: перенос/отступ в HTML не
+// входит в ключ, иначе он ломал бы совпадение со словарём). Для самих
+// вызовов i18n("…") нормализовать нельзя: строковый литерал – это уже
+// ровно то, что уйдёт в поиск по словарю в рантайме (см. i18n() в
+// js/i18n.js – там никакого trim нет), включая нарочный ведущий или
+// хвостовой пробел вроде i18n(" – тёмная").
+function note(raw, file, trim) {
+  const text = trim ? String(raw).replace(/\s+/g, " ").trim() : String(raw);
   if (!text || !CYR.test(text) || known.has(text)) return;
   if (!missing.has(text)) missing.set(text, new Set());
   missing.get(text).add(relative(ROOT, file));
@@ -61,13 +66,13 @@ for (const file of files) {
   // i18n("…") — двойные и одинарные кавычки. Шаблонные строки с
   // подстановками сюда намеренно не попадают: их ключ собирается во
   // время выполнения, и статически его не узнать.
-  for (const m of src.matchAll(/\bi18n\(\s*"((?:[^"\\]|\\.)*)"/g)) note(m[1], file);
-  for (const m of src.matchAll(/\bi18n\(\s*'((?:[^'\\]|\\.)*)'/g)) note(m[1], file);
+  for (const m of src.matchAll(/\bi18n\(\s*"((?:[^"\\]|\\.)*)"/g)) note(m[1], file, false);
+  for (const m of src.matchAll(/\bi18n\(\s*'((?:[^'\\]|\\.)*)'/g)) note(m[1], file, false);
 
   // Разметка: значение атрибута либо собственный текст элемента.
-  for (const m of src.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]*)"/g)) note(m[1], file);
+  for (const m of src.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]*)"/g)) note(m[1], file, true);
   for (const m of src.matchAll(/<([a-z0-9]+)\b[^>]*\bdata-i18n\b(?![-=])[^>]*>([^<]*)</gi)) {
-    note(m[2], file);
+    note(m[2], file, true);
   }
 }
 

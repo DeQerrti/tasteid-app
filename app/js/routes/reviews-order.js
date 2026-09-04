@@ -49,7 +49,7 @@
     root.innerHTML = `
       <header class="app-topbar">
         <a href="#" class="logo topbar-back" id="ro-back"><span class="arrow">&larr;</span>TasteID</a>
-        <h1 class="topbar-title" data-i18n>Редактор порядка</h1>
+        <h1 class="topbar-title">${i18n("Редактор порядка")}</h1>
       </header>
       <main class="ro-view">
         <div id="ro-content">

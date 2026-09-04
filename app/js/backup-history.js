@@ -211,7 +211,7 @@
         </div>
         <div class="version-actions">
           <button class="btn-mini" onclick="downloadBackupVersion('${path}','${v.sha}')">${i18n("⤓ Скачать")}</button>
-          ${isCurrent ? "" : `<button class="btn-mini danger" onclick="restoreBackupVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')" data-i18n>↺ Восстановить</button>`}
+          ${isCurrent ? "" : `<button class="btn-mini danger" onclick="restoreBackupVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')">${i18n("↺ Восстановить")}</button>`}
         </div>
       </div>`;
     }).join("");

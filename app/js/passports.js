@@ -414,6 +414,12 @@ function renderPassports() {
     (guestPassport
       ? (passportMode === "compare" ? compareResultHtml() : guestViewHtml())
       : "");
+  // Раньше здесь не хватало applyI18n() – все текстовые блоки вида
+  // data-i18n (например, весь раздел «Поделиться кодом» в
+  // shareCodeHtml()) переводятся только через неё, i18n() внутри самой
+  // разметки на них не влияет. Панель оставалась наполовину русской
+  // при включённом английском языке.
+  applyI18n(box);
   bindPassports();
 }
 

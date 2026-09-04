@@ -200,6 +200,10 @@ async function mount(container, params) {
         </div>
       </div>
     </div>`;
+  // Без этого вызова весь редактор (боковая панель «Тайтлы», модалка
+  // «Добавить персонажа») оставался на русском при английском языке –
+  // data-i18n сама по себе ничего не переводит, только applyI18n().
+  applyI18n(container);
 
   document.title = `TasteID – Редактор: ${COLLECTION_LABEL}`;
 

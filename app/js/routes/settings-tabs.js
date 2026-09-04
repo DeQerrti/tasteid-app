@@ -158,8 +158,14 @@ function toggleFavSecEdit(key) {
   if (!editing) {
     const val = document.getElementById(`favsecinput-${key}`).value.trim();
     const def = FAV_SECTIONS.find((s) => s.key === key).def;
-    favSectionLabels[key] = val || def;
-    document.getElementById(`favsecname-${key}`).textContent = favSectionLabels[key];
+    // val === def – открыли переименование и закрыли, ничего не меняя:
+    // не запоминаем текущий язык как «свою» подпись навсегда – иначе
+    // при переключении языка именно этот раздел останется замороженным
+    // в прежнем, как остальные, никогда не тронутые здесь, продолжат
+    // переводиться сами (см. её же историю у toggleTabEdit).
+    if (val && val !== def) favSectionLabels[key] = val;
+    else delete favSectionLabels[key];
+    document.getElementById(`favsecname-${key}`).textContent = favSectionLabels[key] || def;
   }
 }
 
@@ -390,7 +396,7 @@ function renderThemeGrid() {
   grid.innerHTML = groups
     .map((g) => {
       const active = [g.light, g.dark].find((v) => v && v.id === selectedTheme);
-      const mode = active ? (g.dark && active.id === g.dark.id ? " – тёмная" : i18n(" – светлая")) : "";
+      const mode = active ? (g.dark && active.id === g.dark.id ? i18n(" – тёмная") : i18n(" – светлая")) : "";
       return `<div class="theme-group">
         <div class="theme-option${active ? " selected" : ""}" data-group="${g.key}">${g.label}${mode}</div>
         <div class="theme-popover hidden" id="popover-${g.key}">
@@ -476,8 +482,16 @@ function toggleTabEdit(id) {
   if (!editing) {
     const val = document.getElementById(`tabinput-${id}`).value.trim();
     const def = TAB_DEFS.find((t) => t.id === id).def;
-    tabLabels[id] = val || def;
-    document.getElementById(`tabname-${id}`).textContent = tabLabels[id];
+    // val === def – открыли переименование и закрыли, ничего не меняя:
+    // не запоминаем текущий язык как «свою» подпись навсегда. Раньше
+    // здесь всегда писалось tabLabels[id] = val || def, и просто
+    // открыть-закрыть переименование при русском интерфейсе на будущее
+    // замораживало именно эту вкладку по-русски – при переключении на
+    // английский она одна переставала переводиться, пока остальные,
+    // никогда не тронутые здесь, продолжали идти за живым переводом.
+    if (val && val !== def) tabLabels[id] = val;
+    else delete tabLabels[id];
+    document.getElementById(`tabname-${id}`).textContent = tabLabels[id] || def;
     if (id === "now" || id === "favorites" || id === "tierlist") updateSectionListHeadings();
   }
 }

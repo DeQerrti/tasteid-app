@@ -475,8 +475,7 @@ i18nRegister({
 // ── Панель «Хранилища» ────────────────────────
 i18nRegister({
   Хранилища: "Vaults",
-  "Несколько независимых хранилищ на одном устройстве – со своими отзывами, тир-листами и синхронизацией у каждого. Переключение между ними ничего не стирает: данные остаются каждое в своей папке.":
-    "Several independent vaults on one device – each with its own reviews, tier lists and sync. Switching between them doesn't erase anything: each vault's data stays in its own folder.",
+  "Несколько независимых хранилищ на одном устройстве": "Several independent vaults on one device",
   "Создать новое хранилище…": "Create a new vault…",
   "Открыть существующее…": "Open an existing one…",
   "Добавить хранилище…": "Add a vault…",
@@ -662,6 +661,7 @@ i18nRegister({
     ". The list must be public – if it’s private in the profile settings, nobody can see it.",
   "+ завести свой статус…": "+ create your own status…",
   "Аниме и манга": "Anime and manga",
+  Обмен: "Exchange",
   "Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) – там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.":
     "With no keys at all, covers for anime and manga (from AniList) and for books (from Open Library) already arrive – those are open to everyone. A key is only needed for movies: TMDB, the one open poster database, asks for one. It’s free and issued immediately.",
   "без оценки": "no rating",
@@ -719,8 +719,11 @@ i18nRegister({
     "The key appears right there, in the API Key (v3 auth) row – copy the whole thing here.",
   "Ключ принят. Постеры к фильмам теперь приедут вместе со списком.":
     "Key accepted. Movie posters will now arrive with the list.",
-  "Ключ хранится только в этом браузере и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая – репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.":
-    "The key is kept in this browser only and goes nowhere else. The downside: on another device you’ll have to enter it again.",
+  "Ключ хранится только на этом устройстве и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая – репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.":
+    "The key is kept only on this device and goes nowhere else: not to the site's server, not to its files. Simple reason – the site's repository is open, and anything saved in settings is visible to anyone. The downside: on another device you'll have to enter it again.",
+  "Ключи сервисов – по желанию": "Service keys – optional",
+  "TMDB ответил {status}. Попробуйте ещё раз через минуту.": "TMDB responded {status}. Try again in a minute.",
+  "TMDB подключён": "TMDB connected",
   "ключ v3, 32 знака": "v3 key, 32 characters",
   Книги: "Books",
   "можно забрать себе": "worth picking up",
@@ -737,8 +740,8 @@ i18nRegister({
   "Не получилось достучаться до AniList. Проверьте интернет и попробуйте ещё раз.":
     "Couldn’t reach AniList. Check your connection and try again.",
   "не тронуто": "untouched",
-  "Не удалось узнать формат файла. Понимаем выгрузки: MyAnimeList и Шикимори (XML),":
-    "Couldn’t recognise the file format. Supported exports: MyAnimeList and Shikimori (XML),",
+  "Не удалось узнать формат файла. Понимаем выгрузки: MyAnimeList и Шикимори (XML), ":
+    "Couldn’t recognise the file format. Supported exports: MyAnimeList and Shikimori (XML), ",
   "Нет тайтлов с флагом «Любимое».": "No titles marked as favorites.",
   "Нечего переносить: у всех записей статус помечен как «не импортировать».":
     "Nothing to import: every entry’s status is set to “don’t import”.",
@@ -835,7 +838,7 @@ i18nRegister({
     "It is XML, but there’s no anime or manga list inside.",
   "AniList просит подождать – слишком много запросов подряд. Попробуйте через минуту.":
     "AniList is asking us to wait – too many requests in a row. Try again in a minute.",
-  "Goodreads и Letterboxd (CSV). Колонки в файле:": "Goodreads and Letterboxd (CSV). Columns found:",
+  "Goodreads и Letterboxd (CSV). Колонки в файле: ": "Goodreads and Letterboxd (CSV). Columns found: ",
   "goodreads.com/review/import → кнопка Export Library, через минуту там же появится ссылка на goodreads_library_export.csv.":
     "goodreads.com/review/import → the Export Library button; a minute later a link to goodreads_library_export.csv appears there.",
   "Hardcover (издание)": "Hardcover (edition)",
@@ -853,8 +856,8 @@ i18nRegister({
 
 // ── Служебные сообщения и подписи настроек ────
 i18nRegister({
-  "– светлая": " – light",
-  "– тёмная": " – dark",
+  " – светлая": " – light",
+  " – тёмная": " – dark",
   "Блок оценок": "Ratings block",
   "Блок пересмотров": "Rewatches block",
   "Блок тегов": "Tags block",
@@ -890,11 +893,11 @@ i18nRegister({
   "Кнопка «все»": "The “all” button",
   "Лучшее за год – несколько ({year})": "Best of the year – several ({year})",
   "Лучшее за год – одно ({year})": "Best of the year – one ({year})",
-  "Не удалось загрузить отзыв:": "Couldn’t load the review:",
+  "Не удалось загрузить отзыв: ": "Couldn’t load the review: ",
   "Не удалось пересчитать оценки": "Couldn’t recalculate the grades",
   "Не удалось сконвертировать": "Couldn’t convert",
   "Не удалось сохранить копию": "Couldn’t save the copy",
-  "Не удалось удалить:": "Couldn’t delete:",
+  "Не удалось удалить: ": "Couldn’t delete: ",
   неизвестная: "unknown",
   "Новая категория": "New category",
   "Облако тегов": "Tag cloud",
@@ -902,9 +905,9 @@ i18nRegister({
   "Одна штука (1 …)": "One item (1 …)",
   "Отзыв с таким ID не найден": "No review with that ID",
   "Ошибка загрузки": "Loading error",
-  "Ошибка сети:": "Network error:",
+  "Ошибка сети: ": "Network error: ",
   "Ошибка удаления": "Delete failed",
-  "Ошибка:": "Error:",
+  "Ошибка: ": "Error: ",
   "Папки не найдены в chars/. Введите URL вручную.":
     "No folders found in chars/. Enter a URL by hand.",
   "Пересмотров: 1 …": "Rewatches: 1 …",
@@ -921,7 +924,7 @@ i18nRegister({
   "Редактировать запись": "Edit entry",
   "Редактировать отзыв": "Edit review",
   "Резервная копия сохранена ✓": "Backup saved ✓",
-  "Резервную копию сделать не удалось:": "Couldn’t make a backup:",
+  "Резервную копию сделать не удалось: ": "Couldn’t make a backup: ",
   Слабо: "Weak",
   "Сначала выберите папку выше": "Pick a folder above first",
   "Сохранено ✓": "Saved ✓",
