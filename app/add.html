@@ -10,9 +10,18 @@
 // из :root, прежде чем встанет настоящая. localStorage читается без
 // сети, поэтому успевает всегда. Ключ пишет и обновляет applyTheme() в
 // theme.js.
+//
+// Ключ содержит id хранилища (window.__TASTEID.vaultId – он сам уже
+// вписан в HTML выше этого тега, см. её же комментарий в
+// electron/protocol.js) – без этого кэш темы одного хранилища был
+// виден в другом: тема/палитра примешивались между хранилищами при
+// переключении. sync.js с общей vaultScopedKey() сюда ещё не
+// подключён – этот тег в разметке первым, до него, поэтому та же
+// логика повторена тут же, в одну строку.
 (function () {
   try {
-    var cached = JSON.parse(localStorage.getItem("tasteid-skin-cache"));
+    var vaultId = (window.__TASTEID && window.__TASTEID.vaultId) || "default";
+    var cached = JSON.parse(localStorage.getItem("tasteid-skin-cache:" + vaultId));
     if (!cached) return;
     if (cached.skin) document.documentElement.setAttribute("data-skin", cached.skin);
     if (cached.declarations) {

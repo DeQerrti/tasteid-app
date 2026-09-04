@@ -209,7 +209,10 @@ async function applyTheme() {
   // свежими значениями – на случай, если тему поменяли в другом окне
   // или на другом устройстве через синхронизацию.
   try {
-    localStorage.setItem("tasteid-skin-cache", JSON.stringify({ skin, declarations }));
+    // Привязан к хранилищу (см. её же комментарий в app/index.html и
+    // vaultScopedKey в js/sync.js) – без этого кэш одного хранилища
+    // примешивался в другое при переключении.
+    localStorage.setItem(vaultScopedKey("tasteid-skin-cache"), JSON.stringify({ skin, declarations }));
   } catch {
     // приватный режим/квота – не страшно, это только кэш для FOUC
   }
