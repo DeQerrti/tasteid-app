@@ -486,11 +486,7 @@ async function vaultSrc(pathname) {
   return promise;
 }
 
-function rewriteImage(img) {
-  const src = img.getAttribute("src") || "";
-  if (!src.startsWith("/") || !VAULT_DIRS.test(src)) return;
-  if (img.dataset.vaultSrc === src) return;
-  img.dataset.vaultSrc = src;
+function resolveImage(img, src) {
   vaultSrc(src)
     .then((real) => {
       if (img.dataset.vaultSrc === src) img.src = real;
@@ -498,6 +494,38 @@ function rewriteImage(img) {
     .catch(() => {
       // Файла нет – сработает обычная подмена на заглушку (utils.js).
     });
+}
+
+// loading="lazy" в самой карточке (см. js/cards.js) тут ничего не значит –
+// мы сами подменяем src ДО того, как браузер успел бы решить отложить
+// загрузку по этому атрибуту. Без собственного отложенного запуска
+// большой раздел (архив на полторы сотни записей) заводил разом
+// столько же настоящих обращений к нативному мосту Capacitor
+// (Filesystem.getUri) – и на телефоне это ощущалось как зависание
+// списка на добрый десяток секунд, а не как «немного помедленнее, чем
+// на компьютере». rootMargin – запас, чтобы обложка была готова чуть
+// раньше, чем действительно доедет до экрана, а не в момент появления.
+const imgObserver = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      imgObserver.unobserve(entry.target);
+      resolveImage(entry.target, entry.target.dataset.vaultSrc);
+    }
+  },
+  { rootMargin: "800px 0px" }
+);
+
+function rewriteImage(img) {
+  const src = img.getAttribute("src") || "";
+  if (!src.startsWith("/") || !VAULT_DIRS.test(src)) return;
+  if (img.dataset.vaultSrc === src) return;
+  img.dataset.vaultSrc = src;
+  // Уже разгадывали этот же путь раньше (тот же раздел открывали и до
+  // этого) – можно сразу, ждать появления на экране незачем, оно и так
+  // мгновенное.
+  if (srcCache.has(src)) resolveImage(img, src);
+  else imgObserver.observe(img);
 }
 
 function installImages() {

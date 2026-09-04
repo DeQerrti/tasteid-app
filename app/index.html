@@ -576,6 +576,20 @@ section.group { margin-bottom: 3.5rem; }
   max-width: calc(100% - 64px);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* 64px в max-width выше рассчитаны на карточку в широком гриде – они
+   резервируют место под .type-tag в правом верхнем углу. На телефоне
+   (4 колонки, карточка ~80-90px) это оставляло дате/значку "↻ ×N"
+   почти ничего, текст обрезался в нечитаемый обрывок – собственно то,
+   что "не видно". .type-tag тоже уменьшен здесь же, а не только у
+   .watch-badge, – резерв в max-width посчитан именно под его уменьшенный
+   размер, порознь править было бы нечем мерить. После правил выше по
+   источнику той же специфичности, а не внутри (см. её же историю у
+   .tl-mode-btn чуть раньше в этой сессии) – иначе безусловные правила
+   ниже по каскаду просто победили бы. */
+@media (max-width: 700px) {
+  .watch-badge, .type-tag { font-size: .5rem; padding: .18rem .4rem; }
+  .watch-badge { max-width: calc(100% - 30px); }
+}
 
 .progress-line {
   font-family: 'DM Sans', sans-serif;
