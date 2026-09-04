@@ -173,6 +173,7 @@ const NATIVE_EN = {
   "Хранилище не найдено": "Vault not found",
   "Нельзя убрать последнее хранилище.": "Can't remove the last vault.",
   "Сначала переключись на другое хранилище.": "Switch to another vault first.",
+  "Не получилось удалить папку: ": "Couldn't delete the folder: ",
   "Доступно обновление": "Update available",
   "Обновление готово": "Update ready",
   "Обновить сейчас": "Update now",
@@ -300,12 +301,26 @@ function appRoutes() {
       return { ok: true };
     },
 
+    // Настоящее удаление, а не только "забыть": frontend (removeVault()
+    // в app/js/routes/settings-app.js) уже взял отдельное, усиленное
+    // подтверждение – напечатать название хранилища – именно потому,
+    // что тут стирается папка со всем содержимым безвозвратно, а не
+    // просто убирается запись из списка. Сперва стираем папку и только
+    // при успехе убираем запись – если удаление не удалось (папка
+    // занята, нет прав), хранилище остаётся в списке, а не пропадает
+    // молча, будто его данные всё ещё где-то целы.
     "POST /api/app/remove-vault": async ({ body }) => {
       const vaults = config.vaults || [];
       if (vaults.length <= 1) throw new Error(tr("Нельзя убрать последнее хранилище."));
       if (body.id === config.currentVaultId)
         throw new Error(tr("Сначала переключись на другое хранилище."));
-      if (!vaults.some((v) => v.id === body.id)) throw new Error(tr("Хранилище не найдено"));
+      const entry = vaults.find((v) => v.id === body.id);
+      if (!entry) throw new Error(tr("Хранилище не найдено"));
+      try {
+        await fs.rm(entry.path, { recursive: true, force: true });
+      } catch (e) {
+        throw new Error(tr("Не получилось удалить папку: ") + e.message);
+      }
       await saveConfig({ vaults: vaults.filter((v) => v.id !== body.id) });
       return { ok: true };
     },
