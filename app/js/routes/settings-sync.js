@@ -131,7 +131,45 @@ function syncConnectedHtml(config) {
       <div class="status-msg" id="status-sync"></div>
       <div id="sync-progress"></div>
       <div id="sync-conflicts"></div>
+      <div class="field" id="sync-token-field">
+        <button type="button" class="btn btn-ghost" onclick="revealSyncToken()" id="sync-token-reveal-btn" data-i18n>Показать токен</button>
+        <p class="panel-intro" data-i18n>
+          Тот же токен, что был вставлен при подключении, – пригодится,
+          если решите подключить ещё одно устройство позже, когда
+          страница github.com с этим токеном уже наверняка будет
+          закрыта.
+        </p>
+      </div>
     `;
+}
+
+function revealSyncToken() {
+  const config = getSyncConfig();
+  if (!config) return;
+  const field = document.getElementById("sync-token-field");
+  field.innerHTML = `
+      <label data-i18n>Токен доступа</label>
+      <div class="row" style="gap:10px;">
+        <input type="text" id="sync-token-display" value="${esc(config.token)}" readonly style="flex:1;">
+        <button type="button" class="btn btn-ghost" onclick="copySyncToken()" data-i18n>Скопировать</button>
+      </div>
+    `;
+  applyI18n(field);
+}
+
+async function copySyncToken() {
+  const config = getSyncConfig();
+  if (!config) return;
+  try {
+    await navigator.clipboard.writeText(config.token);
+    flashStatus("status-sync", true, i18n("Токен скопирован."));
+  } catch {
+    flashStatus(
+      "status-sync",
+      false,
+      i18n("Не получилось скопировать – выделите его в поле выше и скопируйте вручную.")
+    );
+  }
 }
 
 async function connectSync() {
