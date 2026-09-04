@@ -219,7 +219,7 @@ function settingsViewHtml() {
         <div class="row" style="margin-top:14px;">
           <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
         </div>
-        <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить статус</button>
+        <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
 
         <h2 class="section-h" id="favSectionsHeading"></h2>
         <div id="favSectionsList"></div>
