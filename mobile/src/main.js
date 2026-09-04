@@ -625,24 +625,22 @@ const UPDATE_REPO = "DeQerrti/tasteid-app";
 const UPDATE_DISMISSED_KEY = "tasteid_update_dismissed";
 const UPDATE_APK_NAME = "tasteid-update.apk";
 
-// btoa от всей строки разом на файле в несколько мегабайт может
-// упереться в предел одного вызова String.fromCharCode – переводим
-// кусками.
-function bufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  const CHUNK = 0x8000;
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
-}
-
+// window.fetch(url) здесь раньше падал с "Failed to fetch" на части
+// телефонов – та же причина, что уже описана у malHttpGet выше: файл
+// качается изнутри WebView, а GitHub отдаёт apk-релизы с редиректом на
+// отдельный домен (CDN), который WebView не всегда доводит до конца.
+// CapacitorHttp делает запрос не из WebView, а с телефона напрямую –
+// тем же путём, каким скачивает файл настоящий системный браузер
+// (собственно поэтому "Поделиться → открыть в Chrome" всегда и
+// работало, даже когда автообновление внутри приложения падало).
 async function downloadAndInstall(url) {
-  const res = await window.fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = bufferToBase64(await res.arrayBuffer());
-  await Filesystem.writeFile({ path: UPDATE_APK_NAME, directory: Directory.Cache, data });
+  const res = await CapacitorHttp.get({ url, responseType: "arraybuffer" });
+  if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status}`);
+  // Бинарный ответ CapacitorHttp на телефоне приходит уже в base64 –
+  // тем же видом, каким его ждёт Filesystem.writeFile() без encoding
+  // (см. её же соглашение у saveMedia в vault.js), перекодировать вручную
+  // не нужно.
+  await Filesystem.writeFile({ path: UPDATE_APK_NAME, directory: Directory.Cache, data: res.data });
   const { uri } = await Filesystem.getUri({ path: UPDATE_APK_NAME, directory: Directory.Cache });
   await FileOpener.openFile({ path: uri, mimeType: "application/vnd.android.package-archive" });
 }
