@@ -49,6 +49,8 @@ i18nRegister({
   Ссылки: "Links",
   Другое: "Other",
   "На главную": "Home",
+  "На той же странице, чуть выше кнопки, есть поле «Expiration» («Срок действия») – если хочется, чтобы синхронизация работала постоянно, выберите там «No expiration» («Без срока»). Любой конкретный срок (7/30/60/90 дней) означает, что через него токен перестанет действовать и синхронизация молча остановится – придётся завести новый токен и подключаться заново.":
+    "On the same page, just above the button, there's an «Expiration» field – if you want sync to keep working indefinitely, pick «No expiration» there. Any specific period (7/30/60/90 days) means the token stops working once it passes, and sync will silently stop – you'd need to make a new token and reconnect.",
   Настройки: "Settings",
 
   // ── Вкладки ──────────────────────────────────
