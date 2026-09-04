@@ -196,7 +196,7 @@ async function askForVault({ mode, previous } = {}) {
 }
 
 async function useVault(root) {
-  vault = new Vault(root);
+  vault = new Vault(root, { trash: (p) => shell.trashItem(p) });
   await vault.ensure();
 }
 
@@ -277,9 +277,18 @@ function appRoutes() {
 
     "POST /api/app/check-update": async () => checkForUpdatesManual(),
 
-    "POST /api/app/pick-vault": async ({ body }) => ({
-      path: await askForVault({ mode: body.mode, previous: vault?.root }),
-    }),
+    "POST /api/app/pick-vault": async ({ body }) => {
+      const picked = await askForVault({ mode: body.mode, previous: vault?.root });
+      // Только для "новое хранилище": сюда можно указать вообще любую
+      // существующую папку, и дальше приложение считает её "своей" целиком
+      // – в том числе при последующем удалении хранилища (см. remove-vault
+      // выше). Если папка уже не пуста, фронт (addVault() в
+      // settings-app.js) отдельно спросит "точно эта?", чтобы не связать
+      // хранилище с папкой вроде Рабочего стола по невнимательности.
+      const notEmpty =
+        picked && body.mode !== "open" ? (await fs.readdir(picked)).length > 0 : false;
+      return { path: picked, notEmpty };
+    },
 
     "POST /api/app/use-vault": async ({ body }) => {
       if (!body.path) throw new Error(tr("Не указана папка"));
@@ -304,11 +313,16 @@ function appRoutes() {
     // Настоящее удаление, а не только "забыть": frontend (removeVault()
     // в app/js/routes/settings-app.js) уже взял отдельное, усиленное
     // подтверждение – напечатать название хранилища – именно потому,
-    // что тут стирается папка со всем содержимым безвозвратно, а не
-    // просто убирается запись из списка. Сперва стираем папку и только
-    // при успехе убираем запись – если удаление не удалось (папка
-    // занята, нет прав), хранилище остаётся в списке, а не пропадает
-    // молча, будто его данные всё ещё где-то целы.
+    // что тут стирается вся папка целиком, а не просто убирается запись
+    // из списка. Папка переносится в системную корзину (shell.trashItem),
+    // а не стирается безвозвратно fs.rm-ом – ту же папку можно было
+    // выбрать по ошибке (например, указать существующую папку вроде
+    // Рабочего стола вместо новой, созданной под хранилище), и тогда
+    // безвозвратное стирание задевает чужие файлы, а не только само
+    // хранилище. Сперва переносим папку и только при успехе убираем
+    // запись – если не вышло (папка занята, нет прав), хранилище
+    // остаётся в списке, а не пропадает молча, будто его данные всё ещё
+    // где-то целы.
     "POST /api/app/remove-vault": async ({ body }) => {
       const vaults = config.vaults || [];
       if (vaults.length <= 1) throw new Error(tr("Нельзя убрать последнее хранилище."));
@@ -317,7 +331,7 @@ function appRoutes() {
       const entry = vaults.find((v) => v.id === body.id);
       if (!entry) throw new Error(tr("Хранилище не найдено"));
       try {
-        await fs.rm(entry.path, { recursive: true, force: true });
+        await shell.trashItem(entry.path);
       } catch (e) {
         throw new Error(tr("Не получилось удалить папку: ") + e.message);
       }

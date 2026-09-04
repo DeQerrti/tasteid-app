@@ -662,6 +662,11 @@ async function removeStatusBucket(key) {
   statusBuckets = statusBuckets.filter((b) => b.key !== key);
   hiddenStatusesState.delete(key);
   renderStatusesList();
+  // Та же причина, что у addStatusBucket() выше – кнопка, а не поле
+  // ввода/чекбокс, markSettingsDirty() её клик не видит. Без этого уход
+  // с панели через Esc без «Сохранить» тихо возвращал удалённый статус
+  // обратно, будто ничего и не удаляли.
+  settingsDirty = true;
 }
 
 // Статус можно завести и из «Импорта», не уходя с разобранного файла

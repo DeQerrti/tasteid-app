@@ -45,8 +45,32 @@ let writeCounter = 0;
 // Какие имена файлов вообще допустимы – в core/files.js: те же правила
 // нужны мобильной реализации хранилища, и разъезжаться им нельзя.
 export class Vault {
-  constructor(root) {
+  // trash: необязательный колбэк (реальный путь) => Promise – переносит
+  // файл/папку в системную корзину вместо необратимого стирания. Внедряется
+  // снаружи (electron/main.js передаёт shell.trashItem), а не завязано на
+  // Electron напрямую – этот класс гоняется и в обычном Node, в тестах
+  // (tests/api.test.js), где модуля electron просто нет. Без колбэка
+  // (тесты, либо трэш недоступен) используется прямое удаление – только
+  // для мест, где это явно допустимо (см. deleteMedia/clearHistory).
+  constructor(root, { trash } = {}) {
     this.root = root;
+    this.trash = trash || null;
+  }
+
+  async #remove(target, { recursive } = {}) {
+    // Отсутствующая цель – не ошибка (как и раньше с force:true) для
+    // обоих путей: shell.trashItem, в отличие от fs.rm, на несуществующем
+    // файле падает, а не молчит.
+    try {
+      await fs.access(target);
+    } catch {
+      return;
+    }
+    if (this.trash) {
+      await this.trash(target);
+      return;
+    }
+    await fs.rm(target, { recursive: !!recursive, force: true });
   }
 
   file(name) {
@@ -166,7 +190,7 @@ export class Vault {
   // .history) не трогается, отменить откатом уже нечем.
   async clearHistory(name) {
     if (!isAllowedFile(name)) throw new Error(`Неизвестный файл: ${name}`);
-    await fs.rm(path.join(this.root, ".history", name), { recursive: true, force: true });
+    await this.#remove(path.join(this.root, ".history", name), { recursive: true });
   }
 
   // Возраст поверх HISTORY_LIMIT – тот срезает по количеству, а при
@@ -345,10 +369,6 @@ export class Vault {
       .filter(Boolean)
       .map((p) => this.#safeSegment(p));
     if (!parts.length) throw new Error("Пустой путь");
-    try {
-      await fs.unlink(path.join(this.root, ...parts));
-    } catch (e) {
-      if (e.code !== "ENOENT") throw e;
-    }
+    await this.#remove(path.join(this.root, ...parts));
   }
 }
