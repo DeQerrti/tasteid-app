@@ -792,5 +792,9 @@ html:not(.kb-nav) *:focus {
      (см. её же комментарий там), пока не начался сам перенос. */
   [draggable="true"] {
     touch-action: none;
+    /* Тот же случай, что и с touch-action выше, но со стороны WebKit/
+       Blink-специфичного свойства для настоящего (не нашего) drag –
+       вторая подстраховка рядом с isTrusted-проверкой в touch-drag.js. */
+    -webkit-user-drag: none;
   }
 }
