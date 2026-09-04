@@ -106,12 +106,28 @@ function nowModeToggleHtml() {
   return `<div class="tl-mode-toggle">${btns}</div>`;
 }
 
+// Быстрые повторные клики (перебираешь разделы один за другим) раньше
+// каждый запускали renderNowBody() немедленно и синхронно – это заново
+// строит innerHTML всех карточек текущего раздела и заводит для них
+// свежие <img>. Клик отрабатывает быстрее, чем браузер успевает
+// отрисовать предыдущий рендер, – несколько таких перестроений подряд
+// копятся в одной и той же синхронной очереди JS и на разделах с
+// длинным списком ощущаются как настоящее зависание: список не отвечает
+// на клики, пока не разберёт всю накопившуюся очередь (само окно при
+// этом не блокируется – оно в другом процессе). requestAnimationFrame
+// схлопывает несколько кликов подряд в один рендер – на экране всё
+// равно останется только последний выбранный раздел.
+let nowRenderRaf = null;
 function bindNowModeToggle() {
   document.querySelectorAll("#tab-now .tl-mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (btn.dataset.mode === nowState.mode) return;
       nowState.mode = btn.dataset.mode;
-      renderNowBody();
+      if (nowRenderRaf) cancelAnimationFrame(nowRenderRaf);
+      nowRenderRaf = requestAnimationFrame(() => {
+        nowRenderRaf = null;
+        renderNowBody();
+      });
     });
   });
 }

@@ -171,12 +171,22 @@ function favModeBodyHtml() {
   return `<div class="grid-chars">${entries.length ? entries.map((r, i) => favPersonCard(r, i)).join("") : empty}</div>`;
 }
 
+// requestAnimationFrame схлопывает быструю серию кликов в один рендер –
+// та же причина и тот же приём, что у bindNowModeToggle() в js/now.js
+// (см. её же подробный комментарий там): без этого несколько
+// перестроений всех карточек подряд копились в одной синхронной
+// очереди JS и ощущались как зависание списка на быстром переключении.
+let favRenderRaf = null;
 function bindFavModeToggle() {
   document.querySelectorAll("#tab-favorites .tl-mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (btn.dataset.mode === favState.mode) return;
       favState.mode = btn.dataset.mode;
-      renderFavorites(favExportData);
+      if (favRenderRaf) cancelAnimationFrame(favRenderRaf);
+      favRenderRaf = requestAnimationFrame(() => {
+        favRenderRaf = null;
+        renderFavorites(favExportData);
+      });
     });
   });
 }
