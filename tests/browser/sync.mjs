@@ -121,6 +121,14 @@ async function handleGithub(route) {
       gh.files.set(filePath, { base64: body.content, sha });
       return respond(200, { content: { sha } });
     }
+    if (method === "DELETE") {
+      const entry = gh.files.get(filePath);
+      if (!entry) return respond(404, { message: "Not Found" });
+      const body = JSON.parse(req.postData() || "{}");
+      if (body.sha !== entry.sha) return respond(409, { message: "sha does not match" });
+      gh.files.delete(filePath);
+      return respond(200, { commit: {} });
+    }
   }
   return respond(404, { message: "не подставлено в тесте: " + p });
 }
@@ -221,6 +229,20 @@ const pushedTitle = JSON.parse(
   Buffer.from(gh.files.get("reviews.json").base64, "base64").toString("utf8")
 )[0]?.title;
 ok(pushedTitle === "Локальная запись", "содержимое файла в репозитории — то самое, что отправляли");
+
+console.log("Удаление обложки на устройстве подчищает её и в репозитории");
+// Имитируем файл, уже засинхронизированный раньше (смена обложки в
+// add.js/chars-edit.js/favorites-edit.js кладёт такие в covers-backup —
+// см. её же комментарий у deleteRemoteMedia в app/js/sync.js).
+gh.files.set("covers-backup/старая.webp", { base64: WEBP, sha: nextSha() });
+// deleteRemoteMedia ничем не сигналит о своём завершении (тихая
+// попытка, см. её же комментарий в sync.js) — ждём фиксированную паузу.
+await page.evaluate(() => window.deleteRemoteMedia("/covers-backup/старая.webp"));
+await page.waitForTimeout(500);
+ok(
+  !gh.files.has("covers-backup/старая.webp"),
+  "файл, удалённый на устройстве, пропал и из репозитория — не будет подтянут обратно как «новый»"
+);
 
 console.log("Вторая синхронизация — поменялось только в репозитории, значит, забираем");
 gh.files.set("reviews.json", {

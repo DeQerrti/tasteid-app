@@ -471,13 +471,10 @@ async function statsExport() {
 
     // «Тайтл года» использует ту же карточку (manualCard), что и вся
     // остальная лента, с loading="lazy" – см. её же комментарий у
-    // waitForImages в js/utils.js про то, почему это стоит форсировать
-    // перед снимком.
+    // forceLoadImagesForExport в js/utils.js про то, почему это стоит
+    // форсировать перед снимком.
     const imgs = Array.from(grid.querySelectorAll("img"));
-    imgs.forEach((img) => {
-      img.loading = "eager";
-    });
-    await waitForImages(imgs);
+    await forceLoadImagesForExport(imgs);
 
     restoreImages = await proxyImagesToDataUrls(grid);
 

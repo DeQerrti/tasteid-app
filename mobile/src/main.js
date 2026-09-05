@@ -34,6 +34,12 @@ import { MobileVault } from "./vault.js";
 // спрашивает, а отдельный тумблер в настройках на каждое приложение;
 // готовых Capacitor-плагинов под него нет.
 const InstallPermission = registerPlugin("InstallPermission");
+// Свой же плагин (android/app/src/main/java/ru/tasteid/app/
+// MediaSaverPlugin.java) – сохраняет снимок (тир-лист/статистика/
+// паспорт, см. её же комментарий у installDownloads ниже) прямо в
+// галерею через MediaStore, вместо того чтобы каждый раз уходить в
+// шторку "Поделиться".
+const MediaSaver = registerPlugin("MediaSaver");
 // Версию спрашиваем у самого приложения, а не вшиваем из package.json
 // на сборке. Так уже делает Gradle (android/app/build.gradle читает ту
 // же package.json и кладёт её в versionName), и вторая копия того же
@@ -530,7 +536,7 @@ async function vaultSrc(pathname) {
 }
 
 function resolveImage(img, src) {
-  vaultSrc(src)
+  return vaultSrc(src)
     .then(async (real) => {
       if (img.dataset.vaultSrc !== src) return;
       // decode() у отдельного, невидимого Image() – прежде чем отдавать
@@ -589,6 +595,40 @@ function rewriteImage(img) {
   else imgObserver.observe(img);
 }
 
+// Экспорт тир-листа/статистики/паспорта в картинку (tlExport в
+// js/tierlist.js, аналоги в favorites.js/stats.js) собирает снимок со
+// ВСЕГО списка целиком, а не только с того, что сейчас видно на
+// экране, – а imgObserver выше нарочно резолвит src только у карточек,
+// реально попавших во вьюпорт (плюс запас rootMargin), чтобы не
+// заводить сотни обращений к нативному мосту разом (см. её же
+// комментарий у imgObserver). На карточках ниже прокрутки к моменту
+// снимка src так и остаётся "сырым" /chars/... – это не fetch, а
+// загрузка ресурса (см. её же комментарий у VAULT_DIRS выше), поэтому
+// не ловится installFetch(), WebView не находит такой путь и тихо
+// рисует обрыв. waitForImages() в js/utils.js в этот момент честно
+// видит img.complete===true (ошибка загрузки – тоже "complete") и не
+// ждёт настоящую картинку вообще – так на снимке и остаются пустые
+// места именно там, где тир-лист длиннее экрана.
+//
+// Экспортные функции сами вызывают это перед waitForImages(), если оно
+// есть (на компьютере такой глобальной функции нет вообще – там нет
+// собственного ленивого моста, и вызов просто не находит её). Зовём
+// resolveImage() безусловно, а не только для ещё не наблюдаемых –
+// srcCache.has(src) говорит только про байты ЭТОГО пути, а не про то,
+// успел ли именно ЭТОТ <img> получить готовый src (тот же путь мог
+// разрешиться у другой карточки раньше, а эта всё ещё ждёт своей
+// очереди у imgObserver) – resolveImage() и так почти бесплатен, когда
+// байты уже в кэше (vaultSrc() возвращает готовый промис).
+window.__mobileForceResolveImages = (imgs) =>
+  Promise.all(
+    imgs.map((img) => {
+      const src = img.dataset.vaultSrc;
+      if (!src) return Promise.resolve();
+      imgObserver.unobserve(img);
+      return resolveImage(img, src);
+    })
+  );
+
 function installImages() {
   const scan = (root) => {
     if (root.nodeType !== 1) return;
@@ -621,6 +661,14 @@ function installImages() {
 //
 // Поэтому файл забирается сами и отдаётся системе: дальше человек сам
 // выбирает, куда – в мессенджер, в облако, в «Файлы».
+// .png – формат единственно у снимков (тир-лист/статистика/любимое,
+// см. её же комментарий у forceLoadImagesForExport в js/utils.js);
+// паспорт и версии из истории – .json, они всё так же идут через
+// "Поделиться" ниже. У снимка есть куда более привычное мобильное
+// поведение – сразу в галерею, как обычный скриншот, – у бэкапа его нет
+// (там и получатель, и формат совсем другие).
+const GALLERY_IMAGE_NAME = /\.png$/i;
+
 function installDownloads() {
   document.addEventListener(
     "click",
@@ -629,13 +677,30 @@ function installDownloads() {
       if (!link || !link.href) return;
       e.preventDefault();
       e.stopPropagation();
+      const name = link.getAttribute("download") || "tasteid";
       // fetch запускаем сразу, не дожидаясь ничего: страница отзывает
       // ссылку на blob в следующей же строке после нажатия.
       const bytes = fetch(link.href).then((r) => r.arrayBuffer());
-      shareFile(link.getAttribute("download") || "tasteid", bytes).catch(() => {});
+      if (GALLERY_IMAGE_NAME.test(name)) saveImageToGallery(name, bytes);
+      else shareFile(name, bytes).catch(() => {});
     },
     true
   );
+}
+
+// MediaSaver – свой плагин (см. её же комментарий у объявления выше),
+// сохраняет прямо в галерею через MediaStore. "Поделиться" остаётся
+// резервным путём на случай отказа (нет разрешения на старом Android
+// до 10-й версии, что угодно ещё не предусмотренное) – снимок в любом
+// случае не должен пропасть молча.
+async function saveImageToGallery(name, bytesPromise) {
+  try {
+    const data = bytesToBase64(new Uint8Array(await bytesPromise));
+    await MediaSaver.saveImage({ base64: data, filename: name });
+    window.backupToastGlobal?.(window.i18n?.("Сохранено в галерею") ?? "Сохранено в галерею", true);
+  } catch {
+    shareFile(name, bytesPromise).catch(() => {});
+  }
 }
 
 async function shareFile(name, bytesPromise) {

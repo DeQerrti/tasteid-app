@@ -948,6 +948,7 @@ i18nRegister({
   "Резервную копию сделать не удалось: ": "Couldn’t make a backup: ",
   Слабо: "Weak",
   "Сначала выберите папку выше": "Pick a folder above first",
+  "Сохранено в галерею": "Saved to gallery",
   "Сохранено ✓": "Saved ✓",
   "Сохранено ✓, но у {v0} оценок не нашлось полки уже в старой шкале – проверьте их вручную":
     "Saved ✓, but {v0} grades had no shelf already in the old scale – check them by hand",

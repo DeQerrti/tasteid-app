@@ -415,12 +415,9 @@ async function favExport(sectionIds) {
     // вкладке) в контейнере, специально отодвинутом за экран, браузер
     // решает не грузить вовсе – ждать load/error тогда бессмысленно,
     // они никогда не придут. Снимок «Любимого» из-за этого крутился
-    // бесконечно; принудительная "eager" запускает загрузку сразу, а
-    // waitForImages всё равно не виснет насовсем, если что-то не ответит.
-    imgs.forEach((img) => {
-      img.loading = "eager";
-    });
-    await waitForImages(imgs);
+    // бесконечно; forceLoadImagesForExport (js/utils.js) запускает
+    // загрузку сразу и не виснет насовсем, если что-то не ответит.
+    await forceLoadImagesForExport(imgs);
 
     restoreImages = await proxyImagesToDataUrls(wrap);
     restoreAnim = disableAnimations(wrap);

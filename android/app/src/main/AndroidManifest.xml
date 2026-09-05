@@ -44,4 +44,10 @@
          из этого источника» система задаёт прямо внутри самого
          диалога установки. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Только для Android 9 и старше (см. её же комментарий в
+         MediaSaverPlugin.java) – на 10+ запись в галерею идёт через
+         MediaStore/ContentResolver, которому это разрешение не нужно
+         вовсе, а маячило бы лишним пунктом в списке разрешений
+         приложения без всякой пользы. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 </manifest>

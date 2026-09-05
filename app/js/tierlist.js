@@ -735,10 +735,7 @@ async function tlExport(rowsId, label) {
     // что и офскрин-контейнер «Любимого» (см. её же комментарий у
     // waitForImages в js/utils.js), только по другой причине.
     const imgs = Array.from(rows.querySelectorAll("img"));
-    imgs.forEach((img) => {
-      img.loading = "eager";
-    });
-    await waitForImages(imgs);
+    await forceLoadImagesForExport(imgs);
 
     restoreImages = await proxyImagesToDataUrls(rows);
 

@@ -525,6 +525,47 @@ async function pullNewRemoteImage(config, path) {
   return { action: "pull", base64: remote.base64, sha: remote.sha };
 }
 
+// Зовётся из deleteMediaFile() (js/utils.js) сразу после локального
+// удаления заброшенного файла обложки (смена обложки, удаление записи
+// из настроек и т.п. – см. её же комментарий там). Синхронизация сама
+// по себе никогда ничего не удаляет (см. её же комментарий у runSync
+// про единственно возможные действия – pull/push/none), поэтому без
+// этого шага файл, уже засинхронизированный раньше, остался бы висеть
+// в репозитории вечно – а на следующей синхронизации мог быть принят
+// за "картинку, которой тут никогда не было" (pullNewRemoteImage выше)
+// и притащен обратно на устройство, которое его как раз удалило.
+//
+// Тихая попытка, как и сам deleteMediaFile(): нет соединения, нет
+// токена, синхронизация не настроена, файла и так уже нет в
+// репозитории – в любом из этих случаев просто ничего не происходит,
+// без алерта посреди другого действия.
+async function deleteRemoteMedia(relPath) {
+  const config = getSyncConfig();
+  if (!config) return;
+
+  // deleteMediaFile() (js/utils.js) получает путь с ведущим слэшем –
+  // тем же, каким его требует DELETABLE_MEDIA_PATH в core/api.js. В
+  // репозитории синхронизации свои пути (см. её же комментарий у
+  // getRepoTree/listAllMedia) – без ведущего слэша.
+  const path = String(relPath).replace(/^\/+/, "");
+
+  try {
+    const remote = await getRemoteFile(config, path);
+    if (!remote) return; // и в репозитории такого файла уже нет
+    await githubApi(
+      config,
+      `/repos/${config.owner}/${config.repo}/contents/${encodePath(path)}`,
+      { method: "DELETE", body: { message: i18n("Синхронизация TasteID"), sha: remote.sha } }
+    );
+    const state = getSyncState();
+    delete state.images[path];
+    saveSyncState(state);
+  } catch {
+    // Не получилось – файл просто останется в репозитории до следующей
+    // ручной попытки, ничего не сломано на этом устройстве.
+  }
+}
+
 // Прежний, поштучный способ – запасной вариант на случай усечённого
 // bulk-списка (см. её же комментарий у syncOne). Логика ровно та же,
 // что была раньше, просто больше не единственный путь.
