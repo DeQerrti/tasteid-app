@@ -481,7 +481,17 @@ async function vaultSrc(pathname) {
       directory: Directory.Data,
     });
     return window.Capacitor.convertFileSrc(uri);
-  })();
+  })().catch((e) => {
+    // Неудачу не запоминаем – в отличие от успеха, у которого путь и
+    // содержимое неизменны, тут файл вполне может появиться чуть позже:
+    // синхронизация иногда дописывает картинку уже после того, как
+    // отзыв (с готовым cover_backup) успел долететь и отрисоваться.
+    // Без этого одна неудачная попытка навсегда застревала "?" –
+    // помогал только полный перезаход (свежий srcCache с нуля), а не
+    // то, что файл в итоге дописался.
+    srcCache.delete(pathname);
+    throw e;
+  });
   srcCache.set(pathname, promise);
   return promise;
 }
