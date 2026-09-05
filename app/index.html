@@ -2941,6 +2941,7 @@ section.group { margin-bottom: 3.5rem; }
 
 <script>
 let _navInit = true;
+let _tabLoadTimer = null;
 
 // LAST_TAB_KEY – из js/theme.js (он загружается заведомо раньше, прямо
 // в <head>): общая константа, а не общий localStorage-ключ-дубль,
@@ -2969,11 +2970,29 @@ function switchTab(tabId, btn) {
     btn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }
 
-  if (tabId === "tab-now")       loadNow();
-  if (tabId === "tab-favorites") loadFavorites();
-  if (tabId === "tab-reviews")   loadReviews();
-  if (tabId === "tab-stats")     loadStats();
-  if (tabId === "tab-tierlist")  loadTierlist();
+  // Сама вкладка переключается визуально мгновенно (.hidden выше) – а
+  // вот loadX() внизу каждый раз заново читает reviews.json, и на
+  // телефоне это идёт через нативный мост Capacitor, а не мгновенный
+  // локальный fetch, как на компьютере. Быстрое перелистывание нескольких
+  // вкладок подряд раньше заводило для КАЖДОЙ из них свой такой запрос
+  // разом – та же самая перегрузка моста параллельными обращениями,
+  // от которой уже избавлялись для картинок (imgObserver/rootMargin,
+  // __mobileForceResolveImages пачками – см. её же историю в этой
+  // сессии), только здесь для самого чтения данных, а не картинок.
+  // Откладываем сам вызов на короткое время и отменяем предыдущий –
+  // так при перелистывании нескольких вкладок подряд запрос уходит
+  // только для той, на которой человек в итоге остановился. Уже
+  // отрисованное на вкладке при этом никуда не девается ни на миг –
+  // .hidden выше её не трогает, обновление тихо подхватится, если
+  // данные и правда успели измениться.
+  clearTimeout(_tabLoadTimer);
+  _tabLoadTimer = setTimeout(() => {
+    if (tabId === "tab-now")       loadNow();
+    if (tabId === "tab-favorites") loadFavorites();
+    if (tabId === "tab-reviews")   loadReviews();
+    if (tabId === "tab-stats")     loadStats();
+    if (tabId === "tab-tierlist")  loadTierlist();
+  }, 150);
 }
 
 // ── Горячие клавиши ─────────────────────────────
