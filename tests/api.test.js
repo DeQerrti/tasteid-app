@@ -760,6 +760,51 @@ test("починка ссылок после разового сжатия на�
   });
 });
 
+test("осиротевшие обложки находятся по всем трём источникам ссылок, а используемые не трогаются", async () => {
+  // Четыре файла: используется отзывом, используется избранным,
+  // используется тайтлом коллекции (плюс персонажем внутри неё) и один
+  // ничем не используемый – он и должен оказаться единственным в списке.
+  await withServer(async ({ api, root }) => {
+    await fs.mkdir(path.join(root, "covers-backup"), { recursive: true });
+    for (const name of ["review.webp", "fav.webp", "title.webp", "char.webp", "orphan.webp"]) {
+      await fs.writeFile(path.join(root, "covers-backup", name), "x");
+    }
+
+    await fs.writeFile(
+      path.join(root, "reviews.json"),
+      JSON.stringify([{ id: 1, title: "Отзыв", cover_backup: "/covers-backup/review.webp" }]),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(root, "favorites.json"),
+      JSON.stringify([{ name: "Любимое", image_backup: "covers-backup/fav.webp" }]),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(root, "characters-tier.json"),
+      JSON.stringify([
+        {
+          name: "Тайтл",
+          cover_backup: "/covers-backup/title.webp",
+          tierlists: [
+            { tiers: [{ chars: [{ name: "Герой", img_backup: "covers-backup/char.webp" }] }] },
+          ],
+        },
+      ]),
+      "utf8"
+    );
+
+    const { status, data } = await api("GET", "/api/find-orphaned-covers");
+    assert.equal(status, 200);
+    assert.equal(data.ok, true);
+    assert.deepEqual(
+      data.orphans,
+      ["covers-backup/orphan.webp"],
+      "используемые отзывом/избранным/тайтлом/персонажем не попали в список, неиспользуемый – попал"
+    );
+  });
+});
+
 test("резервная копия обложки по ссылке сжимается в webp", async () => {
   // Раньше backupCover() сохранял обложку ровно в том виде, в каком её
   // отдал источник, – без сжатия и без пересборки, в отличие от ручной

@@ -951,6 +951,50 @@ async function pruneHistory({ vault, body }) {
   return { ok: true, ...(await vault.pruneHistoryByAge(days)) };
 }
 
+// ── Осиротевшие обложки ─────────────────────────
+// Смена обложки удаляет старый файл (deleteMediaFile, js/utils.js), но
+// удаление ЦЕЛОГО отзыва/раздела/персонажа – намеренно нет: ссылка
+// должна остаться рабочей, если человек откатится через «Историю
+// версий» (см. её же комментарий у deleteReview выше). Файл из-за этого
+// остаётся лежать в covers-backup/ навсегда, никем уже не используемый.
+// findOrphanedCovers только находит такие файлы – ничего не удаляет
+// сам; удаление явным списком идёт тем же путём, что и смена обложки
+// (deleteMediaFile на фронтенде), чтобы заодно подчистить и копию в
+// репозитории синхронизации (см. её же комментарий у deleteRemoteMedia
+// в js/sync.js), а не заводить для этого отдельный, второй способ
+// удаления файла.
+async function findOrphanedCovers({ vault }) {
+  const refs = new Set();
+  const add = (value) => {
+    if (value) refs.add(String(value).replace(/^\/+/, ""));
+  };
+
+  const reviews = await vault.readJson("reviews.json", []);
+  for (const r of reviews) add(r.cover_backup);
+
+  const favorites = await vault.readJson("favorites.json", []);
+  for (const f of favorites) add(f.image_backup);
+
+  const settings = await vault.readJson("site-settings.json", {});
+  const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+  const collectionIds = new Set(["characters", ...collections.map((c) => c.id).filter(isSafeName)]);
+  for (const id of collectionIds) {
+    const titles = await vault.readJson(collectionFile(id), []);
+    for (const title of titles) {
+      add(title.cover_backup);
+      for (const list of title.tierlists || []) {
+        for (const tier of list.tiers || []) {
+          for (const ch of tier.chars || []) add(ch.img_backup);
+        }
+      }
+    }
+  }
+
+  const all = await vault.listAllMedia();
+  const orphans = all.filter((p) => p.startsWith("covers-backup/") && !refs.has(p));
+  return { ok: true, orphans };
+}
+
 // ── Таблица адресов ────────────────────────────
 
 export const ROUTES = {
@@ -974,6 +1018,7 @@ export const ROUTES = {
   "POST /api/restore-file-version": restoreFileVersion,
   "POST /api/clear-file-history": clearFileHistory,
   "POST /api/prune-history": pruneHistory,
+  "GET /api/find-orphaned-covers": findOrphanedCovers,
 };
 
 export { ApiError };

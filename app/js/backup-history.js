@@ -283,6 +283,82 @@
     setTimeout(() => el.remove(), 3500);
   }
 
+  // ── Осиротевшие обложки ─────────────────────────
+  // Список путей, найденный последним сканированием, – нужен, чтобы
+  // «Удалить все найденные» не переспрашивало сервер заново и не могло
+  // задеть что-то, найденное уже ПОСЛЕ показа списка на экране.
+  let lastOrphanedCovers = [];
+
+  async function scanOrphanedCovers() {
+    const statusEl = document.getElementById("status-orphaned-covers");
+    if (statusEl) {
+      statusEl.textContent = i18n("Ищем…");
+      statusEl.className = "status-msg";
+    }
+    try {
+      const res = await fetch("/api/find-orphaned-covers", { credentials: "include" });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      renderOrphanedCovers(data.orphans);
+      if (statusEl) statusEl.textContent = "";
+    } catch (e) {
+      if (statusEl) {
+        statusEl.textContent = e.message;
+        statusEl.className = "status-msg err";
+      }
+    }
+  }
+
+  function renderOrphanedCovers(orphans) {
+    lastOrphanedCovers = orphans;
+    const listEl = document.getElementById("orphaned-covers-list");
+    if (!listEl) return;
+    if (!orphans.length) {
+      listEl.innerHTML = `<p class="panel-intro">${esc(i18n("Не найдено ни одной – всё используется."))}</p>`;
+      return;
+    }
+    const head = `
+      <div class="version-list-head">
+        <span class="version-list-count">${i18n("Найдено: {n}", { n: orphans.length })}</span>
+        <button class="btn-mini danger" onclick="deleteAllOrphanedCovers()">${i18n("Удалить все найденные")}</button>
+      </div>`;
+    listEl.innerHTML =
+      head +
+      orphans
+        .map(
+          (p) => `
+      <div class="version-row">
+        <div class="version-main">
+          <div class="version-msg" title="${esc(p)}">${esc(p)}</div>
+        </div>
+      </div>`
+        )
+        .join("");
+  }
+
+  async function deleteAllOrphanedCovers() {
+    if (!lastOrphanedCovers.length) return;
+    if (
+      !(await confirmDialog(
+        i18n(
+          "Удалить {n} файлов, на которые больше никто не ссылается?\n\nЭто нельзя отменить через «Историю версий» – сами файлы там не хранятся.",
+          { n: lastOrphanedCovers.length }
+        ),
+        i18n("Удалить")
+      ))
+    )
+      return;
+    const count = lastOrphanedCovers.length;
+    // deleteMediaFile (js/utils.js), тот же путь, что и смена обложки, –
+    // заодно подчищает и копию в репозитории синхронизации, если он
+    // настроен (см. её же комментарий у deleteRemoteMedia в js/sync.js).
+    for (const path of lastOrphanedCovers) {
+      await deleteMediaFile("/" + path);
+    }
+    backupToast(i18n("Удалено: {n}", { n: count }), true);
+    scanOrphanedCovers();
+  }
+
   window.initBackupHistoryPanel = initBackupHistoryPanel;
   window.selectBackupFile = selectBackupFile;
   window.downloadBackupVersion = downloadBackupVersion;
@@ -290,4 +366,6 @@
   window.saveHistoryRetention = saveHistoryRetention;
   window.pruneHistoryNow = pruneHistoryNow;
   window.clearFileHistory = clearFileHistory;
+  window.scanOrphanedCovers = scanOrphanedCovers;
+  window.deleteAllOrphanedCovers = deleteAllOrphanedCovers;
 })();

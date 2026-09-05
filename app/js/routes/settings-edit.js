@@ -489,6 +489,25 @@ function settingsViewHtml() {
         <div class="status-msg" id="status-history-retention"></div>
         <div class="file-tabs" id="fileTabs"></div>
         <div id="content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
+
+        <!-- Смена обложки удаляет старый файл сама (js/utils.js:
+             deleteMediaFile), но удаление ЦЕЛОГО отзыва/раздела/персонажа –
+             намеренно нет: ссылка должна остаться рабочей при откате через
+             историю версий выше. Со временем такие файлы накапливаются,
+             никем уже не используемые, – эта секция находит их и, по явному
+             запросу, убирает тем же путём (см. её же комментарий у
+             findOrphanedCovers в core/api.js). -->
+        <h2 class="section-h" data-i18n>Осиротевшие обложки</h2>
+        <p class="panel-intro" data-i18n>
+          Смена обложки удаляет старый файл сама, но удаление целого отзыва, раздела или персонажа – нет:
+          ссылка должна остаться рабочей, если вы передумаете и восстановите запись через историю версий
+          выше. Такие файлы со временем накапливаются на диске, никем уже не используемые.
+        </p>
+        <div class="row">
+          <button class="btn btn-ghost" onclick="scanOrphanedCovers()" data-i18n>Найти неиспользуемые обложки</button>
+        </div>
+        <div class="status-msg" id="status-orphaned-covers"></div>
+        <div id="orphaned-covers-list"></div>
       </div>
     </main>
   </div>

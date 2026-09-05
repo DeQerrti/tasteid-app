@@ -1208,6 +1208,17 @@ i18nRegister({
   "История очищена ✓": "History cleared ✓",
   "Не удалось удалить: {msg}": "Couldn't delete: {msg}",
   "Версий: {n}": "Versions: {n}",
+  "Осиротевшие обложки": "Orphaned covers",
+  "Смена обложки удаляет старый файл сама, но удаление целого отзыва, раздела или персонажа – нет: ссылка должна остаться рабочей, если вы передумаете и восстановите запись через историю версий выше. Такие файлы со временем накапливаются на диске, никем уже не используемые.":
+    "Changing a cover deletes the old file on its own, but deleting an entire review, section, or character doesn't: the reference has to stay valid in case you change your mind and restore the record from the version history above. Files like that pile up on disk over time, no longer used by anything.",
+  "Найти неиспользуемые обложки": "Find unused covers",
+  "Ищем…": "Searching…",
+  "Не найдено ни одной – всё используется.": "None found – everything's in use.",
+  "Найдено: {n}": "Found: {n}",
+  "Удалить все найденные": "Delete all found",
+  "Удалить {n} файлов, на которые больше никто не ссылается?\n\nЭто нельзя отменить через «Историю версий» – сами файлы там не хранятся.":
+    "Delete {n} files nothing references anymore?\n\nThis can't be undone through “Version History” – the files themselves aren't kept there.",
+  "Удалено: {n}": "Deleted: {n}",
 });
 
 // ── Перебиндинг горячих клавиш (панель настроек) ─
