@@ -75,6 +75,34 @@
     flingRaf = requestAnimationFrame(fling);
   }
 
+  // Ручная прокрутка (см. её же комментарий у touchmove ниже) раньше
+  // звала scrollBy() синхронно на КАЖДОЕ touchmove – а оно у некоторых
+  // устройств рождается чаще, чем страница успевает отрисовать кадр.
+  // Над обычным фоном списка (текст, отступы) лишний рефлоу проходил
+  // незаметно, а вот там, где под пальцем большая обложка – перекраска
+  // тяжелее, и стопка накопившихся синхронных scrollBy() между кадрами
+  // уже ощущалась как заметное подтормаживание, которого нет вовсе над
+  // промежутком между карточками (там скроллит сам браузер, эта ветка
+  // не участвует). requestAnimationFrame схлопывает всё, что случилось
+  // между кадрами, в один вызов – тот же приём, что и у RAF-коалессинга
+  // рендера вкладок (см. её же историю в этой сессии).
+  let pendingScrollDy = 0;
+  let scrollRaf = null;
+  function queueScroll(dy) {
+    pendingScrollDy += dy;
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = null;
+      scrollBy(0, pendingScrollDy);
+      pendingScrollDy = 0;
+    });
+  }
+  function stopQueuedScroll() {
+    if (scrollRaf) cancelAnimationFrame(scrollRaf);
+    scrollRaf = null;
+    pendingScrollDy = 0;
+  }
+
   const point = (e) => e.touches[0] || e.changedTouches[0];
 
   // DragEvent конструируется по-настоящему, с настоящим DataTransfer:
@@ -154,6 +182,7 @@
       const el = e.target.closest?.('[draggable="true"]');
       if (!el) return;
       stopFling(); // новое касание – прошлый доезд (если ещё катился) больше не в счёт
+      stopQueuedScroll();
       velY = 0;
       const p = point(e);
       start = { el, x: p.clientX, y: p.clientY };
@@ -175,7 +204,7 @@
         // захвата, – без повтора вручную список нельзя было бы пролистать,
         // начав касание прямо на строке, а не в промежутке между ними.
         const dy = start.y - p.clientY;
-        scrollBy(0, dy);
+        queueScroll(dy);
         // Если палец поехал – это (по крайней мере уже) не захват,
         // отменяем таймер удержания. Точку отсчёта для прокрутки выше
         // при этом не обнуляем – прокрутка продолжается, пока палец на

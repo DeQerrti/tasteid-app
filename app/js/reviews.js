@@ -439,12 +439,22 @@ function reviewModalBodyHtml(r) {
   // было ни того ни другого, если даты различались.
   const fmtLongDate = raw =>
     new Date(raw).toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" });
-  let dateStr = "";
+  // "Ознакомился" не годится сразу по двум причинам: мужской род (см.
+  // её же историю в этой сессии – везде убирали) и то, что не подходит
+  // ни книге, ни игре, ни фильму разом ("посмотрел"/"прочитал"/"прошёл"
+  // пришлось бы выбирать по типу). "Начато"/"Завершено" – страдательный
+  // залог, рода не имеет и одинаково годится любому типу. Период (начал
+  // → закончил различаются) теперь на двух строках, а не через "→" в
+  // одной – так яснее, где какая дата, чем читать одну подпись на обе.
+  let dateLines = [];
   if (r.date_start && r.date_end && r.date_start !== r.date_end) {
-    dateStr = `${fmtLongDate(r.date_start)} → ${fmtLongDate(r.date_end)}`;
+    dateLines = [
+      { label: i18n("Начато:"), date: fmtLongDate(r.date_start) },
+      { label: i18n("Завершено:"), date: fmtLongDate(r.date_end) },
+    ];
   } else {
     const dateRaw = r.date_end || r.date_start || r.date || null;
-    if (dateRaw) dateStr = fmtLongDate(dateRaw);
+    if (dateRaw) dateLines = [{ label: i18n("Завершено:"), date: fmtLongDate(dateRaw) }];
   }
 
   const btn1 = sourceBtnHtml(r.url, r.source);
@@ -470,7 +480,7 @@ function reviewModalBodyHtml(r) {
       <div>
         <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
         <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
-        ${dateStr ? `<div class="review-dateline">${i18n("Ознакомился:")} <span>${esc(dateStr)}</span></div>` : ""}
+        ${dateLines.map(({ label, date }) => `<div class="review-dateline">${label} <span>${esc(date)}</span></div>`).join("")}
         ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
         ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
       </div>
