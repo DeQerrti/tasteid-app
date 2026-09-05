@@ -35,6 +35,7 @@ i18nRegister({
   Сохранено: "Saved",
   "Сохраняю...": "Saving…",
   "Загружаем…": "Loading…",
+  "Загружаю…": "Uploading…",
   Ошибка: "Error",
   "Перейти к году…": "Jump to year…",
   "Пока пусто": "Nothing here yet",
@@ -527,6 +528,7 @@ i18nRegister({
   "Пустое поле означает «оставить как есть» – под ним написано значение по умолчанию.":
     "An empty field means “leave as is” – the default is shown underneath.",
   "Выберите тему слева или создайте новую": "Pick a theme on the left, or create a new one",
+  "Выбрано файлов: {n}": "{n} files selected",
   "Выбрать файл": "Choose file",
   Год: "Year",
   "Год выхода": "Release year",
@@ -541,6 +543,7 @@ i18nRegister({
   "Добавить обложку": "Add cover",
   "Добавить отзыв": "Add review",
   "Добавить оценку и теги": "Add a rating and tags",
+  "Добавить всех": "Add all",
   "Добавить персонажа": "Add character",
   "Добавить раздел": "Add section",
   "Добавить статус": "Add status",
@@ -708,6 +711,7 @@ i18nRegister({
   "В паспорте нет шкалы оценок – показывать будет нечего.":
     "There is no rating scale in this passport – there would be nothing to show.",
   "В планах": "Planned",
+  "Введите имя": "Enter a name",
   "Введите название": "Enter a name",
   "Внутри файла должен быть объект паспорта.": "The file must contain a passport object.",
   Всё: "Everything",
@@ -964,6 +968,7 @@ i18nRegister({
   "Персонаж с таким именем уже есть в этой папке. Выберите другое имя.":
     "There's already a character with this name in this folder. Choose a different name.",
   "Такая роль уже есть": "That role already exists",
+  "Такое имя уже есть": "That name already exists",
   "Такой источник уже есть": "That source already exists",
   "Такой статус уже есть": "That status already exists",
   "Такой тег уже есть": "That tag already exists",
@@ -973,6 +978,7 @@ i18nRegister({
   Темы: "Themes",
   тегов: "tags",
   "Тегов пока нет": "No tags yet",
+  "Убрать из списка": "Remove from the list",
   Топ: "Top",
   "Топ тайтлы года": "Top titles of the year",
   "Удалить раздел «{name}» вместе со всеми его записями? Отменить это будет нельзя.":
@@ -1241,6 +1247,7 @@ i18nRegister({
     "Digits 1–5 switch tabs in order and adjust automatically when one is hidden.",
   "не задано": "not set",
   "Очистить": "Clear",
+  "Очистить список": "Clear the list",
   "Нажмите клавишу или кнопку мыши…": "Press a key or mouse button…",
   "Цифры 1–5 уже переключают вкладки по порядку.": "Digits 1–5 already switch tabs in order.",
   "Эта клавиша уже занята: {what}.": "That key is already taken by: {what}.",

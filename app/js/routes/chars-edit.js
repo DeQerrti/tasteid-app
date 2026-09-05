@@ -52,6 +52,13 @@ let editingTitleId = null;
 let dropIndicator = null;
 let backupTitleCoverTimer = null;
 let backupModalImgTimer = null;
+// Пакетная загрузка нескольких фото разом (см. onUploadFilesPicked
+// ниже) – {id, file, name, previewUrl, status: pending/uploading/done/
+// error, error} на каждый выбранный файл. previewUrl – собственный
+// blob-URL на файл (создан один раз при выборе, а не при каждой
+// перерисовке списка – иначе течёт с каждым renderBatchList()).
+let batchItems = [];
+let batchCounter = 0;
 // Значение cover_backup/img_backup, с которым открыта правка (null у
 // новой записи) – та же страховка, что originalCoverBackup в
 // js/routes/add.js. Здесь весь тир-лист держится в памяти и пишется
@@ -190,17 +197,22 @@ async function mount(container, params) {
         <div class="manual-section" id="upload-section">
           <div class="field">
             <label class="btn btn-ghost file-btn">
-              <input type="file" id="m-upload-file" accept="image/*" onchange="updateFileBtnName(this); uploadCharImage()">
+              <input type="file" id="m-upload-file" accept="image/*" multiple onchange="onUploadFilesPicked(this)">
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="m-upload-file-name"></span>
             <div id="upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
           </div>
+          <div class="batch-upload-list hidden" id="batch-upload-list"></div>
+          <div class="hidden" id="batch-upload-actions" style="display:flex;gap:.5rem;margin-top:.5rem">
+            <button type="button" class="btn btn-primary" id="batch-upload-btn" onclick="uploadBatchFiles()" data-i18n>Добавить всех</button>
+            <button type="button" class="btn btn-ghost" onclick="clearBatchFiles()" data-i18n>Очистить список</button>
+          </div>
         </div>
 
         <div style="display:flex;gap:.5rem;margin-top:.75rem">
           <button class="btn btn-primary" id="m-btn-add" onclick="confirmAddChar()" data-i18n>Добавить</button>
-          <button class="btn btn-ghost" onclick="closeModal()" data-i18n>Отмена</button>
+          <button class="btn btn-ghost" onclick="closeModal()" data-i18n>Готово</button>
         </div>
       </div>
     </div>`;
@@ -1107,16 +1119,25 @@ async function loadGallery(folder, title) {
     .join("");
 }
 
-// ══ МОДАЛКА ════════════════════════════════════
-async function openModal(titleId, listId, ti) {
-  pendingTier = { titleId, listId, tierIdx: ti };
+// Общая часть очистки формы добавления персонажа – и при открытии
+// модалки с нуля (openModal), и после каждого добавленного персонажа
+// внутри уже открытой модалки (confirmAddChar) – модалка теперь сама
+// не закрывается после добавления, см. её же комментарий там.
+function resetAddCharFormFields() {
   selectedGalleryImg = null;
-
   document.getElementById("m-name").value = "";
   document.getElementById("m-img").value = "";
   document.getElementById("m-img-backup").value = "";
   document.getElementById("m-img-backup-status").textContent = "";
   document.getElementById("m-img-preview").style.display = "none";
+}
+
+// ══ МОДАЛКА ════════════════════════════════════
+async function openModal(titleId, listId, ti) {
+  pendingTier = { titleId, listId, tierIdx: ti };
+  resetAddCharFormFields();
+  clearBatchFiles();
+
   document.getElementById("manual-section").classList.remove("visible");
   document.getElementById("gallery-status").textContent = i18n("Загружаем папки…");
   document.getElementById("gallery-grid").innerHTML = "";
@@ -1208,6 +1229,36 @@ function convertToWebpForChar(file) {
   });
 }
 
+// Общая часть одиночной (uploadCharImage) и пакетной (uploadBatchFiles)
+// загрузки – конвертирует в webp и грузит на диск под именем, собранным
+// из уже введённого имени персонажа, а не из имени файла (см. комментарий
+// у onUploadFilesPicked ниже). Не трогает форму/статус/галерею – это
+// разное у одиночной и пакетной загрузки, решает вызывающий код.
+async function uploadOneCharFile(file, name, folder) {
+  // isSafeFileName() на сервере (core/api.js) запрещает "/", "\" и "..",
+  // а vault.saveMedia() дополнительно подчищает остальные небезопасные
+  // для имени файла символы (см. её же комментарий в electron/vault.js) –
+  // повторяем тот же список здесь, чтобы safeName ниже (по нему потом
+  // ищут только что загруженную картинку в списке галереи) совпадал с
+  // именем, которое реально легло на диск.
+  const safeName = name.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_").replace(/\.+/g, "_").trim() || "персонаж";
+  const base64 = await convertToWebpForChar(file);
+  const res = await fetch("/api/upload-char-image", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      folder,
+      filename: safeName + ".webp",
+      contentBase64: base64,
+      basePath: COLLECTION === "characters" ? undefined : COLLECTION,
+    }),
+  });
+  const result = await res.json();
+  if (!result.ok) throw new Error(result.error || i18n("Ошибка загрузки"));
+  return { url: result.url, safeName };
+}
+
 async function uploadCharImage() {
   const folder = document.getElementById("m-folder").value;
   const fileInput = document.getElementById("m-upload-file");
@@ -1246,33 +1297,11 @@ async function uploadCharImage() {
   }
 
   const file = fileInput.files[0];
-  // isSafeFileName() на сервере (core/api.js) запрещает "/", "\" и "..",
-  // а vault.saveMedia() дополнительно подчищает остальные небезопасные
-  // для имени файла символы (см. её же комментарий в electron/vault.js) –
-  // повторяем тот же список здесь, чтобы автоподстановка новой картинки
-  // в галерею ниже (nameGuess) искала её под именем, которое реально
-  // легло на диск, а не под тем, что ещё не прошло через saveMedia().
-  const safeBase = customName.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_").replace(/\.+/g, "_").trim() || "персонаж";
-  const filename = safeBase + ".webp";
-
   status.textContent = i18n("Обрабатываю...");
   status.style.color = "var(--text-dim)";
 
   try {
-    const base64 = await convertToWebpForChar(file);
-    const res = await fetch("/api/upload-char-image", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        folder,
-        filename,
-        contentBase64: base64,
-        basePath: COLLECTION === "characters" ? undefined : COLLECTION,
-      }),
-    });
-    const result = await res.json();
-    if (!result.ok) throw new Error(result.error || i18n("Ошибка загрузки"));
+    const { safeName } = await uploadOneCharFile(file, customName, folder);
 
     status.textContent = i18n("Загружено ✓ Обновляю список...");
     status.style.color = "var(--green)";
@@ -1281,8 +1310,7 @@ async function uploadCharImage() {
     const title = pendingTier ? data.find((t) => t.id === pendingTier.titleId) : null;
     await loadGallery(folder, title);
 
-    const nameGuess = filename.replace(/\.webp$/, "");
-    const item = document.querySelector(`.gallery-item[data-name="${CSS.escape(nameGuess)}"]`);
+    const item = document.querySelector(`.gallery-item[data-name="${CSS.escape(safeName)}"]`);
     if (item) {
       selectGalleryItem(item);
       document.getElementById("upload-section").classList.remove("visible");
@@ -1293,6 +1321,160 @@ async function uploadCharImage() {
     status.textContent = i18n("Ошибка: ") + e.message;
     status.style.color = "var(--red-hi)";
   }
+}
+
+// ══ ПАКЕТНАЯ ЗАГРУЗКА НЕСКОЛЬКИХ ФОТО ══════════
+// На телефоне открыть папку темы и накидать в неё скачанные картинки
+// (как на компьютере, см. openCharsFolder()) неоткуда – файловой
+// системы там не видно. Зато выбрать сразу несколько фото из галереи в
+// одном системном диалоге – можно, обычный <input type=file multiple>.
+// Единственное, что нельзя разложить по одному полю "Имя персонажа" –
+// имя нужно каждому фото своё, отсюда отдельный мини-список ниже.
+function onUploadFilesPicked(input) {
+  const files = Array.from(input.files || []);
+  if (files.length <= 1) {
+    updateFileBtnName(input);
+    clearBatchFiles();
+    if (files.length === 1) uploadCharImage();
+    return;
+  }
+  clearBatchFiles();
+  document.getElementById("m-upload-file-name").textContent = i18n("Выбрано файлов: {n}", { n: files.length });
+  batchItems = files.map((file) => ({
+    id: ++batchCounter,
+    file,
+    name: "",
+    previewUrl: URL.createObjectURL(file),
+    status: "pending",
+    error: "",
+  }));
+  renderBatchList();
+}
+
+function setBatchItemName(id, value) {
+  // Только состояние – без перерисовки списка, иначе на каждую букву
+  // поле теряло бы фокус и позицию курсора (renderBatchList строит
+  // разметку заново целиком).
+  const item = batchItems.find((i) => i.id === id);
+  if (item) item.name = value;
+}
+
+function removeBatchItem(id) {
+  const idx = batchItems.findIndex((i) => i.id === id);
+  if (idx === -1) return;
+  URL.revokeObjectURL(batchItems[idx].previewUrl);
+  batchItems.splice(idx, 1);
+  renderBatchList();
+}
+
+function clearBatchFiles() {
+  batchItems.forEach((i) => URL.revokeObjectURL(i.previewUrl));
+  batchItems = [];
+  const fileInput = document.getElementById("m-upload-file");
+  if (fileInput) fileInput.value = "";
+  const nameEl = document.getElementById("m-upload-file-name");
+  if (nameEl) nameEl.textContent = "";
+  renderBatchList();
+}
+
+function renderBatchList() {
+  const listEl = document.getElementById("batch-upload-list");
+  const actionsEl = document.getElementById("batch-upload-actions");
+  if (!listEl || !actionsEl) return;
+  if (!batchItems.length) {
+    listEl.classList.add("hidden");
+    actionsEl.classList.add("hidden");
+    listEl.innerHTML = "";
+    return;
+  }
+  listEl.classList.remove("hidden");
+  actionsEl.classList.remove("hidden");
+  listEl.innerHTML = batchItems
+    .map((it) => {
+      const statusText =
+        it.status === "uploading"
+          ? i18n("Загружаю…")
+          : it.status === "done"
+            ? "✓"
+            : it.status === "error"
+              ? it.error
+              : "";
+      return `
+      <div class="batch-item${it.status === "error" ? " batch-item-error" : ""}">
+        <img src="${esc(it.previewUrl)}" alt="" class="batch-item-preview">
+        <input type="text" class="batch-item-name" placeholder="${i18n("Имя персонажа")}"
+          value="${esc(it.name)}" oninput="setBatchItemName(${it.id}, this.value)"
+          ${it.status === "uploading" || it.status === "done" ? "disabled" : ""}>
+        <span class="batch-item-status">${esc(statusText)}</span>
+        <button type="button" class="batch-item-remove" onclick="removeBatchItem(${it.id})"
+          ${it.status === "uploading" ? "disabled" : ""} title="${i18n("Убрать из списка")}">✕</button>
+      </div>`;
+    })
+    .join("");
+}
+
+async function uploadBatchFiles() {
+  const folder = document.getElementById("m-folder").value;
+  if (!folder) {
+    alert(i18n("Сначала выберите папку выше"));
+    return;
+  }
+  const btn = document.getElementById("batch-upload-btn");
+  btn.disabled = true;
+
+  const title = pendingTier ? data.find((t) => t.id === pendingTier.titleId) : null;
+  const list = pendingTier && title?.tierlists.find((l) => l.id === pendingTier.listId);
+  let addedAny = false;
+
+  for (const item of batchItems) {
+    if (item.status === "done") continue;
+    const name = item.name.trim();
+    if (!name) {
+      item.status = "error";
+      item.error = i18n("Введите имя");
+      renderBatchList();
+      continue;
+    }
+    // Совпадение с уже загруженным в эту папку раньше, а также с уже
+    // успешно загруженным ВЫШЕ по этому же списку – galleryCache
+    // пополняется сразу после каждой успешной загрузки (ниже), поэтому
+    // к моменту проверки следующей строки в нём уже есть все предыдущие.
+    if (galleryCache[folder]?.some((f) => f.name === name)) {
+      item.status = "error";
+      item.error = i18n("Такое имя уже есть");
+      renderBatchList();
+      continue;
+    }
+    item.status = "uploading";
+    item.error = "";
+    renderBatchList();
+    try {
+      const { url, safeName } = await uploadOneCharFile(item.file, name, folder);
+      if (!galleryCache[folder]) galleryCache[folder] = [];
+      galleryCache[folder].push({ name: safeName, url });
+      if (list) {
+        list.tiers[pendingTier.tierIdx].chars.push({ name, img: url });
+        ceDirty = true;
+        addedAny = true;
+      }
+      item.status = "done";
+    } catch (e) {
+      item.status = "error";
+      item.error = e.message;
+    }
+    renderBatchList();
+  }
+
+  btn.disabled = false;
+  if (addedAny) renderEditor();
+  // Готовые убираем – мешать их с новой попыткой некому, а ошибочные
+  // оставляем на месте: имя можно поправить и снова нажать "Добавить
+  // всех", без необходимости выбирать файлы заново.
+  batchItems = batchItems.filter((i) => i.status !== "done");
+  if (!batchItems.length) clearBatchFiles();
+  else renderBatchList();
+
+  if (folder) await loadGallery(folder, title);
 }
 
 function closeModal() {
@@ -1397,8 +1579,17 @@ async function confirmAddChar() {
   if (imgBackup) char.img_backup = imgBackup;
   list.tiers[tierIdx].chars.push(char);
   ceDirty = true;
-  closeModal();
   renderEditor();
+
+  // Модалка больше не закрывается сама после добавления – раньше это
+  // означало заново открывать её (заново тапать "Добавить" на тире)
+  // ради каждого следующего персонажа, что особенно чувствуется на
+  // телефоне. Вместо этого форма чистится и готова к следующему вводу
+  // сразу же; закрывает модалку сам человек ("Готово"/крестик/Esc/клик
+  // по фону) – ровно как задумано в closeModal().
+  resetAddCharFormFields();
+  await loadGallery(document.getElementById("m-folder").value, title);
+  document.getElementById("m-name").focus();
 }
 
 // ══ ПЕРЕТАСКИВАНИЕ ЦЕЛЫХ ТИРОВ ══════════════════

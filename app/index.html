@@ -1863,6 +1863,24 @@ section.group { margin-bottom: 3.5rem; }
 }
 .gallery-item.selected .gallery-check { display: flex; }
 
+/* Пакетная загрузка нескольких фото разом (см. её же комментарий у
+   onUploadFilesPicked в chars-edit.js) – список строк "превью + имя",
+   а не сетка как у .gallery-item выше: там просто выбор среди уже
+   загруженного, тут для каждой строки ещё нужно набрать текст. */
+.batch-upload-list { display: flex; flex-direction: column; gap: .4rem; margin-top: .75rem; max-height: 260px; overflow-y: auto; }
+.batch-item { display: flex; align-items: center; gap: .6rem; padding: .35rem; border: 1px solid var(--border); border-radius: 2px; background: var(--surface); }
+.batch-item.batch-item-error { border-color: var(--red-hi); }
+.batch-item-preview { width: 36px; height: 54px; object-fit: cover; border-radius: 1px; background: var(--surface2); flex-shrink: 0; }
+.batch-item-name {
+  flex: 1; min-width: 0; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 2px; padding: .4rem .6rem; color: var(--text-hi); font-family: 'DM Sans', sans-serif; font-size: .8rem; outline: none;
+}
+.batch-item-name:focus { border-color: var(--red); }
+.batch-item-status { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim); flex-shrink: 0; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-item-error .batch-item-status { color: var(--red-hi); }
+.batch-item-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: .8rem; padding: .2rem; flex-shrink: 0; }
+.batch-item-remove:hover { color: var(--red-hi); }
+
 .manual-toggle { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; margin-bottom: .75rem; display: inline-block; }
 .manual-toggle:hover { color: var(--text); }
 .manual-section { display: none; }
