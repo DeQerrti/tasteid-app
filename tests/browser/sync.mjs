@@ -255,6 +255,8 @@ console.log("Картинка, заведённая только на друго
 // скачаться, сколько ни синхронизируйся, — runSync() строил список для
 // сравнения только обходом СВОЕГО диска.
 gh.files.set("chars/Другой/новая.webp", { base64: WEBP, sha: nextSha() });
+await page.click('.side-tab[data-panel="sync"]');
+await page.waitForTimeout(300);
 await page.click("#sync-now-btn");
 await page.waitForFunction(
   () => document.getElementById("status-sync")?.textContent?.includes("Готово"),
