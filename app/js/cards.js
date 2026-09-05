@@ -97,12 +97,6 @@ function manualCard(r, index) {
   const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
 
   let watchBadge = "";
-  // Диапазон дат ("05.10–22.11") длиннее одной даты и на тесной
-  // карточке (4 колонки на телефоне) не влезает даже в компактном
-  // числовом формате – watch-badge-range получает свой, ещё более
-  // мелкий кегль (см. правило в index.html) только для этого случая,
-  // одиночную дату уменьшать незачем.
-  let watchBadgeRange = false;
   if (r.status === "current" && r.date_start) {
     const s = fmtDateStr(r.date_start, true);
     if (s) watchBadge = i18n("с {date}", { date: s });
@@ -110,11 +104,10 @@ function manualCard(r, index) {
     const startStr = r.date_start ? fmtDateStr(r.date_start, true) : null;
     const endStr   = r.date_end   ? fmtDateStr(r.date_end,   true) : null;
     if (endStr && startStr && r.date_start !== r.date_end) {
-      // Без пробелов вокруг тире – тесная карточка на телефоне (см. её
-      // же комментарий у fmtDateStr про короткий числовой формат) не
-      // прощает лишних пары пикселей на каждый пробел.
+      // Без пробелов вокруг тире – даже с полной шириной обложки под
+      // датой (см. её же комментарий у .card-poster/.watch-badge в
+      // index.html) диапазон из двух коротких дат всё ещё теснее одной.
       watchBadge = `${startStr}–${endStr}`;
-      watchBadgeRange = true;
     } else if (endStr) {
       watchBadge = endStr;
     } else if (startStr) {
@@ -130,9 +123,11 @@ function manualCard(r, index) {
   return `<div class="review-card-wrap" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${pencil}
     <div class="card" style="animation-delay:0ms">
-      <span class="type-tag tag-manual">${esc(tagLabel)}</span>
-      ${watchBadge ? `<span class="watch-badge${watchBadgeRange ? " watch-badge-range" : ""}">${esc(watchBadge)}</span>` : ""}
-      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <div class="card-poster">
+        <span class="type-tag tag-manual">${esc(tagLabel)}</span>
+        ${watchBadge ? `<span class="watch-badge">${esc(watchBadge)}</span>` : ""}
+        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      </div>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
         ${r.year || info

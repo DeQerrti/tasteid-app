@@ -32,6 +32,17 @@ const tlState = {
   collections: {}, // { [collectionId]: { games: [...], loaded: bool } }
 };
 
+// Снимок уже нарисованного – та же причина, что у nowLastSnapshot в
+// js/now.js (и у аналогичных снимков в favorites.js/reviews.js): без
+// него loadTierlist() пересобирала всю разметку заново при КАЖДОМ
+// заходе на вкладку, даже когда данные не изменились ни на йоту – а
+// это значит, что каждая обложка (тайтла или персонажа) была новым
+// <img>-узлом и заново уходила через нативный мост Capacitor за своим
+// файлом, вместо того чтобы остаться уже загруженной. Внешне это и
+// выглядело как «обложки грузятся с нуля» при каждом возврате на
+// вкладку.
+let tlLastSnapshot = null;
+
 // Список коллекций (кроме "Тайтлы") – по умолчанию только встроенная
 // "Персонажи", остальное настраивается в /settings-edit.
 function activeTierCollections() {
@@ -148,17 +159,36 @@ async function loadTierlist() {
     // вызывается только при переключении на саму вкладку (switchTab в
     // index.html) – не при смене режима внутри неё (та идёт через
     // tlBindAll → tlRender, без повторного fetch), так что перечитывать
-    // тут каждый раз безопасно и дёшево (локальный файл).
-    box.innerHTML = `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем…")}</div>`;
+    // тут каждый раз безопасно и дёшево (локальный файл). Но перечитать
+    // данные – не то же самое, что перерисовать разметку: см. снимок
+    // tlLastSnapshot выше, спинner здесь больше не ставится заранее –
+    // если ничего не изменилось, старая (уже отрисованная, с уже
+    // загруженными обложками) разметка так и останется на месте.
     await fetchReviews();
     const reviews = (cache.reviews || []).filter(r => r.grade);
-    tlState.items = reviews.map(r => ({ review: r, poster: r.cover || null, posterBackup: r.cover_backup || null }));
     tlEnsureVisibleMode();
     if (tlState.mode !== "titles" && !tlState.collections[tlState.mode]?.loaded) {
+      box.innerHTML = tlModeToggleHtml()
+        + `<div class="state-box"><div class="spinner"></div>${i18n("Загружаем…")}</div>`;
       await loadCharGames(tlState.mode);
     }
+
+    const snapshot = JSON.stringify({
+      reviews,
+      mode: tlState.mode,
+      collection: tlState.mode !== "titles" ? tlState.collections[tlState.mode] : null,
+      collections: window.SITE_TIER_COLLECTIONS,
+      order: window.SITE_TIER_MODE_ORDER,
+      hidden: window.SITE_HIDDEN_TIER_MODES && [...window.SITE_HIDDEN_TIER_MODES],
+      labels: window.SITE_LABELS,
+    });
+    tlState.items = reviews.map(r => ({ review: r, poster: r.cover || null, posterBackup: r.cover_backup || null }));
+    if (snapshot === tlLastSnapshot) return;
+    tlLastSnapshot = snapshot;
+
     tlRender();
   } catch (err) {
+    tlLastSnapshot = null; // при следующей успешной загрузке перерисовать точно
     box.innerHTML = `<div class="state-box">Ошибка: ${esc(err.message)}</div>`;
   } finally {
     loading.tierlist = false;
