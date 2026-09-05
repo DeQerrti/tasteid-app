@@ -209,13 +209,33 @@ function nowModeBodyHtml() {
   return `<div class="grid-now">${b.items.map((r, i) => manualCard(r, i)).join("")}</div>`;
 }
 
+// Кэш уже отрисованных разделов – та же причина, что решили для
+// тир-листа (loadTierlist()/tlLastSnapshot): переключение между
+// статусами («В процессе»/«Отложено»/«Планирую»/«Архив») раньше ВСЕГДА
+// заново строило innerHTML и заводило свежие <img>, даже возвращаясь к
+// разделу, который уже показывали минуту назад в этом же заходе. Байты
+// картинки при этом уже лежали в srcCache (см. её же комментарий у
+// vaultSrc в mobile/src/main.js), но самому <img>-узлу всё равно
+// приходится заново декодировать картинку для отрисовки – а это не
+// байты, это именно узел DOM, и кэш путей его не спасал. Сбрасывается в
+// renderNow() – там, где данные и правда могли измениться.
+let nowModeBodies = {}; // { [mode]: HTMLElement }
+
 function renderNowBody() {
-  const body = document.getElementById("now-mode-body");
-  if (!body) return;
+  const container = document.getElementById("now-mode-body");
+  if (!container) return;
   document.querySelectorAll("#tab-now .tl-mode-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mode === nowState.mode);
   });
-  body.innerHTML = nowModeBodyHtml();
+  if (!nowModeBodies[nowState.mode]) {
+    const el = document.createElement("div");
+    el.innerHTML = nowModeBodyHtml();
+    container.appendChild(el);
+    nowModeBodies[nowState.mode] = el;
+  }
+  for (const [mode, el] of Object.entries(nowModeBodies)) {
+    el.hidden = mode !== nowState.mode;
+  }
 }
 
 function renderNow({ buckets, completed }) {
@@ -223,12 +243,14 @@ function renderNow({ buckets, completed }) {
   nowState.buckets = buckets;
   nowState.completed = completed;
   nowEnsureMode();
+  nowModeBodies = {};
 
   if (!nowState.mode) {
     box.innerHTML = `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
     return;
   }
 
-  box.innerHTML = `${nowModeToggleHtml()}<div id="now-mode-body">${nowModeBodyHtml()}</div>`;
+  box.innerHTML = `${nowModeToggleHtml()}<div id="now-mode-body"></div>`;
   bindNowModeToggle();
+  renderNowBody();
 }

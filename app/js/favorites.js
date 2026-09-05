@@ -97,10 +97,10 @@ function favOrderedKeys(collections) {
 // из того, что нарисовано на экране.
 function renderFavorites({ titles, characters, persons, favData }) {
   const box = document.getElementById("tab-favorites");
-  const admin = isAdmin();
 
   favExportData = { titles, characters, persons, favData };
   favExportSections = [];
+  favModeBodies = {};
 
   const builtinMeta = {
     favTitles: { title: siteLabel("sections", "favTitles", i18n("Тайтлы")), items: titles },
@@ -135,6 +135,29 @@ function renderFavorites({ titles, characters, persons, favData }) {
       return `<button class="tl-mode-btn${favState.mode === key ? " active" : ""}" data-mode="${esc(key)}">${esc(label)} <span class="section-count">${count}</span></button>`;
     })
     .join("");
+
+  // fav-mode-body начинается пустым – его наполняет renderFavModeBody()
+  // сразу следом, тем же путём, что и переключение между разделами (см.
+  // её же комментарий у favModeBodies ниже): один источник правды на
+  // «как показать раздел», а не два (тут и там).
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.8rem">
+      <div class="tl-mode-toggle" style="margin-bottom:0">${toggleBtns}</div>
+      <div id="fav-action-link" style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">${cameraBtn}</div>
+    </div>
+    <div id="fav-mode-body"></div>`;
+  bindFavModeToggle();
+  renderFavModeBody();
+}
+
+// Ссылка справа от переключателя разделов зависит от того, какой
+// раздел открыт («Порядок» только у «Тайтлов», «Добавить» у остальных) –
+// её приходится перерисовывать при каждом переключении отдельно от
+// самого содержимого раздела (см. её же комментарий у favModeBodies).
+function updateFavActionLink() {
+  const el = document.getElementById("fav-action-link");
+  if (!el) return;
+  const admin = isAdmin();
   const actionLink =
     favState.mode === "favTitles"
       ? admin
@@ -143,14 +166,34 @@ function renderFavorites({ titles, characters, persons, favData }) {
       : admin
         ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>`
         : "";
+  el.innerHTML = cameraButton("openFavExportModal()", "fav-camera-btn") + actionLink;
+}
 
-  box.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.8rem">
-      <div class="tl-mode-toggle" style="margin-bottom:0">${toggleBtns}</div>
-      <div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">${cameraBtn}${actionLink}</div>
-    </div>
-    <div id="fav-mode-body">${favModeBodyHtml()}</div>`;
-  bindFavModeToggle();
+// Кэш уже отрисованных разделов – та же причина, что решили для
+// тир-листа (loadTierlist()/tlLastSnapshot): переключение между
+// разделами «Любимого» раньше ВСЕГДА заново строило innerHTML и
+// заводило свежие <img>, даже возвращаясь к разделу, который уже
+// показывали минуту назад в этом же заходе. Байты картинки при этом
+// уже лежали в srcCache (см. её же комментарий у vaultSrc в
+// mobile/src/main.js), но самому <img>-узлу всё равно приходится
+// заново декодировать картинку для отрисовки – а это не байты, это
+// именно узел DOM, и кэш путей его не спасал. Сбрасывается в
+// renderFavorites() – там, где данные и правда могли измениться.
+let favModeBodies = {}; // { [mode]: HTMLElement }
+
+function renderFavModeBody() {
+  const container = document.getElementById("fav-mode-body");
+  if (!container) return;
+  updateFavActionLink();
+  if (!favModeBodies[favState.mode]) {
+    const el = document.createElement("div");
+    el.innerHTML = favModeBodyHtml();
+    container.appendChild(el);
+    favModeBodies[favState.mode] = el;
+  }
+  for (const [mode, el] of Object.entries(favModeBodies)) {
+    el.hidden = mode !== favState.mode;
+  }
 }
 
 function favModeBodyHtml() {
@@ -182,10 +225,13 @@ function bindFavModeToggle() {
     btn.addEventListener("click", () => {
       if (btn.dataset.mode === favState.mode) return;
       favState.mode = btn.dataset.mode;
+      document.querySelectorAll("#tab-favorites .tl-mode-btn").forEach((b) => {
+        b.classList.toggle("active", b.dataset.mode === favState.mode);
+      });
       if (favRenderRaf) cancelAnimationFrame(favRenderRaf);
       favRenderRaf = requestAnimationFrame(() => {
         favRenderRaf = null;
-        renderFavorites(favExportData);
+        renderFavModeBody();
       });
     });
   });
