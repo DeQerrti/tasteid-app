@@ -867,8 +867,20 @@ section.group { margin-bottom: 3.5rem; }
   min-width: 0; /* allow children (year-bars-wrap etc.) to shrink inside grid cell */
 }
 .stat-grid .stat-card.wide { grid-column: 1 / -1; }
+/* Раньше на телефоне тут стояла одна колонка – каждый блок занимал
+   чуть ли не весь экран, и добраться до последнего было сплошной
+   прокруткой. Как на компьютере, две колонки – только .wide (заголовки
+   по годам, "Всего", тайтл года) всё равно растягиваются на всю
+   ширину через grid-column: 1 / -1 выше, им ширина колонки ни при чём.
+   Уменьшение самого доната (200px не влезли бы и в половину узкого
+   экрана) – отдельным правилом ниже по файлу, после его же безусловного
+   (см. её же историю в этой сессии про .tl-mode-btn/.watch-badge:
+   правило той же специфичности, что стоит РАНЬШЕ по источнику,
+   проигрывает более позднему безусловному, даже если само внутри
+   @media). */
 @media (max-width: 780px) {
-  .stat-grid { grid-template-columns: 1fr; }
+  .stat-grid { gap: .8rem; }
+  .stat-grid .stat-card { padding: 1rem 1.1rem; }
 }
 
 .stat-total { display: flex; align-items: baseline; gap: .75rem; margin-bottom: 2rem; }
@@ -928,6 +940,15 @@ section.group { margin-bottom: 3.5rem; }
 .donut-legend-label { color: var(--text); flex: 1; }
 .donut-legend-val   { color: var(--text-hi); font-weight: 500; min-width: 24px; text-align: right; }
 .donut-legend-pct   { color: var(--text-dim); min-width: 36px; text-align: right; }
+/* После безусловных правил выше по той же причине, что и у .stat-grid
+   чуть раньше в этом файле, – иначе они, более поздние по источнику при
+   равной специфичности, просто победили бы. 200px+3rem на легенду не
+   влезли бы и в половину узкой колонки телефона (см. её же комментарий
+   там же). */
+@media (max-width: 780px) {
+  .stat-donut-wrap { gap: 1rem; }
+  .stat-donut-svg { width: 110px; height: 110px; }
+}
 
 .year-bars-wrap {
   display: flex; align-items: flex-end; gap: 6px;
