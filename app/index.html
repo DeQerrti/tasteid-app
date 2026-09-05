@@ -589,6 +589,13 @@ section.group { margin-bottom: 3.5rem; }
 @media (max-width: 700px) {
   .watch-badge, .type-tag { font-size: .5rem; padding: .18rem .4rem; }
   .watch-badge { max-width: calc(100% - 30px); }
+  /* Диапазон дат ("05.10–22.11", см. её же комментарий у watchBadgeRange
+     в cards.js) длиннее одиночной даты и не влезает даже в этот
+     уменьшенный кегль – без отдельного, ещё меньшего шрифта он обрезался
+     бы ellipsis'ом ровно так же, как раньше обрезался весь watch-badge
+     целиком. После правила выше по источнику той же специфичности –
+     иначе оно бы просто победило (см. её же историю чуть выше). */
+  .watch-badge-range { font-size: .38rem; padding: .16rem .32rem; letter-spacing: -.2px; }
 }
 
 .progress-line {

@@ -45,17 +45,22 @@ function fmtDateStr(str, short = false) {
   if (isNaN(d)) return null;
   const locale = dateLocale();
   const currentYear = new Date().getFullYear();
+  // short – компактный числовой формат: единственный вызывающий код
+  // (watch-badge на карточке) кладёт сюда ДВЕ даты подряд для периода
+  // ("5 окт. → 22 нояб.") – в узкой карточке на телефоне это не влезало
+  // ни при какой ширине бейджа, потому что "short" раньше игнорировался
+  // для текущего года и там всё равно писалось полное название месяца.
+  if (short) {
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    if (d.getFullYear() === currentYear) return `${dd}.${mm}`;
+    const yy = String(d.getFullYear()).slice(2);
+    return `${dd}.${mm}.${yy}`;
+  }
   if (d.getFullYear() === currentYear) {
     return d.toLocaleDateString(locale, { day: "numeric", month: "short" });
-  } else {
-    if (short) {
-      const dd = String(d.getDate()).padStart(2, "0");
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const yy = String(d.getFullYear()).slice(2);
-      return `${dd}.${mm}.${yy}`;
-    }
-    return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
   }
+  return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
 }
 
 // ── Карточки ───────────────────────────────────
@@ -92,6 +97,12 @@ function manualCard(r, index) {
   const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
 
   let watchBadge = "";
+  // Диапазон дат ("05.10–22.11") длиннее одной даты и на тесной
+  // карточке (4 колонки на телефоне) не влезает даже в компактном
+  // числовом формате – watch-badge-range получает свой, ещё более
+  // мелкий кегль (см. правило в index.html) только для этого случая,
+  // одиночную дату уменьшать незачем.
+  let watchBadgeRange = false;
   if (r.status === "current" && r.date_start) {
     const s = fmtDateStr(r.date_start, true);
     if (s) watchBadge = i18n("с {date}", { date: s });
@@ -99,7 +110,11 @@ function manualCard(r, index) {
     const startStr = r.date_start ? fmtDateStr(r.date_start, true) : null;
     const endStr   = r.date_end   ? fmtDateStr(r.date_end,   true) : null;
     if (endStr && startStr && r.date_start !== r.date_end) {
-      watchBadge = `${startStr} → ${endStr}`;
+      // Без пробелов вокруг тире – тесная карточка на телефоне (см. её
+      // же комментарий у fmtDateStr про короткий числовой формат) не
+      // прощает лишних пары пикселей на каждый пробел.
+      watchBadge = `${startStr}–${endStr}`;
+      watchBadgeRange = true;
     } else if (endStr) {
       watchBadge = endStr;
     } else if (startStr) {
@@ -116,7 +131,7 @@ function manualCard(r, index) {
     ${pencil}
     <div class="card" style="animation-delay:0ms">
       <span class="type-tag tag-manual">${esc(tagLabel)}</span>
-      ${watchBadge ? `<span class="watch-badge">${esc(watchBadge)}</span>` : ""}
+      ${watchBadge ? `<span class="watch-badge${watchBadgeRange ? " watch-badge-range" : ""}">${esc(watchBadge)}</span>` : ""}
       <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
