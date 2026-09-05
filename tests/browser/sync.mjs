@@ -248,6 +248,27 @@ await page.waitForTimeout(1800); // теперь дать перезагрузк
 await page.waitForLoadState("domcontentloaded");
 await page.waitForTimeout(600);
 
+console.log("Картинка, заведённая только на другом устройстве, — её тут не было вообще никогда");
+// В отличие от reviews.json (он существует локально хотя бы пустым и
+// потому всегда участвует в сравнении), у картинки нет своего «пустого»
+// состояния: до этого фикса такой файл ни разу не пытался бы
+// скачаться, сколько ни синхронизируйся, — runSync() строил список для
+// сравнения только обходом СВОЕГО диска.
+gh.files.set("chars/Другой/новая.webp", { base64: WEBP, sha: nextSha() });
+await page.click("#sync-now-btn");
+await page.waitForFunction(
+  () => document.getElementById("status-sync")?.textContent?.includes("Готово"),
+  null,
+  { timeout: 8000 }
+);
+const neverSeenImage = await page.evaluate(() =>
+  window.__fakeFiles.get("TasteID/chars/Другой/новая.webp")
+);
+ok(
+  !!neverSeenImage,
+  "картинка, которой тут никогда не было, всё равно забралась при синхронизации"
+);
+
 console.log("Третья синхронизация — поменялось и здесь, и там, значит, конфликт");
 await page.evaluate(async () => {
   await fetch("/api/save-review", {

@@ -512,6 +512,19 @@ async function syncOne(config, path, localBase64, entry, remoteTree) {
   return { action: "pull", base64: remote.base64, sha: remote.sha };
 }
 
+// Картинка, которой на этом устройстве ещё нет вообще (ни файла, ни
+// записи в state.images – см. её же комментарий у newRemoteImages в
+// runSync). syncOne() сюда не подходит: он с самого начала считает
+// хеш ЛОКАЛЬНОГО содержимого и сравнивает его с удалённым – а тут
+// сравнивать нечего, содержимого нет никакого, только сам факт, что
+// путь есть у кого-то другого. Тянем прямо, без разговора о конфликте:
+// конфликтовать может только с чем-то, что уже есть с нашей стороны.
+async function pullNewRemoteImage(config, path) {
+  const remote = await getRemoteFile(config, path);
+  if (!remote) return { action: "none" }; // сняли из репозитория в last-second – и ладно
+  return { action: "pull", base64: remote.base64, sha: remote.sha };
+}
+
 // Прежний, поштучный способ – запасной вариант на случай усечённого
 // bulk-списка (см. её же комментарий у syncOne). Логика ровно та же,
 // что была раньше, просто больше не единственный путь.
@@ -576,12 +589,33 @@ async function runSync(config, onProgress) {
     ...Object.entries(backup.images).map(([path, base64]) => ({ kind: "images", path, base64 })),
   ];
 
+  // Картинки, заведённые впервые на ДРУГОМ устройстве, – их здесь ещё
+  // никогда не было, а backup.images выше собран обходом СВОЕГО диска
+  // (vault.listAllMedia()): то, чего на диске нет, туда и не попадает.
+  // Без этого шага такой файл не пропадал бы после ошибки – он вообще
+  // ни разу не пытался бы скачаться, сколько ни синхронизируйся:
+  // JSON-файлы (reviews.json и т.п.) всегда есть локально хотя бы
+  // пустыми и потому всегда участвуют в сравнении, а у картинки нет
+  // такого «пустого» состояния, с которого можно было бы стартовать.
+  // Раз мы уже потратили один bulk-запрос на remoteTree – раздать
+  // остаток списка не стоит лишних запросов.
+  const IMG_EXT = /\.(png|jpe?g|webp|gif)$/i;
+  if (remoteTree) {
+    for (const path of remoteTree.keys()) {
+      if (IMG_EXT.test(path) && !(path in backup.images)) {
+        items.push({ kind: "images", path, isNewRemote: true });
+      }
+    }
+  }
+
   let done = 0;
   for (const item of items) {
     onProgress?.(++done, items.length, item.path);
 
     const entry = state[item.kind][item.path];
-    const outcome = await syncOne(config, item.path, item.base64, entry, remoteTree);
+    const outcome = item.isNewRemote
+      ? await pullNewRemoteImage(config, item.path)
+      : await syncOne(config, item.path, item.base64, entry, remoteTree);
 
     if (outcome.action === "none") {
       result.skipped++;
