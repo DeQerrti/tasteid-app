@@ -79,6 +79,11 @@ let DATA_FILE = "characters-tier.json";
 let ceCleanupFns = [];
 let cePrevTitle = null;
 let ceDirty = false;
+// "Открыть папку" в модалке персонажа умеет только настольное приложение
+// (shell.openPath в electron/main.js) – на телефоне и в обычном браузере
+// (dev-сервер) /api/app/info либо не отвечает мобильным mobile:true,
+// либо не отвечает вовсе. Тот же приём, что в settings-app.js.
+let isElectronDesktop = false;
 
 function ceOn(target, type, handler, opts) {
   target.addEventListener(type, handler, opts);
@@ -109,12 +114,12 @@ async function mount(container, params) {
     <main class="ce-view">
       <aside class="sidebar">
         <div>
-          <div class="section-label" data-i18n>Тайтлы</div>
+          <div class="section-label" data-i18n>Темы</div>
           <div class="title-list" id="title-list"></div>
         </div>
         <div class="new-title-form hidden" id="new-title-form">
           <div class="field">
-            <label data-i18n>Название тайтла *</label>
+            <label data-i18n>Название темы *</label>
             <input type="text" id="nt-name" placeholder="Название" data-i18n-placeholder="Название" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleForm();}">
           </div>
           <div class="field">
@@ -137,11 +142,11 @@ async function mount(container, params) {
             <button class="btn btn-ghost" onclick="toggleNewTitleForm(false)" data-i18n>Отмена</button>
           </div>
         </div>
-        <button class="btn btn-dashed" id="btn-add-title" onclick="toggleNewTitleForm(true)" data-i18n>Новый тайтл</button>
+        <button class="btn btn-dashed" id="btn-add-title" onclick="toggleNewTitleForm(true)" data-i18n>Новая тема</button>
       </aside>
 
       <div class="editor" id="editor">
-        <div class="editor-empty" data-i18n>Выберите тайтл слева или создайте новый</div>
+        <div class="editor-empty" data-i18n>Выберите тему слева или создайте новую</div>
       </div>
     </main>
 
@@ -152,10 +157,13 @@ async function mount(container, params) {
 
         <div id="folder-field">
           <span class="folder-select-label" data-i18n>Папка (источник)</span>
-          <div class="folder-select-wrap">
-            <select id="m-folder" onchange="onFolderChange()">
-              <option value="" data-i18n>Загружаем…</option>
-            </select>
+          <div class="folder-select-row">
+            <div class="folder-select-wrap">
+              <select id="m-folder" onchange="onFolderChange()">
+                <option value="" data-i18n>Загружаем…</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-ghost hidden" id="m-folder-open-btn" onclick="openCharsFolder()" data-i18n>Открыть папку</button>
           </div>
         </div>
 
@@ -249,6 +257,15 @@ async function mount(container, params) {
     },
     { capture: true }
   );
+
+  fetch("/api/app/info")
+    .then((r) => (r.ok ? r.json() : Promise.reject()))
+    .then((info) => {
+      isElectronDesktop = !info.error && !info.mobile;
+    })
+    .catch(() => {
+      isElectronDesktop = false;
+    });
 
   await initCharsEdit();
 }
@@ -623,10 +640,30 @@ async function addTitle() {
     return;
   }
   // Папка на диске (chars/<folder>/...) раньше вводилась руками –
-  // теперь всегда выводится из названия тайтла: slugify() уже даёт
+  // теперь всегда выводится из названия темы: slugify() уже даёт
   // безопасное для файловой системы имя (см. isSafeName() в core/api.js),
   // а уникальность обеспечивает суффикс времени в titleIdFromFolder().
   const folder = slugify(name);
+
+  // Создаём папку сразу, не дожидаясь первой загруженной картинки –
+  // иначе её не с чем открыть проводником (openCharsFolder() ниже) и
+  // не видно в "Папка (источник)", пока хоть что-то не загружено через
+  // саму модалку. Лучший эффект – если получится до открытия папки
+  // человеком, но и не удастся – не страшно, saveMedia() всё равно
+  // создаст её сама при первой реальной загрузке. foldersCache сброшен
+  // ниже (см. её же сброс после загрузки картинки в uploadCharImage()) –
+  // иначе модалка, уже открытая до этого разок, покажет старый список
+  // папок без только что созданной.
+  foldersCache = null;
+  fetch("/api/ensure-chars-folder", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      folder,
+      basePath: COLLECTION === "characters" ? undefined : COLLECTION,
+    }),
+  }).catch(() => {});
 
   let id = titleIdFromFolder(folder);
   while (data.find((t) => t.id === id)) id = titleIdFromFolder(folder);
@@ -662,7 +699,7 @@ async function addTitle() {
 
 async function deleteTitle(e, id) {
   e.stopPropagation();
-  if (!(await confirmDialog(i18n("Удалить тайтл и все его тир-листы?")))) return;
+  if (!(await confirmDialog(i18n("Удалить тему и все её списки?")))) return;
   data = data.filter((t) => t.id !== id);
   if (activeId === id) {
     activeId = data[0]?.id || null;
@@ -690,7 +727,7 @@ function renderEditor() {
     // Пустой редактор нечего показывать во весь экран на телефоне – это
     // не тот случай, когда есть куда вернуться кнопкой «Назад».
     closeMobileEditor();
-    box.innerHTML = `<div class="editor-empty">${i18n("Выберите тайтл слева или создайте новый")}</div>`;
+    box.innerHTML = `<div class="editor-empty">${i18n("Выберите тему слева или создайте новую")}</div>`;
     return;
   }
 
@@ -855,7 +892,7 @@ async function deleteCurrentCollection() {
   if (
     !(await confirmDialog(
       i18n(
-        "Удалить тир-лист «{name}» вместе со всем содержимым – всеми тайтлами, тирами и персонажами внутри? Отменить это будет нельзя.",
+        "Удалить тир-лист «{name}» вместе со всем содержимым – всеми темами, тирами и персонажами внутри? Отменить это будет нельзя.",
         { name: COLLECTION_LABEL }
       )
     ))
@@ -972,6 +1009,29 @@ async function loadFolders() {
   return foldersCache;
 }
 
+// Открыть выбранную в "Папка (источник)" папку проводником – чтобы
+// скопом накидать в неё заранее скачанные картинки вместо загрузки по
+// одной через "Загрузить файл" ниже. Кнопка скрыта не на настольном
+// приложении (см. isElectronDesktop, loadGallery()).
+async function openCharsFolder() {
+  const folder = document.getElementById("m-folder").value;
+  if (!folder) return;
+  try {
+    await fetch("/api/app/open-chars-folder", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folder,
+        basePath: COLLECTION === "characters" ? undefined : COLLECTION,
+      }),
+    });
+  } catch {
+    // Не критично – кнопка просто не сработает, ничего в приложении
+    // от этого не сломается.
+  }
+}
+
 async function onFolderChange() {
   const folder = document.getElementById("m-folder").value;
   if (!folder) return;
@@ -986,6 +1046,13 @@ async function onFolderChange() {
 async function loadGallery(folder, title) {
   const statusEl = document.getElementById("gallery-status");
   const gridEl = document.getElementById("gallery-grid");
+
+  // Кнопка "Открыть папку" – только на настольном приложении (см.
+  // isElectronDesktop) и только когда есть что открывать (папка
+  // выбрана в "Папка (источник)" выше).
+  document
+    .getElementById("m-folder-open-btn")
+    .classList.toggle("hidden", !isElectronDesktop || !folder);
 
   if (!folder) {
     statusEl.textContent = i18n("Выберите папку выше.");
@@ -1063,13 +1130,14 @@ async function openModal(titleId, listId, ti) {
     sel.innerHTML = `<option value="">${i18n("Папки не найдены")}</option>`;
     document.getElementById("gallery-status").textContent = i18n("Папки не найдены в chars/. Введите URL вручную.");
     document.getElementById("manual-section").classList.add("visible");
+    document.getElementById("m-folder-open-btn").classList.add("hidden");
     return;
   }
 
   // Папка на диске – служебный slug (folder теперь и не вводится вручную,
-  // см. addTitle()), в выпадающем списке человеку нужно название тайтла,
-  // которому она принадлежит – а не сам slug. Для чужой/осиротевшей папки
-  // (тайтл удалён, а его картинки на диске остались) названия не найдётся –
+  // см. addTitle()), в выпадающем списке человеку нужно название темы,
+  // которой она принадлежит – а не сам slug. Для чужой/осиротевшей папки
+  // (тема удалена, а её картинки на диске остались) названия не найдётся –
   // тогда показываем сам slug, как и раньше.
   sel.innerHTML = folders
     .map((f) => {

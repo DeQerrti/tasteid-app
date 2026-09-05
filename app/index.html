@@ -1822,7 +1822,9 @@ section.group { margin-bottom: 3.5rem; }
 
 #modal-overlay .modal { max-width: 560px; }
 
-.folder-select-wrap { position: relative; margin-bottom: 1rem; }
+.folder-select-row { display: flex; gap: .5rem; align-items: flex-start; margin-bottom: 1rem; }
+#m-folder-open-btn { flex-shrink: 0; white-space: nowrap; }
+.folder-select-wrap { position: relative; flex: 1; }
 .folder-select-wrap::after {
   content: ''; position: absolute; right: .75rem; top: 50%;
   margin-top: -2px; width: 0; height: 0;

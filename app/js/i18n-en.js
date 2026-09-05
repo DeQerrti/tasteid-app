@@ -454,6 +454,7 @@ i18nRegister({
   Приложение: "App",
   "Папка с данными": "Data folder",
   "Открыть в проводнике": "Show in file manager",
+  "Открыть папку": "Open folder",
   "Сменить папку…": "Change folder…",
   "Хранится во внутренней области приложения – её не видят другие приложения, и она исчезнет вместе с удалением TasteID. Чтобы перенести данные на другое устройство – резервная копия ниже.":
     "Stored inside the app's private storage – other apps can't see it, and it's deleted along with TasteID. To move your data to another device, use the backup below.",
@@ -525,7 +526,7 @@ i18nRegister({
   Вкладки: "Tabs",
   "Пустое поле означает «оставить как есть» – под ним написано значение по умолчанию.":
     "An empty field means “leave as is” – the default is shown underneath.",
-  "Выберите тайтл слева или создайте новый": "Pick a title on the left, or create a new one",
+  "Выберите тему слева или создайте новую": "Pick a theme on the left, or create a new one",
   "Выбрать файл": "Choose file",
   Год: "Year",
   "Год выхода": "Release year",
@@ -575,7 +576,7 @@ i18nRegister({
   "Короткое пояснение, что значит тег": "A short note on what the tag means",
   "Название категории": "Category name",
   "Название нового тира": "New tier name",
-  "Название тайтла *": "Title *",
+  "Название темы *": "Theme name *",
   "Название тега": "Tag name",
   "Например: 12 серий": "For example: 12 episodes",
   "Например: Артбук": "For example: Artbook",
@@ -594,7 +595,7 @@ i18nRegister({
   "Новый отзыв": "New review",
   "Новый раздел": "New section",
   "Новый статус": "New status",
-  "Новый тайтл": "New title",
+  "Новая тема": "New theme",
   "Новый тег": "New tag",
   "Новый тир-лист": "New tier list",
   "Обложка (URL)": "Cover (URL)",
@@ -969,13 +970,14 @@ i18nRegister({
   "Такой тип уже есть": "That type already exists",
   тег: "tag",
   "Тег удалён": "Tag deleted",
+  Темы: "Themes",
   тегов: "tags",
   "Тегов пока нет": "No tags yet",
   Топ: "Top",
   "Топ тайтлы года": "Top titles of the year",
   "Удалить раздел «{name}» вместе со всеми его записями? Отменить это будет нельзя.":
     "Delete the “{name}” section along with all its entries? This can’t be undone.",
-  "Удалить тайтл и все его тир-листы?": "Delete the title and all of its tier lists?",
+  "Удалить тему и все её списки?": "Delete the theme and all of its lists?",
   "Удалить тир? Персонажи в нём тоже удалятся.":
     "Delete this tier? The characters in it are deleted too.",
   "Удалить этот тир-лист?": "Delete this tier list?",
@@ -1005,8 +1007,8 @@ i18nRegister({
     "Delete the “{name}” section?\n\nEntries stay in the data but stop being shown. You can bring the section back right here.",
   "Удалить раздел «{name}»?\n\nЗаписи этого раздела ({count}) будут удалены без возможности восстановления.":
     "Delete the “{name}” section?\n\nThis section’s entries ({count}) will be permanently deleted.",
-  "Удалить тир-лист «{name}» вместе со всем содержимым – всеми тайтлами, тирами и персонажами внутри? Отменить это будет нельзя.":
-    "Delete the tier list “{name}” along with everything in it – all its titles, tiers and characters? This can't be undone.",
+  "Удалить тир-лист «{name}» вместе со всем содержимым – всеми темами, тирами и персонажами внутри? Отменить это будет нельзя.":
+    "Delete the tier list “{name}” along with everything in it – all its themes, tiers and characters? This can't be undone.",
   "Восстановить «{file}» до версии от {date}?\n\nЭто заменит текущий файл – все изменения после этой версии будут потеряны (но останутся в истории, их тоже можно будет восстановить обратно).":
     "Restore “{file}” to the version from {date}?\n\nThis replaces the current file – everything changed after that version is lost (though it stays in the history and can be restored back).",
 });

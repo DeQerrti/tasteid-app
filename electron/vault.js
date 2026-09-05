@@ -249,6 +249,15 @@ export class Vault {
     return path.join(...parts);
   }
 
+  // Создаёт папку под картинки темы заранее, ещё до первой загруженной
+  // картинки – иначе она возникает только внутри saveMedia() и до тех
+  // пор не видна ни в проводнике, ни в диалоге "Папка (источник)"
+  // (тот читает список папок с диска, listImages() ниже).
+  async ensureMediaFolder(base, sub) {
+    await fs.mkdir(this.mediaDir(base, sub), { recursive: true });
+    return true;
+  }
+
   async saveMedia(base, filename, buffer, sub) {
     // [^\w.-] запрещал ВСЁ не-ASCII разом – кириллическое имя файла
     // (обложка/фото с кириллическим названием тайтла или персонажа)

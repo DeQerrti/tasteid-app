@@ -392,6 +392,40 @@ test("картинка персонажа сохраняется и находи
   });
 });
 
+// Папка темы раньше появлялась на диске только вместе с первой
+// загруженной в неё картинкой – значит, до этого её не было видно ни в
+// "Папка (источник)", ни для открытия проводником (см. её же комментарий
+// в chars-edit.js). Тема без единой картинки должна получать пустую
+// папку сразу.
+test("папка темы создаётся заранее, ещё без единой картинки", async () => {
+  await withServer(async ({ api }) => {
+    const { data: before } = await api("GET", "/api/list-chars?collection=characters");
+    assert.deepEqual(before.folders, []);
+
+    const { data: ensured } = await api("POST", "/api/ensure-chars-folder", {
+      folder: "Пустая тема",
+      basePath: "chars",
+    });
+    assert.equal(ensured.ok, true);
+
+    const { data: after } = await api("GET", "/api/list-chars?collection=characters");
+    assert.deepEqual(after.folders, ["Пустая тема"]);
+
+    const { data: files } = await api(
+      "GET",
+      `/api/list-chars?folder=${encodeURIComponent("Пустая тема")}&collection=characters`
+    );
+    assert.deepEqual(files.files, []);
+  });
+});
+
+test("папка темы отклоняет недопустимое имя", async () => {
+  await withServer(async ({ api }) => {
+    const { status } = await api("POST", "/api/ensure-chars-folder", { folder: "../etc" });
+    assert.equal(status, 400);
+  });
+});
+
 // Имя файла проверялось шаблоном [^\w.-] — \w matches только ASCII,
 // и кириллическое имя (обложка/фото с кириллическим названием тайтла
 // или персонажа — обычное дело для русскоязычного приложения)

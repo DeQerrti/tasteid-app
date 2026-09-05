@@ -321,6 +321,13 @@ export class MobileVault {
     return this.#path(...parts);
   }
 
+  // Тот же приём, что в electron/vault.js: создаёт папку темы заранее,
+  // не дожидаясь первой загруженной в неё картинки.
+  async ensureMediaFolder(base, sub) {
+    await mkdirp(this.mediaDir(base, sub));
+    return true;
+  }
+
   async saveMedia(base, filename, bytes, sub) {
     // [^\w.-] запрещал ВСЁ не-ASCII разом – кириллическое имя файла
     // превращалось в одни подчёркивания, и два разных файла в одной

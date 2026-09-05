@@ -408,6 +408,20 @@ async function uploadCharImage({ vault, body }) {
   return { ok: true, url };
 }
 
+// Папка темы раньше появлялась на диске только вместе с первой
+// загруженной в неё картинкой (см. saveMedia() выше) – значит, и в
+// списке "Папка (источник)" её не было видно (listChars() читает папки
+// прямо с диска), и открыть её проводником, чтобы скопом накидать туда
+// заранее скачанные картинки, было некуда. Тема без единой картинки
+// теперь тоже сразу получает свою (пустую) папку.
+async function ensureCharsFolder({ vault, body }) {
+  const { folder, basePath } = body;
+  const base = isSafeName(basePath) ? basePath : "chars";
+  if (!folder || !isSafeName(folder)) throw new ApiError("Недопустимое название папки");
+  await vault.ensureMediaFolder(base, folder);
+  return { ok: true };
+}
+
 // Копия обложки «на всякий случай»: внешние картинки живут ровно
 // столько, сколько живёт чужой сайт. Скачиваем и кладём в хранилище.
 //
@@ -1011,6 +1025,7 @@ export const ROUTES = {
   "GET /api/export-backup": exportBackup,
   "POST /api/restore-backup": restoreBackup,
   "POST /api/upload-char-image": uploadCharImage,
+  "POST /api/ensure-chars-folder": ensureCharsFolder,
   "POST /api/backup-cover": backupCover,
   "POST /api/fetch-mal-list": fetchMalUserList,
   "POST /api/delete-media": deleteMedia,

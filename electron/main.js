@@ -373,6 +373,25 @@ function appRoutes() {
       return { ok: true };
     },
 
+    // Открыть папку темы (chars/<folder> или <коллекция>/<folder>)
+    // проводником – чтобы скопом накидать в неё заранее скачанные
+    // картинки персонажей, вместо загрузки по одной через модалку.
+    // Мобильного смысла тут нет (нет "показать в файлах" для
+    // произвольного пути в Capacitor) – кнопка на телефоне не
+    // показывается вовсе, см. её же условие в chars-edit.js.
+    // mediaDir() сама проверяет folder/basePath (кидает при "..",
+    // "/", "\\" и т.п.) – отдельная проверка тут не нужна.
+    "POST /api/app/open-chars-folder": async ({ body }) => {
+      if (!vault) return { ok: true };
+      const { folder, basePath } = body || {};
+      if (!folder) return { ok: true };
+      const base = basePath && typeof basePath === "string" ? basePath : "chars";
+      const dir = vault.mediaDir(base, folder);
+      await fs.mkdir(dir, { recursive: true });
+      await shell.openPath(dir);
+      return { ok: true };
+    },
+
     // Экран приветствия закончил работу – показываем сам паспорт.
     "POST /api/app/finish-setup": async () => {
       // Из компактного окна приветствия – в рабочее, и по центру экрана.
