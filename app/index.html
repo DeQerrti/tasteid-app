@@ -1675,7 +1675,20 @@ section.group { margin-bottom: 3.5rem; }
   max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 6rem;
   display: grid; grid-template-columns: 280px 1fr; gap: 2rem;
 }
-@media (max-width: 800px) { .ce-view { grid-template-columns: 1fr; } }
+/* На телефоне папок в chars/ не видно и не нужно, а колонка-сайдбар
+   рядом с редактором тиров попросту не помещается – раньше обе
+   складывались в одну колонку одна над другой (список тайтлов, а под
+   ним редактор), что означало лишнюю прокрутку и путаницу, какая
+   часть экрана сейчас активна. Вместо этого – обычный drill-down:
+   виден либо список тайтлов, либо открытый редактор, никогда оба
+   сразу; переключает .ce-mobile-editor-open (см. selectTitle()/
+   closeMobileEditor() в js/routes/chars-edit.js). */
+@media (max-width: 800px) {
+  .ce-view { grid-template-columns: 1fr; }
+  .ce-view .editor { display: none; }
+  .ce-view.ce-mobile-editor-open .sidebar { display: none; }
+  .ce-view.ce-mobile-editor-open .editor { display: flex; }
+}
 
 .sidebar { display: flex; flex-direction: column; gap: 1rem; }
 .section-label {
@@ -1706,6 +1719,18 @@ section.group { margin-bottom: 3.5rem; }
 .editor { display: flex; flex-direction: column; gap: 1.5rem; }
 .editor-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .editor-title { font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic; font-size: 1.3rem; color: var(--text-hi); }
+/* Только для мобильного drill-down (см. .ce-view выше) – на десктопе
+   обе колонки видны всегда, возвращаться и редактировать название
+   можно прямо в списке слева, кнопки там не нужны. */
+.editor-back-btn, .editor-edit-btn {
+  display: none; background: none; border: 1px solid var(--border); border-radius: 2px;
+  color: var(--text-dim); font-size: .85rem; padding: .35rem .6rem; cursor: pointer; flex-shrink: 0;
+}
+.editor-back-btn:hover, .editor-edit-btn:hover { color: var(--text-hi); border-color: var(--border2); }
+@media (max-width: 800px) {
+  .editor-back-btn, .editor-edit-btn { display: inline-flex; align-items: center; }
+  .editor-title { flex: 1; text-align: center; }
+}
 
 .list-tabs { display: flex; gap: .4rem; flex-wrap: wrap; }
 .list-tab {

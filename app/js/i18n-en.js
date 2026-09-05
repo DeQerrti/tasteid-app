@@ -50,6 +50,7 @@ i18nRegister({
   Ссылки: "Links",
   Другое: "Other",
   "На главную": "Home",
+  "Назад к списку": "Back to the list",
   "На той же странице, чуть выше кнопки, есть поле «Expiration» («Срок действия») – если хочется, чтобы синхронизация работала постоянно, выберите там «No expiration» («Без срока»). Любой конкретный срок (7/30/60/90 дней) означает, что через него токен перестанет действовать и синхронизация молча остановится – придётся завести новый токен и подключаться заново.":
     "On the same page, just above the button, there's an «Expiration» field – if you want sync to keep working indefinitely, pick «No expiration» there. Any specific period (7/30/60/90 days) means the token stops working once it passes, and sync will silently stop – you'd need to make a new token and reconnect.",
   Настройки: "Settings",
@@ -515,6 +516,7 @@ i18nRegister({
   "✎ Изменить": "✎ Edit",
   "⤓ Скачать": "⤓ Download",
   "⬆ Загрузить с компьютера": "⬆ Upload from computer",
+  "⬆ Загрузить файл": "⬆ Upload file",
   "1 штука": "1 item",
   "Без цвета": "No colour",
   "Бэкап и восстановление": "Backup and restore",
@@ -556,6 +558,7 @@ i18nRegister({
   "Или загрузить файл – сожмётся и сконвертируется в WebP автоматически.":
     "Or upload a file – it will be compressed and converted to WebP automatically.",
   "Или загрузить с компьютера": "Or upload from your computer",
+  "Или загрузить файл": "Or upload a file",
   Импорт: "Import",
   Имя: "Name",
   "Имя персонажа": "Character name",
@@ -609,7 +612,6 @@ i18nRegister({
   "Только текст – иконки и отступы не меняются. Чтобы увеличить вообще всё, используйте «Масштаб» на вкладке «Приложение».":
     "Text only – icons and spacing stay the same. To scale up everything, use “Zoom” on the App tab.",
   "Папка (источник)": "Folder (source)",
-  "Папка по умолчанию в chars/ *": "Default folder inside chars/ *",
   "Папки не найдены": "No folders found",
   "Пара предложений – что это и о чём…": "A couple of sentences – what it is and what it’s about…",
   Паспорта: "Passports",

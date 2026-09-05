@@ -118,17 +118,13 @@ async function mount(container, params) {
             <input type="text" id="nt-name" placeholder="Название" data-i18n-placeholder="Название" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleForm();}">
           </div>
           <div class="field">
-            <label data-i18n>Папка по умолчанию в chars/ *</label>
-            <input type="text" id="nt-folder" placeholder="имя-папки" data-i18n-placeholder="имя-папки" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleForm();}">
-          </div>
-          <div class="field">
             <label data-i18n>Обложка (URL)</label>
             <input type="text" id="nt-cover" placeholder="https://..." oninput="scheduleBackupTitleCover()" onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleForm();}">
             <input type="hidden" id="nt-cover-backup">
             <div id="nt-cover-backup-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
           </div>
           <div class="field">
-            <label data-i18n>Или загрузить с компьютера</label>
+            <label data-i18n>Или загрузить файл</label>
             <label class="btn btn-ghost file-btn">
               <input type="file" id="nt-cover-upload" accept="image/*" onchange="updateFileBtnName(this); uploadTitleCoverFile()">
               <span data-i18n>Выбрать файл</span>
@@ -182,7 +178,7 @@ async function mount(container, params) {
           </div>
         </div>
 
-        <span class="manual-toggle" onclick="toggleUpload()" data-i18n>⬆ Загрузить с компьютера</span>
+        <span class="manual-toggle" onclick="toggleUpload()" data-i18n>⬆ Загрузить файл</span>
         <div class="manual-section" id="upload-section">
           <div class="field">
             <label class="btn btn-ghost file-btn">
@@ -405,8 +401,17 @@ function selectTitle(id) {
   activeId = id;
   const title = data.find((t) => t.id === id);
   if (title) activeListId = title.tierlists?.[0]?.id || null;
+  // На телефоне .sidebar и .editor вдвоём не помещаются (см. .ce-view
+  // в index.html) – класс переключает между списком тайтлов и открытым
+  // редактором, как обычный drill-down. На десктопе оба видны всегда,
+  // класс там ничего не переключает (медиа-запрос не действует).
+  document.querySelector(".ce-view")?.classList.add("ce-mobile-editor-open");
   renderSidebar();
   renderEditor();
+}
+
+function closeMobileEditor() {
+  document.querySelector(".ce-view")?.classList.remove("ce-mobile-editor-open");
 }
 
 function toggleNewTitleForm(show) {
@@ -432,7 +437,6 @@ function resetTitleForm() {
   discardScratchTitleCoverBackup();
   originalTitleCoverBackup = null;
   document.getElementById("nt-name").value = "";
-  document.getElementById("nt-folder").value = "";
   document.getElementById("nt-cover").value = "";
   document.getElementById("nt-cover-backup").value = "";
   document.getElementById("nt-cover-backup-status").textContent = "";
@@ -552,7 +556,6 @@ function openEditTitleForm(e, id) {
 
   editingTitleId = id;
   document.getElementById("nt-name").value = title.title;
-  document.getElementById("nt-folder").value = title.folder || "";
   document.getElementById("nt-cover").value = title.cover || "";
   document.getElementById("nt-cover-backup").value = title.cover_backup || "";
   originalTitleCoverBackup = title.cover_backup || null;
@@ -573,10 +576,9 @@ async function submitTitleForm() {
 
 async function saveTitleEdit() {
   const name = document.getElementById("nt-name").value.trim();
-  const folder = document.getElementById("nt-folder").value.trim();
   const cover = document.getElementById("nt-cover").value.trim();
-  if (!name || !folder) {
-    alert("Заполните название и папку");
+  if (!name) {
+    alert(i18n("Заполните название"));
     return;
   }
 
@@ -602,7 +604,6 @@ async function saveTitleEdit() {
   originalTitleCoverBackup = coverBackup || null;
 
   title.title = name;
-  title.folder = folder;
   title.cover = cover || "";
   title.cover_backup = coverBackup || "";
 
@@ -613,12 +614,16 @@ async function saveTitleEdit() {
 
 async function addTitle() {
   const name = document.getElementById("nt-name").value.trim();
-  const folder = document.getElementById("nt-folder").value.trim();
   const cover = document.getElementById("nt-cover").value.trim();
-  if (!name || !folder) {
-    alert("Заполните название и папку");
+  if (!name) {
+    alert(i18n("Заполните название"));
     return;
   }
+  // Папка на диске (chars/<folder>/...) раньше вводилась руками –
+  // теперь всегда выводится из названия тайтла: slugify() уже даёт
+  // безопасное для файловой системы имя (см. isSafeName() в core/api.js),
+  // а уникальность обеспечивает суффикс времени в titleIdFromFolder().
+  const folder = slugify(name);
 
   let id = titleIdFromFolder(folder);
   while (data.find((t) => t.id === id)) id = titleIdFromFolder(folder);
@@ -679,6 +684,9 @@ function defaultTiers() {
 function renderEditor() {
   const box = document.getElementById("editor");
   if (!activeId) {
+    // Пустой редактор нечего показывать во весь экран на телефоне – это
+    // не тот случай, когда есть куда вернуться кнопкой «Назад».
+    closeMobileEditor();
     box.innerHTML = `<div class="editor-empty">${i18n("Выберите тайтл слева или создайте новый")}</div>`;
     return;
   }
@@ -705,7 +713,9 @@ function renderEditor() {
 
   box.innerHTML = `
     <div class="editor-top">
+      <button class="editor-back-btn" onclick="closeMobileEditor()" title="${i18n("Назад к списку")}"><span class="arrow">&larr;</span></button>
       <div class="editor-title">${esc(title.title)}</div>
+      <button class="editor-edit-btn" onclick="openEditTitleForm(event,'${esc(title.id)}')" title="${i18n("Редактировать")}">✎</button>
     </div>
     <div class="list-tabs">${tabs}</div>
     <div class="tl-editor-rows" id="tl-editor-rows">${rows}</div>
@@ -1053,8 +1063,16 @@ async function openModal(titleId, listId, ti) {
     return;
   }
 
+  // Папка на диске – служебный slug (folder теперь и не вводится вручную,
+  // см. addTitle()), в выпадающем списке человеку нужно название тайтла,
+  // которому она принадлежит – а не сам slug. Для чужой/осиротевшей папки
+  // (тайтл удалён, а его картинки на диске остались) названия не найдётся –
+  // тогда показываем сам slug, как и раньше.
   sel.innerHTML = folders
-    .map((f) => `<option value="${esc(f)}"${f === title?.folder ? " selected" : ""}>${esc(f)}</option>`)
+    .map((f) => {
+      const owner = data.find((t) => t.folder === f);
+      return `<option value="${esc(f)}"${f === title?.folder ? " selected" : ""}>${esc(owner ? owner.title : f)}</option>`;
+    })
     .join("");
 
   await loadGallery(sel.value, title);
