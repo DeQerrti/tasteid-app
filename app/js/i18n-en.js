@@ -949,6 +949,7 @@ i18nRegister({
   "Резервная копия сохранена ✓": "Backup saved ✓",
   "Резервную копию сделать не удалось: ": "Couldn’t make a backup: ",
   Слабо: "Weak",
+  "Сначала введите имя персонажа выше": "Enter the character's name above first",
   "Сначала выберите папку выше": "Pick a folder above first",
   "Сохранено в галерею": "Saved to gallery",
   "Сохранено ✓": "Saved ✓",
@@ -959,6 +960,8 @@ i18nRegister({
   "Справочник обновлён, но старые отзывы поправить не удалось":
     "The reference list is updated, but the older reviews couldn’t be changed",
   Средне: "Average",
+  "Персонаж с таким именем уже есть в этой папке. Выберите другое имя.":
+    "There's already a character with this name in this folder. Choose a different name.",
   "Такая роль уже есть": "That role already exists",
   "Такой источник уже есть": "That source already exists",
   "Такой статус уже есть": "That status already exists",

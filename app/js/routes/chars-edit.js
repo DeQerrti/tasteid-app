@@ -1156,8 +1156,36 @@ async function uploadCharImage() {
     return;
   }
 
+  // Раньше именем файла на диске (а значит и подсказкой при повторном
+  // выборе картинки из этой же папки для другого тайтла) становилось
+  // родное имя файла – на компьютере это чинили вручную, переименовывая
+  // файл перед загрузкой ("Наруто.jpg" вместо "IMG_1234.jpg"). На
+  // телефоне так не делают – там имя файла всегда случайное системное
+  // (фото из галереи), а переименовать его перед загрузкой неоткуда.
+  // Поэтому имя файла теперь всегда берётся из уже введённого выше поля
+  // «Имя персонажа», а не из файла – оно и так обязано быть заполнено
+  // до нажатия «Добавить».
+  const customName = document.getElementById("m-name").value.trim();
+  if (!customName) {
+    status.textContent = i18n("Сначала введите имя персонажа выше");
+    status.style.color = "var(--red-hi)";
+    return;
+  }
+  if (galleryCache[folder]?.some((f) => f.name === customName)) {
+    status.textContent = i18n("Персонаж с таким именем уже есть в этой папке. Выберите другое имя.");
+    status.style.color = "var(--red-hi)";
+    return;
+  }
+
   const file = fileInput.files[0];
-  const filename = file.name.replace(/\.[^.]+$/, "") + ".webp";
+  // isSafeFileName() на сервере (core/api.js) запрещает "/", "\" и "..",
+  // а vault.saveMedia() дополнительно подчищает остальные небезопасные
+  // для имени файла символы (см. её же комментарий в electron/vault.js) –
+  // повторяем тот же список здесь, чтобы автоподстановка новой картинки
+  // в галерею ниже (nameGuess) искала её под именем, которое реально
+  // легло на диск, а не под тем, что ещё не прошло через saveMedia().
+  const safeBase = customName.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_").replace(/\.+/g, "_").trim() || "персонаж";
+  const filename = safeBase + ".webp";
 
   status.textContent = i18n("Обрабатываю...");
   status.style.color = "var(--text-dim)";
