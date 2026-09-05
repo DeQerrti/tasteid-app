@@ -332,7 +332,7 @@ async function initCharsEdit() {
   }
   ceDirty = false;
   renderSidebar();
-  if (data.length) selectTitle(data[0].id);
+  if (data.length) selectTitle(data[0].id, { openMobileEditor: false });
 }
 
 // ══ САЙДБАР ════════════════════════════════════
@@ -397,7 +397,7 @@ function bindTitleDrag() {
   });
 }
 
-function selectTitle(id) {
+function selectTitle(id, { openMobileEditor = true } = {}) {
   activeId = id;
   const title = data.find((t) => t.id === id);
   if (title) activeListId = title.tierlists?.[0]?.id || null;
@@ -405,7 +405,10 @@ function selectTitle(id) {
   // в index.html) – класс переключает между списком тайтлов и открытым
   // редактором, как обычный drill-down. На десктопе оба видны всегда,
   // класс там ничего не переключает (медиа-запрос не действует).
-  document.querySelector(".ce-view")?.classList.add("ce-mobile-editor-open");
+  // openMobileEditor:false — для служебного автовыбора первого тайтла
+  // при заходе на маршрут (см. load() ниже): человек ещё ничего не
+  // нажимал, и прыгать сразу в редактор мимо списка тайтлов не нужно.
+  if (openMobileEditor) document.querySelector(".ce-view")?.classList.add("ce-mobile-editor-open");
   renderSidebar();
   renderEditor();
 }

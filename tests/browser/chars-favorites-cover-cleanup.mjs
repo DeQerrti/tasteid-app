@@ -136,7 +136,6 @@ await page.waitForSelector("#btn-add-title");
 await page.click("#btn-add-title");
 await page.waitForSelector("#nt-name", { state: "visible" });
 await page.fill("#nt-name", "Тест тайтл");
-await page.fill("#nt-folder", "Тест-папка");
 await page.fill("#nt-cover", imgUrl("cover-one"));
 await page.waitForFunction(
   () => document.getElementById("nt-cover-backup").value.length > 0,
@@ -251,7 +250,6 @@ console.log("Персонажи: черновая обложка тайтла б
 await page.click("#btn-add-title");
 await page.waitForSelector("#nt-name", { state: "visible" });
 await page.fill("#nt-name", "Брошенный тайтл");
-await page.fill("#nt-folder", "Брошенная-папка");
 await page.fill("#nt-cover", imgUrl("cover-abandoned"));
 await page.waitForFunction(
   () => document.getElementById("nt-cover-backup").value.length > 0,
@@ -276,7 +274,6 @@ console.log(
 await page.click("#btn-add-title");
 await page.waitForSelector("#nt-name", { state: "visible" });
 await page.fill("#nt-name", "Ещё один брошенный тайтл");
-await page.fill("#nt-folder", "Ещё-одна-брошенная-папка");
 await page.fill("#nt-cover", imgUrl("cover-abandoned-2"));
 await page.waitForFunction(
   () => document.getElementById("nt-cover-backup").value.length > 0,
