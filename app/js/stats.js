@@ -450,8 +450,8 @@ function animateStackedBars() {
 // незачем, для этого уже есть переключатель года над самой статистикой.
 async function statsExport() {
   const btn = document.getElementById("stats-export-btn");
-  const grid = document.querySelector("#tab-stats .stat-grid");
-  if (!grid) return;
+  const liveGrid = document.querySelector("#tab-stats .stat-grid");
+  if (!liveGrid) return;
   let restoreBtn = () => {};
   if (btn) {
     const original = btn.innerHTML;
@@ -462,6 +462,22 @@ async function statsExport() {
       btn.disabled = false;
     };
   }
+
+  // .stat-grid схлопывается в одну колонку под 780px (index.html) – на
+  // экране телефона это и нужно, но снимок с неё выходил длинной узкой
+  // полосой, которую неудобно было бы кому-то отправить: этим ведь
+  // снимок и снимают. @media проверяет ширину ВЬЮПОРТА, а не самого
+  // элемента, так что просто увести копию за экран в широкий контейнер
+  // (тот же приём, что и в favExport() в favorites.js) не помогло бы –
+  // вьюпорт телефона остаётся узким, правило сработало бы и там. Явный
+  // inline-стиль побеждает правило из внешнего файла без !important
+  // независимо от того, попадает медиа-запрос или нет.
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:900px;padding:1.5rem;";
+  wrap.innerHTML = liveGrid.outerHTML;
+  const grid = wrap.firstElementChild;
+  grid.style.gridTemplateColumns = "1fr 1fr";
+  document.body.appendChild(wrap);
 
   let restoreImages = () => {};
   let restoreAnim = () => {};
@@ -501,7 +517,7 @@ async function statsExport() {
           clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
         },
       }),
-      20000,
+      captureTimeoutMs(imgs.length),
       i18n("Не удалось создать картинку за разумное время.")
     );
 
@@ -520,6 +536,7 @@ async function statsExport() {
     restoreImages();
     restoreAnim();
     restoreShadows();
+    wrap.remove();
     restoreBtn();
   }
 }

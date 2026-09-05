@@ -619,15 +619,27 @@ function rewriteImage(img) {
 // разрешиться у другой карточки раньше, а эта всё ещё ждёт своей
 // очереди у imgObserver) – resolveImage() и так почти бесплатен, когда
 // байты уже в кэше (vaultSrc() возвращает готовый промис).
-window.__mobileForceResolveImages = (imgs) =>
-  Promise.all(
-    imgs.map((img) => {
-      const src = img.dataset.vaultSrc;
-      if (!src) return Promise.resolve();
-      imgObserver.unobserve(img);
-      return resolveImage(img, src);
-    })
-  );
+//
+// Пачками, а не всё разом через один Promise.all – ровно то, от чего
+// уже один раз спасались rootMargin'ом у imgObserver выше (см. её же
+// комментарий): у большого тир-листа (сотни тайтлов) сотня
+// одновременных обращений к нативному мосту разом от снимка не
+// становится быстрее параллельно, а укладывает сам мост – снимок
+// "Тайтлы" из-за этого падал по таймауту html2canvas, даже не начав
+// его рисовать. Внутри пачки – тот же Promise.all, пачки друг за другом.
+window.__mobileForceResolveImages = async (imgs) => {
+  const BATCH = 12;
+  for (let i = 0; i < imgs.length; i += BATCH) {
+    await Promise.all(
+      imgs.slice(i, i + BATCH).map((img) => {
+        const src = img.dataset.vaultSrc;
+        if (!src) return Promise.resolve();
+        imgObserver.unobserve(img);
+        return resolveImage(img, src);
+      })
+    );
+  }
+};
 
 function installImages() {
   const scan = (root) => {

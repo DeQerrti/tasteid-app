@@ -26,12 +26,31 @@
   let startY = null;
   let tracking = false;
 
-  function findModeTab(target) {
+  // Раздел с малым числом карточек (например почти пустой "Планирую")
+  // короче самой вкладки по высоте – а <main> (index.html), внутри
+  // которого лежит #tab-now, сам оказывается не выше своего содержимого:
+  // растянуть его на весь экран здесь нечем (см. её же разбор в этой
+  // сессии), так что ниже короткого списка идёт уже пустое место ВНЕ
+  // main. Раньше свайп требовал, чтобы палец касался именно внутри main –
+  // и в этом пустом месте просто ничего не находил. Поэтому ищем не
+  // "куда попал палец", а "какая вкладка сейчас показана" – и не
+  // требуем геометрического попадания вовсе, только явно исключаем
+  // места, которые точно не она: саму навигацию и открытые модалки.
+  function activeSwipeTab() {
     for (const id of SWIPE_TAB_IDS) {
-      const root = document.getElementById(id);
-      if (root && root.contains(target)) return root;
+      const el = document.getElementById(id);
+      if (el && !el.classList.contains("hidden")) return el;
     }
     return null;
+  }
+
+  function isExcluded(target) {
+    // #rail – боковая/нижняя навигация (index.html) – свайп по ней это
+    // не переключение раздела. .modal-overlay – открытое поверх всего
+    // окно (горячие клавиши, создание тир-листа и т.п.) – скрытые не
+    // мешают: элемент с display:none (см. .hidden) touch-события не
+    // получает вовсе, closest() до него просто не доберётся.
+    return !!(target.closest?.("#rail") || target.closest?.(".modal-overlay"));
   }
 
   document.addEventListener(
@@ -39,13 +58,14 @@
     (e) => {
       tracking = false;
       if (e.touches.length !== 1) return;
-      const root = findModeTab(e.target);
-      if (!root || !root.querySelector(".tl-mode-toggle")) return;
+      if (isExcluded(e.target)) return;
       // Не перехватывать свайп по самому ряду кнопок – он на телефоне
       // (см. её же комментарий у .tl-mode-toggle в index.html)
       // прокручивается горизонтально сам, свайп там должен листать
       // кнопки, а не переключать раздел через одну.
       if (e.target.closest(".tl-mode-toggle")) return;
+      const root = activeSwipeTab();
+      if (!root || !root.querySelector(".tl-mode-toggle")) return;
       const p = e.touches[0];
       startX = p.clientX;
       startY = p.clientY;
@@ -66,7 +86,7 @@
       if (Math.abs(dx) < SWIPE_MIN_DX) return;
       if (Math.abs(dy) > Math.abs(dx) * SWIPE_MAX_DY_RATIO) return;
 
-      const root = findModeTab(e.target);
+      const root = activeSwipeTab();
       if (!root) return;
       const buttons = [...root.querySelectorAll(".tl-mode-toggle .tl-mode-btn")];
       if (buttons.length < 2) return;

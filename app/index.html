@@ -1395,7 +1395,17 @@ section.group { margin-bottom: 3.5rem; }
   cursor: pointer;
   transition: color .2s, border-color .2s, background .2s;
 }
-.tl-mode-btn:hover { color: var(--text); border-color: var(--border2); }
+/* (hover: hover) – не просто эстетика: на сенсорном экране :hover
+   часто "залипает" после касания (тач вообще не умеет по-настоящему
+   отменять hover без наведения мышью) – это и было тем самым "подсветка
+   на двух вкладках сразу" при свайпе (см. её же историю в этой сессии):
+   активная вкладка получала свой класс .active честно, а та, где
+   пальцем задело или закончился свайп, застревала в :hover и выглядела
+   почти так же подсвеченной. На устройстве с мышью ничего не меняется –
+   там (hover: hover) истинно всегда. */
+@media (hover: hover) {
+  .tl-mode-btn:hover { color: var(--text); border-color: var(--border2); }
+}
 .tl-mode-btn.active {
   color: var(--text-hi);
   border-color: var(--red);

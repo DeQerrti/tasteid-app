@@ -471,6 +471,19 @@ async function forceLoadImagesForExport(imgs) {
   await waitForImages(imgs);
 }
 
+// Предел на сам html2canvas (см. её же вызовы в tierlist.js/favorites.js/
+// stats.js) – фиксированных 20 секунд одинаково для всех размеров
+// списка не хватало на телефоне: рисование сотен карточек честной
+// растровой заливкой заметно дороже для мобильного GPU, чем для
+// компьютерного, даже когда все картинки уже готовы (см. её же
+// комментарий у safeCaptureScale про тот же контраст телефон/компьютер).
+// На компьютере не трогаем – там 20 секунд уже проверены и достаточны
+// даже для сотен карточек.
+function captureTimeoutMs(imgCount) {
+  if (!window.Capacitor?.isNativePlatform?.()) return 20000;
+  return Math.max(20000, imgCount * 200);
+}
+
 function waitForImages(imgs, timeoutMs = Math.max(8000, imgs.length * 50)) {
   return Promise.all(
     imgs.map(

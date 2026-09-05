@@ -77,6 +77,7 @@ const sharedBrowserGlobals = [
   "eyeIcon",
   "cameraButton",
   "cameraIcon",
+  "captureTimeoutMs",
   "clampNumericMax",
   "favPersonCard",
   "favTitleCard",

@@ -757,7 +757,7 @@ async function tlExport(rowsId, label) {
           clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
         },
       }),
-      20000,
+      captureTimeoutMs(imgs.length),
       i18n("Не удалось создать картинку за разумное время.")
     );
 
