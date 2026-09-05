@@ -155,8 +155,15 @@ async function purgeTrashByAge() {
 // Пути картинок кэшируются по имени файла – общий на все хранилища,
 // поэтому при переключении его обязательно чистить, иначе после
 // смены хранилища будут какое-то время показываться обложки из
-// прошлого.
+// прошлого. Значения в srcCache теперь object URL из настоящего Blob
+// (см. её же комментарий у vaultSrc) – в отличие от прежнего
+// "capacitor://" адреса, они держат байты картинки в памяти страницы,
+// пока их не отозвать явно через revokeObjectURL, иначе это была бы
+// утечка при каждом переключении хранилища.
 function clearImageCache() {
+  for (const promise of srcCache.values()) {
+    promise.then((url) => URL.revokeObjectURL(url)).catch(() => {});
+  }
   srcCache.clear();
 }
 
@@ -465,22 +472,48 @@ function installFetch() {
 
 // ── Картинки из хранилища ──────────────────────
 // <img src="/chars/…"> – не fetch, а загрузка ресурса, и перехватить её
-// подменой fetch нельзя. Capacitor умеет отдавать файл по своему адресу
-// (convertFileSrc), поэтому такие пути переписываются на лету.
+// подменой fetch нельзя. Раньше здесь стоял Capacitor.convertFileSrc
+// (виртуальный "capacitor://" адрес поверх Filesystem.getUri) – он не
+// требует читать содержимое заранее, но КАЖДЫЙ повторный показ той же
+// картинки (в том числе просто вернувшись на уже открытую вкладку)
+// заново идёт через нативный мост за байтами: WebView на телефоне
+// охотно выбрасывает декодированные битмапы скрытых (display:none)
+// картинок под память, и тогда уже загруженную обложку снова видно как "с
+// нуля", даже когда список её уже показывал. object URL из настоящего
+// Blob лишён этой особенности – байты один раз прочитаны и лежат в
+// памяти страницы (держит их сам srcCache), и повторный показ – просто
+// передекодирование уже имеющихся байтов, без похода к диску через мост.
 //
 // Пути в данных при этом остаются прежними (/chars/…): паспорт должен
 // одинаково читаться и на телефоне, и на компьютере.
 const srcCache = new Map();
 
+const IMG_MIME = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+function base64ToBytes(base64) {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
 async function vaultSrc(pathname) {
   if (srcCache.has(pathname)) return srcCache.get(pathname);
   const promise = (async () => {
     const parts = decodeURIComponent(pathname).replace(/^\/+/, "");
-    const { uri } = await Filesystem.getUri({
-      path: `${vault.root}/${parts}`,
-      directory: Directory.Data,
-    });
-    return window.Capacitor.convertFileSrc(uri);
+    // vault.readMedia – та же проверка имён (#safeSegment), что защищает
+    // запись картинок; ручная сборка пути здесь была бы дублем без
+    // этой проверки.
+    const data = await vault.readMedia(parts);
+    const ext = (parts.match(/\.([a-z]+)$/i)?.[1] || "").toLowerCase();
+    const blob = new Blob([base64ToBytes(data)], { type: IMG_MIME[ext] || "image/webp" });
+    return URL.createObjectURL(blob);
   })().catch((e) => {
     // Неудачу не запоминаем – в отличие от успеха, у которого путь и
     // содержимое неизменны, тут файл вполне может появиться чуть позже:

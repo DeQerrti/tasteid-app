@@ -121,7 +121,11 @@ const src = await page.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 300));
   return img.getAttribute("src");
 });
-ok(src.includes("_cap_"), "адрес картинки переписан на тот, что отдаёт Capacitor");
+// blob: URL, а не "capacitor://"/"_cap_" – см. её же комментарий у
+// vaultSrc в mobile/src/main.js: байты читаются один раз через
+// vault.readMedia() и оборачиваются в настоящий Blob, а не отдаются
+// через виртуальный адрес Capacitor.
+ok(src.startsWith("blob:"), "адрес картинки переписан на blob-адрес с уже прочитанными байтами");
 
 console.log("Масштаб");
 // applyMobileZoom() пишет прямо в document.documentElement.style.zoom —
