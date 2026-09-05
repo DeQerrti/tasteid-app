@@ -19,7 +19,9 @@
 import https from "node:https";
 import { shell } from "electron";
 
-const REPO = "DeQerrti/tasteid-app";
+// Публичный репозиторий только с готовыми релизами – исходный код
+// теперь в закрытом DeQerrti/tasteid-app (см. README).
+const REPO = "DeQerrti/TasteID";
 
 function getJson(url) {
   return new Promise((resolve, reject) => {

@@ -775,7 +775,9 @@ function installBackButton() {
 // системным установщиком, а не выгружаем ссылку в «Поделиться» –
 // раньше человеку приходилось самому открывать её в браузере, ждать
 // скачивания и потом ещё находить файл в «Загрузках».
-const UPDATE_REPO = "DeQerrti/tasteid-app";
+// Публичный репозиторий только с готовыми релизами – исходный код
+// теперь в закрытом DeQerrti/tasteid-app (см. README).
+const UPDATE_REPO = "DeQerrti/TasteID";
 const UPDATE_DISMISSED_KEY = "tasteid_update_dismissed";
 const UPDATE_APK_NAME = "tasteid-update.apk";
 
