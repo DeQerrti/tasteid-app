@@ -838,18 +838,29 @@ async function restoreBackup({ vault, body }) {
       ? value !== null && typeof value === "object" && !Array.isArray(value)
       : Array.isArray(value);
   });
-  if (!names.length) throw new ApiError("В файле нет ни одного известного файла хранилища");
+
+  // Картинки – по одной, и порченый или подставной путь роняет только
+  // саму картинку, а не всё восстановление: остальное всё равно стоит
+  // дописать. writeMedia сам отвергнет путь, ведущий наружу хранилища.
+  const images = body.images;
+  const hasImages =
+    images && typeof images === "object" && !Array.isArray(images) && Object.keys(images).length;
+
+  // Синхронизация иногда приносит только новые картинки без единого
+  // изменившегося JSON-файла (см. её же комментарий у pullNewRemoteImage
+  // в app/js/sync.js) – это не "пустая" резервная копия, а нормальный
+  // случай, который не должен ронять восстановление до того, как оно
+  // дошло до картинок ниже.
+  if (!names.length && !hasImages) {
+    throw new ApiError("В файле нет ни одного известного файла хранилища");
+  }
 
   for (const name of names) {
     await vault.writeJson(name, files[name]);
   }
 
-  // Картинки – по одной, и порченый или подставной путь роняет только
-  // саму картинку, а не всё восстановление: остальное всё равно стоит
-  // дописать. writeMedia сам отвергнет путь, ведущий наружу хранилища.
   let restoredImages = 0;
-  const images = body.images;
-  if (images && typeof images === "object" && !Array.isArray(images)) {
+  if (hasImages) {
     for (const [relPath, base64] of Object.entries(images)) {
       if (typeof base64 !== "string" || !base64) continue;
       try {
