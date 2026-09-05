@@ -159,9 +159,16 @@ if (!grade) {
 
 console.log("Облако тегов в «Статистике»");
 await openTab("tab-stats");
-const statTag = await centerOf(".stat-tag[data-tip]");
-if (statTag) {
-  await tap(statTag.x, statTag.y);
+const statTagLocator = page.locator(".stat-tag[data-tip]").first();
+if (await statTagLocator.count()) {
+  // .tap() Playwright, а не ручные координаты через centerOf()/tap(x,y),
+  // как везде выше в этом файле: он сам прокручивает элемент в вид и
+  // считает координаты непосредственно перед касанием, а не заранее –
+  // предвычисленная точка могла разъехаться с тем, что теперь там
+  // реально лежит, стоило подвинуться содержимому карточки (плотная
+  // сетка "Статистики" на телефоне, см. её же историю в этой сессии).
+  await statTagLocator.tap();
+  await page.waitForTimeout(450);
   ok((await tipState()).shown, "тег в облаке объясняет себя по нажатию");
 } else {
   ok(false, "в хранилище нет тегов — проверять нечего");
