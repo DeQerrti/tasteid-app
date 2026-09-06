@@ -3056,9 +3056,30 @@ function switchTab(tabId, btn) {
     el.classList.remove("active");
     el.setAttribute("aria-selected", "false");
   });
-  document.getElementById(tabId).classList.remove("hidden");
+  const shownTab = document.getElementById(tabId);
+  shownTab.classList.remove("hidden");
   btn.classList.add("active");
   btn.setAttribute("aria-selected", "true");
+
+  // На телефоне спрятанная вкладка (.hidden – display:none) не удаляется
+  // из DOM (см. комментарий чуть ниже – "уже отрисованное никуда не
+  // девается"), но сам WebView под память вправе выбросить уже
+  // декодированные битмапы её картинок, пока она невидима (тот же приём,
+  // из-за которого раньше переписали capacitor:// на blob-URL – см. её
+  // же комментарий у resolveImage() в mobile/src/main.js). Обложка при
+  // этом на вид "грузится с нуля" при возврате на вкладку, хотя байты
+  // уже лежат в srcCache и по мосту заново не ходили – браузеру просто
+  // нужно время передекодировать их заново. window.__mobileForceResolveImages
+  // (тот же приём, что уже использует снимок тир-листа/статистики) не
+  // ждёт, пока браузер сам спохватится это сделать при показе картинки,
+  // а передекодирует сразу же, как только вкладка становится видимой –
+  // так к моменту, когда человек её увидит, декодирование уже почти
+  // наверняка успело закончиться. На компьютере такой функции нет вовсе –
+  // вызов просто не найдёт её.
+  if (typeof window.__mobileForceResolveImages === "function") {
+    const imgs = Array.from(shownTab.querySelectorAll("img"));
+    if (imgs.length) window.__mobileForceResolveImages(imgs);
+  }
   // Иначе клавиатурный фокус остаётся на кнопке, кликнутой мышью раньше
   // (переключение по 1–5 её не трогает), и следующее нажатие клавиши
   // рисует рамку :focus-visible вокруг неё, а не вокруг активной вкладки.

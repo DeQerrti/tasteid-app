@@ -96,6 +96,19 @@ async function renderRoute() {
     viewRoot.classList.add("hidden");
     viewRoot.innerHTML = "";
     shell.classList.remove("hidden");
+    // Та же подстраховка, что и в switchTab() (index.html) – см. её же
+    // комментарий там: пока был открыт другой маршрут (например,
+    // редактор персонажей), сама вкладка со статусами/тайтлами всё это
+    // время простояла скрытой внутри shell, и WebView на телефоне мог
+    // выбросить уже декодированные битмапы её обложек под память. Здесь
+    // тот же самый случай, только "скрытие" происходит через shell
+    // целиком, а не через отдельный .tab-content – передекодируем
+    // картинки уже АКТИВНОЙ (не .hidden) вкладки сразу по возврату.
+    if (typeof window.__mobileForceResolveImages === "function") {
+      const activeTab = shell.querySelector(".tab-content:not(.hidden)");
+      const imgs = activeTab ? Array.from(activeTab.querySelectorAll("img")) : [];
+      if (imgs.length) window.__mobileForceResolveImages(imgs);
+    }
     return;
   }
 
