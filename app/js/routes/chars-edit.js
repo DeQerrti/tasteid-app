@@ -838,9 +838,9 @@ function renderTierRow(title, list, tier, ti) {
     .join("");
 
   return `
-    <div class="tl-editor-row" draggable="true" data-list="${esc(list.id)}" data-tier="${ti}" style="--tl-color:${esc(tier.color)}">
+    <div class="tl-editor-row" data-list="${esc(list.id)}" data-tier="${ti}" style="--tl-color:${esc(tier.color)}">
       <button class="tl-row-del" onclick="deleteTier('${esc(list.id)}',${ti})">✕</button>
-      <div class="tl-editor-label">
+      <div class="tl-editor-label" draggable="true">
         <div class="tl-label-dot"></div>
         <input class="tl-label-input" type="text" value="${esc(tier.name)}"
           style="color:${esc(tier.color)}"
@@ -1652,7 +1652,19 @@ async function confirmAddChar() {
 let tierDragSrc = null;
 
 function bindTierRowDrag() {
-  document.querySelectorAll(".tl-editor-row[draggable]").forEach((row) => {
+  // draggable="true" – на .tl-editor-label (цветная область с названием
+  // тира), не на всей строке: тир и так занимает всю ширину редактора,
+  // и на телефоне палец на самих карточках персонажей внутри строки
+  // иногда промахивался мимо конкретной карточки (палец чуть в стороне
+  // от неё, всё ещё в пределах строки тира) и утаскивал вместо картинки
+  // весь тир целиком. closest('[draggable="true"]') в touch-drag.js
+  // теперь находит .tl-editor-label только когда касание правда началось
+  // на ней – в остальных случаях доходит до .char-card или не находит
+  // ничего вовсе. dragstart/dragover/drop по-прежнему слушаем на всей
+  // строке (row) – начатое на .tl-editor-label событие туда всплывает
+  // само, а наводиться/отпускать можно над любой её частью, не только
+  // над самим названием.
+  document.querySelectorAll(".tl-editor-row").forEach((row) => {
     row.addEventListener("dragstart", (e) => {
       tierDragSrc = { listId: row.dataset.list, tierIdx: parseInt(row.dataset.tier) };
       row.classList.add("dragging");

@@ -1061,6 +1061,7 @@ i18nRegister({
   Отключить: "Disconnect",
   "Приложение забудет токен и репозиторий на этом устройстве. Сами данные – здесь и в репозитории – никуда не денутся, подключиться заново можно в любой момент.":
     "The app forgets the token and repository on this device. The data itself – here and in the repository – stays put; you can reconnect any time.",
+  "Синхронизация уже идёт в фоне – подождите немного.": "Sync is already running in the background – give it a moment.",
   "Синхронизируем…": "Syncing…",
   "Готово, но {n} файл(ов) изменились и здесь, и в репозитории – выберите, что оставить.":
     "Done, but {n} file(s) changed both here and in the repository – pick what to keep.",

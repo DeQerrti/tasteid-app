@@ -229,19 +229,39 @@ async function disconnectSync() {
 }
 
 async function startSync() {
-  if (syncInFlight) return;
+  if (syncInFlight) {
+    // Молчаливый return тут раньше означал "нажатие вообще без следа" –
+    // если синхронизация уже идёт в фоне (запущена автосинком при
+    // открытии приложения или после сохранения где-то ещё, и на большом
+    // хранилище может занимать минуту и больше), нажатие кнопки просто
+    // ничего не делало, и со стороны выглядело так, будто кнопка не
+    // работает. Теперь хотя бы видно, что дело не в этом.
+    flashStatus("status-sync", true, i18n("Синхронизация уже идёт в фоне – подождите немного."));
+    return;
+  }
   syncInFlight = true;
   const btn = document.getElementById("sync-now-btn");
-  btn.disabled = true;
-  document.getElementById("sync-conflicts").innerHTML = "";
+  if (btn) btn.disabled = true;
+  const conflictsEl = document.getElementById("sync-conflicts");
+  if (conflictsEl) conflictsEl.innerHTML = "";
   flashStatus("status-sync", true, i18n("Синхронизируем…"));
 
   try {
     const config = getSyncConfig();
+    // Синхронизация – это долгий цикл await'ов (по файлу за раз), и всё
+    // это время человек мог уйти с вкладки "Синхронизация" (или вовсе
+    // с #/settings-edit) – #sync-progress к следующему тику прогресса
+    // мог уже не существовать. Без проверки document.getElementById(...)
+    // .textContent = ... на null падало с "Cannot set properties of
+    // null" прямо посреди фоновой синхронизации – и это тут же
+    // становилось видимой пользователю "ошибкой синхронизации", хотя
+    // сама синхронизация к этому моменту уже сделала своё дело.
     const result = await runSync(config, (done, total, path) => {
-      document.getElementById("sync-progress").textContent = `${done} / ${total}: ${path}`;
+      const progressEl = document.getElementById("sync-progress");
+      if (progressEl) progressEl.textContent = `${done} / ${total}: ${path}`;
     });
-    document.getElementById("sync-progress").textContent = "";
+    const progressEl = document.getElementById("sync-progress");
+    if (progressEl) progressEl.textContent = "";
 
     // Забранные файлы и картинки записываем тем же путём, что и
     // резервную копию, – restoreBackup трогает только то, что
@@ -309,6 +329,14 @@ async function startSync() {
 
 function renderConflicts(config, conflicts) {
   const box = document.getElementById("sync-conflicts");
+  window.__syncConflicts = conflicts;
+  window.__syncConfig = config;
+  // Панель настроек могла закрыться, пока синхронизация ещё шла (см. её
+  // же комментарий у #sync-progress в startSync()) – состояние конфликта
+  // выше уже сохранено (renderSyncPanel() при следующем открытии вкладки
+  // его восстановит, см. её же комментарий там), а вот саму разметку
+  // писать уже некуда.
+  if (!box) return;
   box.innerHTML = conflicts
     .map(
       (c, i) => `
@@ -321,8 +349,6 @@ function renderConflicts(config, conflicts) {
         </div>`
     )
     .join("");
-  window.__syncConflicts = conflicts;
-  window.__syncConfig = config;
 }
 
 async function pickConflict(index, choice) {
