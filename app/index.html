@@ -582,7 +582,18 @@ section.group { margin-bottom: 3.5rem; }
   border-right: 1px solid var(--badge-accent-border, var(--accent-fill-hi));
   border-radius: 0 var(--radius-btn, 0px) var(--radius-btn, 0px) 0;
   padding: .25rem .52rem;
-  backdrop-filter: blur(8px);
+  /* backdrop-filter тут раньше стоял (как у .type-tag выше) – убран
+     только здесь: на телефоне бейдж переезжает в нижний угол картинки
+     (.card-poster .watch-badge ниже), и именно там кто-то видел зазор
+     между картинкой и датой, который не удалось воспроизвести ни в
+     одном браузерном прогоне (та же тема, тот же диапазон дат, с живой
+     картинкой и без) – возможный виновник, которого нельзя ни
+     подтвердить, ни исключить без самого устройства, это как раз
+     backdrop-filter поверх ещё догружающейся картинки (известное слабое
+     место старых/бюджетных Android WebView). Без него бейджу ничего не
+     угрожает – background и так уже задаёт фон, только без размытия под
+     текстом.
+  */
   z-index: 3;
   max-width: calc(100% - 64px);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
