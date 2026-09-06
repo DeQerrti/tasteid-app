@@ -274,7 +274,7 @@ function renderDonut(counts, total) {
     return seg;
   }).join("");
 
-  return `<section class="stat-section stat-card">
+  return `<section class="stat-section stat-card stat-card-solo-mobile">
     <h2 class="section-title">${esc(siteLabel("stats", "types", i18n("Разбивка по типам")))}</h2>
     <div class="stat-donut-wrap">
       <svg viewBox="0 0 200 200" class="stat-donut-svg">
@@ -347,7 +347,7 @@ function renderGradeChart(gradeCounts) {
     </div>`;
   }).join("");
 
-  return `<section class="stat-section stat-card">
+  return `<section class="stat-section stat-card stat-card-solo-mobile">
     <h2 class="section-title">${esc(siteLabel("stats", "grades", i18n("Шкала послевкусия")))}</h2>
     <div class="grade-bars">${bars}</div>
   </section>`;

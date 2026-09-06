@@ -666,6 +666,7 @@ i18nRegister({
   "Тип шкалы влияет на то, как выглядит поле оценки в форме добавления и как тайтлы раскладываются по тир-листу.":
     "The scale type decides how the rating field looks in the editor and how titles are laid out in the tier list.",
   "Тир-листы": "Tier lists",
+  "Переименовать список": "Rename list",
   "Переименовать тир-лист": "Rename tier list",
   "Удалить тир-лист": "Delete tier list",
   "Удалить список": "Delete list",
@@ -986,7 +987,7 @@ i18nRegister({
   "Удалить тему и все её списки?": "Delete the theme and all of its lists?",
   "Удалить тир? Персонажи в нём тоже удалятся.":
     "Delete this tier? The characters in it are deleted too.",
-  "Удалить этот тир-лист?": "Delete this tier list?",
+  "Удалить список «{name}»?": "Delete the list “{name}”?",
   "Удаляем…": "Deleting…",
   "Фильтры на вкладке «Отзывы»": "Filters on the “Reviews” tab",
   Хорошо: "Good",
@@ -1271,7 +1272,8 @@ i18nRegister({
   "выгружен {date}": "exported {date}",
   "Загружен чужой паспорт: {count}&nbsp;{unit}": "Someone else’s passport loaded: {count}&nbsp;{unit}",
   "«{name}» удалена.": "“{name}” deleted.",
-  "Название нового тир-листа:": "Name for the new tier list:",
+  "Название нового списка:": "Name for the new list:",
+  "Название списка:": "List name:",
   "Развёрнутый текст сюда не перенесён – полный отзыв можно почитать по ссылке ниже.":
     "The full text hasn’t been moved here – the complete review is available at the link below.",
 });

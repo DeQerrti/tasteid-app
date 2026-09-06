@@ -18,11 +18,22 @@ function renderSyncPanel() {
   const config = getSyncConfig();
   box.innerHTML = config ? syncConnectedHtml(config) : syncSetupHtml();
   applyI18n(box);
+
+  // Конфликт уже показан человеку и ждёт выбора ("Оставить моё"/"Взять
+  // оттуда") – syncConnectedHtml() выше всегда рисует #sync-conflicts
+  // пустым, а этот рендер мог случиться совсем не из-за конфликта
+  // (например, повторный заход на вкладку) – восстанавливаем тот же
+  // выбор на экране, а не тихо стираем его и уж тем более не запускаем
+  // синхронизацию заново за спиной у человека.
+  if (config && window.__syncConflicts?.length) {
+    renderConflicts(window.__syncConfig, window.__syncConflicts);
+    return;
+  }
   // Конфликт, найденный автосинхронизацией, мог случиться, пока
   // человек не смотрел на эту вкладку вовсе – открыв её, сразу
   // досчитываем ещё раз и показываем, что не так, а не заставляем
   // сперва самому нажать «Синхронизировать сейчас».
-  if (config && localStorage.getItem(AUTOSYNC_CONFLICTS_KEY) === "1") startSync();
+  if (config && !syncInFlight && localStorage.getItem(AUTOSYNC_CONFLICTS_KEY) === "1") startSync();
 }
 
 function syncSetupHtml() {
@@ -256,19 +267,28 @@ async function startSync() {
         })
       );
       renderConflicts(config, result.conflicts);
-    } else {
-      // Сперва перерисовать («последняя синхронизация» обновится),
-      // потом показать статус – иначе renderSyncPanel() тут же стирает
-      // status-sync вместе со всей панелью, и человек не успевает
-      // увидеть «Готово» ни на миг.
-      clearSyncError();
-      renderSyncPanel();
-      flashStatus(
-        "status-sync",
-        true,
-        i18n("Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.", result)
-      );
+      // Перезагрузка страницы ниже – только для случая без конфликтов.
+      // Раньше она была общей на оба случая: если в том же заходе
+      // что-то ещё и забралось успешно (обычное дело – конфликт часто
+      // только в одном файле из многих), страница перезагружалась через
+      // 1.2 секунды и стирала только что показанный выбор "Оставить
+      // моё"/"Взять оттуда" ещё до того, как человек успевал его
+      // увидеть – а на перезагруженной странице конфликт всё ещё не
+      // решён (localStorage это помнит), и цикл "конфликт → тихая
+      // перезагрузка → конфликт" мог повторяться бесконечно.
+      return;
     }
+    // Сперва перерисовать («последняя синхронизация» обновится),
+    // потом показать статус – иначе renderSyncPanel() тут же стирает
+    // status-sync вместе со всей панелью, и человек не успевает
+    // увидеть «Готово» ни на миг.
+    clearSyncError();
+    renderSyncPanel();
+    flashStatus(
+      "status-sync",
+      true,
+      i18n("Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.", result)
+    );
 
     if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
       setTimeout(() => location.reload(), 1200);

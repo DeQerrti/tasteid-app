@@ -91,6 +91,15 @@ let ceDirty = false;
 // (dev-сервер) /api/app/info либо не отвечает мобильным mobile:true,
 // либо не отвечает вовсе. Тот же приём, что в settings-app.js.
 let isElectronDesktop = false;
+// На телефоне у "папок"/"источников" нет знакомого смысла – там никто
+// не раскладывает картинки по chars/<тема> руками, и выбор папки-
+// источника только путает (пустой список, лишний тап). Модалка на
+// телефоне сразу грузит в папку текущей темы (та уже подставлена в
+// #m-folder значением по умолчанию, см. openModal() – сам select
+// остаётся в DOM и работает, просто не показан) – остаются только
+// "Имя персонажа", ссылка и загрузка файла. window.Capacitor –
+// тот же признак, что уже используют app/js/utils.js и mobile/src/main.js.
+const isNativeMobile = !!window.Capacitor?.isNativePlatform?.();
 
 function ceOn(target, type, handler, opts) {
   target.addEventListener(type, handler, opts);
@@ -157,7 +166,7 @@ async function mount(container, params) {
       </div>
     </main>
 
-    <div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal-overlay hidden${isNativeMobile ? " ce-mobile-add-char" : ""}" id="modal-overlay" onclick="closeModalOnOverlay(event)">
       <div class="modal">
         <button class="modal-close" onclick="closeModal()">✕</button>
         <div class="modal-title" id="modal-title-label" data-i18n>Добавить персонажа</div>
@@ -279,6 +288,12 @@ async function mount(container, params) {
       isElectronDesktop = false;
     });
 
+  // См. её же снятие и комментарий в unmount() – без этого аппаратная
+  // кнопка/жест "назад" на телефоне уводил со страницы в обход проверки
+  // несохранённых правок, которую в остальных случаях делает
+  // leaveCharsEdit() (клик по "←"/Escape).
+  setLeaveGuard(leaveCharsEdit);
+
   await initCharsEdit();
 }
 
@@ -291,6 +306,16 @@ async function leaveCharsEdit() {
 }
 
 function unmount() {
+  // setLeaveGuard(null) – см. её же регистрацию в mount(): аппаратная
+  // кнопка/жест "назад" на телефоне (installBackButton() в
+  // mobile/src/main.js) правит историю напрямую, в обход "←"/Escape
+  // внутри самого маршрута, которыми единственно и проверялась
+  // несохранённая правка раньше – ровно тот случай, из-за которого
+  // новые персонажи/тиры, добавленные на телефоне, могли синхронизироваться
+  // молча потерянными: жест "назад" уводил со страницы раньше "Сохранить
+  // всё", а confirmLeaveIfDirty() в leaveCharsEdit() выше об этом просто
+  // не узнавал.
+  setLeaveGuard(null);
   // Та же дыра, что была в js/routes/add.js: форма тайтла (или модалка
   // добавления персонажа) могла остаться открытой с уже скачанной, но
   // ещё не подтверждённой резервной копией, если уйти с маршрута
@@ -586,6 +611,16 @@ function openEditTitleForm(e, id) {
   const title = data.find((t) => t.id === id);
   if (!title) return;
 
+  // Форма правки темы живёт в сайдбаре (#new-title-form внутри
+  // .sidebar) – на телефоне сайдбар скрыт, пока открыт редактор (см.
+  // .ce-mobile-editor-open в index.html). Карандаш в шапке открытого
+  // редактора (editor-edit-btn, renderEditor()) звал эту же функцию
+  // "молча" ничего не показывая – форма технически становилась видна,
+  // но внутри контейнера, у которого display:none. Возврат к списку
+  // тем перед показом формы чинит это и на десктопе ничего не меняет
+  // (там сайдбар и так всегда виден, класс на макет не влияет).
+  closeMobileEditor();
+
   editingTitleId = id;
   document.getElementById("nt-name").value = title.title;
   document.getElementById("nt-cover").value = title.cover || "";
@@ -758,7 +793,8 @@ function renderEditor() {
       .join("") +
     `<button class="list-tab list-tab-add" onclick="addList()">${i18n("Создать список")}</button>` +
     (list
-      ? `<button class="list-tab list-tab-del" onclick="deleteList('${esc(list.id)}')" title="${i18n("Удалить список")}">✕</button>`
+      ? `<button class="list-tab-edit" onclick="renameList('${esc(list.id)}')" title="${i18n("Переименовать список")}">✎</button>
+         <button class="list-tab-del" onclick="deleteList('${esc(list.id)}')" title="${i18n("Удалить список")}">✕</button>`
       : "");
 
   const rows = (list?.tiers || []).map((tier, ti) => renderTierRow(title, list, tier, ti)).join("");
@@ -826,7 +862,7 @@ function selectList(id) {
 }
 
 async function addList() {
-  const label = await promptDialog(i18n("Название нового тир-листа:"), "", i18n("Создать"));
+  const label = await promptDialog(i18n("Название нового списка:"), "", i18n("Создать"));
   if (!label || !label.trim()) return;
   const title = data.find((t) => t.id === activeId);
   if (!title) return;
@@ -837,9 +873,21 @@ async function addList() {
   renderEditor();
 }
 
-async function deleteList(listId) {
-  if (!(await confirmDialog(i18n("Удалить этот тир-лист?")))) return;
+async function renameList(listId) {
   const title = data.find((t) => t.id === activeId);
+  const list = title?.tierlists.find((l) => l.id === listId);
+  if (!list) return;
+  const label = await promptDialog(i18n("Название списка:"), list.label, i18n("Сохранить"));
+  if (!label || !label.trim()) return;
+  list.label = label.trim();
+  ceDirty = true;
+  renderEditor();
+}
+
+async function deleteList(listId) {
+  const title = data.find((t) => t.id === activeId);
+  const list = title?.tierlists.find((l) => l.id === listId);
+  if (!(await confirmDialog(i18n("Удалить список «{name}»?", { name: list?.label || "" })))) return;
   title.tierlists = title.tierlists.filter((l) => l.id !== listId);
   activeListId = title.tierlists[0]?.id || null;
   ceDirty = true;

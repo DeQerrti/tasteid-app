@@ -124,10 +124,20 @@
   function makeGhost(el, x, y) {
     const box = el.getBoundingClientRect();
     const copy = el.cloneNode(true);
+    // transition: none уже гасило любой плавный переезд самой карточки
+    // (border-color и т.п.) – но не анимацию входа (например,
+    // .char-card { animation: ceFadeUp .2s ease both; }): у клона это
+    // НОВАЯ вставка в DOM, анимация переигрывает с нуля, а её кадры
+    // (transform: translateY(...)) на время своего хода побеждают наш
+    // же transform ниже (moveGhost) – призрак реально ехал под пальцем,
+    // просто первые ~200мс это скрывал чужой transform поверх нашего,
+    // и выглядело это так, будто он прилип в левый верхний угол экрана
+    // (position:fixed;left:0;top:0 – ровно туда, где translateY(0..4px)
+    // от анимации ничего толком не сдвигает). animation: none чинит.
     copy.style.cssText = `
       position: fixed; left: 0; top: 0; margin: 0; z-index: 9999;
       width: ${box.width}px; height: ${box.height}px;
-      opacity: .85; pointer-events: none; transition: none;`;
+      opacity: .85; pointer-events: none; transition: none; animation: none;`;
     copy.dataset.touchGhost = "1";
     document.body.appendChild(copy);
     copy.__dx = x - box.left;

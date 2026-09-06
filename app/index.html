@@ -948,6 +948,15 @@ section.group { margin-bottom: 3.5rem; }
 @media (max-width: 780px) {
   .stat-donut-wrap { gap: 1rem; }
   .stat-donut-svg { width: 110px; height: 110px; }
+  /* Уменьшенного доната мало – у легенды (donut-legend-label без
+     переноса + donut-legend-val/pct со своим min-width) и у шкалы
+     послевкусия (grade-row-label: min-width:140px, не сжимается) есть
+     свой минимум ширины, который в половину колонки телефона всё равно
+     не влезал – именно это и уезжало за края экрана. .stat-card-solo-mobile
+     возвращает этим двум карточкам (и только им – остальные, попроще,
+     в двух колонках умещаются) свою строку целиком, как .wide, но
+     только на телефоне – на компьютере они по-прежнему стоят парой. */
+  .stat-card-solo-mobile { grid-column: 1 / -1; }
 }
 
 .year-bars-wrap {
@@ -1742,7 +1751,9 @@ section.group { margin-bottom: 3.5rem; }
 .list-tab.active { color: var(--text-hi); border-color: var(--red-dim); background: var(--surface2); }
 .list-tab-add { color: var(--text-dim); border-style: dashed; }
 .list-tab-add:hover { color: var(--green-hi); border-color: var(--green-hi); }
-.list-tab-del { margin-left: auto; padding: .3rem .55rem; color: var(--text-dim); }
+.list-tab-edit { margin-left: auto; padding: .3rem .55rem; color: var(--text-dim); }
+.list-tab-edit:hover { color: var(--green-hi); border-color: var(--green-hi); }
+.list-tab-del { padding: .3rem .55rem; color: var(--text-dim); }
 .list-tab-del:hover { color: var(--red-hi); border-color: var(--red-dim); }
 
 .tl-editor-rows { display: flex; flex-direction: column; gap: .6rem; }
@@ -1885,6 +1896,19 @@ section.group { margin-bottom: 3.5rem; }
 .manual-toggle:hover { color: var(--text); }
 .manual-section { display: none; }
 .manual-section.visible { display: block; }
+
+/* На телефоне (см. isNativeMobile в chars-edit.js) папка-источник и
+   галерея уже загруженных картинок только путают – там ничего не
+   раскладывают по папкам руками. Оставляем только "Имя персонажа",
+   ссылку и загрузку файла, оба сразу видны – без лишнего тапа по
+   переключателю ("Ввести URL вручную"/"⬆ Загрузить файл"), скрытому
+   вместе с остальным. #m-folder остаётся в разметке и работает как
+   раньше (шлёт загрузку в папку текущей темы) – скрыт только выбор. */
+.ce-mobile-add-char #folder-field,
+.ce-mobile-add-char #gallery-status,
+.ce-mobile-add-char #gallery-grid,
+.ce-mobile-add-char .manual-toggle { display: none; }
+.ce-mobile-add-char .manual-section { display: block; }
 
 #modal-overlay .field { margin-bottom: .85rem; }
 #modal-overlay .status-msg { font-size: .75rem; }
