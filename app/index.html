@@ -376,6 +376,7 @@ section.group { margin-bottom: 3.5rem; }
   display: flex;
   align-items: center;
   gap: .8rem;
+  min-width: 0;
 }
 
 .year-divider {
@@ -751,6 +752,11 @@ section.group { margin-bottom: 3.5rem; }
   position: relative;
   animation: fadeUp .25s ease both;
 }
+/* Место под неё в правом верхнем углу и так зарезервировано –
+   .review-modal-header ниже несёт padding-right ровно под неё же (там
+   раньше был крестик закрытия, см. её же комментарий у closeReviewModal
+   в reviews.js). */
+#review-export-btn { position: absolute; top: 22px; right: 22px; z-index: 1; }
 .review-modal-header {
   display: flex; gap: 1.2rem;
   margin-bottom: 1.4rem;
@@ -901,6 +907,20 @@ section.group { margin-bottom: 3.5rem; }
 @media (max-width: 780px) {
   .stat-grid { gap: .8rem; }
   .stat-grid .stat-card { padding: 1rem 1.1rem; }
+  /* Настоящая причина, по которой заголовки карточек ("Шкала
+     послевкусия" и другие) вылезали за половину колонки, – не перенос
+     слов сам по себе (он и так работал), а то, что часть тем
+     (themes.css: [data-skin="soft"/"soft-dark"] – 2rem, "doodle" –
+     1.8rem, "brutal" – 1.4rem заглавными) поднимают .section-title
+     заметно крупнее базового 1.3rem. При таком кегле самое длинное
+     ОДНО слово ("послевкусия" и т.п.) уже само по себе шире половины
+     колонки телефона, а переносить середину слова браузер не станет –
+     сколько заголовок ни ужимай снаружи, воздуха внутри просто нет.
+     html впереди – та же специфичность (2 класса/атрибут), что у
+     правил в themes.css, побеждает не через порядок подключения (он и
+     так наш, index.html позже), а на будущее, если что-то из тем
+     когда-нибудь подключат ещё позже. */
+  html .stat-grid .section-title { font-size: 1.05rem; }
 }
 
 .stat-total { display: flex; align-items: baseline; gap: .75rem; margin-bottom: 2rem; }
@@ -940,6 +960,21 @@ section.group { margin-bottom: 3.5rem; }
   border-right: 1px solid var(--border);
 }
 .stat-counter:last-child { border-right: none; }
+/* Пересмотры (.stat-counters-rewatch – единственная не-.wide карточка
+   со .stat-counters внутри стат-грида, не путать со счётчиками "Всего",
+   у той свой полноширинный .wide) – подписи длинные ("тайтл
+   пересмотрен", "пересмотра всего"), это цельные слова без переносов,
+   и в половину плитки при двух счётчиках рядом они просто не влезали
+   ни при каком запасе – тесно даже на весь стат-грид, не то что на
+   телефон в половину колонки. Друг под другом, во всю ширину карточки –
+   в отличие от бокового расположения, тут это не ломает "два в ряд" у
+   самой карточки в стат-гриде: колонки/строки внутри неё, ширина
+   карточки в гриде не при чём. */
+@media (max-width: 780px) {
+  .stat-counters-rewatch { flex-direction: column; }
+  .stat-counters-rewatch .stat-counter { border-right: none; border-bottom: 1px solid var(--border); }
+  .stat-counters-rewatch .stat-counter:last-child { border-bottom: none; }
+}
 .stat-counter-val {
   font-family: 'Playfair Display', serif;
   font-size: 2rem; font-weight: 900; color: var(--text-hi); line-height: 1;
@@ -962,21 +997,19 @@ section.group { margin-bottom: 3.5rem; }
 .donut-legend-pct   { color: var(--text-dim); min-width: 36px; text-align: right; }
 /* После безусловных правил выше по той же причине, что и у .stat-grid
    чуть раньше в этом файле, – иначе они, более поздние по источнику при
-   равной специфичности, просто победили бы. 200px+3rem на легенду не
-   влезли бы и в половину узкой колонки телефона (см. её же комментарий
-   там же). */
+   равной специфичности, просто победили бы. Раньше здесь донат просто
+   уменьшался (110px) и оставался РЯДОМ с легендой – 110px+отступ+легенда
+   всё равно не влезали и в половину колонки телефона, и всей карточке
+   приходилось отдавать строку целиком (.stat-card-solo-mobile), что и
+   не давало двум колонкам по всей статистике. Вместо этого – донат
+   сверху по центру, легенда под ним во всю ширину колонки: строкам
+   легенды (длинные названия вроде "Разочарование" + число + %) нужна
+   именно ширина, а не высота, и вертикальная раскладка её как раз даёт,
+   без урезания текста. */
 @media (max-width: 780px) {
-  .stat-donut-wrap { gap: 1rem; }
-  .stat-donut-svg { width: 110px; height: 110px; }
-  /* Уменьшенного доната мало – у легенды (donut-legend-label без
-     переноса + donut-legend-val/pct со своим min-width) и у шкалы
-     послевкусия (grade-row-label: min-width:140px, не сжимается) есть
-     свой минимум ширины, который в половину колонки телефона всё равно
-     не влезал – именно это и уезжало за края экрана. .stat-card-solo-mobile
-     возвращает этим двум карточкам (и только им – остальные, попроще,
-     в двух колонках умещаются) свою строку целиком, как .wide, но
-     только на телефоне – на компьютере они по-прежнему стоят парой. */
-  .stat-card-solo-mobile { grid-column: 1 / -1; }
+  .stat-donut-wrap { flex-direction: column; align-items: stretch; gap: .6rem; }
+  .stat-donut-svg { width: 130px; height: 130px; align-self: center; }
+  .donut-legend-item { font-size: .74rem; }
 }
 
 .year-bars-wrap {
@@ -1009,6 +1042,16 @@ section.group { margin-bottom: 3.5rem; }
 .grade-row-track { flex: 1; height: 6px; background: var(--surface2); border: 1px solid var(--border); overflow: hidden; }
 .grade-row-bar   { height: 100%; width: 0%; }
 .grade-row-val   { font-family: 'DM Sans', sans-serif; font-size: .75rem; color: var(--text-dim); min-width: 20px; text-align: right; }
+/* Тот же приём, что и у доната чуть выше в этом файле: 140px на
+   название оценки ("Разочарование" и т.п.) не влезали в половину
+   колонки телефона – раньше поэтому у карточки тоже стоял
+   .stat-card-solo-mobile. Название теперь на своей строке (flex-basis
+   100% заставляет перенос в flex-wrap), а полоска с числом – под ним,
+   во всю ширину колонки вместо трети от неё. */
+@media (max-width: 780px) {
+  .grade-row { flex-wrap: wrap; gap: .25rem .75rem; }
+  .grade-row-label { flex: 1 1 100%; min-width: 0; text-align: left; }
+}
 
 .stat-tag-cloud { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .stat-tag { transition: opacity .2s, transform .2s; cursor: default; }

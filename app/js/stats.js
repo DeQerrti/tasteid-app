@@ -274,7 +274,7 @@ function renderDonut(counts, total) {
     return seg;
   }).join("");
 
-  return `<section class="stat-section stat-card stat-card-solo-mobile">
+  return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "types", i18n("Разбивка по типам")))}</h2>
     <div class="stat-donut-wrap">
       <svg viewBox="0 0 200 200" class="stat-donut-svg">
@@ -347,7 +347,7 @@ function renderGradeChart(gradeCounts) {
     </div>`;
   }).join("");
 
-  return `<section class="stat-section stat-card stat-card-solo-mobile">
+  return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "grades", i18n("Шкала послевкусия")))}</h2>
     <div class="grade-bars">${bars}</div>
   </section>`;
@@ -363,7 +363,7 @@ function renderRewatchStats(reviews) {
 
   return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "rewatch", i18n("Пересмотры")))}</h2>
-    <div class="stat-counters">
+    <div class="stat-counters stat-counters-rewatch">
       <div class="stat-counter">
         <div class="stat-counter-val" data-target="${rewatched.length}" style="color:var(--red-hi)">0</div>
         <div class="stat-counter-label">${esc(plural(rewatched.length, [
@@ -393,7 +393,7 @@ function renderTagCloud(topTags) {
     return `<span class="rtag ${cls} stat-tag" style="${styleAttr}font-size:${scale.toFixed(2)}rem"
       data-tip="${esc(info?.tip || "")}">${esc(tag)} <span class="stat-tag-cnt">${cnt}</span></span>`;
   }).join("");
-  return `<section class="stat-section stat-card">
+  return `<section class="stat-section stat-card wide">
     <h2 class="section-title">${esc(siteLabel("stats", "tags", i18n("Частые теги в отзывах")))}</h2>
     <div class="stat-tag-cloud">${items}</div>
   </section>`;

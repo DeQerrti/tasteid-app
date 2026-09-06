@@ -475,20 +475,93 @@ function reviewModalBodyHtml(r) {
     : "";
 
   return `
-    <div class="review-modal-header">
-      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" class="review-modal-cover" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
-      <div>
-        <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
-        <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
-        ${dateLines.map(({ label, date }) => `<div class="review-dateline">${label} <span>${esc(date)}</span></div>`).join("")}
-        ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
-        ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
+    ${cameraButton("reviewExport()", "review-export-btn")}
+    <div id="review-modal-capture">
+      <div class="review-modal-header">
+        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" class="review-modal-cover" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+        <div>
+          <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
+          <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
+          ${dateLines.map(({ label, date }) => `<div class="review-dateline">${label} <span>${esc(date)}</span></div>`).join("")}
+          ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
+          ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
+        </div>
       </div>
+      ${tagsHtml}
+      ${textHtml}
+      <div class="source-buttons">${btn1}${btn2}</div>
     </div>
-    ${tagsHtml}
-    ${textHtml}
-    <div class="source-buttons">${btn1}${btn2}</div>
   `;
+}
+
+// Снимок открытого отзыва картинкой – тот же приём, что у тир-листа/
+// статистики/любимого (см. её же комментарии в tierlist.js/stats.js):
+// html2canvas умеет клонировать только то, что уже нарисовано на
+// экране, поэтому картинки/анимации/неоморфные тени готовятся тем же
+// набором общих помощников из utils.js/config.js. Кнопка сама вынесена
+// ИЗ #review-modal-capture (см. reviewModalBodyHtml выше) – иначе она
+// попала бы на собственный же снимок.
+async function reviewExport() {
+  const btn = document.getElementById("review-export-btn");
+  const el = document.getElementById("review-modal-capture");
+  if (!el) return;
+  let restoreBtn = () => {};
+  if (btn) {
+    const original = btn.innerHTML;
+    btn.innerHTML = `<span class="spinner-sm"></span>`;
+    btn.disabled = true;
+    restoreBtn = () => {
+      btn.innerHTML = original;
+      btn.disabled = false;
+    };
+  }
+
+  let restoreImages = () => {};
+  let restoreAnim = () => {};
+  let restoreShadows = () => {};
+  try {
+    if (typeof html2canvas === "undefined") await loadHtml2Canvas();
+
+    const imgs = Array.from(el.querySelectorAll("img"));
+    await forceLoadImagesForExport(imgs);
+
+    restoreImages = await proxyImagesToDataUrls(el);
+    restoreAnim = disableAnimations(el);
+    restoreShadows = bakeNeoShadows(el);
+    await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+
+    const canvas = await withTimeout(
+      html2canvas(el, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
+        scale: safeCaptureScale(el, 2),
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
+        },
+      }),
+      captureTimeoutMs(imgs.length),
+      i18n("Не удалось создать картинку за разумное время.")
+    );
+
+    const link = document.createElement("a");
+    const safeName = (_reviewModalTitle || "review").replace(/[^a-zA-Zа-яА-Я0-9_\- ]/g, "").trim() || "review";
+    link.download = `${safeName}.png`;
+    link.href = canvas.toDataURL("image/png");
+    // Вставить в документ обязательно – см. тот же приём и тот же
+    // комментарий у tlExport() в tierlist.js про перехват на Android.
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    alert("Не удалось создать картинку 😢\n" + err.message);
+  } finally {
+    restoreImages();
+    restoreAnim();
+    restoreShadows();
+    restoreBtn();
+  }
 }
 
 // Элемент, с которого модалку открыли: на него надо вернуть фокус при
@@ -496,10 +569,17 @@ function reviewModalBodyHtml(r) {
 // с клавиатуры приходится заново идти до той же карточки.
 let _reviewModalOpener = null;
 
+// Название открытого отзыва – только для имени файла у reviewExport()
+// (снимок отзыва картинкой, js/utils.js делает то же самое для тир-листа/
+// статистики/любимого). Сам отзыв r модалке заново спрашивать незачем –
+// на момент экспорта разметка уже на экране, нужно только имя файла.
+let _reviewModalTitle = null;
+
 function openReviewModal(r) {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
   _reviewModalOpener = document.activeElement;
+  _reviewModalTitle = r.title;
   document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
   overlay.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -518,6 +598,7 @@ function closeReviewModal() {
   document.body.style.overflow = "";
   _reviewModalOpener?.focus?.();
   _reviewModalOpener = null;
+  _reviewModalTitle = null;
 }
 
 // Удержание фокуса внутри окна, пока оно открыто: Tab с последнего
