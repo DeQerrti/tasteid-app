@@ -688,8 +688,22 @@ function reviewCard(r, i) {
     : "";
 
   const rewatchHtml = r.rewatch_count > 0
-    ? `<span class="watch-badge" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</span>`
+    ? `<span class="rewatch-badge" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</span>`
     : "";
+
+  // Дата на телефоне переезжает бейджем на саму обложку (тот же приём,
+  // что и у карточки статусов/архива – js/cards.js: manualCard,
+  // watchBadge), освобождая строку .card-meta под обложкой. Только на
+  // телефоне: на ПК столбцы шире и .card-meta и так не тесно, а этот же
+  // нижний левый угол там уже занят датой в других карточках без
+  // счётчика пересмотров – но именно тут, где рядом есть ещё и
+  // .rewatch-badge в верхнем левом, безусловный показ бейджа означал бы
+  // на широких карточках два бейджа сразу в одном и том же углу
+  // (верхний левый – общий top:0;left:0 у .watch-badge и .rewatch-badge
+  // вне мобильного переопределения). Поэтому бейдж и текстовая версия
+  // ниже существуют оба сразу, а какую из двух показать – решает CSS
+  // (.date-badge/.meta-date, index.html) по ширине экрана, а не JS.
+  const dateBadgeHtml = dateStr ? `<span class="watch-badge date-badge">${esc(dateStr)}</span>` : "";
 
   const formatYear = [r.format, r.year].filter(Boolean).join(" · ");
   const typeLabel = TYPE_LABELS[r.type] || r.type || "";
@@ -716,14 +730,17 @@ function reviewCard(r, i) {
     role="button" tabindex="0" aria-label="${i18n("Открыть отзыв: {v0}", { v0: esc(r.title) })}">
     ${editBtn}
     <div class="card" style="animation-delay:${Math.min(i * 40, 600)}ms">
-      ${typeLabel ? `<span class="type-tag tag-manual">${esc(typeLabel)}</span>` : ""}
-      ${rewatchHtml}
-      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <div class="card-poster">
+        ${typeLabel ? `<span class="type-tag tag-manual">${esc(typeLabel)}</span>` : ""}
+        ${rewatchHtml}
+        ${dateBadgeHtml}
+        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      </div>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
         <div class="card-meta">
           ${formatYear ? `<span>${esc(formatYear)}</span>` : ""}
-          ${dateStr ? `<span>${esc(dateStr)}</span>` : ""}
+          ${dateStr ? `<span class="meta-date">${esc(dateStr)}</span>` : ""}
         </div>
         ${gradeHtml}
         ${favHtml}

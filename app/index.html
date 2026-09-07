@@ -585,7 +585,16 @@ section.group { margin-bottom: 3.5rem; }
   border-left:   1px solid var(--badge-border, rgba(240,236,230,.18));
 }
 
-.watch-badge {
+/* .rewatch-badge (счётчик "↻ ×N" на карточке отзыва, reviews.js) делит
+   с .watch-badge всю визуальную оболочку – но НЕ переезд в нижний угол
+   на телефоне ниже (.card-poster .watch-badge): у карточки отзыва этот
+   нижний угол теперь занимает сама дата (см. её же комментарий у
+   reviewCard в reviews.js), а счётчик пересмотров должен остаться в
+   верхнем левом углу рядом с типом тайтла, а не встать на то же место
+   поверх даты. Раз в базовом правиле только .watch-badge, а не она же
+   с .rewatch-badge, – мобильное переопределение адресовано по имени и
+   счётчика попросту не касается. */
+.watch-badge, .rewatch-badge {
   position: absolute; top: 0; left: 0;
   font-family: 'DM Sans', sans-serif;
   font-size: .58rem; font-weight: 500;
@@ -611,6 +620,15 @@ section.group { margin-bottom: 3.5rem; }
   max-width: calc(100% - 64px);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* .date-badge (дата отзыва бейджем на обложке, reviews.js: reviewCard) –
+   скрыт по умолчанию. На карточке отзыва рядом уже есть .rewatch-badge
+   в том же верхнем левом углу (общий top:0;left:0 у .watch-badge –
+   .card-poster .watch-badge ниже переносит вниз только на телефоне), и
+   без этого на широких карточках ПК оба бейджа легли бы друг на друга.
+   На ПК столбцы и так не тесные – дата остаётся текстом в .card-meta
+   (.meta-date, видимый по умолчанию). Мобильное переопределение ниже
+   меняет местами, какой из двух показан. */
+.date-badge { display: none; }
 /* 64px в max-width выше рассчитаны на карточку в широком гриде – они
    резервируют место под .type-tag в правом верхнем углу. На телефоне
    (4 колонки, карточка ~80-90px) это оставляло дате/значку "↻ ×N"
@@ -622,8 +640,16 @@ section.group { margin-bottom: 3.5rem; }
    .tl-mode-btn чуть раньше в этой сессии) – иначе безусловные правила
    ниже по каскаду просто победили бы. */
 @media (max-width: 700px) {
-  .watch-badge, .type-tag { font-size: .5rem; padding: .18rem .4rem; }
-  .watch-badge { max-width: calc(100% - 30px); }
+  .watch-badge, .rewatch-badge, .type-tag { font-size: .5rem; padding: .18rem .4rem; }
+  .watch-badge, .rewatch-badge { max-width: calc(100% - 30px); }
+  /* Меняем местами, какая из двух версий даты видна – см. .date-badge
+     выше. Специфичность у обеих та же, что у их базового правила (один
+     класс), но обе стоят позже по источнику – см. её же историю в этом
+     файле про .tl-mode-btn/.watch-badge: более позднее безусловное
+     правило перебивает более раннее той же специфичности, даже из
+     другого @media. */
+  .date-badge { display: inline-block; }
+  .card-meta .meta-date { display: none; }
   /* На телефоне (4 колонки, обложка ~80px) дата и type-tag делили один
      и тот же верхний ряд – на диапазоне из двух дат ("05.10–22.11", не
      одна короткая дата) им обоим просто не хватало места, и они
