@@ -445,8 +445,13 @@ function renderTagCloud(topTags) {
   // строки (см. её же max-height/overflow у .stat-tag-cloud в
   // index.html – без ограничения высоты блок в половину ширины разросся
   // бы вдвое выше, тегов там и так меньше в ряду, но выглядит это
-  // нормально, а не "сломанно").
-  return `<section class="stat-section stat-card">
+  // нормально, а не "сломанно"). stat-card-tags – растягивает саму
+  // карточку в колонку (index.html), чтобы .stat-tag-cloud могла занять
+  // остаток её высоты вместо жёсткого max-height: карточка и так тянется
+  // под соседку в гриде, а без flex:1 это пустое место под тегами
+  // никак не использовалось – переносить их в несколько строк было
+  // некуда, кроме как за счёт этого резерва.
+  return `<section class="stat-section stat-card stat-card-tags">
     <h2 class="section-title">${esc(siteLabel("stats", "tags", i18n("Частые теги в отзывах")))}</h2>
     <div class="stat-tag-cloud">${items}</div>
   </section>`;

@@ -6,14 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- scrollbars="none" – собственный fade-индикатор прокрутки
-         Android рисуется самим WebView поверх страницы, в обход DOM и
-         CSS целиком (scrollbar-width/::-webkit-scrollbar его не видят
-         и не могут скрыть). На телефоне это просто лишняя полоска у
-         правого края при любом скролле – место, где выключать её
-         нативно, только тут. -->
     <WebView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scrollbars="none" />
+        android:layout_height="match_parent" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
