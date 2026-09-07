@@ -793,8 +793,8 @@ function renderEditor() {
       .join("") +
     `<button class="list-tab list-tab-add" onclick="addList()">${i18n("Создать список")}</button>` +
     (list
-      ? `<button class="list-tab-edit" onclick="renameList('${esc(list.id)}')" title="${i18n("Переименовать список")}">✎</button>
-         <button class="list-tab-del" onclick="deleteList('${esc(list.id)}')" title="${i18n("Удалить список")}">✕</button>`
+      ? `<button class="list-tab list-tab-edit" onclick="renameList('${esc(list.id)}')" title="${i18n("Переименовать список")}">✎</button>
+         <button class="list-tab list-tab-del" onclick="deleteList('${esc(list.id)}')" title="${i18n("Удалить список")}">✕</button>`
       : "");
 
   const rows = (list?.tiers || []).map((tier, ti) => renderTierRow(title, list, tier, ti)).join("");
@@ -1725,7 +1725,17 @@ function bindTierRowDrag() {
 // ══ DRAG & DROP – с позиционным индикатором ════
 function bindDragDrop() {
   document.querySelectorAll(".char-card").forEach((card) => {
-    card.addEventListener("dragstart", () => {
+    card.addEventListener("dragstart", (e) => {
+      // stopPropagation – иначе dragstart всплывает до .tl-editor-row
+      // (bindTierRowDrag), у которого свой слушатель dragstart без
+      // проверки, от чего именно событие: строка решала, что тащат
+      // весь тир, и tierDragSrc оказывался ложно выставлен параллельно
+      // с charsDragSrc. Отпускание картинки над .tl-editor-cards
+      // (тоже внутри строки) точно так же всплывало до drop строки –
+      // тот видел ненулевой (ложный) tierDragSrc и, помимо переноса
+      // персонажа, ещё и переставлял сам тир. Отсюда репорт "тир тоже
+      // заменяется" при перетаскивании картинки.
+      e.stopPropagation();
       charsDragSrc = {
         titleId: card.dataset.title,
         listId: card.dataset.list,
@@ -1734,7 +1744,8 @@ function bindDragDrop() {
       };
       card.classList.add("dragging");
     });
-    card.addEventListener("dragend", () => {
+    card.addEventListener("dragend", (e) => {
+      e.stopPropagation();
       card.classList.remove("dragging");
       clearDropIndicator();
       document.querySelectorAll(".tl-editor-cards").forEach((z) => z.classList.remove("drag-over"));
@@ -1744,10 +1755,12 @@ function bindDragDrop() {
   document.querySelectorAll(".tl-editor-cards").forEach((zone) => {
     zone.addEventListener("dragover", (e) => {
       e.preventDefault();
+      e.stopPropagation();
       zone.classList.add("drag-over");
       updateDropIndicator(zone, e.clientX, e.clientY);
     });
     zone.addEventListener("dragleave", (e) => {
+      e.stopPropagation();
       if (!zone.contains(e.relatedTarget)) {
         zone.classList.remove("drag-over");
         clearDropIndicator();
@@ -1755,6 +1768,7 @@ function bindDragDrop() {
     });
     zone.addEventListener("drop", (e) => {
       e.preventDefault();
+      e.stopPropagation();
       zone.classList.remove("drag-over");
       if (!charsDragSrc) return;
 

@@ -60,7 +60,7 @@ function statsRender() {
 
   const filtersHtml = `<div class="stat-toolbar">
     ${statsYearFiltersHtml(years)}
-    ${cameraButton("statsExport()", "stats-export-btn")}
+    ${cameraButton("openStatsExportModal()", "stats-export-btn")}
   </div>`;
   const bodyHtml = statsState.year === "all"
     ? renderAllTimeStats(reviews, completed)
@@ -133,14 +133,24 @@ function renderAllTimeStats(reviews, completed) {
   const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
 
   return `<div class="stat-grid">
-    ${isStatVisible("counters")   ? renderCounters(counts, total) : ""}
-    ${isStatVisible("donut")      ? renderDonut(counts, total) : ""}
-    ${isStatVisible("grades")     ? renderGradeChart(gradeCounts) : ""}
-    ${isStatVisible("watch-bars") ? renderStackedBarChart(siteLabel("stats", "watchYears", i18n("По годам просмотра")), "watch-bars", watchYearsByType) : ""}
-    ${isStatVisible("release-bars") ? renderStackedBarChart(siteLabel("stats", "releaseYears", i18n("По годам выхода")), "release-bars", releaseYearsByType) : ""}
-    ${isStatVisible("rewatch")    ? renderRewatchStats(reviews) : ""}
-    ${isStatVisible("tags")       ? renderTagCloud(topTags) : ""}
+    ${isStatVisible("counters")   ? withStatKey(renderCounters(counts, total), "counters") : ""}
+    ${isStatVisible("donut")      ? withStatKey(renderDonut(counts, total), "donut") : ""}
+    ${isStatVisible("grades")     ? withStatKey(renderGradeChart(gradeCounts), "grades") : ""}
+    ${isStatVisible("watch-bars") ? withStatKey(renderStackedBarChart(siteLabel("stats", "watchYears", i18n("По годам просмотра")), "watch-bars", watchYearsByType), "watch-bars") : ""}
+    ${isStatVisible("release-bars") ? withStatKey(renderStackedBarChart(siteLabel("stats", "releaseYears", i18n("По годам выхода")), "release-bars", releaseYearsByType), "release-bars") : ""}
+    ${isStatVisible("rewatch")    ? withStatKey(renderRewatchStats(reviews), "rewatch") : ""}
+    ${isStatVisible("tags")       ? withStatKey(renderTagCloud(topTags), "tags") : ""}
   </div>`;
+}
+
+// data-stat-key размечает готовую HTML-строку секции – по нему модалка
+// выбора блоков перед снимком (openStatsExportModal ниже) находит нужный
+// узел в живом .stat-grid и на время скрывает невыбранные, вместо того
+// чтобы городить отдельную офскрин-копию разметки (как у «Любимого»):
+// секции статистики и так уже готовы на странице, прятать проще, чем
+// пересобирать заново.
+function withStatKey(html, key) {
+  return html.replace("<section ", `<section data-stat-key="${key}" `);
 }
 
 // ── Годовой дайджест ────────────────────────────
@@ -176,12 +186,12 @@ function renderYearDigest(year, completed) {
 
   return `
     <div id="stats-digest" class="stat-grid">
-      ${isStatVisible("counters") ? renderCounters(counts, total, i18n("Итоги {year}", { year }), siteLabel("stats", "completed", i18n("завершено"))) : ""}
-      ${isStatVisible("donut")    ? renderDonut(counts, total) : ""}
-      ${isStatVisible("grades")   ? renderGradeChart(gradeCounts) : ""}
-      ${isStatVisible("spotlight") ? renderTitleOfYear(spotlight, year) : ""}
-      ${isStatVisible("rewatch")  ? renderRewatchStats(yearReviews) : ""}
-      ${isStatVisible("tags")     ? renderTagCloud(topTags) : ""}
+      ${isStatVisible("counters") ? withStatKey(renderCounters(counts, total, i18n("Итоги {year}", { year }), siteLabel("stats", "completed", i18n("завершено"))), "counters") : ""}
+      ${isStatVisible("donut")    ? withStatKey(renderDonut(counts, total), "donut") : ""}
+      ${isStatVisible("grades")   ? withStatKey(renderGradeChart(gradeCounts), "grades") : ""}
+      ${isStatVisible("spotlight") ? withStatKey(renderTitleOfYear(spotlight, year), "spotlight") : ""}
+      ${isStatVisible("rewatch")  ? withStatKey(renderRewatchStats(yearReviews), "rewatch") : ""}
+      ${isStatVisible("tags")     ? withStatKey(renderTagCloud(topTags), "tags") : ""}
     </div>
   `;
 }
@@ -393,7 +403,17 @@ function renderTagCloud(topTags) {
     return `<span class="rtag ${cls} stat-tag" style="${styleAttr}font-size:${scale.toFixed(2)}rem"
       data-tip="${esc(info?.tip || "")}">${esc(tag)} <span class="stat-tag-cnt">${cnt}</span></span>`;
   }).join("");
-  return `<section class="stat-section stat-card wide">
+  // Без .wide – раньше эта карточка всегда занимала всю ширину грида,
+  // и если перед ней в своей строке оказывалась одна-единственная
+  // некрупная карточка (например, «Пересмотры»), вторая половина той
+  // же строки оставалась пустой: следующим шёл именно этот, уже
+  // растянутый на весь ряд блок, и заполнить собой дыру он не мог. Как
+  // обычная карточка сетки, он сам встаёт в свободную половину той же
+  // строки (см. её же max-height/overflow у .stat-tag-cloud в
+  // index.html – без ограничения высоты блок в половину ширины разросся
+  // бы вдвое выше, тегов там и так меньше в ряду, но выглядит это
+  // нормально, а не "сломанно").
+  return `<section class="stat-section stat-card">
     <h2 class="section-title">${esc(siteLabel("stats", "tags", i18n("Частые теги в отзывах")))}</h2>
     <div class="stat-tag-cloud">${items}</div>
   </section>`;
@@ -448,10 +468,85 @@ function animateStackedBars() {
 // data:-URL (см. config.js). Экспортирует ровно то, что сейчас открыто:
 // «Всё время» или дайджест конкретного года – переключать это отдельно
 // незачем, для этого уже есть переключатель года над самой статистикой.
-async function statsExport() {
+// Выбор блоков перед снимком – тот же приём, что и у «Любимого»
+// (favExportSections/openFavExportModal в js/favorites.js): без него
+// снимок статистики со всеми включёнными блоками разом выходил очень
+// длинным (вытянутая колонка в два столбца, где половина блоков в
+// картинке вообще не нужна тому, кому её показываешь) – прежде чем
+// делиться, проще выключить лишнее, чем потом обрезать готовую
+// картинку в другом приложении. В отличие от «Любимого» здесь не
+// строится отдельная офскрин-разметка – секции статистики уже готовы
+// в живом .stat-grid (см. data-stat-key, withStatKey выше), невыбранные
+// на время снимка просто прячутся через display:none и возвращаются
+// обратно сразу после.
+let statsExportModalEl = null;
+
+function statsExportModalEnsure() {
+  if (statsExportModalEl) return statsExportModalEl;
+  statsExportModalEl = document.createElement("div");
+  statsExportModalEl.id = "stats-export-overlay";
+  statsExportModalEl.className = "modal-overlay hidden";
+  statsExportModalEl.innerHTML = `
+    <div class="modal confirm-dialog fav-export-modal">
+      <div class="confirm-dialog-text">${i18n("Что показать на картинке?")}</div>
+      <div id="stats-export-options"></div>
+      <div class="confirm-dialog-actions">
+        <button type="button" class="btn btn-ghost" data-act="cancel">${i18n("Отмена")}</button>
+        <button type="button" class="btn btn-primary" data-act="ok">${i18n("Сохранить")}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(statsExportModalEl);
+  statsExportModalEl.querySelector('[data-act="cancel"]').onclick = closeStatsExportModal;
+  statsExportModalEl.onclick = (e) => {
+    if (e.target === statsExportModalEl) closeStatsExportModal();
+  };
+  statsExportModalEl.querySelector('[data-act="ok"]').onclick = () => {
+    const ids = [...statsExportModalEl.querySelectorAll('input[name="stats-export-sec"]:checked')].map((el) => el.value);
+    closeStatsExportModal();
+    statsExport(ids);
+  };
+  return statsExportModalEl;
+}
+
+function openStatsExportModal() {
+  const sections = [...document.querySelectorAll("#tab-stats .stat-grid [data-stat-key]")];
+  if (!sections.length) return;
+  const modal = statsExportModalEnsure();
+  modal.querySelector("#stats-export-options").innerHTML = sections
+    .map((sec) => {
+      const key = sec.dataset.statKey;
+      const label = sec.querySelector(".section-title")?.textContent || key;
+      return `<label class="fav-export-option"><input type="checkbox" name="stats-export-sec" value="${esc(key)}" checked>${esc(label)}</label>`;
+    })
+    .join("");
+  modal.classList.remove("hidden");
+}
+
+function closeStatsExportModal() {
+  statsExportModalEl?.classList.add("hidden");
+}
+
+async function statsExport(selectedKeys) {
   const btn = document.getElementById("stats-export-btn");
   const grid = document.querySelector("#tab-stats .stat-grid");
   if (!grid) return;
+
+  // Прячем на время снимка секции, снятые в модалке. restoreHidden
+  // возвращает их обратно в finally, независимо от того, как снимок
+  // завершился – ошибкой или успехом.
+  const hidden = [];
+  if (selectedKeys) {
+    grid.querySelectorAll("[data-stat-key]").forEach((sec) => {
+      if (!selectedKeys.includes(sec.dataset.statKey)) {
+        hidden.push({ el: sec, prev: sec.style.display });
+        sec.style.display = "none";
+      }
+    });
+  }
+  const restoreHidden = () => {
+    for (const { el, prev } of hidden) el.style.display = prev;
+  };
+
   let restoreBtn = () => {};
   if (btn) {
     const original = btn.innerHTML;
@@ -521,5 +616,6 @@ async function statsExport() {
     restoreAnim();
     restoreShadows();
     restoreBtn();
+    restoreHidden();
   }
 }

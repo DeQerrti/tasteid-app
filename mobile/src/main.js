@@ -583,6 +583,34 @@ const imgObserver = new IntersectionObserver(
   { rootMargin: "800px 0px" }
 );
 
+// Кэш-хиты ниже (rewriteImage, ветка srcCache.has) шли в resolveImage()
+// напрямую и поштучно – единственное место с той же "сотня разом"
+// проблемой, что уже решена батчингом у __mobileForceResolveImages
+// (см. её же комментарий выше), просто в другом месте. Перерисовка
+// целого раздела (переключение статусов и т.п.), где почти все обложки
+// уже виделись раньше и лежат в srcCache, обходит imgObserver
+// полностью (мимо rootMargin – см. комментарий чуть ниже) и раньше
+// запускала resolveImage() – а с ним decode() – сразу для КАЖДОЙ такой
+// картинки одним синхронным проходом MutationObserver. На разделе в
+// полсотни карточек это десятки одновременных decode() разом – то
+// самое "приложение не отвечает" зависание, только не при снимке
+// экрана, а при обычном перелистывании статусов. Собираем такие
+// картинки в очередь и сбрасываем той же пачками-по-12 функцией одним
+// тиком микрозадачи позже, а не поштучно немедленно.
+let cachedResolveQueue = [];
+let cachedResolveScheduled = false;
+function queueCachedResolve(img) {
+  cachedResolveQueue.push(img);
+  if (cachedResolveScheduled) return;
+  cachedResolveScheduled = true;
+  queueMicrotask(() => {
+    cachedResolveScheduled = false;
+    const imgs = cachedResolveQueue;
+    cachedResolveQueue = [];
+    window.__mobileForceResolveImages(imgs);
+  });
+}
+
 function rewriteImage(img) {
   const src = img.getAttribute("src") || "";
   if (!src.startsWith("/") || !VAULT_DIRS.test(src)) return;
@@ -591,7 +619,7 @@ function rewriteImage(img) {
   // Уже разгадывали этот же путь раньше (тот же раздел открывали и до
   // этого) – можно сразу, ждать появления на экране незачем, оно и так
   // мгновенное.
-  if (srcCache.has(src)) resolveImage(img, src);
+  if (srcCache.has(src)) queueCachedResolve(img);
   else imgObserver.observe(img);
 }
 
