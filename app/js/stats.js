@@ -68,9 +68,42 @@ function statsRender() {
 
   box.innerHTML = filtersHtml + bodyHtml;
 
+  fixLoneStatCard();
   animateCounters();
   animateStackedBars();
   statsBindAll();
+}
+
+// Последняя не-.wide карточка иногда остаётся без пары в своей строке
+// (нечётное число включённых обычных блоков) – место под вторую половину
+// строки просто пустует до конца сетки, хотя сама карточка вполне могла
+// бы его занять. grid-auto-flow: dense (см. .stat-grid, index.html) не
+// помогает именно этому случаю – ему просто нечем заполнить дыру,
+// подходящих карточек ПОСЛЕ неё не осталось. Простой nth-child здесь не
+// годится: .wide-карточки сбивают чёт/нечет, они занимают всю строку
+// сами, а не через "второй столбец", – поэтому парность считаем в JS,
+// проходя по факту так же, как это делает сама раскладка грида.
+function fixLoneStatCard() {
+  const grid = document.querySelector("#tab-stats .stat-grid");
+  if (!grid) return;
+  let pairedSlotOpen = false;
+  let lastAlone = null;
+  for (const el of grid.children) {
+    el.classList.remove("stat-card-solo");
+    if (el.classList.contains("wide")) {
+      pairedSlotOpen = false;
+      lastAlone = null;
+      continue;
+    }
+    if (!pairedSlotOpen) {
+      lastAlone = el;
+      pairedSlotOpen = true;
+    } else {
+      lastAlone = null;
+      pairedSlotOpen = false;
+    }
+  }
+  lastAlone?.classList.add("stat-card-solo");
 }
 
 // ── Переключатель года ─────────────────────────

@@ -915,6 +915,10 @@ section.group { margin-bottom: 3.5rem; }
   min-width: 0; /* allow children (year-bars-wrap etc.) to shrink inside grid cell */
 }
 .stat-grid .stat-card.wide { grid-column: 1 / -1; }
+/* Ставится в JS (fixLoneStatCard, js/stats.js) на карточку, которая по
+   факту осталась без пары в своей строке, – растягиваем её на всю
+   ширину вместо пустой половины строки рядом. */
+.stat-grid .stat-card.stat-card-solo { grid-column: 1 / -1; }
 /* Раньше на телефоне тут стояла одна колонка – каждый блок занимал
    чуть ли не весь экран, и добраться до последнего было сплошной
    прокруткой. Как на компьютере, две колонки – только .wide (заголовки
@@ -1075,16 +1079,23 @@ section.group { margin-bottom: 3.5rem; }
   .grade-row-label { flex: 1 1 100%; min-width: 0; text-align: left; }
 }
 
-/* max-height/overflow – после снятия .wide (см. её же комментарий в
-   js/stats.js, renderTagCloud) эта карточка часто встаёт в половину
-   строки рядом с соседкой, а не на всю ширину. Все 15–20 тегов туда
-   просто не влезают в ряд, и без ограничения высоты карточка вытянулась
-   бы вдвое выше своей половинной соседки, чтобы всё-таки их показать.
-   Обрезаем – останется столько тегов, сколько влезло в первые
-   несколько строк, остальные просто не рисуются видимыми (по ширине
-   ряда, не по счётчику) – то есть не ровно N штук, а "сколько влезло". */
-.stat-tag-cloud { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; max-height: 9rem; overflow: hidden; }
-.stat-tag { transition: opacity .2s, transform .2s; cursor: default; }
+/* Один прокручиваемый ряд, а не перенос строк – та же причина, что и
+   у .year-bars-wrap чуть выше в этом файле. Перенос (flex-wrap) здесь
+   не спасал: самый частый тег рисуется САМЫМ крупным шрифтом (scale в
+   renderTagCloud, js/stats.js) и в половине колонки на телефоне
+   регулярно оказывался шире самой колонки – а перенести середину
+   одного тега на новую строку браузer не может, только весь тег
+   целиком. Раньше это просто обрезалось overflow:hidden по
+   фиксированной высоте – кегль ладно, но текст обрывался на середине
+   слова, а под обрезком ещё оставалось пустое место, потому что высота
+   карточки в гриде и так тянется под соседку. Прокрутка показывает
+   каждый тег целиком, не обрезая ни один. */
+.stat-tag-cloud {
+  display: flex; flex-wrap: nowrap; gap: .5rem; align-items: center;
+  overflow-x: auto; padding-bottom: .35rem;
+  scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
+}
+.stat-tag { transition: opacity .2s, transform .2s; cursor: default; flex-shrink: 0; }
 .stat-tag:hover { opacity: .8; transform: translateY(-1px); }
 .stat-tag-cnt { font-size: .65em; opacity: .6; margin-left: .2em; }
 
