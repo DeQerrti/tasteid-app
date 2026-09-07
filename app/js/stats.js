@@ -69,9 +69,49 @@ function statsRender() {
   box.innerHTML = filtersHtml + bodyHtml;
 
   fixLoneStatCard();
+  fitOversizedTags();
   animateCounters();
   animateStackedBars();
   statsBindAll();
+}
+
+// Тег, который даже один в своей строке шире самой карточки (частый тег
+// с крупным авторским размером в узкой колонке телефона – см. scale в
+// renderTagCloud), раньше просто обрезался многоточием через CSS
+// (.stat-tag – index.html). Здесь – настоящее решение: подгоняем именно
+// этому тегу размер шрифта под реальную ширину ряда, а не прячем лишнее
+// под "…". Меряем после того, как разметка уже в DOM и .stat-tag-cloud
+// получила настоящую ширину (offsetWidth/clientWidth = 0 до этого).
+//
+// scrollWidth сравниваем с СОБСТВЕННЫМ clientWidth тега, а не с шириной
+// всего ряда: max-width:100% (index.html) уже сжимает clientWidth тега
+// до ширины ряда, но clientWidth border-box'а исключает border, а
+// scrollWidth его учитывает – при бордере в 1-2px (rtag-категории со
+// своим border) сравнение с шириной ряда напрямую было систематически
+// на пару пикселей строже, чем нужно, и CSS-эллипсис из index.html всё
+// равно подключался на паре пикселей текста, даже когда шрифт уже был
+// ужат «под ноль». Со сравнением тега с самим собой оба числа считаются
+// одной и той же коробкой – переполнение показывает по-настоящему то,
+// что не влезло, без систематической ошибки на толщину border.
+function fitOversizedTags() {
+  document.querySelectorAll(".stat-tag-cloud").forEach((cloud) => {
+    if (!cloud.clientWidth) return;
+    cloud.querySelectorAll(".stat-tag").forEach((tag) => {
+      const base = parseFloat(tag.dataset.baseSize);
+      if (!base) return;
+      let size = base;
+      tag.style.fontSize = `${size}rem`;
+      // Нижняя граница (.55rem) – защита от нечитаемо мелкого текста на
+      // экстремально длинном теге; ниже неё уже подключается ellipsis
+      // из CSS как последний рубеж, а не подгонка размера.
+      let guard = 0;
+      while (tag.scrollWidth > tag.clientWidth && size > 0.55 && guard < 20) {
+        size -= 0.05;
+        tag.style.fontSize = `${size.toFixed(2)}rem`;
+        guard++;
+      }
+    });
+  });
 }
 
 // Последняя не-.wide карточка иногда остаётся без пары в своей строке
@@ -433,7 +473,12 @@ function renderTagCloud(topTags) {
     const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
     const styleAttr = customColor ? `--tag-color:${customColor};` : "";
     const scale = 0.8 + (cnt / max) * 0.7;
-    return `<span class="rtag ${cls} stat-tag" style="${styleAttr}font-size:${scale.toFixed(2)}rem"
+    // data-base-size хранит "авторский" размер отдельно от style –
+    // fitOversizedTags() ниже перезаписывает сам style, уменьшая шрифт
+    // тем тегам, что не влезают в свою строку; без отдельно сохранённого
+    // оригинала повторный проход (например, при следующей отрисовке уже
+    // с другим годом) ужимал бы уже однажды ужатый размер ещё раз.
+    return `<span class="rtag ${cls} stat-tag" style="${styleAttr}font-size:${scale.toFixed(2)}rem" data-base-size="${scale.toFixed(2)}"
       data-tip="${esc(info?.tip || "")}">${esc(tag)} <span class="stat-tag-cnt">${cnt}</span></span>`;
   }).join("");
   // Без .wide – раньше эта карточка всегда занимала всю ширину грида,
