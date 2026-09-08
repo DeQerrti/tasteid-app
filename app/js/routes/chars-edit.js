@@ -151,6 +151,7 @@ async function mount(container, params) {
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="nt-cover-upload-name"></span>
+            <label class="original-quality-toggle"><input type="checkbox" id="nt-cover-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
             <div id="nt-cover-upload-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
           </div>
           <div style="display:flex;gap:.5rem">
@@ -198,6 +199,7 @@ async function mount(container, params) {
             <input type="text" id="m-img" placeholder="https://..." oninput="previewModalImg(this.value); scheduleBackupModalImg();">
             <input type="hidden" id="m-img-backup">
             <img id="m-img-preview" class="img-preview">
+            <label class="original-quality-toggle"><input type="checkbox" id="m-img-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
             <div id="m-img-backup-status" style="font-size:.75rem;margin-top:.35rem;"></div>
           </div>
         </div>
@@ -210,6 +212,7 @@ async function mount(container, params) {
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="m-upload-file-name"></span>
+            <label class="original-quality-toggle"><input type="checkbox" id="m-upload-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
             <div id="upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
           </div>
           <div class="batch-upload-list hidden" id="batch-upload-list"></div>
@@ -547,11 +550,12 @@ async function backupTitleCoverNow() {
   status.textContent = i18n("Делаю резервную копию обложки...");
   status.style.color = "";
   try {
+    const original = document.getElementById("nt-cover-original")?.checked || false;
     const res = await fetch("/api/backup-cover", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, filename: slug }),
+      body: JSON.stringify({ url, filename: slug, original }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
@@ -585,12 +589,13 @@ async function uploadTitleCoverFile() {
   status.textContent = i18n("Обрабатываю...");
   status.style.color = "";
   try {
-    const base64 = await convertToWebpForChar(fileInput.files[0]);
+    const keepOriginal = document.getElementById("nt-cover-original")?.checked || false;
+    const { base64, ext } = await encodeUploadFile(fileInput.files[0], keepOriginal);
     const res = await fetch("/api/upload-char-image", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ basePath: "title-covers", filename: slug + ".webp", contentBase64: base64 }),
+      body: JSON.stringify({ basePath: "title-covers", filename: `${slug}.${ext}`, contentBase64: base64 }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
@@ -1245,44 +1250,14 @@ function toggleUpload() {
   document.getElementById("upload-section").classList.toggle("visible");
 }
 
-function convertToWebpForChar(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      const maxSide = Math.max(width, height);
-      if (maxSide > 1200) {
-        const scale = 1200 / maxSide;
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return reject(new Error(i18n("Не удалось сконвертировать")));
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result.split(",")[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        },
-        "image/webp",
-        0.85
-      );
-    };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
-}
-
 // Общая часть одиночной (uploadCharImage) и пакетной (uploadBatchFiles)
-// загрузки – конвертирует в webp и грузит на диск под именем, собранным
-// из уже введённого имени персонажа, а не из имени файла (см. комментарий
-// у onUploadFilesPicked ниже). Не трогает форму/статус/галерею – это
-// разное у одиночной и пакетной загрузки, решает вызывающий код.
-async function uploadOneCharFile(file, name, folder) {
+// загрузки – конвертирует в webp (или, если отмечен чекбокс «оригинал»,
+// оставляет как есть – см. encodeUploadFile в js/utils.js) и грузит на
+// диск под именем, собранным из уже введённого имени персонажа, а не из
+// имени файла (см. комментарий у onUploadFilesPicked ниже). Не трогает
+// форму/статус/галерею – это разное у одиночной и пакетной загрузки,
+// решает вызывающий код.
+async function uploadOneCharFile(file, name, folder, keepOriginal) {
   // isSafeFileName() на сервере (core/api.js) запрещает "/", "\" и "..",
   // а vault.saveMedia() дополнительно подчищает остальные небезопасные
   // для имени файла символы (см. её же комментарий в electron/vault.js) –
@@ -1290,14 +1265,14 @@ async function uploadOneCharFile(file, name, folder) {
   // ищут только что загруженную картинку в списке галереи) совпадал с
   // именем, которое реально легло на диск.
   const safeName = name.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_").replace(/\.+/g, "_").trim() || "персонаж";
-  const base64 = await convertToWebpForChar(file);
+  const { base64, ext } = await encodeUploadFile(file, keepOriginal);
   const res = await fetch("/api/upload-char-image", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       folder,
-      filename: safeName + ".webp",
+      filename: `${safeName}.${ext}`,
       contentBase64: base64,
       basePath: COLLECTION === "characters" ? undefined : COLLECTION,
     }),
@@ -1349,7 +1324,8 @@ async function uploadCharImage() {
   status.style.color = "var(--text-dim)";
 
   try {
-    const { safeName } = await uploadOneCharFile(file, customName, folder);
+    const keepOriginal = document.getElementById("m-upload-original")?.checked || false;
+    const { safeName } = await uploadOneCharFile(file, customName, folder, keepOriginal);
 
     status.textContent = i18n("Загружено ✓ Обновляю список...");
     status.style.color = "var(--green)";
@@ -1473,6 +1449,7 @@ async function uploadBatchFiles() {
   const title = pendingTier ? data.find((t) => t.id === pendingTier.titleId) : null;
   const list = pendingTier && title?.tierlists.find((l) => l.id === pendingTier.listId);
   let addedAny = false;
+  const keepOriginal = document.getElementById("m-upload-original")?.checked || false;
 
   for (const item of batchItems) {
     if (item.status === "done") continue;
@@ -1497,7 +1474,7 @@ async function uploadBatchFiles() {
     item.error = "";
     renderBatchList();
     try {
-      const { url, safeName } = await uploadOneCharFile(item.file, name, folder);
+      const { url, safeName } = await uploadOneCharFile(item.file, name, folder, keepOriginal);
       if (!galleryCache[folder]) galleryCache[folder] = [];
       galleryCache[folder].push({ name: safeName, url });
       if (list) {
@@ -1578,11 +1555,12 @@ async function backupModalImgNow() {
   status.textContent = i18n("Делаю резервную копию...");
   status.style.color = "";
   try {
+    const original = document.getElementById("m-img-original")?.checked || false;
     const res = await fetch("/api/backup-cover", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, filename: slug }),
+      body: JSON.stringify({ url, filename: slug, original }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));

@@ -70,6 +70,7 @@ const sharedBrowserGlobals = [
   "DISAGREE_THRESHOLD",
   "dateLocale",
   "domReady",
+  "encodeUploadFile",
   "esc",
   "exportMyPassport",
   "extractIdsFromCover",

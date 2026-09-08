@@ -97,6 +97,69 @@ async function deleteMediaFile(relPath) {
   deleteRemoteMedia(relPath);
 }
 
+// ── Загрузка картинки файлом: сжать в webp или оставить оригинал ──
+// Общая часть для трёх почти одинаковых мест (add-cover.js: обложка
+// отзыва, chars-edit.js: персонажи/темы, favorites-edit.js: «Любимое») –
+// у всех трёх раньше был свой собственный copy-paste одной и той же
+// canvas-конвертации. Ветка "оригинал" (человек попросил не сжимать –
+// см. чекбокс рядом с полем загрузки) добавлена сюда одна на всех, а не
+// утроена вместе с остальным.
+function fileExtFromName(name) {
+  const m = /\.([a-z0-9]+)$/i.exec(name || "");
+  return m ? m[1].toLowerCase() : "jpg";
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImageToWebp(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      const maxSide = Math.max(width, height);
+      if (maxSide > 1200) {
+        const scale = 1200 / maxSide;
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error(i18n("Не удалось сконвертировать")));
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(",")[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        },
+        "image/webp",
+        0.85
+      );
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// keepOriginal – true пропускает пересжатие целиком и отдаёт файл как
+// есть, с его же расширением; false (как было раньше всегда) – webp
+// через canvas, максимальная сторона 1200px, качество 0.85.
+async function encodeUploadFile(file, keepOriginal) {
+  if (keepOriginal) {
+    return { base64: await readFileAsBase64(file), ext: fileExtFromName(file.name) };
+  }
+  return { base64: await compressImageToWebp(file), ext: "webp" };
+}
+
 // Готовые атрибуты для <img> – чтобы не расписывать data-* в каждом шаблоне.
 // Возвращает строку вида: data-fallback="…" data-placeholder="…"
 // Резервная копия подставляется только если основная ссылка вообще была:

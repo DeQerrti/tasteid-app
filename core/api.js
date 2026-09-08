@@ -393,13 +393,20 @@ async function listChars({ vault, query }) {
 
 // Тело запроса – ровно то же, что слал сайт: { folder, filename,
 // contentBase64, basePath }. Менять его значило бы править фронтенд.
+//
+// Расширение – раньше строго .webp (конвертация всегда шла через canvas
+// в браузере перед отправкой). "Оригинальное качество" при загрузке
+// (add-cover.js/chars-edit.js/favorites-edit.js) этот шаг сознательно
+// пропускает и шлёт файл как есть – отсюда расширенный список.
+const UPLOAD_IMAGE_EXTS = new Set(["webp", "png", "jpg", "jpeg", "gif"]);
 async function uploadCharImage({ vault, body }) {
   const { folder, filename, contentBase64, basePath } = body;
   const base = isSafeName(basePath) ? basePath : "chars";
   if (folder && !isSafeName(folder)) throw new ApiError("Недопустимое название папки");
   if (!isSafeFileName(filename)) throw new ApiError("Недопустимое название файла");
-  if (!filename.toLowerCase().endsWith(".webp")) {
-    throw new ApiError("Ожидается файл .webp (конвертация происходит в браузере перед отправкой)");
+  const ext = filename.toLowerCase().split(".").pop();
+  if (!UPLOAD_IMAGE_EXTS.has(ext)) {
+    throw new ApiError("Неподдерживаемый формат файла картинки");
   }
   if (!contentBase64 || typeof contentBase64 !== "string")
     throw new ApiError("Нет содержимого файла");
@@ -431,7 +438,7 @@ async function ensureCharsFolder({ vault, body }) {
 // обложки писался в ту же папку, что ручная загрузка – перенос с
 // разъехавшимся именем сломался бы без предупреждения.
 async function backupCover({ vault, body, compressImage }) {
-  const { url, filename } = body;
+  const { url, filename, original } = body;
   if (!url || typeof url !== "string" || !/^https?:\/\//.test(url)) {
     throw new ApiError("Нужна корректная ссылка (http/https)");
   }
@@ -487,8 +494,9 @@ async function backupCover({ vault, body, compressImage }) {
   // перекодирование в статичный webp, лучше оставить оригинал как есть.
   // Само сжатие – необязательный шаг: не удалось – сохраняем
   // оригинал, как было раньше, а не роняем сохранение обложки из-за
-  // этого.
-  if (compressImage && ext !== "gif") {
+  // этого. original – явный выбор человека хранить без сжатия вовсе
+  // (настройки → «Оригинальное качество» рядом с полем ссылки).
+  if (compressImage && !original && ext !== "gif") {
     try {
       const compressed = await compressImage(buffer, type);
       buffer = compressed.bytes;

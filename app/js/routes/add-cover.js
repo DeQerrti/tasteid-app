@@ -40,39 +40,6 @@ function syncCoverPanel() {
   document.getElementById("cover-panel").classList.toggle("hidden", !hasCover);
 }
 
-// ── Загрузка своей картинки как обложки (вместо/вместе со ссылкой) ──
-function convertCoverToWebp(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      const maxSide = Math.max(width, height);
-      if (maxSide > 1200) {
-        const scale = 1200 / maxSide;
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return reject(new Error(i18n("Не удалось сконвертировать")));
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result.split(",")[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        },
-        "image/webp",
-        0.85
-      );
-    };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
-}
-
 async function uploadCoverFile() {
   const fileInput = document.getElementById("f-cover-upload");
   const status = document.getElementById("cover-upload-status");
@@ -94,12 +61,13 @@ async function uploadCoverFile() {
   status.textContent = i18n("Обрабатываю...");
   status.style.color = "";
   try {
-    const base64 = await convertCoverToWebp(fileInput.files[0]);
+    const keepOriginal = document.getElementById("f-cover-original")?.checked || false;
+    const { base64, ext } = await encodeUploadFile(fileInput.files[0], keepOriginal);
     const res = await fetch("/api/upload-char-image", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ basePath: "covers", filename: slug + ".webp", contentBase64: base64 }),
+      body: JSON.stringify({ basePath: "covers", filename: `${slug}.${ext}`, contentBase64: base64 }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
@@ -162,11 +130,12 @@ async function backupCoverNow() {
   status.textContent = i18n("Делаю резервную копию обложки...");
   status.style.color = "";
   try {
+    const original = document.getElementById("f-cover-original")?.checked || false;
     const res = await fetch("/api/backup-cover", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, filename: slug }),
+      body: JSON.stringify({ url, filename: slug, original }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));

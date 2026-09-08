@@ -867,6 +867,60 @@ test("резервная копия обложки по ссылке сжима�
   );
 });
 
+test("резервная копия обложки с флагом original сохраняется без сжатия", async () => {
+  // Та же большая PNG, что и в тесте сжатия выше, – но с original: true
+  // (чекбокс «Оригинальное качество» в add-cover.js/chars-edit.js/
+  // favorites-edit.js). Должна лечь на диск как есть: тем же png, того
+  // же размера, а не пересобранным webp.
+  await withImageHost(
+    async ({ port }) => {
+      await withServer(async ({ api, root }) => {
+        const { status, data } = await api("POST", "/api/backup-cover", {
+          url: `http://127.0.0.1:${port}/cover.png`,
+          filename: "big-cover-original",
+          original: true,
+        });
+        assert.equal(status, 200);
+        assert.equal(data.ok, true);
+        assert.equal(
+          data.url,
+          "/covers-backup/big-cover-original.png",
+          "сохранено как png, без пересжатия в webp"
+        );
+
+        const saved = await fs.readFile(path.join(root, "covers-backup", "big-cover-original.png"));
+        assert.ok(
+          saved.length > 5000,
+          `оригинал заметно больше сжатого варианта (${saved.length} байт)`
+        );
+      });
+    },
+    { big: true }
+  );
+});
+
+test("загрузка своей картинки принимает не только webp (оригинальное качество)", async () => {
+  await withServer(async ({ api }) => {
+    // 1x1 PNG – та же заглушка, что использует withImageHost для
+    // некрупного случая; здесь важен только сам факт, что расширение
+    // .png теперь не отклоняется (раньше uploadCharImage требовал
+    // строго .webp, см. её же комментарий в core/api.js).
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64"
+    );
+    const { status, data } = await api("POST", "/api/upload-char-image", {
+      folder: "Original Quality",
+      filename: "portrait.png",
+      contentBase64: png.toString("base64"),
+      basePath: "chars",
+    });
+    assert.equal(status, 200);
+    assert.equal(data.ok, true);
+    assert.equal(data.url, "/chars/Original Quality/portrait.png");
+  });
+});
+
 test("зависший источник картинки не вешает запрос навсегда", async () => {
   await withImageHost(async ({ port }) => {
     await withServer(async ({ api }) => {

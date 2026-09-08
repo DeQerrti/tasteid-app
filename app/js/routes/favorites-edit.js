@@ -102,6 +102,7 @@ async function mount(container) {
             <span>${i18n("Выбрать файл")}</span>
           </label>
           <span class="file-btn-name" id="f-image-upload-name"></span>
+          <label class="original-quality-toggle"><input type="checkbox" id="f-image-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
           <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
         </div>
         <div class="field full" id="field-from">
@@ -733,38 +734,6 @@ function previewAvatar(url) {
   } else img.style.display = "none";
 }
 
-function convertImageToWebp(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      const maxSide = Math.max(width, height);
-      if (maxSide > 1200) {
-        const scale = 1200 / maxSide;
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return reject(new Error(i18n("Не удалось сконвертировать")));
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result.split(",")[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        },
-        "image/webp",
-        0.85
-      );
-    };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
-}
-
 async function uploadFavImage() {
   const fileInput = document.getElementById("f-image-upload");
   const status = document.getElementById("image-upload-status");
@@ -786,12 +755,13 @@ async function uploadFavImage() {
   status.textContent = i18n("Обрабатываю...");
   status.style.color = "";
   try {
-    const base64 = await convertImageToWebp(fileInput.files[0]);
+    const keepOriginal = document.getElementById("f-image-original")?.checked || false;
+    const { base64, ext } = await encodeUploadFile(fileInput.files[0], keepOriginal);
     const res = await fetch("/api/upload-char-image", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ basePath: "favorites", filename: slug + ".webp", contentBase64: base64 }),
+      body: JSON.stringify({ basePath: "favorites", filename: `${slug}.${ext}`, contentBase64: base64 }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
@@ -843,11 +813,12 @@ async function backupImageNow() {
   status.textContent = i18n("Делаю резервную копию картинки...");
   status.style.color = "";
   try {
+    const original = document.getElementById("f-image-original")?.checked || false;
     const res = await fetch("/api/backup-cover", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, filename: slug }),
+      body: JSON.stringify({ url, filename: slug, original }),
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));

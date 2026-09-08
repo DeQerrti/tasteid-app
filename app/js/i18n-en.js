@@ -563,6 +563,7 @@ i18nRegister({
     "Or upload a file – it will be compressed and converted to WebP automatically.",
   "Или загрузить с компьютера": "Or upload from your computer",
   "Или загрузить файл": "Or upload a file",
+  "Оригинальное качество (без сжатия)": "Original quality (no compression)",
   Импорт: "Import",
   Имя: "Name",
   "Имя персонажа": "Character name",

@@ -807,3 +807,20 @@ html:not(.kb-nav) *:focus {
     -webkit-user-drag: none;
   }
 }
+
+/* ══ ОРИГИНАЛЬНОЕ КАЧЕСТВО ЗАГРУЗКИ ══════════════
+   Один и тот же чекбокс-подпись – рядом с загрузкой файла в трёх
+   местах (add.js: обложка отзыва, chars-edit.js: персонажи/темы,
+   favorites-edit.js: «Любимое»), общий класс здесь, а не свой стиль в
+   каждом файле. */
+.original-quality-toggle {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .68rem;
+  color: var(--text-dim);
+  margin-top: .5rem;
+  cursor: pointer;
+  user-select: none;
+}
+.original-quality-toggle input { width: auto; margin: 0; }
