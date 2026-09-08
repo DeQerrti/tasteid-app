@@ -752,6 +752,13 @@ html:not(.kb-nav) *:focus {
   /* Квадратик выбора цвета — тоже кнопка по сути, но <input>. */
   body input[type="color"] { min-width: 44px; min-height: 44px; }
 
+  /* .original-quality-toggle (сам чекбокс) – обычные чекбоксы в
+     приложении нарочно не тронуты общим правилом ниже (там явное
+     :not([type="checkbox"])), но это единственный чекбокс на странице,
+     не спрятанный за своей кнопкой (в отличие от .fav-toggle) – под
+     пальцем должен быть не мельче остальных кнопок рядом. */
+  .original-quality-toggle input { width: 42px; height: 42px; }
+
   /* Поля ввода тем же ростом — в них ещё и попадают курсором набора. */
   body :is(select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="file"])) {
     min-height: 44px;
