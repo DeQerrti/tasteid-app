@@ -104,10 +104,23 @@ async function renderRoute() {
     // тот же самый случай, только "скрытие" происходит через shell
     // целиком, а не через отдельный .tab-content – передекодируем
     // картинки уже АКТИВНОЙ (не .hidden) вкладки сразу по возврату.
+    const activeTab = shell.querySelector(".tab-content:not(.hidden)");
     if (typeof window.__mobileForceResolveImages === "function") {
-      const activeTab = shell.querySelector(".tab-content:not(.hidden)");
       const imgs = activeTab ? Array.from(activeTab.querySelectorAll("img")) : [];
       if (imgs.length) window.__mobileForceResolveImages(imgs);
+    }
+    // Статистика меряет свою же вёрстку в JS (matchTagsCardHeight/
+    // fitOversizedTags, stats.js), чтобы подогнать высоту и шрифт тегов
+    // под соседний блок. Если правку в /settings-edit (например, скрыть/
+    // показать блок статистики) сохранили, вкладка «Статусы» уже
+    // перерисовалась через refreshOpenReviewsTab() (api.js) – но в тот
+    // момент она ещё стояла позади открытого маршрута настроек
+    // (shell.hidden), то есть измерения ушли в нули (см. её же
+    // offsetParent-подстраховку в matchTagsCardHeight). Здесь вкладка
+    // уже видна взаправду – перемеряем всё ещё раз, теперь с настоящими
+    // числами, а не показываем то, что успело посчитаться по нулям.
+    if (activeTab?.id === "tab-stats" && typeof window.loadStats === "function") {
+      window.loadStats();
     }
     return;
   }
