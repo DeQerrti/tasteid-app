@@ -69,10 +69,65 @@ function statsRender() {
   box.innerHTML = filtersHtml + bodyHtml;
 
   fixLoneStatCard();
+  // matchTagsCardHeight() – раньше fitOversizedTags(). Порядок важен:
+  // до ограничения высоты у облака тегов ещё нет своей вертикальной
+  // прокрутки и scrollbar её не отъедает от ширины ряда; как только
+  // matchTagsCardHeight() выставляет max-height и прокрутка появляется,
+  // она забирает под себя ~15px ширины – тег, который влезал секунду
+  // назад, мог как раз в этот запас и не влезть. Меряем реальную ширину
+  // уже после того, как скроллбар (если он будет) точно на месте.
+  matchTagsCardHeight();
   fitOversizedTags();
   animateCounters();
   animateStackedBars();
   statsBindAll();
+}
+
+// Тегов может быть куда больше, чем влезает в высоту соседней карточки
+// в той же строке грида (например, "Пересмотры") – раньше облако тегов
+// просто росло сколько нужно, растягивая заодно и всю строку грида
+// (align-items: stretch), и соседка с коротким содержимым оставалась
+// растянутой заодно, с пустотой внутри. Нужно наоборот: высоту строки
+// должна задавать соседка, а лишние теги сверх этой высоты – прятаться
+// под свою прокрутку внутри карточки тегов, а не раздувать строку.
+//
+// Мерить "естественную" высоту соседки нельзя напрямую через
+// getBoundingClientRect() – та уже растянута тем же align-items:
+// stretch под текущую (раздутую тегами) высоту строки, а не под
+// собственное содержимое. На время замера снимаем растяжение у обеих
+// карточек (align-self: start) – тогда у каждой видна её настоящая
+// высота, meряем соседку, и сразу возвращаем как было; после этого
+// max-height у .stat-tag-cloud, а не у всей карточки – карточка
+// по-прежнему тянется вместе со строкой (визуально совпадает с
+// соседкой), просто её содержимому внутри этого предела уже некуда
+// расти дальше, кроме собственной прокрутки.
+function matchTagsCardHeight() {
+  const tagsCard = document.querySelector(".stat-card-tags");
+  if (!tagsCard) return;
+  const cloud = tagsCard.querySelector(".stat-tag-cloud");
+  const header = tagsCard.querySelector(".section-title");
+  if (!cloud || !header) return;
+
+  cloud.style.maxHeight = "";
+
+  const grid = tagsCard.closest(".stat-grid");
+  if (!grid) return;
+  const myTop = tagsCard.getBoundingClientRect().top;
+  const sibling = [...grid.children].find(
+    (el) => el !== tagsCard && Math.abs(el.getBoundingClientRect().top - myTop) < 1
+  );
+  // Одна в своей строке (нечётное число блоков, см. fixLoneStatCard) –
+  // сравнивать не с кем, пусть занимает столько высоты, сколько нужно.
+  if (!sibling) return;
+
+  tagsCard.style.alignSelf = "start";
+  sibling.style.alignSelf = "start";
+  const siblingHeight = sibling.getBoundingClientRect().height;
+  const overhead = tagsCard.getBoundingClientRect().height - cloud.getBoundingClientRect().height;
+  tagsCard.style.alignSelf = "";
+  sibling.style.alignSelf = "";
+
+  cloud.style.maxHeight = `${Math.max(40, siblingHeight - overhead)}px`;
 }
 
 // Тег, который даже один в своей строке шире самой карточки (частый тег
@@ -104,8 +159,14 @@ function fitOversizedTags() {
       // Нижняя граница (.55rem) – защита от нечитаемо мелкого текста на
       // экстремально длинном теге; ниже неё уже подключается ellipsis
       // из CSS как последний рубеж, а не подгонка размера.
+      //
+      // "- 1" в сравнении – scrollWidth/clientWidth округляются до
+      // целого пикселя, а реальная раскладка у браузера дробная: тег на
+      // грани (например, 124.4px факта при обоих счётчиках "124") мог
+      // формально совпасть по int-сравнению и всё равно попасть под
+      // ellipsis из CSS на долю пикселя. Запас в 1px убирает эту грань.
       let guard = 0;
-      while (tag.scrollWidth > tag.clientWidth && size > 0.55 && guard < 20) {
+      while (tag.scrollWidth > tag.clientWidth - 1 && size > 0.55 && guard < 20) {
         size -= 0.05;
         tag.style.fontSize = `${size.toFixed(2)}rem`;
         guard++;

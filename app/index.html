@@ -259,6 +259,19 @@ body.rail-collapsed #rail-edge-trigger {
     border-right: none; border-top: 1px solid var(--border);
     backdrop-filter: blur(20px);
     z-index: 50;
+    /* translateZ(0)/will-change – overscroll-behavior-y: none на body
+       (style.css) не убрал "прыжок" панели при резком отскоке до конца
+       списка на Android; похоже, дело не в самом отскоке, а в том, как
+       WebView компонует именно ЭТОТ fixed-элемент во время скролла –
+       у него ещё и backdrop-filter, а это сама по себе дорогая операция
+       компоновки, которая на Android нередко даёт визартефакты
+       (дрожание/смещение) именно у position: fixed поверх скролла.
+       Явный перевод в свой composited-слой (тот же приём, что и для
+       "прыгающих" fixed-панелей в other общих отчётах об Android
+       WebView) отделяет её перерисовку от перерисовки скроллящегося
+       контента под ней. Не проверено на реальном устройстве. */
+    transform: translateZ(0);
+    will-change: transform;
   }
   /* .rail-foot больше не в этом списке: раньше вся нижняя часть
      рельсы (а с ней и единственная ссылка на /settings-edit) на

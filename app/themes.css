@@ -190,7 +190,8 @@
 
 /* Бейджи: цвета приходят переменными выше, здесь только форма и отступ */
 [data-skin="soft"] .type-tag,
-[data-skin="soft"] .watch-badge {
+[data-skin="soft"] .watch-badge,
+[data-skin="soft"] .rewatch-badge {
   top: 0.5rem;
   border-radius: var(--radius-btn, 999px);
   border: none;
@@ -199,7 +200,8 @@
 [data-skin="soft"] .type-tag {
   right: 0.5rem;
 }
-[data-skin="soft"] .watch-badge {
+[data-skin="soft"] .watch-badge,
+[data-skin="soft"] .rewatch-badge {
   left: 0.5rem;
 }
 
@@ -434,7 +436,8 @@
 }
 
 [data-skin="soft-dark"] .type-tag,
-[data-skin="soft-dark"] .watch-badge {
+[data-skin="soft-dark"] .watch-badge,
+[data-skin="soft-dark"] .rewatch-badge {
   top: 0.5rem;
   border-radius: var(--radius-btn, 999px);
   border: none;
@@ -443,7 +446,8 @@
 [data-skin="soft-dark"] .type-tag {
   right: 0.5rem;
 }
-[data-skin="soft-dark"] .watch-badge {
+[data-skin="soft-dark"] .watch-badge,
+[data-skin="soft-dark"] .rewatch-badge {
   left: 0.5rem;
 }
 
@@ -757,7 +761,8 @@ html[data-skin="brutal"] h2 {
 
 /* ── Бейджи на обложках ── */
 [data-skin="brutal"] .type-tag,
-[data-skin="brutal"] .watch-badge {
+[data-skin="brutal"] .watch-badge,
+[data-skin="brutal"] .rewatch-badge {
   top: 0;
   border-radius: 0;
   border: none;
@@ -768,7 +773,8 @@ html[data-skin="brutal"] h2 {
 [data-skin="brutal"] .type-tag {
   right: 0;
 }
-[data-skin="brutal"] .watch-badge {
+[data-skin="brutal"] .watch-badge,
+[data-skin="brutal"] .rewatch-badge {
   left: 0;
 }
 
@@ -1043,7 +1049,8 @@ html[data-skin="brutal-dark"] h2 {
 }
 
 [data-skin="brutal-dark"] .type-tag,
-[data-skin="brutal-dark"] .watch-badge {
+[data-skin="brutal-dark"] .watch-badge,
+[data-skin="brutal-dark"] .rewatch-badge {
   top: 0;
   border-radius: 0;
   border: none;
@@ -1054,7 +1061,8 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="brutal-dark"] .type-tag {
   right: 0;
 }
-[data-skin="brutal-dark"] .watch-badge {
+[data-skin="brutal-dark"] .watch-badge,
+[data-skin="brutal-dark"] .rewatch-badge {
   left: 0;
 }
 
@@ -1321,7 +1329,8 @@ html[data-skin="brutal-dark"] h2 {
 
 /* ── Бейджи на обложках ── */
 [data-skin="neomorphism"] .type-tag,
-[data-skin="neomorphism"] .watch-badge {
+[data-skin="neomorphism"] .watch-badge,
+[data-skin="neomorphism"] .rewatch-badge {
   top: 0.5rem;
   border-radius: var(--radius-btn);
   border: none;
@@ -1330,7 +1339,8 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism"] .type-tag {
   right: 0.5rem;
 }
-[data-skin="neomorphism"] .watch-badge {
+[data-skin="neomorphism"] .watch-badge,
+[data-skin="neomorphism"] .rewatch-badge {
   left: 0.5rem;
 }
 
@@ -1650,7 +1660,8 @@ html[data-skin="brutal-dark"] h2 {
 }
 
 [data-skin="neomorphism-dark"] .type-tag,
-[data-skin="neomorphism-dark"] .watch-badge {
+[data-skin="neomorphism-dark"] .watch-badge,
+[data-skin="neomorphism-dark"] .rewatch-badge {
   top: 0.5rem;
   border-radius: var(--radius-btn);
   border: none;
@@ -1659,7 +1670,8 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism-dark"] .type-tag {
   right: 0.5rem;
 }
-[data-skin="neomorphism-dark"] .watch-badge {
+[data-skin="neomorphism-dark"] .watch-badge,
+[data-skin="neomorphism-dark"] .rewatch-badge {
   left: 0.5rem;
 }
 
@@ -1932,6 +1944,7 @@ html[data-skin="brutal-dark"] h2 {
 }
 [data-skin="doodle"] .type-tag,
 [data-skin="doodle"] .watch-badge,
+[data-skin="doodle"] .rewatch-badge,
 [data-skin="doodle"] .rtag,
 [data-skin="doodle"] .grade-chip,
 [data-skin="doodle"] .btn,
@@ -2039,7 +2052,8 @@ html[data-skin="brutal-dark"] h2 {
 
 /* ── Бейджи на обложках ── */
 [data-skin="doodle"] .type-tag,
-[data-skin="doodle"] .watch-badge {
+[data-skin="doodle"] .watch-badge,
+[data-skin="doodle"] .rewatch-badge {
   top: 0.5rem;
   border-radius: var(--doodle-wobble-pill);
   border: 1.5px solid var(--badge-border);
@@ -2049,7 +2063,8 @@ html[data-skin="brutal-dark"] h2 {
   right: 0.5rem;
   transform: rotate(2deg);
 }
-[data-skin="doodle"] .watch-badge {
+[data-skin="doodle"] .watch-badge,
+[data-skin="doodle"] .rewatch-badge {
   left: 0.5rem;
   transform: rotate(-2deg);
 }
@@ -2345,6 +2360,7 @@ html[data-skin="brutal-dark"] h2 {
 }
 [data-skin="doodle-dark"] .type-tag,
 [data-skin="doodle-dark"] .watch-badge,
+[data-skin="doodle-dark"] .rewatch-badge,
 [data-skin="doodle-dark"] .rtag,
 [data-skin="doodle-dark"] .grade-chip,
 [data-skin="doodle-dark"] .btn,
@@ -2423,7 +2439,8 @@ html[data-skin="brutal-dark"] h2 {
 }
 
 [data-skin="doodle-dark"] .type-tag,
-[data-skin="doodle-dark"] .watch-badge {
+[data-skin="doodle-dark"] .watch-badge,
+[data-skin="doodle-dark"] .rewatch-badge {
   top: 0.5rem;
   border-radius: var(--doodle-wobble-pill);
   border: 1.5px solid var(--badge-border);
@@ -2433,7 +2450,8 @@ html[data-skin="brutal-dark"] h2 {
   right: 0.5rem;
   transform: rotate(2deg);
 }
-[data-skin="doodle-dark"] .watch-badge {
+[data-skin="doodle-dark"] .watch-badge,
+[data-skin="doodle-dark"] .rewatch-badge {
   left: 0.5rem;
   transform: rotate(-2deg);
 }
