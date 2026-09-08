@@ -752,13 +752,6 @@ html:not(.kb-nav) *:focus {
   /* Квадратик выбора цвета — тоже кнопка по сути, но <input>. */
   body input[type="color"] { min-width: 44px; min-height: 44px; }
 
-  /* .original-quality-toggle (сам чекбокс) – обычные чекбоксы в
-     приложении нарочно не тронуты общим правилом ниже (там явное
-     :not([type="checkbox"])), но это единственный чекбокс на странице,
-     не спрятанный за своей кнопкой (в отличие от .fav-toggle) – под
-     пальцем должен быть не мельче остальных кнопок рядом. */
-  .original-quality-toggle input { width: 42px; height: 42px; }
-
   /* Поля ввода тем же ростом — в них ещё и попадают курсором набора. */
   body :is(select, textarea, input:not([type="checkbox"]):not([type="radio"]):not([type="file"])) {
     min-height: 44px;
@@ -830,4 +823,51 @@ html:not(.kb-nav) *:focus {
   cursor: pointer;
   user-select: none;
 }
-.original-quality-toggle input { width: auto; margin: 0; }
+/* min-width: 0 на тексте – без него подпись не переносится на узких
+   полях (favorites-edit.js на телефоне: 340px на поле, ~452px нужно
+   тексту в одну строку) и толкает всю строку за экран вбок. У флекс-
+   элемента по умолчанию min-width: auto – это и есть "не сжимайся
+   меньше содержимого", поэтому перенос не включался сам, хотя место
+   для нескольких строк было. Тот же класс бага, что не раз уже был в
+   этом проекте с текстом внутри flex/grid (см. CLAUDE.md). */
+.original-quality-toggle span { min-width: 0; }
+/* Без этого чекбокс наследует базовый сброс полей ввода той страницы,
+   на которой оказался, – каждая страница описывает его по-своему
+   (add.html: `input, textarea, select`; index.html: `.fe-view input,
+   .fe-view select` для favorites-edit, свой аналог у chars-edit) –
+   width:100%, appearance:none, собственные background/border/padding
+   под текстовые поля. Результат один и тот же: не маленький чекбокс, а
+   пустая прямоугольная плашка на всю ширину поля, без единого признака
+   "это чекбокс" (appearance:none стирает галочку, заменить её нечем).
+   [type="checkbox"] в селекторе – не для точности отбора (внутри
+   .original-quality-toggle другого input и нет), а ради специфичности:
+   у `.fe-view input` тоже один класс и один тег, то есть тот же вес,
+   что и у простого `.original-quality-toggle input` – какое из двух
+   правил выигрывает, решал бы порядок в документе, разный на разных
+   страницах. Атрибут поднимает вес правила настолько, чтобы побеждать
+   в любом случае, независимо от того, на какой странице оказался. */
+.original-quality-toggle input[type="checkbox"] {
+  appearance: auto;
+  width: 16px;
+  height: 16px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  flex-shrink: 0;
+  accent-color: var(--red);
+}
+/* Крупнее под палец – после безусловного правила выше, а не в общем
+   @media (pointer: coarse) блоке раньше по файлу: та же ловушка с
+   каскадом, что уже не раз встречалась в этом проекте (см. CLAUDE.md,
+   "CSS-каскад") – более позднее безусловное правило той же
+   специфичности перебивает более раннее внутри @media, а не наоборот.
+   Этот единственный видимый чекбокс в приложении (остальные спрятаны за
+   .fav-toggle) иначе остался бы мельче минимума в 40px, на котором уже
+   один раз ловил тест tests/browser/mobile-layout.mjs. */
+@media (pointer: coarse) {
+  .original-quality-toggle input[type="checkbox"] { width: 42px; height: 42px; }
+}

@@ -151,7 +151,7 @@ async function mount(container, params) {
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="nt-cover-upload-name"></span>
-            <label class="original-quality-toggle"><input type="checkbox" id="nt-cover-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
+            <label class="original-quality-toggle"><input type="checkbox" id="nt-cover-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
             <div id="nt-cover-upload-status" style="font-family:'DM Sans',sans-serif;font-size:.7rem;margin-top:.3rem"></div>
           </div>
           <div style="display:flex;gap:.5rem">
@@ -199,7 +199,7 @@ async function mount(container, params) {
             <input type="text" id="m-img" placeholder="https://..." oninput="previewModalImg(this.value); scheduleBackupModalImg();">
             <input type="hidden" id="m-img-backup">
             <img id="m-img-preview" class="img-preview">
-            <label class="original-quality-toggle"><input type="checkbox" id="m-img-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
+            <label class="original-quality-toggle"><input type="checkbox" id="m-img-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
             <div id="m-img-backup-status" style="font-size:.75rem;margin-top:.35rem;"></div>
           </div>
         </div>
@@ -212,7 +212,7 @@ async function mount(container, params) {
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="m-upload-file-name"></span>
-            <label class="original-quality-toggle"><input type="checkbox" id="m-upload-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
+            <label class="original-quality-toggle"><input type="checkbox" id="m-upload-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
             <div id="upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
           </div>
           <div class="batch-upload-list hidden" id="batch-upload-list"></div>

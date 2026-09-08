@@ -102,7 +102,7 @@ async function mount(container) {
             <span>${i18n("Выбрать файл")}</span>
           </label>
           <span class="file-btn-name" id="f-image-upload-name"></span>
-          <label class="original-quality-toggle"><input type="checkbox" id="f-image-original"> ${i18n("Оригинальное качество (без сжатия)")}</label>
+          <label class="original-quality-toggle"><input type="checkbox" id="f-image-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
           <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
         </div>
         <div class="field full" id="field-from">
