@@ -129,8 +129,18 @@ function matchTagsCardHeight() {
     (el) => el !== tagsCard && Math.abs(el.getBoundingClientRect().top - myTop) < 1
   );
   // Одна в своей строке (нечётное число блоков, см. fixLoneStatCard) –
-  // сравнивать не с кем, пусть занимает столько высоты, сколько нужно.
-  if (!sibling) return;
+  // сравнивать не с кем. На ПК колонка и так не на всю ширину экрана –
+  // пусть занимает столько высоты, сколько нужно. На телефоне же
+  // одинокий блок растягивается на всю ширину экрана (.stat-card-solo,
+  // index.html) и с ней же – сколько бы ни было тегов, они укладывались
+  // в 1-2 строки почти во всю длину телефона, а не оставались тем же
+  // компактным блоком, каким были рядом с соседкой. Ограничиваем той же
+  // высотой в 4 строки, что и раньше была бы видна рядом с соседкой –
+  // остальное так же под прокрутку внутри.
+  if (!sibling) {
+    if (window.matchMedia("(max-width: 700px)").matches) capToRows(cloud, 4);
+    return;
+  }
 
   tagsCard.style.alignSelf = "start";
   sibling.style.alignSelf = "start";
@@ -140,6 +150,24 @@ function matchTagsCardHeight() {
   sibling.style.alignSelf = "";
 
   cloud.style.maxHeight = `${Math.max(40, siblingHeight - overhead)}px`;
+}
+
+// Высота одной строки тегов не фиксированная константа – у каждого тега
+// свой размер шрифта (scale в renderTagCloud), поэтому меряем по факту:
+// берём реальные позиции уже отрисованных (не ограниченных по высоте)
+// тегов и находим, на какой высоте начинается пятая строка – именно
+// туда и обрезаем, а не гадаем "среднюю" высоту строки заранее.
+function capToRows(cloud, rows) {
+  const items = [...cloud.children];
+  if (!items.length) return;
+  const rowTops = [...new Set(items.map((el) => Math.round(el.getBoundingClientRect().top)))].sort(
+    (a, b) => a - b
+  );
+  // Строк и так меньше предела – обрезать нечего.
+  if (rowTops.length <= rows) return;
+  const firstHeight = items[0].getBoundingClientRect().height;
+  const rowStep = rowTops[1] - rowTops[0];
+  cloud.style.maxHeight = `${firstHeight + rowStep * (rows - 1)}px`;
 }
 
 // Тег, который даже один в своей строке шире самой карточки (частый тег
