@@ -1,16 +1,16 @@
-// Заброшенные резервные копии обложки больше не копятся на диске —
+// Резервные копии обложки больше не удаляются друг за другом сами —
 // в настоящем браузере, на настоящем редакторе отзыва (add.html).
 //
-// Владелец заметил: вставляешь ссылку на обложку – создаётся резервная
-// копия; вставляешь другую ссылку поверх – создаётся вторая, а первая
-// остаётся лежать в covers-backup/ навсегда, никем больше не
-// используемая. core/api.js: backupCover() создавал новый файл при
-// каждой смене ссылки, но ничего не удаляло. Здесь проверяется, что
-// js/routes/add.js теперь удаляет действительно ненужную копию – но с
-// одним важным условием: копию, на которую ссылается уже СОХРАНЁННЫЙ
-// отзыв, нельзя трогать раньше, чем сохранение подтвердит замену –
-// иначе уход из редактора без сохранения испортил бы то, что видно на
-// уже сохранённом отзыве.
+// Раньше вставка новой ссылки поверх старой тихо стирала предыдущую
+// резервную копию (discardScratchCoverBackup) — владелец попросил
+// обратное: пусть все резервные копии, когда-либо сделанные для этого
+// отзыва, копятся в cover_gallery и остаются на диске, а не теряются
+// без возможности вернуться. Единственный способ и правда удалить
+// картинку теперь — явный крестик в мини-галерее (js/gallery-modal.js,
+// openCoverGallery в add-cover.js). Здесь проверяется именно это: ни
+// замена ссылки, ни очистка поля, ни сохранение, ни уход со страницы
+// без сохранения сами по себе ничего не стирают — а явное удаление
+// через галерею стирает.
 //
 // Запуск: node tests/browser/cover-backup-cleanup.mjs
 // playwright — обычная devDependency. В npm run check не входит (нужен
@@ -81,7 +81,7 @@ const listBackups = () => {
 await page.goto(`http://127.0.0.1:${port}/add.html`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector("#f-title");
 
-console.log("Новый отзыв: вставляем ссылку, потом другую — старая копия должна исчезнуть");
+console.log("Новый отзыв: вставляем ссылку, потом другую — обе должны остаться (галерея)");
 await page.fill("#f-title", "Тест копий");
 await page.click("#cover-add-btn");
 await page.waitForSelector("#f-cover", { state: "visible" });
@@ -101,21 +101,19 @@ await page.waitForFunction(() => document.getElementById("f-cover-backup").value
 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 1,
-  `после замены ссылки старая копия удалена, на диске всё ещё один файл (сейчас: ${listBackups().length})`
+  listBackups().length === 2,
+  `после замены ссылки старая копия НЕ удалена — на диске оба файла (сейчас: ${listBackups().length})`
 );
 
-console.log("Стираем ссылку целиком — копия должна удалиться, раз отзыв ещё не сохранён с ней");
+console.log("Стираем ссылку целиком — обе копии всё равно остаются (стирается только поле формы)");
 await page.fill("#f-cover", "");
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 0,
-  `после стирания ссылки на диске пусто (сейчас: ${listBackups().length})`
+  listBackups().length === 2,
+  `после стирания ссылки на диске по-прежнему оба файла (сейчас: ${listBackups().length})`
 );
 
-console.log(
-  "Сохранённый отзыв: правка + сохранение должны удалить старую копию только после успешного сохранения"
-);
+console.log("Сохранение отзыва не удаляет ни одну из накопленных копий");
 await page.fill("#f-cover", coverUrl("three"));
 await page.waitForFunction(() => document.getElementById("f-cover-backup").value.length > 0, null, {
   timeout: 5000,
@@ -132,15 +130,25 @@ await page.waitForFunction(
 );
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 1,
-  `после сохранения на диске одна копия (сейчас: ${listBackups().length})`
+  listBackups().length === 3,
+  `после сохранения все три копии на месте, ни одна не потерялась (сейчас: ${listBackups().length})`
+);
+
+const savedId = await page.evaluate(
+  async () => (await (await fetch("/reviews.json")).json())[0].id
+);
+const savedGallery = await page.evaluate(
+  async (id) =>
+    (await (await fetch("/reviews.json")).json()).find((r) => r.id === id).cover_gallery,
+  savedId
+);
+ok(
+  Array.isArray(savedGallery) && savedGallery.length === 3,
+  `cover_gallery отзыва в reviews.json несёт все три ссылки (сейчас: ${savedGallery?.length})`
 );
 
 console.log(
-  "Открыть на редактирование, заменить обложку — старая должна уйти только после повторного сохранения"
-);
-const savedId = await page.evaluate(
-  async () => (await (await fetch("/reviews.json")).json())[0].id
+  "Открыть на редактирование, вставить ещё одну ссылку, уйти БЕЗ сохранения — ничего не удаляется"
 );
 await page.goto(`http://127.0.0.1:${port}/add.html?edit=${savedId}`, {
   waitUntil: "domcontentloaded",
@@ -154,36 +162,41 @@ await page.waitForFunction(() => document.getElementById("f-cover-backup").value
 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
-  `до сохранения правки — старая (сохранённая) копия ещё на месте, новая тоже уже создана (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `новая ссылка добавила четвёртый файл, старые три никуда не делись (сейчас: ${listBackups().length})`
 );
 
-await page.click("#btn-save");
-await page.waitForFunction(
-  () => document.getElementById("status")?.textContent?.includes("обновлён"),
-  null,
-  { timeout: 5000 }
-);
+await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 1,
-  `после сохранения правки старая копия удалена, осталась одна новая (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `ушли без сохранения — все четыре копии всё ещё на диске (сейчас: ${listBackups().length})`
 );
 
-console.log(
-  "Открыть на редактирование, стереть ссылку, уйти БЕЗ сохранения — копия должна остаться"
-);
+console.log("Явное удаление в мини-галерее — вот это уже правда удаляет файл");
 await page.goto(`http://127.0.0.1:${port}/add.html?edit=${savedId}`, {
   waitUntil: "domcontentloaded",
 });
 await page.waitForFunction(() => document.getElementById("f-title")?.value === "Тест копий", null, {
   timeout: 5000,
 });
-await page.fill("#f-cover", "");
-await new Promise((r) => setTimeout(r, 300));
+await page.click("#cover-img");
+await page.waitForSelector("#gallery-modal-overlay:not(.hidden)", { timeout: 5000 });
+const itemsBefore = await page.$$eval(
+  "#gallery-modal-grid .gallery-modal-item",
+  (els) => els.length
+);
 ok(
-  listBackups().length === 1,
-  `ушли без сохранения — старая (сохранённая) копия не тронута (сейчас: ${listBackups().length})`
+  itemsBefore === 3,
+  `галерея сохранённого отзыва показывает три картинки (сейчас: ${itemsBefore})`
+);
+await page.click("#gallery-modal-grid .gallery-modal-item .gallery-modal-del");
+await page.waitForSelector('.confirm-dialog-actions [data-act="ok"]', { timeout: 5000 });
+await page.click('.confirm-dialog-actions [data-act="ok"]');
+await new Promise((r) => setTimeout(r, 400));
+ok(
+  listBackups().length === 3,
+  `удаление одной картинки из галереи и правда стёрло файл (сейчас: ${listBackups().length})`
 );
 
 console.log("JS ошибки:", jsErrors);
@@ -196,4 +209,4 @@ if (failures.length) {
   console.log("\nПРОБЛЕМЫ:\n" + failures.join("\n"));
   process.exit(1);
 }
-console.log("\nзаброшенные копии больше не копятся");
+console.log("\nгалерея обложек копится и удаляется только явно");

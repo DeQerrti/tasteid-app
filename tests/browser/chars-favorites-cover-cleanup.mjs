@@ -1,29 +1,23 @@
-// Заброшенные резервные копии не копятся у персонажей и у "Любимого"
-// тоже — та же проверка, что tests/browser/cover-backup-cleanup.mjs
-// делает для отзывов, только для двух других редакторов, которые
-// пользуются тем же самым /api/backup-cover и тем же самым
-// covers-backup/.
+// Персонажи и "Любимое" — та же проверка, что tests/browser/
+// cover-backup-cleanup.mjs делает для отзывов, только для двух других
+// редакторов, которые пользуются тем же самым /api/backup-cover и тем
+// же самым covers-backup/.
 //
-// favorites-edit.js устроен как add.js (сохранение по одной записи
-// сразу) — discardScratchImageBackup там дословно повторяет
-// discardScratchCoverBackup. chars-edit.js устроен иначе: весь тир-лист
-// правится в памяти и пишется на диск разом кнопкой "Сохранить всё"
-// (saveAll), поэтому там: черновая копия обложки тайтла удаляется
-// сразу при замене (нечем перезаписать ещё не сохранённое), а старая
-// копия, уже лежавшая на диске, удаляется только после того, как
-// saveAll() подтвердит новую версию (pendingBackupCleanup) — тот же
-// принцип "не трогать раньше подтверждённого сохранения", что и в
-// add.js, только под другую архитектуру редактора. У персонажа в
-// модалке добавления такой пары нет вовсе (модалка только добавляет
-// новых, не подменяет уже сохранённых) — там черновая копия удаляется
-// сразу же и при замене ссылки, и при закрытии модалки без добавления.
-//
-// Отдельная группа проверок ниже — не замена ссылки, а именно уход БЕЗ
-// сохранения (кнопка «Отмена», «Новая запись», переход на другой
-// маршрут): раньше discardScratch*Backup() в обоих редакторах звалась
-// только при повторном изменении поля в том же сеансе, а не при уходе
-// как таковом — черновик, вставленный один раз и оставленный как есть,
-// протекал мимо всех трёх проверок выше и оставался на диске навсегда.
+// favorites-edit.js больше не удаляет ничего сам за картинку персонажа/
+// персоны (см. её же комментарий у favImageGallery в favorites-edit.js
+// и у coverGallery в add-cover.js) — все резервные копии, когда-либо
+// сделанные для записи, копятся и остаются на диске что при замене
+// ссылки, что при уходе со страницы без сохранения; удалить может
+// только явный крестик в мини-галерее (не проверяется здесь отдельно —
+// см. cover-backup-cleanup.mjs, тот же компонент js/gallery-modal.js).
+// chars-edit.js в этой правке не менялся вовсе — устроен иначе (весь
+// тир-лист правится в памяти и пишется на диск разом кнопкой
+// "Сохранить всё"): черновая копия обложки тайтла как удалялась сразу
+// при замене (нечем перезаписать ещё не сохранённое), так и удаляется;
+// старая копия, уже лежавшая на диске, — как и раньше, только после
+// того, как saveAll() подтвердит новую версию. У персонажа в модалке
+// добавления та же логика, что и раньше: черновая копия удаляется сразу
+// же и при замене ссылки, и при закрытии модалки без добавления.
 //
 // Запуск: node tests/browser/chars-favorites-cover-cleanup.mjs
 // playwright — обычная devDependency. В npm run check не входит (нужен
@@ -107,8 +101,8 @@ await page.waitForFunction(() => document.getElementById("f-image-backup").value
 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 1,
-  `после замены ссылки старая копия удалена, всё ещё один файл (сейчас: ${listBackups().length})`
+  listBackups().length === 2,
+  `после замены ссылки старая копия НЕ удалена — теперь два файла (сейчас: ${listBackups().length})`
 );
 
 await page.click("#btn-save");
@@ -124,8 +118,8 @@ await page.waitForFunction(
 );
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 1,
-  `после сохранения запись на диске одна копия (сейчас: ${listBackups().length})`
+  listBackups().length === 2,
+  `после сохранения обе копии на месте — image_gallery сохранил обе (сейчас: ${listBackups().length})`
 );
 
 console.log(
@@ -144,8 +138,8 @@ await page.waitForFunction(
 );
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
-  `плюс обложка тайтла — теперь два файла всего (сейчас: ${listBackups().length})`
+  listBackups().length === 3,
+  `плюс обложка тайтла — теперь три файла всего (сейчас: ${listBackups().length})`
 );
 
 await page.fill("#nt-cover", imgUrl("cover-two"));
@@ -156,14 +150,14 @@ await page.waitForFunction(
 );
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
-  `замена ссылки на обложку тайтла удалила черновую, всё ещё два файла (сейчас: ${listBackups().length})`
+  listBackups().length === 3,
+  `замена ссылки на обложку тайтла удалила черновую, всё ещё три файла (сейчас: ${listBackups().length})`
 );
 
 await page.click("#nt-submit-btn");
 await page.waitForTimeout(300);
 ok(
-  listBackups().length === 2,
+  listBackups().length === 3,
   `тайтл добавлен в память, файл обложки цел (сейчас: ${listBackups().length})`
 );
 
@@ -178,8 +172,8 @@ await page.waitForFunction(() => document.getElementById("m-img-backup").value.l
 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 3,
-  `плюс черновая копия персонажа — три файла (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `плюс черновая копия персонажа — четыре файла (сейчас: ${listBackups().length})`
 );
 
 await page.fill("#m-img", imgUrl("char-two"));
@@ -188,14 +182,14 @@ await page.waitForFunction(() => document.getElementById("m-img-backup").value.l
 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 3,
-  `замена ссылки персонажа удалила черновую, всё ещё три файла (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `замена ссылки персонажа удалила черновую, всё ещё четыре файла (сейчас: ${listBackups().length})`
 );
 
 await page.click("#modal-overlay .modal-close, #modal-overlay [onclick*='closeModal']");
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
+  listBackups().length === 3,
   `закрытие модалки без добавления удалило черновую копию персонажа (сейчас: ${listBackups().length})`
 );
 
@@ -210,14 +204,20 @@ await page.waitForFunction(
 );
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
-  `после «Сохранить всё» по-прежнему два файла: тайтл и запись любимого (сейчас: ${listBackups().length})`
+  listBackups().length === 3,
+  `после «Сохранить всё» по-прежнему три файла: тайтл и вся галерея любимого (сейчас: ${listBackups().length})`
 );
 
-console.log("«Любимое»: черновик брошен уходом со страницы, а не заменой ссылки/сохранением");
-// Раньше discardScratchImageBackup() звалась только когда поле меняется
-// ЕЩЁ раз в том же сеансе (см. коммит) – просто уйти со страницы, не
-// тронув форму снова и не сохранив, оставляло файл ничьим навсегда.
+console.log(
+  "«Любимое»: черновик брошен уходом со страницы — файл остаётся (сама запись не сохранена)"
+);
+// Раньше это удаляло файл (discardScratchImageBackup при уходе с
+// маршрута) – теперь favorites-edit.js ничего сам не чистит (см. её же
+// комментарий у favImageGallery выше): бросить страницу, не сохранив
+// форму, оставляет уже сделанную резервную копию на диске точно так
+// же, как бросить её после замены ссылки. Сама ЗАПИСЬ при этом всё
+// равно не попадает в favorites.json – туда что-либо пишет только
+// saveEntry().
 await page.goto(`http://127.0.0.1:${port}/#/favorites-edit`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector("#f-name");
 await page.fill("#f-name", "Брошенная запись");
@@ -227,15 +227,15 @@ await page.waitForFunction(() => document.getElementById("f-image-backup").value
 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 3,
-  `черновик картинки создан — три файла (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `черновик картинки создан — четыре файла (сейчас: ${listBackups().length})`
 );
 await page.goto(`http://127.0.0.1:${port}/#/chars-edit`, { waitUntil: "domcontentloaded" });
 await page.waitForSelector("#btn-add-title");
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
-  `уход со страницы без сохранения удалил черновик, снова два файла (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `уход со страницы без сохранения НЕ удалил черновик — файл остался, всё ещё четыре (сейчас: ${listBackups().length})`
 );
 ok(
   !(await (
@@ -258,14 +258,14 @@ await page.waitForFunction(
 );
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 3,
-  `черновик обложки тайтла создан — три файла (сейчас: ${listBackups().length})`
+  listBackups().length === 5,
+  `черновик обложки тайтла создан — пять файлов (сейчас: ${listBackups().length})`
 );
 await page.click('[onclick="toggleNewTitleForm(false)"]');
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
-  `«Отмена» удалила черновик обложки, снова два файла (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `«Отмена» удалила черновик обложки, снова четыре файла (сейчас: ${listBackups().length})`
 );
 
 console.log(
@@ -290,8 +290,8 @@ await page.waitForFunction(() => document.getElementById("m-img-backup").value.l
 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 4,
-  `два новых черновика разом (тайтл + персонаж в открытой модалке) — четыре файла (сейчас: ${listBackups().length})`
+  listBackups().length === 6,
+  `два новых черновика разом (тайтл + персонаж в открытой модалке) — шесть файлов (сейчас: ${listBackups().length})`
 );
 // page.goto на голый "/" (без хэша) – это уже полноценная навигация верхнего
 // уровня в Playwright/CDP, а не мягкий переход внутри уже открытой страницы:
@@ -307,8 +307,8 @@ await page.evaluate(() => {
 await page.waitForFunction(() => !location.hash, null, { timeout: 5000 });
 await new Promise((r) => setTimeout(r, 300));
 ok(
-  listBackups().length === 2,
-  `уход со всего маршрута #/chars-edit удалил оба черновика (форма + открытая модалка), снова два файла (сейчас: ${listBackups().length})`
+  listBackups().length === 4,
+  `уход со всего маршрута #/chars-edit удалил оба черновика (форма + открытая модалка), снова четыре файла (сейчас: ${listBackups().length})`
 );
 ok(
   !(await (
@@ -329,4 +329,4 @@ if (failures.length) {
   console.log("\nПРОБЛЕМЫ:\n" + failures.join("\n"));
   process.exit(1);
 }
-console.log("\nперсонажи и любимое тоже не копят заброшенные копии");
+console.log("\nперсонажи (как и раньше) не копят заброшенные копии, любимое (нарочно) — копит");
