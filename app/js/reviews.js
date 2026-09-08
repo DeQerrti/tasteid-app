@@ -474,11 +474,21 @@ function reviewModalBodyHtml(r) {
     ? `<div class="card-tags review-modal-tags">${r.tags.map(tag => tagHtml(tag)).join("")}</div>`
     : "";
 
+  // Клик по обложке открывает галерею всех резервных копий, когда-либо
+  // сделанных для этого отзыва (см. её же смысл в add-cover.js:
+  // coverGallery) – не только текущую. Если ни одной резервной копии
+  // ещё нет (например, обложка только по внешней ссылке, без бэкапа) –
+  // открывать нечего, курсор/подсказку не показываем вовсе.
+  const galleryImgs = reviewCoverGalleryImages(r);
+  const coverClickable = galleryImgs.length
+    ? ` class="review-modal-cover has-gallery" onclick="openReviewCoverGallery()" title="${i18n("Все обложки ({v0})", { v0: galleryImgs.length })}"`
+    : ` class="review-modal-cover"`;
+
   return `
     ${cameraButton("reviewExport()", "review-export-btn")}
     <div id="review-modal-capture">
       <div class="review-modal-header">
-        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" class="review-modal-cover" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}"${coverClickable} ${coverFallbackAttrs(r.cover, r.cover_backup)}>
         <div>
           <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
           <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
@@ -574,12 +584,18 @@ let _reviewModalOpener = null;
 // статистики/любимого). Сам отзыв r модалке заново спрашивать незачем –
 // на момент экспорта разметка уже на экране, нужно только имя файла.
 let _reviewModalTitle = null;
+// Сам объект открытого отзыва – в отличие от _reviewModalTitle нужен не
+// только для подписи: галерея обложек (openReviewCoverGallery ниже)
+// меняет cover/cover_backup/cover_gallery прямо на этом же объекте
+// (том самом, что лежит в cache.reviews) и пересохраняет его целиком.
+let _reviewModalReview = null;
 
 function openReviewModal(r) {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
   _reviewModalOpener = document.activeElement;
   _reviewModalTitle = r.title;
+  _reviewModalReview = r;
   document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
   overlay.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -599,6 +615,57 @@ function closeReviewModal() {
   _reviewModalOpener?.focus?.();
   _reviewModalOpener = null;
   _reviewModalTitle = null;
+  _reviewModalReview = null;
+}
+
+// ── Галерея обложек (модалка отзыва) ────────────
+// images: все резервные копии, что когда-либо были сделаны для этого
+// отзыва – cover_gallery, если он есть, иначе только текущая (старые
+// отзывы, сохранённые до этой возможности, ей ещё не обзавелись).
+function reviewCoverGalleryImages(r) {
+  if (r.cover_gallery?.length) return r.cover_gallery;
+  return r.cover_backup ? [r.cover_backup] : [];
+}
+
+function openReviewCoverGallery() {
+  const r = _reviewModalReview;
+  if (!r) return;
+  const images = reviewCoverGalleryImages(r);
+  if (!images.length) return;
+  openGalleryModal({
+    images,
+    active: r.cover_backup || r.cover || null,
+    onSelect: async (url) => {
+      r.cover = null;
+      r.cover_backup = url;
+      await persistReviewCoverChange(r);
+    },
+    onDelete: async (url) => {
+      await deleteMediaFile(url);
+      r.cover_gallery = images.filter((u) => u !== url);
+      if ((r.cover_backup || r.cover) === url) {
+        r.cover_backup = r.cover_gallery[0] || null;
+        r.cover = null;
+      }
+      await persistReviewCoverChange(r);
+    },
+  });
+}
+
+// Пересохраняет весь отзыв целиком (тот же приём, что и полный редактор –
+// add-save.js: saveReview) сразу же, без захода в редактор – смена
+// картинки в галерее не должна требовать открыть форму ради одной этой
+// правки. r – сам объект из cache.reviews, уже с обновлёнными полями.
+async function persistReviewCoverChange(r) {
+  await fetch("/api/save-review", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ ...r, _editId: r.id }),
+  });
+  cache.reviews = null;
+  document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
+  refreshOpenReviewsTab();
 }
 
 // Удержание фокуса внутри окна, пока оно открыто: Tab с последнего

@@ -105,13 +105,6 @@ let editingId = null;
 // дозапрошена у API (scripts/enrich-ids.js). Держим отдельно, чтобы
 // при сохранении не потерять то, что из ссылки уже не вывести.
 let editingIds = {};
-// Резервная копия обложки, с которой открыт редактор (null у нового
-// отзыва) – единственная, которую нельзя удалять сразу же по месту:
-// на неё ссылается уже сохранённый отзыв, и если правки не сохранить,
-// он должен остаться таким же, каким был. Удаляется только после
-// того, как сохранение подтвердит, что отзыв теперь ссылается на
-// другой файл или вообще ни на какой – см. saveReview().
-let originalCoverBackup = null;
 
 let addCleanupFns = [];
 let addPrevTitle = null;
@@ -143,7 +136,7 @@ async function mount(container, params) {
   selectedTags = new Set();
   editingId = null;
   editingIds = {};
-  originalCoverBackup = null;
+  coverGallery = [];
   featuredCardTags = new Set();
   noTagsOnCard = false;
   tmTagEdit = null;
@@ -232,7 +225,7 @@ async function mount(container, params) {
       <div class="src-field" id="cover-field">
         <button type="button" class="src-add-btn" id="cover-add-btn" onclick="openCoverPanel()">${i18n("Добавить обложку")}</button>
         <div class="cover-block hidden" id="cover-panel">
-          <img id="cover-img" class="cover-preview">
+          <img id="cover-img" class="cover-preview" onclick="openCoverGallery()" title="${i18n("Все обложки этого отзыва")}">
           <div class="cover-controls">
             <div class="cover-controls-head">
               <div class="field" style="margin-bottom:0;flex:1;">
@@ -599,22 +592,17 @@ async function mount(container, params) {
 }
 
 function unmount() {
-  // Резервная копия обложки, сделанная во время редактирования (см.
-  // discardScratchCoverBackup() в add-cover.js), удалялась только когда
-  // поле обложки менялось ЕЩЁ раз в том же сеансе – а не когда редактор
-  // просто закрывают. Вставили ссылку (или загрузили файл), копия на
-  // диск легла сразу же, и если после этого просто уйти – хоть с
-  // подтверждённым сохранением, хоть без него, – она так и оставалась
-  // висеть ничьей: leaveAddView()/closeAddView() её не звали вовсе.
-  // unmount() – общий выход из редактора при ЛЮБОМ уходе с маршрута
-  // #/add (кнопка «назад», Escape, аппаратная кнопка на телефоне,
-  // переключение на другой маршрут) и вызывается роутером именно тогда,
-  // так что это единственное надёжное место. Звать здесь безопасно и
-  // после удачного сохранения: originalCoverBackup к этому моменту уже
-  // обновлён на ту же копию, что лежит в поле (см. saveReview() в
-  // add-save.js), так что discardScratchCoverBackup() там ничего не
-  // найдёт и не тронет.
-  discardScratchCoverBackup();
+  // Раньше здесь звали discardScratchCoverBackup() – резервную копию
+  // обложки, сделанную во время редактирования, но так и не
+  // сохранённую вместе с отзывом (закрыли редактор без сохранения),
+  // удаляли сразу при выходе. С галереей обложек (coverGallery в
+  // add-cover.js) это больше не нужно и было бы вредно: любая копия,
+  // однажды попавшая в галерею, должна остаться на диске, пока её не
+  // удалят явно через саму галерею (openGalleryModal), а не потому что
+  // редактор закрыли без сохранения. Отсюда и обратная сторона: копия,
+  // сделанная во время экспериментов с обложкой, но так и не
+  // сохранённая ни в одном отзыве, теперь остаётся на диске как есть –
+  // найти такую поможет «Осиротевшие обложки» в настройках.
   if (IN_SPA_SHELL) setLeaveGuard(null);
   addCleanupFns.forEach((fn) => fn());
   addCleanupFns = [];
@@ -638,7 +626,6 @@ function unmount() {
   noTagsOnCard = false;
   editingId = null;
   editingIds = {};
-  originalCoverBackup = null;
   fromPassportModal = false;
   setAddDirty(false);
 }

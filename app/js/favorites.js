@@ -194,6 +194,38 @@ function renderFavModeBody() {
   for (const [mode, el] of Object.entries(favModeBodies)) {
     el.hidden = mode !== favState.mode;
   }
+  favBindCardClicks();
+}
+
+// Клик по карточке «Любимого» – тайтл открывает ту же модалку отзыва,
+// что и обычная сетка отзывов (см. rvBindCardClicks() в reviews.js),
+// персонаж/персона ведёт в её редактор (#/favorites-edit?edit=ID),
+// где и живёт вся анкета (галерея, био, привязанные тайтлы). Слушатель
+// вешается один раз на #fav-mode-body – сам контейнер не пересоздаётся
+// при переключении разделов (см. favModeBodies выше), только его
+// дети скрываются/показываются.
+function favBindCardClicks() {
+  const body = document.getElementById("fav-mode-body");
+  if (!body || body.dataset.clickBound) return;
+  body.dataset.clickBound = "1";
+  body.addEventListener("click", (e) => {
+    if (e.target.closest(".review-edit-btn")) return;
+    const titleWrap = e.target.closest(".review-card-wrap");
+    if (titleWrap) {
+      const id = titleWrap.dataset.reviewId;
+      const review = (favExportData?.titles || []).find(
+        (r) => String(r.id ?? encodeURIComponent(r.title)) === id
+      );
+      if (review) openReviewModal(review);
+      return;
+    }
+    const charCard = e.target.closest(".card-char[data-fav-id]");
+    if (charCard) {
+      const id = charCard.dataset.favId;
+      const entry = (favExportData?.favData || []).find((r) => String(r.id) === id);
+      if (entry) openFavPersonModal(entry);
+    }
+  });
 }
 
 function favModeBodyHtml() {
@@ -249,7 +281,7 @@ function favTitleCard(r, index, forExport) {
     ? `<a href="#/add?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
-  return `<div class="review-card-wrap" style="animation-delay:${Math.min(index * 25, 600)}ms">
+  return `<div class="review-card-wrap" data-review-id="${editId}" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${editBtn}
     <div class="card" style="animation-delay:0ms">
       <span class="type-tag ${tagClass}">${esc(tagLabel)}</span>
@@ -280,7 +312,7 @@ function favPersonCard(r, index) {
     ? `<div class="card-meta"><span>${esc(subLine)}</span></div>`
     : "";
 
-  return `<div class="card card-char"
+  return `<div class="card card-char" data-fav-id="${r.id}"
       style="animation-delay:${Math.min(index * 25, 500)}ms">
     <img src="${esc(img)}" alt="${esc(r.name)}" loading="lazy" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
     <div class="card-body">
@@ -289,6 +321,169 @@ function favPersonCard(r, index) {
     </div>
   </div>`;
 }
+
+// ── Модалка персонажа/персоны («анкета» из favorites-edit.js: био,
+// пол, цитаты, свои поля, галерея картинок и привязанные тайтлы) –
+// та же панель, что и у модалки отзыва (см. её же классы
+// review-modal-* в index.html), отдельный оверлей #fav-modal-overlay.
+let _favModalOpener = null;
+let _favModalEntry = null;
+
+function openFavPersonModal(entry) {
+  const overlay = document.getElementById("fav-modal-overlay");
+  if (!overlay) return;
+  _favModalOpener = document.activeElement;
+  _favModalEntry = entry;
+  document.getElementById("fav-modal-body").innerHTML = favPersonModalBodyHtml(entry);
+  overlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  overlay.querySelector(".review-modal-panel")?.focus();
+}
+
+function closeFavPersonModal() {
+  const overlay = document.getElementById("fav-modal-overlay");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  document.body.style.overflow = "";
+  _favModalOpener?.focus?.();
+  _favModalOpener = null;
+  _favModalEntry = null;
+}
+
+// Все картинки, когда-либо привязанные к записи – та же логика, что у
+// reviewCoverGalleryImages() в reviews.js.
+function favPersonGalleryImages(r) {
+  if (r.image_gallery?.length) return r.image_gallery;
+  return r.image_backup ? [r.image_backup] : [];
+}
+
+function openFavPersonGallery() {
+  const r = _favModalEntry;
+  if (!r) return;
+  const images = favPersonGalleryImages(r);
+  if (!images.length) return;
+  openGalleryModal({
+    images,
+    active: r.image_backup || r.image || null,
+    canEdit: isAdmin(),
+    onSelect: async (url) => {
+      r.image = null;
+      r.image_backup = url;
+      await persistFavPersonChange(r);
+    },
+    onDelete: async (url) => {
+      await deleteMediaFile(url);
+      r.image_gallery = images.filter((u) => u !== url);
+      if ((r.image_backup || r.image) === url) {
+        r.image_backup = r.image_gallery[0] || null;
+        r.image = null;
+      }
+      await persistFavPersonChange(r);
+    },
+  });
+}
+
+async function persistFavPersonChange(r) {
+  await fetch("/api/save-favorite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ ...r, _editId: r.id }),
+  });
+  favLastSnapshot = null;
+  document.getElementById("fav-modal-body").innerHTML = favPersonModalBodyHtml(r);
+  refreshOpenReviewsTab();
+}
+
+// Карточки привязанных тайтлов – по id из reviews.json (linked_review_ids),
+// те же данные, что уже лежат в cache.reviews (см. её же fetchReviews()
+// в config.js), запрашивать их отдельно незачем.
+function favPersonLinkedTitlesHtml(r) {
+  const ids = r.linked_review_ids || [];
+  if (!ids.length) return "";
+  const reviews = (cache.reviews || []).filter((rv) => ids.includes(rv.id));
+  if (!reviews.length) return "";
+  return `
+    <div class="fav-modal-titles-title">${i18n("Тайтлы")}</div>
+    <div class="grid-now fav-modal-titles-grid">${reviews.map((rv, i) => favTitleCard(rv, i)).join("")}</div>
+  `;
+}
+
+function favPersonModalBodyHtml(r) {
+  const subLine = r.type === "person"
+    ? (SUBTYPE_LABELS[r.subtype] || i18n("Персона"))
+    : (r.from || "");
+
+  const p = r.profile || {};
+  const bioHtml = p.bio
+    ? `<div class="review-modal-fulltext">${esc(p.bio).split("\n").map((line) => (line ? `<p>${line}</p>` : "")).join("")}</div>`
+    : "";
+  const quotesHtml = p.quotes?.length
+    ? `<div class="fav-modal-quotes">${p.quotes.map((q) => `<p class="fav-modal-quote">«${esc(q)}»</p>`).join("")}</div>`
+    : "";
+  const factRows = [];
+  if (p.gender) factRows.push({ label: i18n("Пол"), value: p.gender });
+  (p.custom || []).forEach((f) => {
+    if (f.label || f.value) factRows.push({ label: f.label, value: f.value });
+  });
+  const factsHtml = factRows.length
+    ? `<div class="fav-modal-facts">${factRows.map((f) => `<div class="fav-modal-fact"><span>${esc(f.label)}</span>${esc(f.value)}</div>`).join("")}</div>`
+    : "";
+
+  const galleryImgs = favPersonGalleryImages(r);
+  const imgClickable = galleryImgs.length
+    ? ` class="review-modal-cover has-gallery" onclick="openFavPersonGallery()" title="${i18n("Все картинки ({v0})", { v0: galleryImgs.length })}"`
+    : ` class="review-modal-cover"`;
+
+  const editBtn = isAdmin()
+    ? `<a href="#/favorites-edit?edit=${r.id}" class="review-edit-btn" style="position:static;display:inline-flex;margin-bottom:1rem" title="${i18n("Редактировать")}">✎</a>`
+    : "";
+
+  return `
+    <div class="review-modal-header">
+      <img src="${esc(r.image || r.image_backup || PH_SQ)}" alt="${esc(r.name)}"${imgClickable} ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
+      <div>
+        <div class="review-modal-title" id="fav-modal-title">${esc(r.name)}</div>
+        ${subLine ? `<div class="review-meta-row"><span class="review-format">${esc(subLine)}</span></div>` : ""}
+      </div>
+    </div>
+    ${editBtn}
+    ${bioHtml}
+    ${quotesHtml}
+    ${factsHtml}
+    ${favPersonLinkedTitlesHtml(r)}
+  `;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("fav-modal-overlay");
+  if (!overlay) return;
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      closeFavPersonModal();
+      return;
+    }
+    // Привязанные тайтлы (favPersonLinkedTitlesHtml) – те же карточки
+    // .review-card-wrap, что и на вкладке «Тайтлы», но здесь, внутри
+    // ЭТОЙ модалки, их не достаёт делегирование favBindCardClicks()
+    // (оно слушает #fav-mode-body, а не #fav-modal-body) – своё, только
+    // на открытие модалки отзыва поверх уже открытой. Саму эту модалку
+    // закрываем первой – оба оверлея с одним z-index, поверх были бы
+    // видны в порядке их разметки, а не открытия.
+    if (e.target.closest(".review-edit-btn")) return;
+    const titleWrap = e.target.closest(".review-card-wrap");
+    if (!titleWrap) return;
+    const id = titleWrap.dataset.reviewId;
+    const review = (cache.reviews || []).find((r) => String(r.id ?? encodeURIComponent(r.title)) === id);
+    if (review) {
+      closeFavPersonModal();
+      openReviewModal(review);
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (!overlay.classList.contains("hidden") && e.key === "Escape") closeFavPersonModal();
+  });
+});
 
 // ══ ЭКСПОРТ «ЛЮБИМОГО» В КАРТИНКУ ═══════════════════════
 // Тот же приём, что у тир-листа персонажей (js/tierlist.js, tlExport):

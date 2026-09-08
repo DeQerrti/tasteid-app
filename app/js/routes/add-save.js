@@ -65,6 +65,12 @@ async function saveReview() {
     format: document.getElementById("f-format").value.trim() || null,
     cover,
     cover_backup: document.getElementById("f-cover-backup").value.trim() || null,
+    // Все резервные копии обложки, когда-либо сделанные для этого
+    // отзыва (не только активная сейчас) – см. coverGallery в
+    // add-cover.js. Пустой массив пишем как null, а не [] – чтобы не
+    // раздувать reviews.json пустыми полями у отзывов без единой
+    // картинки вовсе.
+    cover_gallery: coverGallery.length ? coverGallery : null,
     date_start: dateStart,
     rewatch_count: parseInt(document.getElementById("rewatch-count").value, 10) || 0,
     date_end: dateEnd,
@@ -95,15 +101,12 @@ async function saveReview() {
     if (res.ok) {
       setStatus("ok", editingId !== null ? `«${title}» обновлён.` : `«${title}» сохранён.`);
       setAddDirty(false);
-      // Отзыв только что сохранён с другой резервной копией (или вовсе
-      // без неё) – прежняя больше никем не используется, теперь это
-      // подтверждено, а не просто локальная правка в форме. Удалять
-      // раньше этого момента было нельзя: несохранённый уход из
-      // редактора должен был оставить отзыв таким, каким он был.
-      if (originalCoverBackup && originalCoverBackup !== review.cover_backup) {
-        deleteMediaFile(originalCoverBackup);
-      }
-      originalCoverBackup = review.cover_backup;
+      // Раньше здесь удаляли прежнюю резервную копию, если после
+      // сохранения активной стала другая, – с галереей обложек это
+      // больше не годится: прежняя копия почти наверняка всё ещё в
+      // cover_gallery (её просто сделали не активной, а не удалили) и
+      // должна остаться на диске. Явное удаление живёт только в самой
+      // галерее (openGalleryModal → onDelete, см. add-cover.js).
       // Тот же общий кэш, что читают favorites.js/tierlist.js между
       // вызовами fetchReviews() (js/api.js) – без сброса они ещё
       // мгновение показывали бы старые данные.

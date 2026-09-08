@@ -17,11 +17,6 @@
 // ══════════════════════════════════════════════
 
 let favEditingId = null;
-// Та же страховка, что у cover_backup в js/routes/add.js: значение
-// image_backup, с которым открыта правка (null у новой записи) –
-// трогать нельзя, пока сохранение не подтвердит, что запись теперь
-// ссылается на другой файл или вообще ни на какой.
-let originalImageBackup = null;
 let allEntries = [];
 let groupLists = { character: [], person: [] };
 let orderDirty = false;
@@ -35,15 +30,21 @@ const SUBTYPE_BUILTINS = ["actor", "director", "author", "seiyuu", "artist", "co
 let feCleanupFns = [];
 let fePrevTitle = null;
 
+// Привязанные тайтлы (id отзывов из reviews.json) – см. её же комментарий
+// у «Тайтлы» в шаблоне mount() ниже.
+let linkedReviewIds = [];
+
 function feOn(target, type, handler, opts) {
   target.addEventListener(type, handler, opts);
   feCleanupFns.push(() => target.removeEventListener(type, handler, opts));
 }
 
-async function mount(container) {
+async function mount(container, params) {
   fePrevTitle = document.title;
   favEditingId = null;
-  originalImageBackup = null;
+  favImageGallery = [];
+  profileCustomFields = [];
+  linkedReviewIds = [];
   allEntries = [];
   groupLists = { character: [], person: [] };
   orderDirty = false;
@@ -92,7 +93,7 @@ async function mount(container) {
           <label>${i18n("Ссылка на изображение")}</label>
           <input type="text" id="f-image" placeholder="https://..." oninput="previewAvatar(this.value); scheduleBackupImage();">
           <input type="hidden" id="f-image-backup">
-          <img id="avatar-img" class="avatar-preview">
+          <img id="avatar-img" class="avatar-preview" onclick="openFavImageGallery()" title="${i18n("Все картинки этой записи")}">
           <div id="image-backup-status" style="font-size:.8rem;margin-top:.4rem;"></div>
         </div>
         <div class="field full">
@@ -110,6 +111,41 @@ async function mount(container) {
           <input type="text" id="f-from" placeholder="${i18n("Из какого произведения")}">
         </div>
       </div>
+
+      <!-- Анкета – необязательная, для тех, кто хочет расписать запись
+           подробнее одной строчки «откуда». Поля не завязаны ни на что
+           в остальном приложении (только показываются в этой же форме
+           и в будущей модалке просмотра) – специально свободная форма,
+           а не набор проверок под конкретный тип данных. -->
+      <h2 class="section-title">${i18n("Анкета")}</h2>
+      <div class="grid">
+        <div class="field full">
+          <label>${i18n("Биография")}</label>
+          <textarea id="f-profile-bio" rows="4" placeholder="${i18n("Свободный текст – история персонажа, факты о персоне...")}"></textarea>
+        </div>
+        <div class="field">
+          <label>${i18n("Пол")}</label>
+          <input type="text" id="f-profile-gender" placeholder="${i18n("Например: женский")}">
+        </div>
+        <div class="field full">
+          <label>${i18n("Цитаты")}</label>
+          <textarea id="f-profile-quotes" rows="3" placeholder="${i18n("По одной на строку")}"></textarea>
+        </div>
+        <div class="field full">
+          <label>${i18n("Свои поля")}</label>
+          <div id="profile-custom-list"></div>
+          <button type="button" class="btn btn-ghost" onclick="addProfileCustomField()">${i18n("+ Добавить поле")}</button>
+        </div>
+      </div>
+
+      <!-- Тайтлы – связь с отзывами (reviews.json), напр. у персонажа
+           показать все тайтлы, где он появлялся: у Джинкс это оба
+           отзыва на Аркейн, по сезону на каждый. Само связывание –
+           просто список id, никакой отдельной сущности под это не
+           заводим. -->
+      <h2 class="section-title">${i18n("Тайтлы")}</h2>
+      <div id="linked-titles-list" class="linked-titles-list"></div>
+      <button type="button" class="btn btn-ghost" onclick="openTitleLinkSearch()">${i18n("+ Добавить источник")}</button>
 
       <div class="divider"></div>
       <button class="btn-save" id="btn-save" onclick="saveEntry()">${i18n("Сохранить")}</button>
@@ -172,6 +208,21 @@ async function mount(container) {
   // на случай, если настройки правда поменяются, пока маршрут открыт.
   syncFavTypePickerLabel();
   await loadList();
+  // Тайтлы (see «Тайтлы» ниже) читаются из cache.reviews – если сюда
+  // зашли напрямую по ссылке (#/favorites-edit?edit=ID), а не через
+  // уже открытую вкладку «Любимое», кэш ещё мог быть не заполнен.
+  await fetchReviews();
+
+  // Переход по клику на карточку персонажа/персоны из «Любимого»
+  // (favPersonCard в js/favorites.js) – та же схема, что у #/add?edit=ID
+  // (см. initAddPage() в add-form-state.js): id может быть либо числом
+  // из URL, либо строкой, id записи – всегда число, отсюда сравнение
+  // через String() с обеих сторон.
+  const editId = params && params.get("edit");
+  if (editId) {
+    const entry = allEntries.find((r) => String(r.id) === editId);
+    if (entry) startEdit(entry.id);
+  }
 }
 
 async function leaveFavoritesEdit() {
@@ -183,15 +234,11 @@ async function leaveFavoritesEdit() {
 }
 
 function unmount() {
-  // Та же дыра, что была в js/routes/add.js (см. её же коммит): вставили
-  // ссылку, автобэкап отработал, а дальше просто ушли со страницы – ни
-  // сохранением, ни отменой это не считалось, discardScratchImageBackup()
-  // звалась только при повторном изменении поля в том же сеансе. unmount –
-  // общий выход с #/favorites-edit при любом уходе, и вызывать здесь
-  // безопасно: после удачного сохранения originalImageBackup уже
-  // обновлён на то же значение, что в поле (см. saveEntry()), так что
-  // тут не находится ничего лишнего.
-  discardScratchImageBackup();
+  // Раньше здесь звали discardScratchImageBackup() – резервную копию,
+  // сделанную во время редактирования, но так и не сохранённую вместе
+  // с записью. С галереей картинок (favImageGallery выше) это больше не
+  // нужно и было бы вредно: см. тот же разбор у unmount() в
+  // js/routes/add.js.
   feCleanupFns.forEach((fn) => fn());
   feCleanupFns = [];
   clearTimeout(backupImageTimer);
@@ -618,7 +665,9 @@ async function removeFavTypePicker(id) {
     // остались бы жить со ссылкой на уже стёртый файл, то есть с
     // разбитой картинкой, которую было бы уже нечем чинить.
     for (const entry of toDelete) {
-      if (entry.image_backup) deleteMediaFile(entry.image_backup);
+      const orphaned = new Set(entry.image_gallery || []);
+      if (entry.image_backup) orphaned.add(entry.image_backup);
+      orphaned.forEach((url) => deleteMediaFile(url));
     }
 
     await patchSiteSettings((settings) => {
@@ -719,6 +768,157 @@ async function confirmRenameFavTypePicker(id, rawName) {
   }
 }
 
+// ── Анкета: свои поля ────────────────────────────
+// Список { label, value } – сколько угодно произвольных пар, помимо
+// заранее заведённых био/пола/цитат выше. Держим как обычный массив в
+// памяти, а не читаем прямо из разметки при сохранении – со строками,
+// которые можно как добавлять, так и удалять, разметка сама по себе не
+// источник истины (проще один раз отрендерить из массива, чем потом
+// восстанавливать порядок/значения обратно из DOM).
+let profileCustomFields = [];
+
+function renderProfileCustomFields() {
+  const box = document.getElementById("profile-custom-list");
+  if (!box) return;
+  box.innerHTML = profileCustomFields
+    .map(
+      (f, i) => `
+    <div class="profile-custom-row">
+      <input type="text" placeholder="${i18n("Название поля")}" value="${esc(f.label)}" oninput="profileCustomFields[${i}].label = this.value">
+      <input type="text" placeholder="${i18n("Значение")}" value="${esc(f.value)}" oninput="profileCustomFields[${i}].value = this.value">
+      <button type="button" class="icon-btn" title="${i18n("Удалить поле")}" onclick="removeProfileCustomField(${i})">✕</button>
+    </div>`
+    )
+    .join("");
+}
+
+function addProfileCustomField() {
+  profileCustomFields.push({ label: "", value: "" });
+  renderProfileCustomFields();
+  document.querySelector("#profile-custom-list .profile-custom-row:last-child input")?.focus();
+}
+
+function removeProfileCustomField(i) {
+  profileCustomFields.splice(i, 1);
+  renderProfileCustomFields();
+}
+
+// Собирает анкету перед сохранением – null целиком, если вообще ничего
+// не заполнено, а не объект из одних пустых полей: не хочется раздувать
+// favorites.json пустой анкетой у каждой записи, у которой её никто не
+// заводил.
+function buildProfileField() {
+  const bio = document.getElementById("f-profile-bio").value.trim();
+  const gender = document.getElementById("f-profile-gender").value.trim();
+  const quotes = document
+    .getElementById("f-profile-quotes")
+    .value.split("\n")
+    .map((q) => q.trim())
+    .filter(Boolean);
+  const custom = profileCustomFields
+    .map((f) => ({ label: f.label.trim(), value: f.value.trim() }))
+    .filter((f) => f.label || f.value);
+  if (!bio && !gender && !quotes.length && !custom.length) return null;
+  return {
+    bio: bio || null,
+    gender: gender || null,
+    quotes: quotes.length ? quotes : null,
+    custom: custom.length ? custom : null,
+  };
+}
+
+// ── Тайтлы: связь с отзывами ──────────────────────
+// Хранится как linkedReviewIds (id из reviews.json) – без отдельной
+// сущности под саму связь, id вполне достаточно: полные данные
+// (обложка, название) при рендере каждый раз берутся заново из
+// cache.reviews (fetchReviews() ниже), не дублируются в favorites.json.
+function renderLinkedTitles() {
+  const box = document.getElementById("linked-titles-list");
+  if (!box) return;
+  const reviews = linkedReviewIds
+    .map((id) => (cache.reviews || []).find((r) => r.id === id))
+    .filter(Boolean);
+  box.innerHTML = reviews.length
+    ? reviews
+        .map(
+          (r) => `
+    <div class="linked-title-chip">
+      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" loading="lazy">
+      <span>${esc(r.title)}</span>
+      <button type="button" class="linked-title-del" title="${i18n("Удалить")}" onclick="removeLinkedTitle(${r.id})">✕</button>
+    </div>`
+        )
+        .join("")
+    : `<div class="linked-titles-empty">${i18n("Пока нет привязанных тайтлов.")}</div>`;
+}
+
+function removeLinkedTitle(id) {
+  linkedReviewIds = linkedReviewIds.filter((x) => x !== id);
+  renderLinkedTitles();
+}
+
+let titleLinkModalEl = null;
+
+function titleLinkModalEnsure() {
+  if (titleLinkModalEl) return titleLinkModalEl;
+  titleLinkModalEl = document.createElement("div");
+  titleLinkModalEl.id = "title-link-modal-overlay";
+  titleLinkModalEl.className = "modal-overlay hidden";
+  titleLinkModalEl.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" type="button" onclick="closeTitleLinkSearch()">✕</button>
+      <div class="modal-title">${i18n("Добавить источник")}</div>
+      <input type="text" id="title-link-search" class="fav-title-search" placeholder="${i18n("Название тайтла...")}" oninput="renderTitleLinkResults()">
+      <div id="title-link-results" class="linked-titles-results"></div>
+    </div>`;
+  document.body.appendChild(titleLinkModalEl);
+  titleLinkModalEl.onclick = (e) => {
+    if (e.target === titleLinkModalEl) closeTitleLinkSearch();
+  };
+  return titleLinkModalEl;
+}
+
+async function openTitleLinkSearch() {
+  const overlay = titleLinkModalEnsure();
+  await fetchReviews();
+  overlay.classList.remove("hidden");
+  const input = document.getElementById("title-link-search");
+  input.value = "";
+  renderTitleLinkResults();
+  input.focus();
+}
+
+function closeTitleLinkSearch() {
+  titleLinkModalEl?.classList.add("hidden");
+}
+
+function renderTitleLinkResults() {
+  const box = document.getElementById("title-link-results");
+  if (!box) return;
+  const q = (document.getElementById("title-link-search")?.value || "").trim().toLowerCase();
+  const results = (cache.reviews || [])
+    .filter((r) => !linkedReviewIds.includes(r.id))
+    .filter((r) => !q || r.title.toLowerCase().includes(q))
+    .slice(0, 30);
+  box.innerHTML = results.length
+    ? results
+        .map(
+          (r) => `
+    <div class="linked-title-result" onclick="addLinkedTitle(${r.id})">
+      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" loading="lazy">
+      <span>${esc(r.title)}</span>
+    </div>`
+        )
+        .join("")
+    : `<div class="linked-titles-empty">${i18n("Ничего не найдено")}</div>`;
+}
+
+function addLinkedTitle(id) {
+  if (!linkedReviewIds.includes(id)) linkedReviewIds.push(id);
+  renderLinkedTitles();
+  closeTitleLinkSearch();
+}
+
 function onTypeChange() {
   const isPerson = document.getElementById("f-type").value === "person";
   document.getElementById("field-subtype").classList.toggle("visible", isPerson);
@@ -732,6 +932,35 @@ function previewAvatar(url) {
     img.src = url;
     img.style.display = "block";
   } else img.style.display = "none";
+}
+
+// ── Галерея картинок ─────────────────────────────
+// Тот же приём, что coverGallery в add-cover.js (см. её же подробный
+// комментарий там) – новая ссылка/файл больше не стирает предыдущую
+// резервную копию, все копятся здесь, а удаление – только явное, через
+// саму галерею (openGalleryModal).
+let favImageGallery = [];
+
+function favImageGalleryAdd(url) {
+  if (!url || favImageGallery.includes(url)) return;
+  favImageGallery.push(url);
+}
+
+function openFavImageGallery() {
+  if (!favImageGallery.length) return;
+  openGalleryModal({
+    images: favImageGallery,
+    active: document.getElementById("f-image-backup").value.trim() || null,
+    onSelect: (url) => {
+      document.getElementById("f-image").value = "";
+      document.getElementById("f-image-backup").value = url || "";
+      previewAvatar(url);
+    },
+    onDelete: async (url) => {
+      await deleteMediaFile(url);
+      favImageGallery = favImageGallery.filter((u) => u !== url);
+    },
+  });
 }
 
 async function uploadFavImage() {
@@ -766,9 +995,9 @@ async function uploadFavImage() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
-    discardScratchImageBackup();
     document.getElementById("f-image").value = "";
     document.getElementById("f-image-backup").value = data.url;
+    favImageGalleryAdd(data.url);
     previewAvatar(data.url);
     status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
@@ -778,19 +1007,8 @@ async function uploadFavImage() {
   }
 }
 
-// Та же логика, что discardScratchCoverBackup в js/routes/add.js: копия,
-// которую заменяет новая (или которую стирают вместе со ссылкой),
-// безопасно удалить сразу же, только если она не совпадает с
-// originalImageBackup – та уже сохранена в записи, трогать её раньше
-// подтверждённого сохранения нельзя.
-function discardScratchImageBackup() {
-  const current = document.getElementById("f-image-backup").value.trim();
-  if (current && current !== originalImageBackup) deleteMediaFile(current);
-}
-
 function scheduleBackupImage() {
   clearTimeout(backupImageTimer);
-  discardScratchImageBackup();
   document.getElementById("f-image-backup").value = "";
   backupImageTimer = setTimeout(backupImageNow, 1200);
 }
@@ -823,6 +1041,7 @@ async function backupImageNow() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
     document.getElementById("f-image-backup").value = data.url;
+    favImageGalleryAdd(data.url);
     status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
@@ -838,20 +1057,24 @@ function setFavStatus(type, text) {
 }
 
 function resetFavToNew() {
-  // Тот же случай, что и в unmount() выше: кнопка «Новая запись» бросает
-  // текущую форму, не спрашивая про несохранённое (см. её же onclick) –
-  // если в ней успела набежать черновая резервная копия картинки, без
-  // этого вызова она осталась бы висеть ничьей. После удачного сохранения
-  // (saveEntry() зовёт resetFavToNew() сама) originalImageBackup уже
-  // обновлён на то же значение, что в поле, так что здесь не находится
-  // ничего лишнего.
-  discardScratchImageBackup();
   favEditingId = null;
-  originalImageBackup = null;
+  favImageGallery = [];
+  profileCustomFields = [];
+  linkedReviewIds = [];
+  renderProfileCustomFields();
+  renderLinkedTitles();
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("page-subtitle").textContent = i18n("Персонажи и персоны");
   document.getElementById("btn-save").textContent = i18n("Сохранить");
-  ["f-name", "f-image", "f-from", "f-image-backup"].forEach((id) => (document.getElementById(id).value = ""));
+  [
+    "f-name",
+    "f-image",
+    "f-from",
+    "f-image-backup",
+    "f-profile-bio",
+    "f-profile-gender",
+    "f-profile-quotes",
+  ].forEach((id) => (document.getElementById(id).value = ""));
   document.getElementById("f-type").value = "character";
   document.getElementById("f-subtype").value = "actor";
   syncFavTypePickerLabel();
@@ -871,8 +1094,19 @@ function fillFavForm(r) {
   document.getElementById("f-name").value = r.name || "";
   document.getElementById("f-image").value = r.image || "";
   document.getElementById("f-image-backup").value = r.image_backup || "";
-  originalImageBackup = r.image_backup || null;
+  favImageGallery = r.image_gallery?.length
+    ? [...r.image_gallery]
+    : r.image_backup
+      ? [r.image_backup]
+      : [];
   document.getElementById("f-from").value = r.from || "";
+  document.getElementById("f-profile-bio").value = r.profile?.bio || "";
+  document.getElementById("f-profile-gender").value = r.profile?.gender || "";
+  document.getElementById("f-profile-quotes").value = (r.profile?.quotes || []).join("\n");
+  profileCustomFields = r.profile?.custom?.length ? r.profile.custom.map((f) => ({ ...f })) : [];
+  renderProfileCustomFields();
+  linkedReviewIds = r.linked_review_ids?.length ? [...r.linked_review_ids] : [];
+  renderLinkedTitles();
   document.getElementById("f-type").value = r.type || "character";
   document.getElementById("f-subtype").value = r.subtype || "actor";
   syncFavTypePickerLabel();
@@ -1041,10 +1275,15 @@ async function deleteFavEntry(id) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || i18n("неизвестная"));
-    // Запись удалена по подтверждённому ответу сервера – резервная копия
-    // обложки теперь точно ничья, раньше этого момента удалять было
-    // нельзя (см. её же логику в saveReview()/add-save.js).
-    if (entry?.image_backup) deleteMediaFile(entry.image_backup);
+    // Запись удалена по подтверждённому ответу сервера – все картинки её
+    // галереи (не только текущую) теперь точно ничьи, раньше этого
+    // момента удалять было нельзя (см. её же логику в saveReview()/
+    // add-save.js). В отличие от смены картинки при редактировании,
+    // здесь удаляется вся запись целиком – оставлять её галерею
+    // сиротами на диске смысла нет.
+    const orphaned = new Set(entry?.image_gallery || []);
+    if (entry?.image_backup) orphaned.add(entry.image_backup);
+    orphaned.forEach((url) => deleteMediaFile(url));
     // Если удалили ту самую запись, что сейчас открыта в форме –
     // форма показывала бы то, чего уже нет.
     if (favEditingId === id) resetFavToNew();
@@ -1114,7 +1353,13 @@ async function saveEntry() {
     type,
     image: imageUrl || null,
     image_backup: document.getElementById("f-image-backup").value.trim() || null,
+    // Все резервные копии, когда-либо сделанные для этой записи – см.
+    // favImageGallery выше (тот же приём, что cover_gallery у отзывов,
+    // add-save.js).
+    image_gallery: favImageGallery.length ? favImageGallery : null,
     from: document.getElementById("f-from").value.trim() || null,
+    profile: buildProfileField(),
+    linked_review_ids: linkedReviewIds.length ? [...linkedReviewIds] : null,
   };
   if (type === "person") {
     entry.subtype = document.getElementById("f-subtype").value || null;
@@ -1135,14 +1380,10 @@ async function saveEntry() {
     const data = await res.json();
     if (res.ok) {
       setFavStatus("ok", favEditingId !== null ? `«${name}» обновлён.` : `«${name}» сохранён.`);
-      // Запись только что сохранена с другой резервной копией (или
-      // вовсе без неё) – прежняя больше никем не используется, теперь
-      // это подтверждено. См. discardScratchCoverBackup в add.js –
-      // раньше этого момента удалять было нельзя.
-      if (originalImageBackup && originalImageBackup !== entry.image_backup) {
-        deleteMediaFile(originalImageBackup);
-      }
-      originalImageBackup = entry.image_backup;
+      // Раньше здесь удаляли прежнюю резервную копию, если после
+      // сохранения активной стала другая, – с галереей картинок это
+      // больше не годится, см. тот же разбор у saveReview() в
+      // add-save.js. Явное удаление – только через саму галерею.
       if (favEditingId === null) resetFavToNew();
       // Тот же сброс, что при удалении и смене порядка выше.
       refreshOpenReviewsTab();

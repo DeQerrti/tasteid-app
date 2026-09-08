@@ -543,6 +543,38 @@ html:not(.kb-nav) *:focus {
 
 .src-type-status { margin-top: .3rem; text-align: left; font-size: .7rem; }
 
+/* ══ АНКЕТА: СВОИ ПОЛЯ (favorites-edit.js) ════════ */
+.profile-custom-row { display: flex; gap: .4rem; margin-bottom: .5rem; align-items: center; }
+.profile-custom-row input { flex: 1; min-width: 0; }
+.profile-custom-row .icon-btn { flex-shrink: 0; }
+
+/* ══ ТАЙТЛЫ: СВЯЗЬ С ОТЗЫВАМИ (favorites-edit.js) ══ */
+.linked-titles-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
+.linked-title-chip {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 2px; padding: .3rem .5rem .3rem .3rem;
+  font-size: .82rem; max-width: 220px;
+}
+.linked-title-chip img { width: 30px; aspect-ratio: 2/3; object-fit: cover; flex-shrink: 0; }
+.linked-title-chip span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.linked-title-del {
+  flex-shrink: 0; background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: .8rem; padding: 0 .2rem;
+}
+.linked-title-del:hover { color: var(--red); }
+.linked-titles-empty { font-size: .82rem; color: var(--text-dim); margin-bottom: .8rem; }
+.fav-title-search { width: 100%; margin-bottom: .8rem; }
+.linked-titles-results { display: flex; flex-direction: column; gap: .3rem; max-height: 320px; overflow-y: auto; }
+.linked-title-result {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .4rem; border-radius: 2px; cursor: pointer;
+  transition: background .15s;
+}
+.linked-title-result:hover { background: var(--surface2); }
+.linked-title-result img { width: 34px; aspect-ratio: 2/3; object-fit: cover; flex-shrink: 0; }
+.linked-title-result span { font-size: .85rem; }
+
 /* ══ ЗАГРУЗКА И ПУСТЫЕ СОСТОЯНИЯ ═════════════════
    Крутилка и «заглушка вместо контента» нужны и публичной странице,
    и админке — раньше и то и другое было скопировано в трёх файлах. */
@@ -676,6 +708,63 @@ html:not(.kb-nav) *:focus {
   display: flex;
   justify-content: flex-end;
   gap: .6rem;
+}
+
+/* ══ ГАЛЕРЕЯ КАРТИНОК (js/gallery-modal.js) ═══════ */
+.gallery-modal { max-width: 480px; }
+.gallery-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: .6rem;
+}
+.gallery-modal-item {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.gallery-modal-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-modal-item:hover { border-color: var(--red-dim); }
+/* Активная (сейчас показанная везде) картинка – рамка в цвет темы, а
+   не просто чуть светлее: в галерее из десятка похожих превью иначе
+   легко потерять, какая из них выбрана сейчас. */
+.gallery-modal-item.active { border-color: var(--red); border-width: 2px; }
+.gallery-modal-del {
+  position: absolute; top: 4px; right: 4px;
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--scrim); color: var(--text-hi);
+  border: none; border-radius: 2px;
+  font-size: .7rem; cursor: pointer;
+  opacity: 0; transition: opacity .15s;
+}
+.gallery-modal-item:hover .gallery-modal-del { opacity: 1; }
+/* На тач-экране :hover не наступает никогда – та же причина, что и у
+   .list-tab-edit/.list-tab-del (index.html, эта же сессия): крестик
+   должен быть виден сразу, а не только после наведения, которого не
+   будет. */
+@media (hover: none) {
+  .gallery-modal-del { opacity: 1; }
+}
+.gallery-modal-del:hover { background: var(--red-dim); }
+/* Маленький значок "N" поверх обложки на карточке/в модалке отзыва –
+   подсказывает, что там больше одной картинки и можно кликнуть, а не
+   выглядит как случайно нерабочая обложка. */
+.gallery-count-badge {
+  position: absolute; bottom: 6px; right: 6px;
+  min-width: 20px; height: 20px; padding: 0 .3rem;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--badge-bg, var(--poster-scrim));
+  color: var(--badge-text, var(--text-hi));
+  border: 1px solid var(--badge-accent-border, var(--accent-fill-hi));
+  border-radius: var(--radius-btn, 0px);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .62rem;
+  z-index: 3;
+  pointer-events: none;
 }
 
 /* Поле в диалоге ввода (utils.js: promptDialog). Отдельное правило, а не

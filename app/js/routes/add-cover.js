@@ -13,6 +13,39 @@ function previewCover(url) {
   } else img.style.display = "none";
 }
 
+// ── Галерея обложек ─────────────────────────────
+// Раньше новая ссылка на обложку тихо стирала предыдущую резервную
+// копию (см. историю discardScratchCoverBackup ниже) – если человек
+// перебирал несколько картинок подряд, искал ту самую, старые терялись
+// без возможности вернуться. Теперь все резервные копии, когда-либо
+// сделанные для этого отзыва (в том числе до этой самой правки),
+// копятся здесь и уходят на сервер вместе с отзывом – ничего не
+// удаляется само, только по явному нажатию в галерее
+// (openGalleryModal, js/gallery-modal.js).
+let coverGallery = [];
+
+function coverGalleryAdd(url) {
+  if (!url || coverGallery.includes(url)) return;
+  coverGallery.push(url);
+}
+
+function openCoverGallery() {
+  if (!coverGallery.length) return;
+  openGalleryModal({
+    images: coverGallery,
+    active: document.getElementById("f-cover-backup").value.trim() || null,
+    onSelect: (url) => {
+      document.getElementById("f-cover").value = "";
+      document.getElementById("f-cover-backup").value = url || "";
+      previewCover(url);
+    },
+    onDelete: async (url) => {
+      await deleteMediaFile(url);
+      coverGallery = coverGallery.filter((u) => u !== url);
+    },
+  });
+}
+
 // ── Инлайн-панель обложки – свёрнута за кнопкой «+ Добавить обложку»,
 //    так же как источники ниже. ──
 function openCoverPanel() {
@@ -22,7 +55,10 @@ function openCoverPanel() {
 }
 
 function closeCoverPanel() {
-  discardScratchCoverBackup();
+  // Ничего не удаляем с диска – см. комментарий у coverGallery выше:
+  // все уже сделанные резервные копии просто перестают быть частью
+  // формы, а не стираются. Явное удаление – только через галерею.
+  coverGallery = [];
   document.getElementById("f-cover").value = "";
   document.getElementById("f-cover-backup").value = "";
   document.getElementById("f-cover-upload").value = "";
@@ -72,10 +108,9 @@ async function uploadCoverFile() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Ошибка загрузки"));
 
-    // Обложка загружена напрямую – своя резервная копия ей не нужна.
-    discardScratchCoverBackup();
     document.getElementById("f-cover").value = "";
     document.getElementById("f-cover-backup").value = data.url;
+    coverGalleryAdd(data.url);
     previewCover(data.url);
     status.textContent = i18n("Загружено ✓");
     status.style.color = "var(--green, #4a8c5c)";
@@ -85,21 +120,6 @@ async function uploadCoverFile() {
   }
 }
 
-// ── Удаление заброшенных резервных копий обложки ────
-// Раньше вставка новой ссылки на обложку поверх старой создавала
-// новый файл в covers-backup/, а старый оставался лежать на диске
-// вечно, никем больше не используемый. Удалять его сразу же безопасно
-// только если он не совпадает с originalCoverBackup – это резервная
-// копия, на которую УЖЕ ссылается сохранённый отзыв, и трогать её до
-// подтверждённого сохранения новой нельзя: не сохранив правку и уйдя
-// из редактора, человек ожидает увидеть отзыв таким же, каким он был.
-// Сам запрос на удаление (deleteMediaFile) – общий с chars-edit.js и
-// favorites-edit.js, живёт в utils.js.
-function discardScratchCoverBackup() {
-  const current = document.getElementById("f-cover-backup").value.trim();
-  if (current && current !== originalCoverBackup) deleteMediaFile(current);
-}
-
 // ── Автобэкап картинки по ссылке – качается на сервере, чтобы не
 //    упереться в CORS. Срабатывает через паузу после ввода, не на
 //    каждую напечатанную букву. ──
@@ -107,7 +127,6 @@ let backupCoverTimer = null;
 
 function scheduleBackupCover() {
   clearTimeout(backupCoverTimer);
-  discardScratchCoverBackup();
   document.getElementById("f-cover-backup").value = "";
   backupCoverTimer = setTimeout(backupCoverNow, 1200);
 }
@@ -139,7 +158,9 @@ async function backupCoverNow() {
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || i18n("Не удалось сохранить копию"));
-    document.getElementById("f-cover-backup").value = data.url || "/" + data.path;
+    const backupUrl = data.url || "/" + data.path;
+    document.getElementById("f-cover-backup").value = backupUrl;
+    coverGalleryAdd(backupUrl);
     status.textContent = i18n("Резервная копия сохранена ✓");
     status.style.color = "var(--green, #4a8c5c)";
   } catch (e) {
@@ -147,4 +168,3 @@ async function backupCoverNow() {
     status.style.color = "var(--red-hi, #c0392b)";
   }
 }
-

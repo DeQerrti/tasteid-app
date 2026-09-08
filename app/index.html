@@ -54,6 +54,7 @@
 <script src="/js/i18n-en.js?v=2"></script>
 <script src="/js/sync.js?v=1"></script>
 <script src="/js/utils.js?v=27"></script>
+<script src="/js/gallery-modal.js?v=1"></script>
 <script src="/js/theme.js?v=16"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
@@ -520,6 +521,7 @@ section.group { margin-bottom: 3.5rem; }
 }
 .card:hover img { filter: var(--card-img-filter-hover, grayscale(0) brightness(.98)); }
 .card-char img  { aspect-ratio: 1/1; }
+.card-char { cursor: pointer; }
 
 .card-body {
   padding: .6rem .7rem .7rem;
@@ -824,6 +826,7 @@ section.group { margin-bottom: 3.5rem; }
   border: 1px solid var(--border2);
   filter: grayscale(.1) brightness(.88);
 }
+.review-modal-cover.has-gallery { cursor: pointer; }
 .review-modal-title {
   font-family: 'Playfair Display', serif;
   font-size: 1.4rem; font-weight: 600;
@@ -849,6 +852,34 @@ section.group { margin-bottom: 3.5rem; }
   font-size: .8rem !important;
   color: var(--text-dim) !important;
 }
+
+/* ══ МОДАЛКА ПЕРСОНАЖА/ПЕРСОНЫ: анкета (favorites.js) ══ */
+.fav-modal-quotes { margin-bottom: 1.4rem; }
+.fav-modal-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem; font-style: italic;
+  color: var(--text-dim); line-height: 1.6;
+  margin: 0 0 .6rem; padding-left: .8rem;
+  border-left: 2px solid var(--border2);
+}
+.fav-modal-quote:last-child { margin-bottom: 0; }
+.fav-modal-facts { margin-bottom: 1.4rem; }
+.fav-modal-fact {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem; color: var(--text);
+  padding: .4rem 0; border-bottom: 1px solid var(--border);
+}
+.fav-modal-fact:last-child { border-bottom: none; }
+.fav-modal-fact span {
+  display: inline-block; min-width: 100px;
+  color: var(--text-dim);
+}
+.fav-modal-titles-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-dim); margin: 0 0 .7rem;
+}
+.fav-modal-titles-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 
 /* ══ TAGS ════════════════════════════════════════ */
 .rtag {
@@ -2116,6 +2147,7 @@ section.group { margin-bottom: 3.5rem; }
 .avatar-preview {
   width: 80px; height: 80px; object-fit: cover; border-radius: 50%;
   border: 1px solid var(--border2); margin-top: .6rem; display: none;
+  cursor: pointer;
 }
 
 .btn-save::before { content: ''; position: absolute; top: 0; left: 0; width: 10px; height: 10px; border-top: 1px solid var(--red-dim); border-left: 1px solid var(--red-dim); }
@@ -3074,6 +3106,17 @@ section.group { margin-bottom: 3.5rem; }
   <div id="review-modal-overlay" class="review-modal-overlay hidden">
     <div class="review-modal-panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" tabindex="-1">
       <div id="review-modal-body"></div>
+    </div>
+  </div>
+  <!-- Модалка персонажа/персоны из «Любимого» (favPersonCard, js/favorites.js) –
+       та же панель, что у review-modal-overlay выше, отдельный оверлей
+       только потому, что открытыми одновременно они не бывают, а
+       делить один #review-modal-body между двумя разными наборами
+       функций (reviewModalBodyHtml/favPersonModalBodyHtml) было бы
+       только путаницей. -->
+  <div id="fav-modal-overlay" class="review-modal-overlay hidden">
+    <div class="review-modal-panel" role="dialog" aria-modal="true" aria-labelledby="fav-modal-title" tabindex="-1">
+      <div id="fav-modal-body"></div>
     </div>
   </div>
   <div id="tab-stats" role="tabpanel" tabindex="0"     class="tab-content hidden"><div class="state-box"><div class="spinner"></div>Считаем…</div></div>

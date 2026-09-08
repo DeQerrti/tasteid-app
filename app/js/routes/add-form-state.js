@@ -10,7 +10,11 @@ function fillForm(r) {
   document.getElementById("f-format").value = r.format || "";
   document.getElementById("f-cover").value = r.cover || "";
   document.getElementById("f-cover-backup").value = r.cover_backup || "";
-  originalCoverBackup = r.cover_backup || null;
+  // Галерея начинается с того, что уже сохранено (см. cover_gallery в
+  // add-save.js) – а если запись ещё старая, с одиночной обложкой без
+  // истории, хотя бы саму текущую обложку в галерею стоит включить, а
+  // не начинать с пустоты.
+  coverGallery = r.cover_gallery?.length ? [...r.cover_gallery] : r.cover_backup ? [r.cover_backup] : [];
   document.getElementById("f-url").value = r.url || "";
   document.getElementById("f-preview").value = r.preview || "";
   document.getElementById("f-review-full").value = r.review_full || "";
@@ -66,7 +70,7 @@ function fillForm(r) {
 function resetToNew() {
   editingId = null;
   editingIds = {};
-  originalCoverBackup = null;
+  coverGallery = [];
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("danger-zone").hidden = true;
   document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
