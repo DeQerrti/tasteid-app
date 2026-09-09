@@ -131,12 +131,12 @@ async function mount(container, params) {
              Биографии/Своих полей, спрятаны по умолчанию, пока не
              добавили явно. -->
         <div class="field full">
-          <button type="button" class="btn btn-ghost" id="add-profile-quotes-btn" onclick="addOptionalProfileField('quotes')">${i18n("Цитаты")}</button>
+          <button type="button" class="btn btn-ghost" id="add-profile-quotes-btn" onclick="addOptionalProfileField('quotes')">${i18n("Добавить цитаты")}</button>
         </div>
         <div class="field full">
           <label>${i18n("Свои поля")}</label>
           <div id="profile-custom-list"></div>
-          <button type="button" class="btn btn-ghost" onclick="addProfileCustomField()">${i18n("Поле")}</button>
+          <button type="button" class="btn btn-ghost" onclick="addProfileCustomField()">${i18n("Добавить поле")}</button>
         </div>
       </div>
 
@@ -147,7 +147,7 @@ async function mount(container, params) {
            заводим. -->
       <h2 class="section-title">${i18n("Тайтлы")}</h2>
       <div id="linked-titles-list" class="linked-titles-list"></div>
-      <button type="button" class="btn btn-ghost" onclick="openTitleLinkSearch()">${i18n("Источник")}</button>
+      <button type="button" class="btn btn-ghost" onclick="openTitleLinkSearch()">${i18n("Добавить источник")}</button>
 
       <div class="divider"></div>
       <button class="btn-save" id="btn-save" onclick="saveEntry()">${i18n("Сохранить")}</button>
