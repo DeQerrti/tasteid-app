@@ -401,7 +401,11 @@ async function persistFavPersonChange(r) {
 function favPersonLinkedTitlesHtml(r) {
   const ids = r.linked_review_ids || [];
   if (!ids.length) return "";
-  const reviews = (cache.reviews || []).filter((rv) => ids.includes(rv.id));
+  // .map() по ids, а не .filter() по cache.reviews – порядок карточек
+  // должен идти по порядку, в котором тайтлы привязали (и можно
+  // перетащить в редакторе, см. renderLinkedTitles), а не по тому, в
+  // каком они просто лежат в общем списке отзывов.
+  const reviews = ids.map((id) => (cache.reviews || []).find((rv) => rv.id === id)).filter(Boolean);
   if (!reviews.length) return "";
   return `
     <div class="fav-modal-titles-title">${i18n("Тайтлы")}</div>
