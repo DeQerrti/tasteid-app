@@ -1237,7 +1237,13 @@ function renderGroup(type, list) {
   }
   container.innerHTML = list
     .map((r) => {
-      const typeLabel = favTypeLabel(r.type, r.subtype);
+      // Тип строкой у каждой записи имеет смысл только когда он и правда
+      // отличается от записи к записи – роль персоны (Автор/Режиссёр/…).
+      // У персонажей и у своих разделов favTypeLabel() всегда возвращает
+      // одно и то же для всей группы – ровно то же, что уже написано в
+      // заголовке divider-title над списком, повторять это на каждой
+      // строке было чистым шумом.
+      const typeLabel = r.type === "person" ? favTypeLabel(r.type, r.subtype) : null;
       return `
     <div class="entry-row" data-id="${r.id}" data-group="${type}" draggable="true">
       <span class="entry-drag-handle" title="${i18n("Перетащить")}">⠿</span>
@@ -1245,7 +1251,7 @@ function renderGroup(type, list) {
       <div class="entry-name">${esc(r.name)}</div>
       <div class="entry-meta">
         ${r.from ? `<div class="entry-type">${esc(r.from)}</div>` : ""}
-        <div class="entry-type">${esc(typeLabel)}</div>
+        ${typeLabel ? `<div class="entry-type">${esc(typeLabel)}</div>` : ""}
       </div>
       <button class="entry-edit" onclick="startEdit(${r.id})">${i18n("✎ Изменить")}</button>
       <button class="entry-del" title="${i18n("Удалить")}" onclick="event.stopPropagation(); deleteFavEntry(${r.id})">✕</button>
