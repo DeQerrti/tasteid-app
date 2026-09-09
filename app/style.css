@@ -545,25 +545,35 @@ html:not(.kb-nav) *:focus {
 
 /* ══ АНКЕТА: СВОИ ПОЛЯ (favorites-edit.js) ════════ */
 .profile-custom-row { display: flex; gap: .4rem; margin-bottom: .5rem; align-items: center; }
-.profile-custom-row input { flex: 1; min-width: 0; }
+.profile-custom-row input {
+  flex: 1;
+  min-width: 0;
+  /* Название поля/значение – обычно тоже пара слов, не абзац; та же
+     причина, что у #f-from ниже: field-sizing вместо flex:1 растягивало
+     бы инпут на всю выделенную половину строки даже под короткий ответ. */
+  field-sizing: content;
+  max-width: 100%;
+}
 .profile-custom-row .icon-btn { flex-shrink: 0; }
 
 /* ══ АНКЕТА: НЕОБЯЗАТЕЛЬНЫЕ ПОЛЯ (favorites-edit.js) ══
-   Пол/Откуда – короткий ответ в одно слово-два, а полю в сетке
-   .grid по умолчанию отдана целая колонка (или вся строка у .full) –
-   ответ тонул в пустой рамке шире, чем сам текст. field-sizing: content
-   (Chromium 123+, у нас Electron заведомо новее) заставляет сам инпут
-   расти вместе с текстом, а не сразу занимать всё отведённое место. */
-#f-profile-gender,
+   Откуда – короткий ответ в одно слово-два, а полю в сетке .grid по
+   умолчанию отдана целая строка (.field.full) – ответ тонул в пустой
+   рамке шире, чем сам текст. field-sizing: content (Chromium 123+, у
+   нас Electron заведомо новее) заставляет сам инпут расти вместе с
+   текстом, а не сразу занимать всё отведённое место. */
 #f-from {
   field-sizing: content;
   min-width: 160px;
   max-width: 100%;
 }
 
-/* Пол/Цитаты не всем нужны – крестик у подписи прячет поле и стирает
-   его же значение, кнопка «+ Добавить» ниже возвращает его обратно
-   (см. addOptionalProfileField/removeOptionalProfileField). */
+/* Цитаты не всем нужны – крестик у подписи прячет поле и стирает его
+   же значение, кнопка «+ Добавить цитаты» рядом возвращает его обратно
+   (см. addOptionalProfileField/removeOptionalProfileField). Тот же
+   field-sizing растит и её саму по высоте под то, что напечатано, –
+   однострочная цитата не переносится внутри узкой рамки, а раздвигает
+   её, вместо накопленной прокрутки. */
 .field-optional label { display: flex; align-items: center; justify-content: space-between; }
 .field-remove-btn {
   background: none; border: none; color: var(--text-dim);
@@ -571,7 +581,7 @@ html:not(.kb-nav) *:focus {
   text-transform: none; letter-spacing: normal;
 }
 .field-remove-btn:hover { color: var(--red); }
-.profile-optional-adders { display: flex; gap: .5rem; flex-wrap: wrap; margin: -0.4rem 0 1.5rem; }
+#f-profile-quotes { field-sizing: content; min-height: 2.4rem; }
 
 /* ══ ТАЙТЛЫ: СВЯЗЬ С ОТЗЫВАМИ (favorites-edit.js) ══ */
 .linked-titles-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
@@ -580,7 +590,10 @@ html:not(.kb-nav) *:focus {
   background: var(--surface2); border: 1px solid var(--border);
   border-radius: 2px; padding: .3rem .5rem .3rem .3rem;
   font-size: .82rem; max-width: 220px;
+  cursor: grab;
 }
+.linked-title-chip.dragging { opacity: .4; }
+.linked-title-chip.drag-over { border-color: var(--red); }
 .linked-title-chip img { width: 30px; aspect-ratio: 2/3; object-fit: cover; flex-shrink: 0; }
 .linked-title-chip span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .linked-title-del {

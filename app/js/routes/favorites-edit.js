@@ -123,28 +123,21 @@ async function mount(container, params) {
           <label>${i18n("Биография")}</label>
           <textarea id="f-profile-bio" rows="4" placeholder="${i18n("Свободный текст – история персонажа, факты о персоне...")}"></textarea>
         </div>
-        <div class="field field-optional hidden" id="field-profile-gender">
-          <label>${i18n("Пол")}<button type="button" class="field-remove-btn" title="${i18n("Убрать поле")}" onclick="removeOptionalProfileField('gender')">✕</button></label>
-          <input type="text" id="f-profile-gender" placeholder="${i18n("Например: женский")}">
-        </div>
         <div class="field full field-optional hidden" id="field-profile-quotes">
           <label>${i18n("Цитаты")}<button type="button" class="field-remove-btn" title="${i18n("Убрать поле")}" onclick="removeOptionalProfileField('quotes')">✕</button></label>
-          <textarea id="f-profile-quotes" rows="3" placeholder="${i18n("По одной на строку")}"></textarea>
+          <textarea id="f-profile-quotes" rows="1" placeholder="${i18n("По одной на строку")}"></textarea>
+        </div>
+        <!-- Не всем сущностям нужны запоминающиеся цитаты – в отличие от
+             Биографии/Своих полей, спрятаны по умолчанию, пока не
+             добавили явно. -->
+        <div class="field full">
+          <button type="button" class="btn btn-ghost" id="add-profile-quotes-btn" onclick="addOptionalProfileField('quotes')">${i18n("+ Добавить цитаты")}</button>
         </div>
         <div class="field full">
           <label>${i18n("Свои поля")}</label>
           <div id="profile-custom-list"></div>
           <button type="button" class="btn btn-ghost" onclick="addProfileCustomField()">${i18n("+ Добавить поле")}</button>
         </div>
-      </div>
-      <!-- Пол/Цитаты – не всем сущностям нужны (у персонажа без пола или
-           без запоминающихся реплик заполнять их незачем) – в отличие от
-           Биографии/Своих полей, эти два спрятаны по умолчанию, пока их
-           явно не добавили, тем же жестом «+ Добавить», что и остальные
-           необязательные поля выше. -->
-      <div class="profile-optional-adders">
-        <button type="button" class="btn btn-ghost" id="add-profile-gender-btn" onclick="addOptionalProfileField('gender')">${i18n("+ Добавить пол")}</button>
-        <button type="button" class="btn btn-ghost" id="add-profile-quotes-btn" onclick="addOptionalProfileField('quotes')">${i18n("+ Добавить цитаты")}</button>
       </div>
 
       <!-- Тайтлы – связь с отзывами (reviews.json), напр. у персонажа
@@ -786,6 +779,11 @@ async function confirmRenameFavTypePicker(id, rawName) {
 // восстанавливать порядок/значения обратно из DOM).
 let profileCustomFields = [];
 
+// Пол – без своего поля в форме (см. её же комментарий у
+// buildProfileField ниже), но раз уже был сохранён у записи раньше,
+// молча стирать его при пересохранении не годится.
+let currentProfileGender = null;
+
 function renderProfileCustomFields() {
   const box = document.getElementById("profile-custom-list");
   if (!box) return;
@@ -816,11 +814,11 @@ function removeProfileCustomField(i) {
 // не заполнено, а не объект из одних пустых полей: не хочется раздувать
 // favorites.json пустой анкетой у каждой записи, у которой её никто не
 // заводил.
-// Пол/Цитаты – необязательные поля, спрятанные, пока их не добавили
-// явно (см. её же комментарий у profile-optional-adders в mount()
-// выше). Прячем/показываем именно так, а не оставляем полю просто
-// пустовать видимым – меньше незаполненных строк на глаза тому, кому
-// они не нужны вовсе.
+// Цитаты – необязательное поле, спрятанное, пока его не добавили явно
+// (см. её же комментарий у «+ Добавить цитаты» в mount() выше).
+// Прячем/показываем именно так, а не оставляем поле просто пустовать
+// видимым – меньше незаполненных строк на глаза тому, кому они не
+// нужны вовсе.
 function addOptionalProfileField(key) {
   document.getElementById(`field-profile-${key}`).classList.remove("hidden");
   document.getElementById(`add-profile-${key}-btn`).classList.add("hidden");
@@ -835,7 +833,6 @@ function removeOptionalProfileField(key) {
 
 function buildProfileField() {
   const bio = document.getElementById("f-profile-bio").value.trim();
-  const gender = document.getElementById("f-profile-gender").value.trim();
   const quotes = document
     .getElementById("f-profile-quotes")
     .value.split("\n")
@@ -844,10 +841,13 @@ function buildProfileField() {
   const custom = profileCustomFields
     .map((f) => ({ label: f.label.trim(), value: f.value.trim() }))
     .filter((f) => f.label || f.value);
-  if (!bio && !gender && !quotes.length && !custom.length) return null;
+  if (!bio && !currentProfileGender && !quotes.length && !custom.length) return null;
   return {
     bio: bio || null,
-    gender: gender || null,
+    // Пол убран из редактора (нечем и незачем каждому заполнять) – но
+    // раз уже стоял у записи, при пересохранении не стираем его молча,
+    // только показать в форме больше негде.
+    gender: currentProfileGender || null,
     quotes: quotes.length ? quotes : null,
     custom: custom.length ? custom : null,
   };
@@ -868,7 +868,7 @@ function renderLinkedTitles() {
     ? reviews
         .map(
           (r) => `
-    <div class="linked-title-chip">
+    <div class="linked-title-chip" draggable="true" data-id="${r.id}" title="${i18n("Перетащить")}">
       <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" loading="lazy">
       <span>${esc(r.title)}</span>
       <button type="button" class="linked-title-del" title="${i18n("Удалить")}" onclick="removeLinkedTitle(${r.id})">✕</button>
@@ -876,6 +876,51 @@ function renderLinkedTitles() {
         )
         .join("")
     : `<div class="linked-titles-empty">${i18n("Пока нет привязанных тайтлов.")}</div>`;
+  bindLinkedTitleDnd(box);
+}
+
+// Порядок привязанных тайтлов – тот же приём перетаскивания, что и у
+// entry-row/bindFavDnd выше, только сравнение «до/после» идёт по X, а
+// не Y: карточки лежат в ряд (flex-wrap), а не столбиком.
+let titleDragSrc = null;
+
+function bindLinkedTitleDnd(box) {
+  box.querySelectorAll(".linked-title-chip").forEach((chip) => {
+    chip.addEventListener("dragstart", () => {
+      titleDragSrc = chip;
+      chip.classList.add("dragging");
+    });
+    chip.addEventListener("dragend", () => {
+      box.querySelectorAll(".linked-title-chip").forEach((el) => el.classList.remove("dragging", "drag-over"));
+      titleDragSrc = null;
+    });
+    chip.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!titleDragSrc || chip === titleDragSrc) return;
+      box.querySelectorAll(".linked-title-chip").forEach((el) => el.classList.remove("drag-over"));
+      chip.classList.add("drag-over");
+    });
+    chip.addEventListener("dragleave", () => chip.classList.remove("drag-over"));
+    chip.addEventListener("drop", (e) => {
+      e.preventDefault();
+      chip.classList.remove("drag-over");
+      if (!titleDragSrc || chip === titleDragSrc) return;
+
+      const srcId = Number(titleDragSrc.dataset.id);
+      const targetId = Number(chip.dataset.id);
+      const srcIdx = linkedReviewIds.indexOf(srcId);
+      let targetIdx = linkedReviewIds.indexOf(targetId);
+      if (srcIdx === -1 || targetIdx === -1) return;
+
+      const rect = chip.getBoundingClientRect();
+      const before = e.clientX < rect.left + rect.width / 2;
+
+      linkedReviewIds.splice(srcIdx, 1);
+      targetIdx = linkedReviewIds.indexOf(targetId);
+      linkedReviewIds.splice(before ? targetIdx : targetIdx + 1, 0, srcId);
+      renderLinkedTitles();
+    });
+  });
 }
 
 function removeLinkedTitle(id) {
@@ -1111,13 +1156,13 @@ function resetFavToNew() {
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("page-subtitle").textContent = i18n("Персонажи и персоны");
   document.getElementById("btn-save").textContent = i18n("Сохранить");
+  currentProfileGender = null;
   [
     "f-name",
     "f-image",
     "f-from",
     "f-image-backup",
     "f-profile-bio",
-    "f-profile-gender",
     "f-profile-quotes",
   ].forEach((id) => (document.getElementById(id).value = ""));
   document.getElementById("f-type").value = "character";
@@ -1129,9 +1174,7 @@ function resetFavToNew() {
   document.getElementById("avatar-img").style.display = "none";
   document.getElementById("field-subtype").classList.remove("visible");
   document.getElementById("field-from").classList.remove("hidden-field");
-  document.getElementById("field-profile-gender").classList.add("hidden");
   document.getElementById("field-profile-quotes").classList.add("hidden");
-  document.getElementById("add-profile-gender-btn").classList.remove("hidden");
   document.getElementById("add-profile-quotes-btn").classList.remove("hidden");
   document.getElementById("image-backup-status").textContent = "";
   document.getElementById("image-upload-status").textContent = "";
@@ -1150,9 +1193,7 @@ function fillFavForm(r) {
       : [];
   document.getElementById("f-from").value = r.from || "";
   document.getElementById("f-profile-bio").value = r.profile?.bio || "";
-  document.getElementById("f-profile-gender").value = r.profile?.gender || "";
-  document.getElementById("field-profile-gender").classList.toggle("hidden", !r.profile?.gender);
-  document.getElementById("add-profile-gender-btn").classList.toggle("hidden", !!r.profile?.gender);
+  currentProfileGender = r.profile?.gender || null;
   document.getElementById("f-profile-quotes").value = (r.profile?.quotes || []).join("\n");
   document.getElementById("field-profile-quotes").classList.toggle("hidden", !r.profile?.quotes?.length);
   document.getElementById("add-profile-quotes-btn").classList.toggle(
@@ -1202,8 +1243,10 @@ function renderGroup(type, list) {
       <span class="entry-drag-handle" title="${i18n("Перетащить")}">⠿</span>
       <img class="entry-avatar" src="${esc(r.image || r.image_backup || "")}" data-hide-on-error alt="">
       <div class="entry-name">${esc(r.name)}</div>
-      ${r.from ? `<div class="entry-type">${esc(r.from)}</div>` : ""}
-      <div class="entry-type">${esc(typeLabel)}</div>
+      <div class="entry-meta">
+        ${r.from ? `<div class="entry-type">${esc(r.from)}</div>` : ""}
+        <div class="entry-type">${esc(typeLabel)}</div>
+      </div>
       <button class="entry-edit" onclick="startEdit(${r.id})">${i18n("✎ Изменить")}</button>
       <button class="entry-del" title="${i18n("Удалить")}" onclick="event.stopPropagation(); deleteFavEntry(${r.id})">✕</button>
     </div>`;
