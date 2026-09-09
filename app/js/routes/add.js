@@ -242,7 +242,7 @@ async function mount(container, params) {
               </label>
               <span class="file-btn-name" id="f-cover-upload-name"></span>
             </div>
-            <label class="original-quality-toggle"><input type="checkbox" id="f-cover-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
+            <label class="original-quality-toggle"><input type="checkbox" id="f-cover-original" onchange="onCoverOriginalToggle()"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
             <div id="cover-upload-status" class="status-msg" style="margin:.4rem 0 0;text-align:left;min-height:0;"></div>
           </div>
         </div>

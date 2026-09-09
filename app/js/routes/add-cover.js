@@ -120,6 +120,22 @@ async function uploadCoverFile() {
   }
 }
 
+// Переключение галочки «Оригинальное качество» само по себе не трогает
+// уже сделанную резервную копию – это флаг для СЛЕДУЮЩЕЙ обработки, а
+// не задним числом для прошлой. Но если источник ещё под рукой (файл
+// не переизбран, ссылка ещё в поле) – ничто не мешает переобработать
+// его прямо сейчас: новая копия просто добавится в галерею рядом со
+// старой, ничего не удаляя (см. coverGallery выше).
+async function onCoverOriginalToggle() {
+  const fileInput = document.getElementById("f-cover-upload");
+  if (fileInput.files.length) {
+    await uploadCoverFile();
+    return;
+  }
+  const url = document.getElementById("f-cover").value.trim();
+  if (url.startsWith("http")) await backupCoverNow();
+}
+
 // ── Автобэкап картинки по ссылке – качается на сервере, чтобы не
 //    упереться в CORS. Срабатывает через паузу после ввода, не на
 //    каждую напечатанную букву. ──

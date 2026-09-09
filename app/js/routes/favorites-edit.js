@@ -103,7 +103,7 @@ async function mount(container, params) {
             <span>${i18n("Выбрать файл")}</span>
           </label>
           <span class="file-btn-name" id="f-image-upload-name"></span>
-          <label class="original-quality-toggle"><input type="checkbox" id="f-image-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
+          <label class="original-quality-toggle"><input type="checkbox" id="f-image-original" onchange="onImageOriginalToggle()"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
           <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
         </div>
         <div class="field full" id="field-from">
@@ -961,6 +961,21 @@ function openFavImageGallery() {
       favImageGallery = favImageGallery.filter((u) => u !== url);
     },
   });
+}
+
+// Та же переобработка «задним числом», что и onCoverOriginalToggle() в
+// add-cover.js: сама галочка ничего не трогает, но если источник ещё
+// под рукой (файл не переизбран, ссылка ещё в поле) – прогоняем его
+// заново с новым качеством, новая копия добавляется в галерею рядом со
+// старой.
+async function onImageOriginalToggle() {
+  const fileInput = document.getElementById("f-image-upload");
+  if (fileInput.files.length) {
+    await uploadFavImage();
+    return;
+  }
+  const url = document.getElementById("f-image").value.trim();
+  if (url.startsWith("http")) await backupImageNow();
 }
 
 async function uploadFavImage() {
