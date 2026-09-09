@@ -123,12 +123,12 @@ async function mount(container, params) {
           <label>${i18n("Биография")}</label>
           <textarea id="f-profile-bio" rows="4" placeholder="${i18n("Свободный текст – история персонажа, факты о персоне...")}"></textarea>
         </div>
-        <div class="field">
-          <label>${i18n("Пол")}</label>
+        <div class="field field-optional hidden" id="field-profile-gender">
+          <label>${i18n("Пол")}<button type="button" class="field-remove-btn" title="${i18n("Убрать поле")}" onclick="removeOptionalProfileField('gender')">✕</button></label>
           <input type="text" id="f-profile-gender" placeholder="${i18n("Например: женский")}">
         </div>
-        <div class="field full">
-          <label>${i18n("Цитаты")}</label>
+        <div class="field full field-optional hidden" id="field-profile-quotes">
+          <label>${i18n("Цитаты")}<button type="button" class="field-remove-btn" title="${i18n("Убрать поле")}" onclick="removeOptionalProfileField('quotes')">✕</button></label>
           <textarea id="f-profile-quotes" rows="3" placeholder="${i18n("По одной на строку")}"></textarea>
         </div>
         <div class="field full">
@@ -136,6 +136,15 @@ async function mount(container, params) {
           <div id="profile-custom-list"></div>
           <button type="button" class="btn btn-ghost" onclick="addProfileCustomField()">${i18n("+ Добавить поле")}</button>
         </div>
+      </div>
+      <!-- Пол/Цитаты – не всем сущностям нужны (у персонажа без пола или
+           без запоминающихся реплик заполнять их незачем) – в отличие от
+           Биографии/Своих полей, эти два спрятаны по умолчанию, пока их
+           явно не добавили, тем же жестом «+ Добавить», что и остальные
+           необязательные поля выше. -->
+      <div class="profile-optional-adders">
+        <button type="button" class="btn btn-ghost" id="add-profile-gender-btn" onclick="addOptionalProfileField('gender')">${i18n("+ Добавить пол")}</button>
+        <button type="button" class="btn btn-ghost" id="add-profile-quotes-btn" onclick="addOptionalProfileField('quotes')">${i18n("+ Добавить цитаты")}</button>
       </div>
 
       <!-- Тайтлы – связь с отзывами (reviews.json), напр. у персонажа
@@ -807,6 +816,23 @@ function removeProfileCustomField(i) {
 // не заполнено, а не объект из одних пустых полей: не хочется раздувать
 // favorites.json пустой анкетой у каждой записи, у которой её никто не
 // заводил.
+// Пол/Цитаты – необязательные поля, спрятанные, пока их не добавили
+// явно (см. её же комментарий у profile-optional-adders в mount()
+// выше). Прячем/показываем именно так, а не оставляем полю просто
+// пустовать видимым – меньше незаполненных строк на глаза тому, кому
+// они не нужны вовсе.
+function addOptionalProfileField(key) {
+  document.getElementById(`field-profile-${key}`).classList.remove("hidden");
+  document.getElementById(`add-profile-${key}-btn`).classList.add("hidden");
+  document.getElementById(`f-profile-${key}`).focus();
+}
+
+function removeOptionalProfileField(key) {
+  document.getElementById(`field-profile-${key}`).classList.add("hidden");
+  document.getElementById(`f-profile-${key}`).value = "";
+  document.getElementById(`add-profile-${key}-btn`).classList.remove("hidden");
+}
+
 function buildProfileField() {
   const bio = document.getElementById("f-profile-bio").value.trim();
   const gender = document.getElementById("f-profile-gender").value.trim();
@@ -1103,6 +1129,10 @@ function resetFavToNew() {
   document.getElementById("avatar-img").style.display = "none";
   document.getElementById("field-subtype").classList.remove("visible");
   document.getElementById("field-from").classList.remove("hidden-field");
+  document.getElementById("field-profile-gender").classList.add("hidden");
+  document.getElementById("field-profile-quotes").classList.add("hidden");
+  document.getElementById("add-profile-gender-btn").classList.remove("hidden");
+  document.getElementById("add-profile-quotes-btn").classList.remove("hidden");
   document.getElementById("image-backup-status").textContent = "";
   document.getElementById("image-upload-status").textContent = "";
   document.getElementById("f-image-upload").value = "";
@@ -1121,7 +1151,14 @@ function fillFavForm(r) {
   document.getElementById("f-from").value = r.from || "";
   document.getElementById("f-profile-bio").value = r.profile?.bio || "";
   document.getElementById("f-profile-gender").value = r.profile?.gender || "";
+  document.getElementById("field-profile-gender").classList.toggle("hidden", !r.profile?.gender);
+  document.getElementById("add-profile-gender-btn").classList.toggle("hidden", !!r.profile?.gender);
   document.getElementById("f-profile-quotes").value = (r.profile?.quotes || []).join("\n");
+  document.getElementById("field-profile-quotes").classList.toggle("hidden", !r.profile?.quotes?.length);
+  document.getElementById("add-profile-quotes-btn").classList.toggle(
+    "hidden",
+    !!r.profile?.quotes?.length
+  );
   profileCustomFields = r.profile?.custom?.length ? r.profile.custom.map((f) => ({ ...f })) : [];
   renderProfileCustomFields();
   linkedReviewIds = r.linked_review_ids?.length ? [...r.linked_review_ids] : [];

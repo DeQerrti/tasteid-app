@@ -78,6 +78,18 @@ async function renderRoute() {
   // выставит явно, здесь не должно остаться устаревшей чужой.
   activeLeaveGuard = null;
 
+  // Модалки поверх вкладок (review-modal-overlay, fav-modal-overlay –
+  // reviews.js/favorites.js) на время открытия ставят
+  // document.body.style.overflow = "hidden", чтобы страница под ними не
+  // скроллилась вместе с модалкой. Уйти на другой маршрут МОЖНО прямо
+  // из такой модалки (карандаш редактирования ведёт по обычной ссылке
+  // #/add?edit=ID или #/favorites-edit?edit=ID) – сама модалка при этом
+  // не закрывается явным closeXModal(), просто прячется вместе со всем
+  // shell-root ниже. Без сброса здесь этот overflow:hidden оставался бы
+  // висеть уже на теле НОВОЙ страницы, и её было бы физически нечем
+  // прокрутить колесом мыши – ни намёка на причину на самой странице.
+  document.body.style.overflow = "";
+
   if (activeCleanup) {
     try {
       activeCleanup();

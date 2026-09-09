@@ -548,6 +548,31 @@ html:not(.kb-nav) *:focus {
 .profile-custom-row input { flex: 1; min-width: 0; }
 .profile-custom-row .icon-btn { flex-shrink: 0; }
 
+/* ══ АНКЕТА: НЕОБЯЗАТЕЛЬНЫЕ ПОЛЯ (favorites-edit.js) ══
+   Пол/Откуда – короткий ответ в одно слово-два, а полю в сетке
+   .grid по умолчанию отдана целая колонка (или вся строка у .full) –
+   ответ тонул в пустой рамке шире, чем сам текст. field-sizing: content
+   (Chromium 123+, у нас Electron заведомо новее) заставляет сам инпут
+   расти вместе с текстом, а не сразу занимать всё отведённое место. */
+#f-profile-gender,
+#f-from {
+  field-sizing: content;
+  min-width: 160px;
+  max-width: 100%;
+}
+
+/* Пол/Цитаты не всем нужны – крестик у подписи прячет поле и стирает
+   его же значение, кнопка «+ Добавить» ниже возвращает его обратно
+   (см. addOptionalProfileField/removeOptionalProfileField). */
+.field-optional label { display: flex; align-items: center; justify-content: space-between; }
+.field-remove-btn {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: .75rem; padding: 0; margin-left: .5rem;
+  text-transform: none; letter-spacing: normal;
+}
+.field-remove-btn:hover { color: var(--red); }
+.profile-optional-adders { display: flex; gap: .5rem; flex-wrap: wrap; margin: -0.4rem 0 1.5rem; }
+
 /* ══ ТАЙТЛЫ: СВЯЗЬ С ОТЗЫВАМИ (favorites-edit.js) ══ */
 .linked-titles-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
 .linked-title-chip {
