@@ -484,8 +484,17 @@ function reviewModalBodyHtml(r) {
     ? ` class="review-modal-cover has-gallery" onclick="openReviewCoverGallery()" title="${i18n("Все обложки ({v0})", { v0: galleryImgs.length })}"`
     : ` class="review-modal-cover"`;
 
+  const editId = r.id ?? encodeURIComponent(r.title);
+  const editBtn = isAdmin()
+    ? `<a href="#/add?edit=${editId}" class="icon-btn" title="${i18n("Редактировать")}">✎</a>`
+    : "";
+
   return `
-    ${cameraButton("reviewExport()", "review-export-btn")}
+    <div class="review-modal-actions">
+      ${cameraButton("reviewExport()", "review-export-btn")}
+      ${editBtn}
+      <button type="button" class="icon-btn" title="${i18n("Закрыть")}" onclick="closeReviewModal()">✕</button>
+    </div>
     <div id="review-modal-capture">
       <div class="review-modal-header">
         <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}"${coverClickable} ${coverFallbackAttrs(r.cover, r.cover_backup)}>

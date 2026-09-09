@@ -236,6 +236,31 @@ function renderNowBody() {
   for (const [mode, el] of Object.entries(nowModeBodies)) {
     el.hidden = mode !== nowState.mode;
   }
+  nowBindCardClicks();
+}
+
+// Клик по карточке в «Сейчас»/«Статусы» и в «Архиве» открывает ту же
+// модалку отзыва, что уже есть на вкладке «Отзывы» (rvBindCardClicks в
+// reviews.js) и в «Любимом» (favBindCardClicks в favorites.js) – раньше
+// эти карточки (manualCard, js/cards.js) вообще ничего не открывали,
+// только карандаш редактирования. Слушатель вешается один раз на
+// #now-mode-body – сам контейнер не пересоздаётся при переключении
+// статусов (см. nowModeBodies выше), только его дети скрываются/
+// показываются.
+function nowBindCardClicks() {
+  const body = document.getElementById("now-mode-body");
+  if (!body || body.dataset.clickBound) return;
+  body.dataset.clickBound = "1";
+  body.addEventListener("click", (e) => {
+    if (e.target.closest(".review-edit-btn")) return;
+    const wrap = e.target.closest(".review-card-wrap");
+    if (!wrap) return;
+    const id = wrap.dataset.reviewId;
+    const review = (cache.reviews || []).find(
+      (r) => String(r.id ?? encodeURIComponent(r.title)) === id
+    );
+    if (review) openReviewModal(review);
+  });
 }
 
 function renderNow({ buckets, completed }) {

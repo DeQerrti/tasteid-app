@@ -192,6 +192,8 @@ async function mount(container, params) {
           <input type="text" id="m-name" placeholder="Имя персонажа" data-i18n-placeholder="Имя персонажа">
         </div>
 
+        <label class="original-quality-toggle"><input type="checkbox" id="m-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
+
         <span class="manual-toggle" onclick="toggleManual()" data-i18n>Ввести URL вручную</span>
         <div class="manual-section" id="manual-section">
           <div class="field">
@@ -199,7 +201,6 @@ async function mount(container, params) {
             <input type="text" id="m-img" placeholder="https://..." oninput="previewModalImg(this.value); scheduleBackupModalImg();">
             <input type="hidden" id="m-img-backup">
             <img id="m-img-preview" class="img-preview">
-            <label class="original-quality-toggle"><input type="checkbox" id="m-img-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
             <div id="m-img-backup-status" style="font-size:.75rem;margin-top:.35rem;"></div>
           </div>
         </div>
@@ -212,7 +213,6 @@ async function mount(container, params) {
               <span data-i18n>Выбрать файл</span>
             </label>
             <span class="file-btn-name" id="m-upload-file-name"></span>
-            <label class="original-quality-toggle"><input type="checkbox" id="m-upload-original"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
             <div id="upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
           </div>
           <div class="batch-upload-list hidden" id="batch-upload-list"></div>
@@ -1324,7 +1324,7 @@ async function uploadCharImage() {
   status.style.color = "var(--text-dim)";
 
   try {
-    const keepOriginal = document.getElementById("m-upload-original")?.checked || false;
+    const keepOriginal = document.getElementById("m-original")?.checked || false;
     const { safeName } = await uploadOneCharFile(file, customName, folder, keepOriginal);
 
     status.textContent = i18n("Загружено ✓ Обновляю список...");
@@ -1449,7 +1449,7 @@ async function uploadBatchFiles() {
   const title = pendingTier ? data.find((t) => t.id === pendingTier.titleId) : null;
   const list = pendingTier && title?.tierlists.find((l) => l.id === pendingTier.listId);
   let addedAny = false;
-  const keepOriginal = document.getElementById("m-upload-original")?.checked || false;
+  const keepOriginal = document.getElementById("m-original")?.checked || false;
 
   for (const item of batchItems) {
     if (item.status === "done") continue;
@@ -1555,7 +1555,7 @@ async function backupModalImgNow() {
   status.textContent = i18n("Делаю резервную копию...");
   status.style.color = "";
   try {
-    const original = document.getElementById("m-img-original")?.checked || false;
+    const original = document.getElementById("m-original")?.checked || false;
     const res = await fetch("/api/backup-cover", {
       method: "POST",
       credentials: "include",

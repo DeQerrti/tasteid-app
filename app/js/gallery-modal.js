@@ -81,6 +81,13 @@ function renderGalleryModalGrid() {
 
 async function galleryModalDelete(url) {
   if (!galleryModalState) return;
+  // Снимок onDelete СЕЙЧАС, до await confirmDialog() – пока диалог
+  // подтверждения висит, саму галерею можно успеть закрыть (крестиком,
+  // Esc, кликом по подложке) – тогда galleryModalState станет null и
+  // `galleryModalState.onDelete` уже здесь уронил бы всё исключением
+  // "Cannot read properties of null" вместо того, чтобы просто тихо
+  // прервать удаление.
+  const { onDelete } = galleryModalState;
   const ok = await confirmDialog(
     i18n("Удалить эту картинку из галереи?"),
     i18n("Удалить"),
@@ -88,12 +95,14 @@ async function galleryModalDelete(url) {
   );
   if (!ok) return;
   try {
-    const removed = await galleryModalState.onDelete?.(url);
+    const removed = await onDelete?.(url);
     if (removed === false) return;
   } catch (e) {
     alert(i18n("Не удалось удалить: ") + e.message);
     return;
   }
+  // Файл уже удалён (onDelete выше отработал) – если саму галерею тем
+  // временем закрыли, обновлять в ней уже нечего.
   if (!galleryModalState) return;
   galleryModalState.images = galleryModalState.images.filter((u) => u !== url);
   if (galleryModalState.active === url) {

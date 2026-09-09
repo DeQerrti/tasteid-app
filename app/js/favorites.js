@@ -436,23 +436,99 @@ function favPersonModalBodyHtml(r) {
     : ` class="review-modal-cover"`;
 
   const editBtn = isAdmin()
-    ? `<a href="#/favorites-edit?edit=${r.id}" class="review-edit-btn" style="position:static;display:inline-flex;margin-bottom:1rem" title="${i18n("Редактировать")}">✎</a>`
+    ? `<a href="#/favorites-edit?edit=${r.id}" class="icon-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
   return `
-    <div class="review-modal-header">
-      <img src="${esc(r.image || r.image_backup || PH_SQ)}" alt="${esc(r.name)}"${imgClickable} ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
-      <div>
-        <div class="review-modal-title" id="fav-modal-title">${esc(r.name)}</div>
-        ${subLine ? `<div class="review-meta-row"><span class="review-format">${esc(subLine)}</span></div>` : ""}
-      </div>
+    <div class="fav-modal-actions">
+      ${cameraButton("favPersonExport()", "fav-person-export-btn")}
+      ${editBtn}
+      <button type="button" class="icon-btn" title="${i18n("Закрыть")}" onclick="closeFavPersonModal()">✕</button>
     </div>
-    ${editBtn}
-    ${bioHtml}
-    ${quotesHtml}
-    ${factsHtml}
-    ${favPersonLinkedTitlesHtml(r)}
+    <div id="fav-modal-capture">
+      <div class="review-modal-header">
+        <img src="${esc(r.image || r.image_backup || PH_SQ)}" alt="${esc(r.name)}"${imgClickable} ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
+        <div>
+          <div class="review-modal-title" id="fav-modal-title">${esc(r.name)}</div>
+          ${subLine ? `<div class="review-meta-row"><span class="review-format">${esc(subLine)}</span></div>` : ""}
+        </div>
+      </div>
+      ${bioHtml}
+      ${quotesHtml}
+      ${factsHtml}
+      ${favPersonLinkedTitlesHtml(r)}
+    </div>
   `;
+}
+
+// Снимок анкеты картинкой – тот же приём, что у reviewExport() в
+// reviews.js (см. её же подробный комментарий там): кнопка сама
+// вынесена ИЗ #fav-modal-capture, иначе попала бы на собственный же
+// снимок.
+async function favPersonExport() {
+  const btn = document.getElementById("fav-person-export-btn");
+  const el = document.getElementById("fav-modal-capture");
+  if (!el) return;
+  let restoreBtn = () => {};
+  if (btn) {
+    const original = btn.innerHTML;
+    btn.innerHTML = `<span class="spinner-sm"></span>`;
+    btn.disabled = true;
+    restoreBtn = () => {
+      btn.innerHTML = original;
+      btn.disabled = false;
+    };
+  }
+
+  let restoreImages = () => {};
+  let restoreAnim = () => {};
+  let restoreShadows = () => {};
+  try {
+    if (typeof html2canvas === "undefined") await loadHtml2Canvas();
+
+    const imgs = Array.from(el.querySelectorAll("img"));
+    await forceLoadImagesForExport(imgs);
+
+    restoreImages = await proxyImagesToDataUrls(el);
+    restoreAnim = disableAnimations(el);
+    restoreShadows = bakeNeoShadows(el);
+    await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+
+    const canvas = await withTimeout(
+      html2canvas(el, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#0a0a0c",
+        scale: safeCaptureScale(el, 2),
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.setAttribute(
+            "data-skin",
+            document.documentElement.getAttribute("data-skin") || ""
+          );
+        },
+      }),
+      captureTimeoutMs(imgs.length),
+      i18n("Не удалось создать картинку за разумное время.")
+    );
+
+    const link = document.createElement("a");
+    const safeName =
+      (_favModalEntry?.name || "favorite").replace(/[^a-zA-Zа-яА-Я0-9_\- ]/g, "").trim() ||
+      "favorite";
+    link.download = `${safeName}.png`;
+    link.href = canvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    alert("Не удалось создать картинку 😢\n" + err.message);
+  } finally {
+    restoreImages();
+    restoreAnim();
+    restoreShadows();
+    restoreBtn();
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {

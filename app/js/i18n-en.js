@@ -834,6 +834,7 @@ i18nRegister({
   Размер: "Size",
   Редактировать: "Edit",
   Редактор: "Editor",
+  Закрыть: "Close",
   "с оценкой": "rated",
   "{decade}-е": "{decade}s",
   "По годам": "By decade",

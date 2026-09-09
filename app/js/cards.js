@@ -120,7 +120,7 @@ function manualCard(r, index) {
     ? `<a href="#/add?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
-  return `<div class="review-card-wrap" style="animation-delay:${Math.min(index * 25, 600)}ms">
+  return `<div class="review-card-wrap" data-review-id="${editId}" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${pencil}
     <div class="card" style="animation-delay:0ms">
       <div class="card-poster">

@@ -928,7 +928,11 @@ function onTypeChange() {
 
 function previewAvatar(url) {
   const img = document.getElementById("avatar-img");
-  if (url && url.startsWith("http")) {
+  // Раньше проверялось только url.startsWith("http") – из-за этого
+  // превью пропадало для уже загруженных с компьютера картинок:
+  // относительный путь вида "/favorites/xxx.webp" такой проверке не
+  // проходил (см. тот же разбор у previewCover() в add-cover.js).
+  if (url && url.trim()) {
     img.src = url;
     img.style.display = "block";
   } else img.style.display = "none";
@@ -1131,7 +1135,11 @@ function fillFavForm(r) {
   document.getElementById("image-backup-status").textContent = "";
   document.getElementById("image-upload-status").textContent = "";
   document.getElementById("f-image-upload").value = "";
-  previewAvatar(r.image || "");
+  // Внешняя ссылка (r.image) обычно пуста у картинок, загруженных с
+  // компьютера, – превью в этом случае берём из уже сделанной
+  // резервной копии, иначе оно пропадало бы при каждом повторном входе
+  // в редактор (см. её же историю в previewAvatar() выше).
+  previewAvatar(r.image || r.image_backup || "");
   onTypeChange();
 }
 

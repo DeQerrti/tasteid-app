@@ -663,6 +663,18 @@ html:not(.kb-nav) *:focus {
 }
 .modal-overlay.hidden { display: none; }
 
+/* Диалог подтверждения/ввода (utils.js: confirmDialog/promptDialog) –
+   тот же общий .modal-overlay, но может понадобиться ПОВЕРХ уже
+   открытой другой модалки (например, крестик в мини-галерее спрашивает
+   подтверждение прямо над самой галереей, gallery-modal.js). Обе эти
+   модалки лежат в одном z-слое (1000) – кто из них выше, решал бы
+   порядок в DOM, то есть кто раньше был создан лениво при первом
+   вызове, а не смысл происходящего. Явно выше любой другой .modal-overlay. */
+#confirm-dialog-overlay,
+#prompt-dialog-overlay {
+  z-index: 1100;
+}
+
 .modal {
   background: var(--surface);
   border: 1px solid var(--border2);

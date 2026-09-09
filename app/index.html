@@ -810,15 +810,20 @@ section.group { margin-bottom: 3.5rem; }
   position: relative;
   animation: fadeUp .25s ease both;
 }
-/* Место под неё в правом верхнем углу и так зарезервировано –
-   .review-modal-header ниже несёт padding-right ровно под неё же (там
-   раньше был крестик закрытия, см. её же комментарий у closeReviewModal
-   в reviews.js). */
-#review-export-btn { position: absolute; top: 22px; right: 22px; z-index: 1; }
+/* Три кнопки в правом верхнем углу модалки – снимок, карандаш
+   (редактировать), крестик (закрыть), именно в этом порядке слева
+   направо. Место под них зарезервировано .review-modal-header ниже
+   через padding-right. Тот же ряд, тот же порядок и у модалки
+   персонажа/персоны (.fav-modal-actions, favorites.js). */
+.review-modal-actions,
+.fav-modal-actions {
+  position: absolute; top: 22px; right: 22px; z-index: 5;
+  display: flex; gap: 6px;
+}
 .review-modal-header {
   display: flex; gap: 1.2rem;
   margin-bottom: 1.4rem;
-  padding-right: 40px;
+  padding-right: 104px;
 }
 .review-modal-cover {
   width: 90px; flex-shrink: 0;
