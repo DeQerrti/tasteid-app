@@ -504,7 +504,7 @@ export class MobileVault {
     // кладёт картинки, а не весь корень хранилища подряд.
     const settings = await this.readJson("site-settings.json", {});
     const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
-    const bases = new Set(["covers", "covers-backup", "title-covers", "chars"]);
+    const bases = new Set(["covers", "covers-backup", "title-covers", "chars", "favorites"]);
     for (const c of collections) {
       if (c && typeof c.id === "string" && c.id !== "characters") bases.add(c.id);
     }

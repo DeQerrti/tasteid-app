@@ -360,11 +360,12 @@ export class Vault {
     // целая модовая сборка Minecraft-сервера, гигабайты картинок,
     // улетевшие в приватный GitHub-репозиторий синхронизации. Теперь
     // обходим только те папки, куда TasteID сам когда-либо кладёт
-    // картинки: встроенные (covers/covers-backup/title-covers/chars) и
-    // текущие свои коллекции тир-листа из site-settings.json.
+    // картинки: встроенные (covers/covers-backup/title-covers/chars/
+    // favorites) и текущие свои коллекции тир-листа из
+    // site-settings.json.
     const settings = await this.readJson("site-settings.json", {});
     const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
-    const bases = new Set(["covers", "covers-backup", "title-covers", "chars"]);
+    const bases = new Set(["covers", "covers-backup", "title-covers", "chars", "favorites"]);
     for (const c of collections) {
       if (c && typeof c.id === "string" && c.id !== "characters") bases.add(c.id);
     }
