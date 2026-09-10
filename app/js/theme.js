@@ -232,8 +232,9 @@ async function applyTheme() {
 
   window.SITE_KEYBINDINGS = settings.keyBindings || null;
   window.SITE_TAB_KEYBINDINGS = settings.tabKeyBindings || {};
-  window.SITE_LABELS = mergeLabels(settings.labels);
-  window.SITE_LABEL_OVERRIDES = settings.labels || {};
+  const cleanedLabels = stripFrozenLabelDefaults(settings.labels);
+  window.SITE_LABELS = mergeLabels(cleanedLabels);
+  window.SITE_LABEL_OVERRIDES = cleanedLabels || {};
   window.SITE_CUSTOM_TAGS = settings.customTags || {};
   window.SITE_HIDDEN_TAGS = settings.hiddenTags || [];
   window.SITE_CUSTOM_TYPES = settings.customTypes || {};
@@ -262,7 +263,7 @@ async function applyTheme() {
   window.SITE_HIDDEN_CATEGORIES = settings.hiddenCategories || [];
   window.SITE_CATEGORY_COLORS = settings.categoryColors || {};
   window.SITE_TYPE_COLORS = settings.typeColors || {};
-  window.SITE_GRADE_SCALE = settings.gradeScale || null;
+  window.SITE_GRADE_SCALE = defrostGradeScale(settings.gradeScale || null);
   window.SITE_STATUS_BUCKETS = settings.statusBuckets || null;
   window.SITE_HIDDEN_STATUSES = new Set(settings.hiddenStatuses || []);
   window.SITE_STATUS_ORDER = Array.isArray(settings.statusOrder) ? settings.statusOrder : null;
@@ -422,6 +423,83 @@ const DEFAULT_LABELS = {
     search: i18n("Ничего не найдено"),
   },
 };
+
+// Сырые русские значения по умолчанию – только для очистки «замороженных»
+// оверрайдов, унаследованных от старого бага сохранения (см. её же
+// историю в settings-labels.js/settings-tabs.js): раньше сохранение
+// писало оверрайд в site-settings.json, даже когда его значение
+// совпадало со значением по умолчанию, и такая запись навсегда
+// «замораживала» подпись на русском, даже после переключения языка
+// интерфейса на другой. Сравниваем именно с сырым русским текстом, а
+// не с DEFAULT_LABELS выше (оно уже переведено на текущий язык) –
+// старый баг мог записать такое значение только пока интерфейс был
+// на русском.
+const FROZEN_LABEL_DEFAULTS = {
+  nav: { now: "Статусы", favorites: "Любимое", reviews: "Отзывы", stats: "Статистика", tierlist: "Тир-лист" },
+  sections: { favTitles: "Тайтлы", favCharacters: "Персонажи", favPersons: "Персоны", tierTitles: "Тайтлы" },
+  statuses: { archive: "Архив" },
+};
+
+function stripFrozenLabelDefaults(overrides) {
+  if (!overrides) return overrides;
+  const cleaned = JSON.parse(JSON.stringify(overrides));
+  for (const group of Object.keys(FROZEN_LABEL_DEFAULTS)) {
+    if (!cleaned[group]) continue;
+    for (const key of Object.keys(FROZEN_LABEL_DEFAULTS[group])) {
+      if (cleaned[group][key] === FROZEN_LABEL_DEFAULTS[group][key]) delete cleaned[group][key];
+    }
+  }
+  return cleaned;
+}
+
+// Та же история, что у FROZEN_LABEL_DEFAULTS выше, только для шкалы
+// оценок: settings-grades.js всегда сохраняет shelves целиком, с уже
+// подставленным именем – так что имя полки, которое пользователь ни
+// разу не редактировал, тоже навсегда «замораживается» на языке,
+// который был активен при сохранении настроек. Сравниваем с сырым
+// русским текстом, а не с GRADES_DEF из config.js (он уже переведён на
+// текущий язык на момент разбора страницы), и если совпало – отдаём
+// свежий перевод вместо замороженного.
+const RAW_CATEGORICAL_GRADES_RU = {
+  rezonans: { name: "Резонанс", desc: "Личный фаворит. То, что откликнулось" },
+  etalon: { name: "Эталон", desc: "Почти безупречное исполнение" },
+  vyskazyvanie: { name: "Отлично", desc: "Достойная работа с посылом" },
+  attrakcion: { name: "Аттракцион", desc: "Ярко, бодро, на один вечер" },
+  fon: { name: "Фоновый шум", desc: "Стерильно и вторично" },
+  brak: { name: "Брак", desc: "Технически или сценарно несостоятельно" },
+  razocharo: { name: "Разочарование", desc: "Хороший старт, перечеркнутый бездарным финалом" },
+};
+// Порядок и слова совпадают с сидом числовой шкалы в
+// settings-grades.js (seedNumericShelves) – полки там называются
+// shelf_1..shelf_7 строго по этому же списку.
+const RAW_NUMERIC_SHELF_NAMES_RU = [
+  "Резонанс",
+  "Эталон",
+  "Отлично",
+  "Аттракцион",
+  "Фоновый шум",
+  "Брак",
+  "Разочарование",
+];
+
+function defrostGradeScale(gradeScale) {
+  if (!gradeScale || !Array.isArray(gradeScale.shelves)) return gradeScale;
+  const cloned = JSON.parse(JSON.stringify(gradeScale));
+  cloned.shelves.forEach((s) => {
+    if (cloned.type === "categorical") {
+      const raw = RAW_CATEGORICAL_GRADES_RU[s.key];
+      if (!raw) return;
+      if (s.name === raw.name) s.name = i18n(raw.name);
+      if (s.desc === raw.desc) s.desc = i18n(raw.desc);
+    } else {
+      const m = /^shelf_(\d+)$/.exec(s.key);
+      if (!m) return;
+      const rawName = RAW_NUMERIC_SHELF_NAMES_RU[Number(m[1]) - 1];
+      if (rawName && s.name === rawName) s.name = i18n(rawName);
+    }
+  });
+  return cloned;
+}
 
 // Три формы единицы коллекции – удобная обёртка, чтобы не писать
 // siteLabel("units", …) по три раза подряд.

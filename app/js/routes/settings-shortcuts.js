@@ -72,7 +72,11 @@ async function loadCurrentSettings() {
     reviewsForTagsToggle.length > 0 && reviewsForTagsToggle.every((r) => r.no_tags_on_card === true);
   syncHideTagsToggle();
 
-  const labels = settings.labels || {};
+  // stripFrozenLabelDefaults – см. её же историю в js/theme.js: без
+  // этого панель настроек продолжала бы показывать (и пересохранять)
+  // старые «замороженные» на русском значения даже после того, как
+  // остальной сайт их уже перестал показывать.
+  const labels = stripFrozenLabelDefaults(settings.labels || {}) || {};
   renderLabelsPanel(labels);
   // «Подписи» рисует свои заголовки групп только сейчас – сворачиваем
   // и их тоже (см. collapsibleizeSettingsSections()).
@@ -139,7 +143,11 @@ async function loadCurrentSettings() {
   statusOrderState = Array.isArray(settings.statusOrder) ? [...settings.statusOrder] : [];
   renderStatusesList();
 
-  const gradeScale = settings.gradeScale || null;
+  // defrostGradeScale (js/theme.js) – та же история, что и у
+  // stripFrozenLabelDefaults выше: без неё редактор шкалы показывал бы
+  // (и заново сохранял) полки, чьё имя было заморожено на языке,
+  // который был активен при последнем сохранении настроек.
+  const gradeScale = defrostGradeScale(settings.gradeScale || null);
   scaleType = gradeScale?.type || "categorical";
   shelves = gradeScale?.shelves ? JSON.parse(JSON.stringify(gradeScale.shelves)) : [];
   document.getElementById("numericMax").value = gradeScale?.numericMax || (scaleType === "stars" ? 5 : 10);

@@ -1274,6 +1274,9 @@ i18nRegister({
   "Не найдено ни одного – всё используется.": "None found – everything's in use.",
   "Удалить {n} файлов вместе с их папками картинок? Это нельзя отменить через «Историю версий» – сами файлы там не хранятся.":
     "Delete {n} files along with their image folders? This can't be undone through “Version History” – the files themselves aren't kept there.",
+  Переключить: "Switch",
+  "Переключение между «Названиями» и «Числами/Звёздами» сбросит текущие названия полок на значения по умолчанию. Продолжить?":
+    "Switching between “Names” and “Numbers/Stars” will reset the current shelf names to their defaults. Continue?",
 });
 
 // ── Перебиндинг горячих клавиш (панель настроек) ─

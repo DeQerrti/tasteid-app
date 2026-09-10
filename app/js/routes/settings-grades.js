@@ -136,11 +136,31 @@ function renderScaleTypeGrid() {
     (t) => `<div class="theme-option${t.id === scaleType ? " selected" : ""}" data-scale="${t.id}">${t.label}</div>`
   ).join("");
   grid.querySelectorAll(".theme-option").forEach((el) => {
-    el.onclick = () => {
+    el.onclick = async () => {
       const prevWasCategorical = scaleType === "categorical";
-      scaleType = el.dataset.scale;
-      const nowIsCategorical = scaleType === "categorical";
-      if (prevWasCategorical !== nowIsCategorical) shelves = [];
+      const newScale = el.dataset.scale;
+      const nowIsCategorical = newScale === "categorical";
+      // "Названия" и "Числа/Звёзды" хранят полки в несовместимых
+      // формах (ключ+имя против диапазона чисел) – одно в другое не
+      // переносится, так что переключение сотрёт текущие названия
+      // полок. Раньше это стиралось без предупреждения – см. её же
+      // историю в defrostGradeScale (js/theme.js), из-за которой
+      // пользователь принял этот сброс за "перевелось на английский".
+      if (prevWasCategorical !== nowIsCategorical && shelves.length) {
+        if (
+          !(await confirmDialog(
+            i18n(
+              "Переключение между «Названиями» и «Числами/Звёздами» сбросит текущие названия полок на значения по умолчанию. Продолжить?"
+            ),
+            i18n("Переключить"),
+            i18n("Отмена")
+          ))
+        ) {
+          return;
+        }
+        shelves = [];
+      }
+      scaleType = newScale;
       renderScaleTypeGrid();
       updateScaleBlocks();
     };

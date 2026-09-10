@@ -247,7 +247,17 @@ async function saveSettings() {
       statuses: archiveLabel !== i18n("Архив") ? { archive: archiveLabel } : {},
       sections: {
         ...(tierTitlesLabel !== i18n("Тайтлы") ? { tierTitles: tierTitlesLabel } : {}),
-        ...favSectionLabels,
+        // favSectionLabels на загрузке заполняется значением по умолчанию
+        // для КАЖДОГО раздела (см. settings-shortcuts.js), даже если
+        // пользователь его не переименовывал – писать это как есть
+        // означало бы замораживать все три подписи на живом переводе
+        // при любом сохранении настроек, с любой панели.
+        ...Object.fromEntries(
+          Object.entries(favSectionLabels).filter(([key, val]) => {
+            const builtin = FAV_SECTIONS.find((s) => s.key === key);
+            return val && (!builtin || val !== builtin.def);
+          })
+        ),
       },
       types: typeRenames,
       categories,
