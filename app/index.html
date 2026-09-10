@@ -55,6 +55,7 @@
 <script src="/js/sync.js?v=1"></script>
 <script src="/js/utils.js?v=27"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
+<script src="/js/focus-modal.js?v=1"></script>
 <script src="/js/theme.js?v=16"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
@@ -2171,9 +2172,10 @@ section.group { margin-bottom: 3.5rem; }
 .field-subtype.visible { display: block; }
 #field-from.hidden-field { display: none; }
 
+.avatar-preview-row { display: flex; align-items: center; gap: .8rem; margin-top: .6rem; }
 .avatar-preview {
   width: 80px; height: 80px; object-fit: cover; border-radius: 50%;
-  border: 1px solid var(--border2); margin-top: .6rem; display: none;
+  border: 1px solid var(--border2); display: none; flex-shrink: 0;
   cursor: pointer;
 }
 
@@ -2364,6 +2366,7 @@ section.group { margin-bottom: 3.5rem; }
   min-height: 60px;
 }
 
+.add-view .cover-preview-col { display: flex; flex-direction: column; align-items: center; gap: .4rem; flex-shrink: 0; }
 .add-view .cover-preview {
   width: 64px; height: 96px;
   object-fit: cover;
@@ -2371,7 +2374,9 @@ section.group { margin-bottom: 3.5rem; }
   border-radius: 2px;
   display: none;
   flex-shrink: 0;
+  cursor: pointer;
 }
+.add-view .cover-focus-btn { font-size: .62rem; padding: .3rem .5rem; white-space: nowrap; }
 
 .add-view .cover-block {
   display: flex;

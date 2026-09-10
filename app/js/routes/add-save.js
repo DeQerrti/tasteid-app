@@ -65,6 +65,13 @@ async function saveReview() {
     format: document.getElementById("f-format").value.trim() || null,
     cover,
     cover_backup: document.getElementById("f-cover-backup").value.trim() || null,
+    // null вместо "50% 50%" – то же самое, что и центр по умолчанию
+    // (object-position без него), незачем раздувать reviews.json
+    // значением, ничего не меняющим.
+    cover_focus:
+      document.getElementById("f-cover-focus").value.trim() !== "50% 50%"
+        ? document.getElementById("f-cover-focus").value.trim()
+        : null,
     // Все резервные копии обложки, когда-либо сделанные для этого
     // отзыва (не только активная сейчас) – см. coverGallery в
     // add-cover.js. Пустой массив пишем как null, а не [] – чтобы не

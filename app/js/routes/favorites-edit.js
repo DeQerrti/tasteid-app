@@ -99,7 +99,11 @@ async function mount(container, params) {
           <label>${i18n("Ссылка на изображение")}</label>
           <input type="text" id="f-image" placeholder="https://..." oninput="previewAvatar(this.value); scheduleBackupImage();">
           <input type="hidden" id="f-image-backup">
-          <img id="avatar-img" class="avatar-preview" onclick="openFavImageGallery()" title="${i18n("Все картинки этой записи")}">
+          <input type="hidden" id="f-image-focus" value="50% 50%">
+          <div class="avatar-preview-row">
+            <img id="avatar-img" class="avatar-preview" onclick="openFavImageGallery()" title="${i18n("Все картинки этой записи")}">
+            <button type="button" class="btn btn-ghost" onclick="openFocusPickerForAvatar()">${i18n("Область картинки")}</button>
+          </div>
           <div id="image-backup-status" style="font-size:.8rem;margin-top:.4rem;"></div>
         </div>
         <div class="field full">
@@ -1195,8 +1199,23 @@ function previewAvatar(url) {
   // проходил (см. тот же разбор у previewCover() в add-cover.js).
   if (url && url.trim()) {
     img.src = url;
+    img.style.objectPosition = document.getElementById("f-image-focus")?.value || "50% 50%";
     img.style.display = "block";
   } else img.style.display = "none";
+}
+
+function openFocusPickerForAvatar() {
+  const url = document.getElementById("f-image-backup").value.trim() || document.getElementById("f-image").value.trim();
+  if (!url) return;
+  openFocusPicker({
+    imageUrl: url,
+    initial: document.getElementById("f-image-focus").value || "50% 50%",
+    shape: "circle",
+    onChange: (pos) => {
+      document.getElementById("f-image-focus").value = pos;
+      document.getElementById("avatar-img").style.objectPosition = pos;
+    },
+  });
 }
 
 // ── Галерея картинок ─────────────────────────────
@@ -1219,6 +1238,10 @@ function openFavImageGallery() {
     onSelect: (url) => {
       document.getElementById("f-image").value = "";
       document.getElementById("f-image-backup").value = url || "";
+      // Точка фокуса привязана к тому, что сейчас активно, а не к
+      // конкретному файлу навсегда – при смене картинки на другую
+      // сбрасываем в центр, а не тащим старую точку на новую картинку.
+      document.getElementById("f-image-focus").value = "50% 50%";
       previewAvatar(url);
     },
     onDelete: async (url) => {
@@ -1357,6 +1380,7 @@ function resetFavToNew() {
     "f-profile-bio",
     "f-profile-quotes",
   ].forEach((id) => (document.getElementById(id).value = ""));
+  document.getElementById("f-image-focus").value = "50% 50%";
   document.getElementById("f-type").value = "character";
   document.getElementById("f-subtype").value = "actor";
   syncFavTypePickerLabel();
@@ -1378,6 +1402,7 @@ function fillFavForm(r) {
   document.getElementById("f-name").value = r.name || "";
   document.getElementById("f-image").value = r.image || "";
   document.getElementById("f-image-backup").value = r.image_backup || "";
+  document.getElementById("f-image-focus").value = r.image_focus || "50% 50%";
   favImageGallery = r.image_gallery?.length
     ? [...r.image_gallery]
     : r.image_backup
@@ -1441,7 +1466,7 @@ function renderGroup(type, list) {
       return `
     <div class="entry-row" data-id="${r.id}" data-group="${type}" draggable="true">
       <span class="entry-drag-handle" title="${i18n("Перетащить")}">⠿</span>
-      <img class="entry-avatar" src="${esc(r.image || r.image_backup || "")}" data-hide-on-error alt="">
+      <img class="entry-avatar" src="${esc(r.image || r.image_backup || "")}" style="object-position:${esc(r.image_focus || "50% 50%")}" data-hide-on-error alt="">
       <div class="entry-name">${esc(r.name)}</div>
       <div class="entry-meta">
         ${r.from ? `<div class="entry-type">${esc(r.from)}</div>` : ""}
@@ -1656,6 +1681,13 @@ async function saveEntry() {
     type,
     image: imageUrl || null,
     image_backup: document.getElementById("f-image-backup").value.trim() || null,
+    // null вместо "50% 50%" – это ровно то же самое, что и центр по
+    // умолчанию (object-position без него), не нужно раздувать
+    // favorites.json значением, ничего не меняющим.
+    image_focus:
+      document.getElementById("f-image-focus").value.trim() !== "50% 50%"
+        ? document.getElementById("f-image-focus").value.trim()
+        : null,
     // Все резервные копии, когда-либо сделанные для этой записи – см.
     // favImageGallery выше (тот же приём, что cover_gallery у отзывов,
     // add-save.js).

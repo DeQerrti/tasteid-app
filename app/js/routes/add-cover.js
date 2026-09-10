@@ -9,8 +9,27 @@ function previewCover(url) {
   // вида "/covers/xxx.webp" такой проверке не проходил).
   if (url && url.trim()) {
     img.src = url;
+    img.style.objectPosition = document.getElementById("f-cover-focus")?.value || "50% 50%";
     img.style.display = "block";
-  } else img.style.display = "none";
+    document.getElementById("cover-focus-btn")?.classList.remove("hidden");
+  } else {
+    img.style.display = "none";
+    document.getElementById("cover-focus-btn")?.classList.add("hidden");
+  }
+}
+
+function openFocusPickerForCover() {
+  const url = document.getElementById("f-cover-backup").value.trim() || document.getElementById("f-cover").value.trim();
+  if (!url) return;
+  openFocusPicker({
+    imageUrl: url,
+    initial: document.getElementById("f-cover-focus").value || "50% 50%",
+    shape: "tall",
+    onChange: (pos) => {
+      document.getElementById("f-cover-focus").value = pos;
+      document.getElementById("cover-img").style.objectPosition = pos;
+    },
+  });
 }
 
 // ── Галерея обложек ─────────────────────────────
@@ -37,6 +56,11 @@ function openCoverGallery() {
     onSelect: (url) => {
       document.getElementById("f-cover").value = "";
       document.getElementById("f-cover-backup").value = url || "";
+      // Точка фокуса привязана к тому, что сейчас активно, а не к
+      // конкретному файлу навсегда – при смене обложки на другую
+      // сбрасываем в центр (см. тот же разбор у favImageGallery в
+      // favorites-edit.js).
+      document.getElementById("f-cover-focus").value = "50% 50%";
       previewCover(url);
     },
     onDelete: async (url) => {
@@ -61,6 +85,7 @@ function closeCoverPanel() {
   coverGallery = [];
   document.getElementById("f-cover").value = "";
   document.getElementById("f-cover-backup").value = "";
+  document.getElementById("f-cover-focus").value = "50% 50%";
   document.getElementById("f-cover-upload").value = "";
   document.getElementById("f-cover-upload-name").textContent = "";
   document.getElementById("cover-upload-status").textContent = "";

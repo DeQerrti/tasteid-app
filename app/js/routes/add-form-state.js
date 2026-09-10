@@ -10,6 +10,7 @@ function fillForm(r) {
   document.getElementById("f-format").value = r.format || "";
   document.getElementById("f-cover").value = r.cover || "";
   document.getElementById("f-cover-backup").value = r.cover_backup || "";
+  document.getElementById("f-cover-focus").value = r.cover_focus || "50% 50%";
   // Галерея начинается с того, что уже сохранено (см. cover_gallery в
   // add-save.js) – а если запись ещё старая, с одиночной обложкой без
   // истории, хотя бы саму текущую обложку в галерею стоит включить, а
@@ -89,6 +90,7 @@ function resetToNew() {
   ["f-title", "f-year", "f-format", "f-cover", "f-url", "f-preview", "f-url2", "f-review-full", "f-cover-backup"].forEach(
     (id) => (document.getElementById(id).value = "")
   );
+  document.getElementById("f-cover-focus").value = "50% 50%";
   document.getElementById("f-source").value = "teletype";
   document.getElementById("f-source2").value = "";
   document.getElementById("f-type").value = "anime";

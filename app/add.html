@@ -46,6 +46,7 @@
 <script src="/js/sync.js?v=1"></script>
 <script src="/js/utils.js?v=27"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
+<script src="/js/focus-modal.js?v=1"></script>
 <script src="/js/theme.js?v=16"></script>
 <script src="/js/config.js?v=14"></script>
 <script src="/js/external-ids.js?v=12"></script>
@@ -190,6 +191,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
   margin-top: -.25rem;
 }
 
+.cover-preview-col { display: flex; flex-direction: column; align-items: center; gap: .4rem; flex-shrink: 0; }
 .cover-preview {
   width: 64px; height: 96px;
   object-fit: cover;
@@ -199,6 +201,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
   flex-shrink: 0;
   cursor: pointer;
 }
+.cover-focus-btn { font-size: .62rem; padding: .3rem .5rem; white-space: nowrap; }
 
 .cover-block {
   display: flex;

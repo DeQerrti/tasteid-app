@@ -285,7 +285,7 @@ function favTitleCard(r, index, forExport) {
     ${editBtn}
     <div class="card" style="animation-delay:0ms">
       <span class="type-tag ${tagClass}">${esc(tagLabel)}</span>
-      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
         ${r.year || info
@@ -314,7 +314,7 @@ function favPersonCard(r, index) {
 
   return `<div class="card card-char" data-fav-id="${r.id}"
       style="animation-delay:${Math.min(index * 25, 500)}ms">
-    <img src="${esc(img)}" alt="${esc(r.name)}" loading="lazy" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
+    <img src="${esc(img)}" alt="${esc(r.name)}" loading="lazy" style="object-position:${esc(r.image_focus || "50% 50%")}" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
     <div class="card-body">
       <div class="card-title">${esc(r.name)}</div>
       ${sub}
@@ -492,7 +492,7 @@ function favPersonModalBodyHtml(r) {
     </div>
     <div id="fav-modal-capture">
       <div class="review-modal-header">
-        <img src="${esc(r.image || r.image_backup || PH_SQ)}" alt="${esc(r.name)}"${imgClickable} ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
+        <img src="${esc(r.image || r.image_backup || PH_SQ)}" alt="${esc(r.name)}"${imgClickable} style="object-position:${esc(r.image_focus || "50% 50%")}" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
         <div>
           <div class="review-modal-title" id="fav-modal-title">${esc(r.name)}</div>
           ${subLine ? `<div class="review-meta-row"><span class="review-format">${esc(subLine)}</span></div>` : ""}

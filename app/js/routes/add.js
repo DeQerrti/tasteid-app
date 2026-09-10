@@ -225,7 +225,11 @@ async function mount(container, params) {
       <div class="src-field" id="cover-field">
         <button type="button" class="src-add-btn" id="cover-add-btn" onclick="openCoverPanel()">${i18n("Добавить обложку")}</button>
         <div class="cover-block hidden" id="cover-panel">
-          <img id="cover-img" class="cover-preview" onclick="openCoverGallery()" title="${i18n("Все обложки этого отзыва")}">
+          <div class="cover-preview-col">
+            <img id="cover-img" class="cover-preview" onclick="openCoverGallery()" title="${i18n("Все обложки этого отзыва")}">
+            <button type="button" class="btn btn-ghost cover-focus-btn hidden" id="cover-focus-btn" onclick="openFocusPickerForCover()">${i18n("Область картинки")}</button>
+          </div>
+          <input type="hidden" id="f-cover-focus" value="50% 50%">
           <div class="cover-controls">
             <div class="cover-controls-head">
               <div class="field" style="margin-bottom:0;flex:1;">
