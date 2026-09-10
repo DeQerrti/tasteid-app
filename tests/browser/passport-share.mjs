@@ -122,8 +122,11 @@ console.log("Сохранение токена и создание кода");
 await page.fill("#pp-share-token", "ghp_sharetoken");
 await page.click("#pp-share-save-token");
 await page.waitForTimeout(300);
+// Через getShareToken(), а не голый ключ localStorage – он теперь
+// привязан к хранилищу (см. её же комментарий у vaultScopedKey в
+// app/js/sync.js и у SHARE_TOKEN_KEY в app/js/passports.js).
 ok(
-  (await page.evaluate(() => localStorage.getItem("tasteid_share_token"))) === "ghp_sharetoken",
+  (await page.evaluate(() => window.getShareToken())) === "ghp_sharetoken",
   "токен сохранён отдельно от токена синхронизации"
 );
 ok(
