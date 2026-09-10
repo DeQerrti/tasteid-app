@@ -449,6 +449,12 @@
         });
         const data = await res.json();
         if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        // Тихо, как и сам deleteRemoteMedia (js/sync.js) – без неё
+        // картинки раздела остались бы висеть в репозитории
+        // синхронизации и вернулись бы обратно на следующей
+        // автосинхронизации, ровно как файл данных до этого исправления.
+        const m = /^tier-([^/\\]+)\.json$/.exec(name);
+        if (m) deleteRemoteMediaFolder(m[1]);
       } catch {
         failed++;
       }

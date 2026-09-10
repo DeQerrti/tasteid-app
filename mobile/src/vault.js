@@ -493,15 +493,32 @@ export class MobileVault {
       for (const raw of entries) {
         const entry = typeof raw === "string" ? { name: raw, type: "file" } : raw;
         if (entry.name === ".history") continue;
-        if (!rel && entry.name === "vaults") continue; // соседние хранилища, не наши
-        if (!rel && entry.name === ".trash") continue; // удалённые хранилища, не наши
         const childRel = rel ? `${rel}/${entry.name}` : entry.name;
         if (entry.type === "directory") await walk(`${dir}/${entry.name}`, childRel);
         else if (IMG.test(entry.name)) out.push(childRel);
       }
     };
 
-    await walk(this.root, "");
+    // Та же история, что и в electron/vault.js (см. её же комментарий
+    // там) – обходим только те папки, куда TasteID сам когда-либо
+    // кладёт картинки, а не весь корень хранилища подряд.
+    const settings = await this.readJson("site-settings.json", {});
+    const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+    const bases = new Set(["covers", "covers-backup", "title-covers", "chars"]);
+    for (const c of collections) {
+      if (c && typeof c.id === "string" && c.id !== "characters") bases.add(c.id);
+    }
+
+    for (const base of bases) {
+      let dir;
+      try {
+        dir = this.mediaDir(base);
+      } catch {
+        continue; // испорченная запись в настройках – не наша забота здесь
+      }
+      await walk(dir, base);
+    }
+
     return out.sort();
   }
 }

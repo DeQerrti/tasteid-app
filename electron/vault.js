@@ -348,7 +348,37 @@ export class Vault {
       }
     };
 
-    await walk(this.root, "");
+    // Раньше здесь обходился весь корень хранилища подряд, а не только
+    // папки, куда TasteID сам кладёт картинки. Если рядом на диске
+    // случайно оказывалось что-то ещё своё (человек хранит в той же
+    // папке архив другой программы, распакованный туда по ошибке) –
+    // оно молча попадало в резервную копию и в синхронизацию как будто
+    // это собственные картинки TasteID, а дальше автосинхронизация без
+    // конца тащила его обратно после удаления, потому что для неё это
+    // просто "картинка, которой здесь никогда не было" (см. её же
+    // комментарий у pullNewRemoteImage в js/sync.js). Реальный случай –
+    // целая модовая сборка Minecraft-сервера, гигабайты картинок,
+    // улетевшие в приватный GitHub-репозиторий синхронизации. Теперь
+    // обходим только те папки, куда TasteID сам когда-либо кладёт
+    // картинки: встроенные (covers/covers-backup/title-covers/chars) и
+    // текущие свои коллекции тир-листа из site-settings.json.
+    const settings = await this.readJson("site-settings.json", {});
+    const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+    const bases = new Set(["covers", "covers-backup", "title-covers", "chars"]);
+    for (const c of collections) {
+      if (c && typeof c.id === "string" && c.id !== "characters") bases.add(c.id);
+    }
+
+    for (const base of bases) {
+      let dir;
+      try {
+        dir = this.mediaDir(base);
+      } catch {
+        continue; // испорченная запись в настройках – не наша забота здесь
+      }
+      await walk(dir, base);
+    }
+
     return out.sort();
   }
 

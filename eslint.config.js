@@ -68,6 +68,7 @@ const sharedBrowserGlobals = [
   "defrostGradeScale",
   "deleteMediaFile",
   "deleteRemoteMedia",
+  "deleteRemoteMediaFolder",
   "detectCsvFormat",
   "DISAGREE_THRESHOLD",
   "dateLocale",

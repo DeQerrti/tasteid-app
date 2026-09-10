@@ -566,6 +566,42 @@ async function deleteRemoteMedia(relPath) {
   }
 }
 
+// Та же причина, что у deleteRemoteMedia выше, только для целой папки
+// картинок разом (свой раздел тир-листа целиком, а не одна обложка) –
+// зовётся сразу после локального удаления папки собственного раздела
+// тир-листа (см. её же комментарий у removeTierCollectionSetting в
+// settings-grades.js, deleteCurrentCollection в chars-edit.js и
+// deleteAllOrphanedTierFiles в backup-history.js). Без этого шага
+// картинки раздела оставались бы висеть в репозитории и автосинхронизация
+// на следующем запуске молча тащила бы их обратно как "картинки,
+// которых здесь никогда не было" – ровно тот же случай, что и с одной
+// обложкой, просто на весь раздел сразу.
+async function deleteRemoteMediaFolder(base) {
+  const config = getSyncConfig();
+  if (!config) return;
+
+  const prefix = `${String(base).replace(/^\/+/, "").replace(/\/+$/, "")}/`;
+
+  try {
+    const tree = await getRepoTree(config);
+    if (!tree) return; // усечённый список – не гадаем, оставляем до следующего раза
+    const state = getSyncState();
+    for (const [path, sha] of tree) {
+      if (!path.startsWith(prefix)) continue;
+      await githubApi(
+        config,
+        `/repos/${config.owner}/${config.repo}/contents/${encodePath(path)}`,
+        { method: "DELETE", body: { message: i18n("Синхронизация TasteID"), sha } }
+      );
+      delete state.images[path];
+    }
+    saveSyncState(state);
+  } catch {
+    // Не получилось – папка просто останется в репозитории до следующей
+    // ручной попытки, ничего не сломано на этом устройстве.
+  }
+}
+
 // Прежний, поштучный способ – запасной вариант на случай усечённого
 // bulk-списка (см. её же комментарий у syncOne). Логика ровно та же,
 // что была раньше, просто больше не единственный путь.

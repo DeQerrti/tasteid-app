@@ -446,6 +446,10 @@ async function removeTierCollectionSetting(id) {
     });
     const resp = await res.json();
     if (!res.ok || !resp.ok) throw new Error(resp.error || i18n("Ошибка удаления"));
+    // Тихо, как и сам deleteRemoteMedia (js/sync.js) – без неё картинки
+    // раздела остались бы висеть в репозитории синхронизации и
+    // вернулись бы обратно на следующей автосинхронизации.
+    deleteRemoteMediaFolder(id);
 
     await patchSiteSettings((settings) => {
       settings.tierCollections = (Array.isArray(settings.tierCollections) ? settings.tierCollections : activeTierCollections()).filter(
