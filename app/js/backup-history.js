@@ -352,10 +352,22 @@
     // deleteMediaFile (js/utils.js), тот же путь, что и смена обложки, –
     // заодно подчищает и копию в репозитории синхронизации, если он
     // настроен (см. её же комментарий у deleteRemoteMedia в js/sync.js).
+    // Она теперь и правда бросает исключение при отказе сервера (а не
+    // молчит, как раньше) – ловим по одному файлу за раз, иначе первая
+    // же неудача обрывала бы весь список, оставляя остальные нетронутыми
+    // без единого объяснения почему.
+    let failed = 0;
     for (const path of lastOrphanedCovers) {
-      await deleteMediaFile("/" + path);
+      try {
+        await deleteMediaFile("/" + path);
+      } catch {
+        failed++;
+      }
     }
-    backupToast(i18n("Удалено: {n}", { n: count }), true);
+    backupToast(
+      failed ? i18n("Удалено: {n}, не удалось: {f}", { n: count - failed, f: failed }) : i18n("Удалено: {n}", { n: count }),
+      !failed
+    );
     scanOrphanedCovers();
   }
 

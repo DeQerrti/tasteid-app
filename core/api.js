@@ -380,6 +380,23 @@ async function saveCharsTier({ vault, body }) {
   return { ok: true };
 }
 
+// Удаление своего раздела тир-листа целиком – сам файл (tier-<id>.json)
+// и его папка с картинками персонажей, а не просто снятие с настроек
+// (см. removeTierCollectionSetting в settings-grades.js и
+// deleteCurrentCollection в chars-edit.js: оба раньше писали data: []
+// через saveCharsTier выше, оставляя опустевший файл и папку сиротами
+// на диске навсегда). "characters" – встроенный раздел, а не свой,
+// удалять его отсюда нельзя.
+async function deleteTierCollection({ vault, body }) {
+  const collection = body?.collection;
+  if (!isSafeName(collection) || collection === "characters") {
+    throw new ApiError("Недопустимое название коллекции");
+  }
+  await vault.deleteDataFile(collectionFile(collection));
+  await vault.deleteMediaFolder(imageFolder(collection));
+  return { ok: true };
+}
+
 // ── Картинки ───────────────────────────────────
 
 async function listChars({ vault, query }) {
@@ -992,10 +1009,22 @@ async function findOrphanedCovers({ vault }) {
   };
 
   const reviews = await vault.readJson("reviews.json", []);
-  for (const r of reviews) add(r.cover_backup);
+  for (const r of reviews) {
+    add(r.cover_backup);
+    // cover_gallery – все резервные копии, когда-либо сделанные для
+    // отзыва, не только активная сейчас (см. её же комментарий в
+    // add-save.js): без этой строки поиск считал бы «осиротевшей»,
+    // то есть годной к удалению, любую картинку из галереи, кроме
+    // ровно одной текущей – хотя все они по-прежнему выбираемы через
+    // саму галерею.
+    for (const url of r.cover_gallery || []) add(url);
+  }
 
   const favorites = await vault.readJson("favorites.json", []);
-  for (const f of favorites) add(f.image_backup);
+  for (const f of favorites) {
+    add(f.image_backup);
+    for (const url of f.image_gallery || []) add(url);
+  }
 
   const settings = await vault.readJson("site-settings.json", {});
   const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
@@ -1029,6 +1058,7 @@ export const ROUTES = {
   "POST /api/import-reviews": importReviews,
   "POST /api/save-favorite": saveFavorite,
   "POST /api/save-chars-tier": saveCharsTier,
+  "POST /api/delete-tier-collection": deleteTierCollection,
   "POST /api/save-site-settings": saveSiteSettings,
   "GET /api/export-backup": exportBackup,
   "POST /api/restore-backup": restoreBackup,

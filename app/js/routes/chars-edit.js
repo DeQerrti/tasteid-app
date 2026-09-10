@@ -965,14 +965,16 @@ async function deleteCurrentCollection() {
     return;
   }
   try {
-    // Стираем сами данные (тайтлы/тиры/персонажи этой коллекции), а не
-    // только кнопку на вкладке – раньше файл tier-XXX.json оставался на
-    // диске нетронутым, и "удаление" было чисто визуальным.
-    const res = await fetch("/api/save-chars-tier", {
+    // Стираем сами данные (тайтлы/тиры/персонажи этой коллекции) и
+    // папку с их картинками, а не только кнопку на вкладке – раньше
+    // здесь писали data: [] через save-chars-tier: файл tier-XXX.json
+    // оставался на диске, просто опустевшим, вместе со всей папкой
+    // картинок – см. её же разбор у deleteTierCollection в core/api.js.
+    const res = await fetch("/api/delete-tier-collection", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ collection: COLLECTION, data: [] }),
+      body: JSON.stringify({ collection: COLLECTION }),
     });
     const resp = await res.json();
     if (!res.ok || !resp.ok) throw new Error(resp.error || i18n("Ошибка удаления"));

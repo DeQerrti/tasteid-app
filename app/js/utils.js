@@ -78,15 +78,22 @@ document.addEventListener(
 // запрос на удаление, не привязанный к конкретной форме.
 async function deleteMediaFile(relPath) {
   if (!relPath) return;
-  try {
-    await fetch("/api/delete-media", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: relPath }),
-    });
-  } catch {
-    // Не получилось – не страшно, файл просто останется на диске,
-    // как и было до этой правки.
+  // Раньше ошибка сервера (папка/файл заняты, сбой shell.trashItem –
+  // такое реально случается на некоторых путях с кириллицей, см. её же
+  // разбор в CLAUDE.md) тут молча проглатывалась: res.ok не
+  // проверялся вовсе, и вызывающий код (галерея, поиск осиротевших
+  // обложек) считал файл удалённым, хотя он оставался на диске без
+  // единого следа неудачи. Сеть недоступна – это правда «не страшно»
+  // (файл просто остаётся, как раньше), а вот ответ сервера с ошибкой –
+  // нет, его нужно поднять наверх, чтобы кто-то это увидел.
+  const res = await fetch("/api/delete-media", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: relPath }),
+  }).catch(() => null);
+  if (res && !res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Сервер ответил ${res.status}`);
   }
   // Без этого локально удалённый файл, уже засинхронизированный раньше,
   // остался бы висеть в репозитории – а следующая синхронизация могла

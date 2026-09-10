@@ -1266,6 +1266,7 @@ i18nRegister({
   "Удалить {n} файлов, на которые больше никто не ссылается?\n\nЭто нельзя отменить через «Историю версий» – сами файлы там не хранятся.":
     "Delete {n} files nothing references anymore?\n\nThis can't be undone through “Version History” – the files themselves aren't kept there.",
   "Удалено: {n}": "Deleted: {n}",
+  "Удалено: {n}, не удалось: {f}": "Deleted: {n}, failed: {f}",
 });
 
 // ── Перебиндинг горячих клавиш (панель настроек) ─

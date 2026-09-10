@@ -444,6 +444,21 @@ export class MobileVault {
     await Filesystem.deleteFile({ path: this.#path(...parts), directory: DIR }).catch(() => {});
   }
 
+  // Тот же приём, что в electron/vault.js: удаление файла своего
+  // раздела тир-листа (и его папки с картинками) при удалении самого
+  // раздела – раньше файл просто пустел (saveCharsTier: data: []) и
+  // оставался на диске навсегда.
+  async deleteDataFile(name) {
+    await Filesystem.deleteFile({ path: this.#file(name), directory: DIR }).catch(() => {});
+  }
+
+  async deleteMediaFolder(base, sub) {
+    const parts = [base, sub].filter(Boolean).map((p) => this.#safeSegment(p));
+    await Filesystem.rmdir({ path: this.#path(...parts), directory: DIR, recursive: true }).catch(
+      () => {}
+    );
+  }
+
   // Все картинки хранилища одним списком, для резервной копии. Не
   // listImages – та отвечает под конкретную нужду интерфейса (список
   // папок ИЛИ список файлов в одной папке, порознь), а здесь нужно

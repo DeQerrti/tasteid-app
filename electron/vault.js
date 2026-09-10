@@ -380,4 +380,22 @@ export class Vault {
     if (!parts.length) throw new Error("Пустой путь");
     await this.#remove(path.join(this.root, ...parts));
   }
+
+  // Удаление файла данных целиком – своего раздела тир-листа (tier-
+  // <id>.json) при удалении самого раздела. Раньше это место просто
+  // писало [] поверх файла (saveCharsTier) и снимало раздел с настроек
+  // – сам файл, уже опустевший, оставался на диске навсегда, без
+  // единого следа, что он вообще что-то значил. file() уже проверяет
+  // имя по тому же списку, что и readJson/writeJson.
+  async deleteDataFile(name) {
+    await this.#remove(this.file(name));
+  }
+
+  // Удаление ВСЕЙ папки с картинками раздела (см. imageFolder() в
+  // core/api.js) при удалении самого раздела – по той же причине, что
+  // и deleteDataFile выше: без этого шага фотографии персонажей внутри
+  // так и оставались бы сиротами.
+  async deleteMediaFolder(base, sub) {
+    await this.#remove(this.mediaDir(base, sub), { recursive: true });
+  }
 }

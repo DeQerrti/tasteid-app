@@ -418,11 +418,11 @@ async function removeTierCollectionSetting(id) {
     return;
   }
   try {
-    const res = await fetch("/api/save-chars-tier", {
+    const res = await fetch("/api/delete-tier-collection", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ collection: id, data: [] }),
+      body: JSON.stringify({ collection: id }),
     });
     const resp = await res.json();
     if (!res.ok || !resp.ok) throw new Error(resp.error || i18n("Ошибка удаления"));

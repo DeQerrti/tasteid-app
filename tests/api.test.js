@@ -497,6 +497,60 @@ test("коллекция с русским названием сохраняет
   });
 });
 
+// Раньше удаление своего раздела тир-листа (кнопка «Удалить» в
+// /settings-edit или в самом /chars-edit) писало data: [] через
+// save-chars-tier и снимало раздел из настроек – файл tier-<id>.json
+// (уже опустевший) и вся его папка с картинками персонажей оставались
+// на диске сиротами навсегда, без единого следа удаления. Реальный
+// пользователь так и наткнулся на них спустя месяц.
+test("удаление своего раздела тир-листа стирает и файл данных, и папку с картинками", async () => {
+  await withServer(async ({ api, root }) => {
+    const id = "опенинги-ab12";
+    await api("POST", "/api/save-chars-tier", {
+      collection: id,
+      data: [{ id: "t1", title: "Тайтл", tierlists: [] }],
+    });
+    await api("POST", "/api/upload-char-image", {
+      basePath: id,
+      folder: "Тайтл",
+      filename: "a.webp",
+      contentBase64: Buffer.from("картинка").toString("base64"),
+    });
+
+    const fileBefore = await fs.access(path.join(root, `tier-${id}.json`)).then(
+      () => true,
+      () => false
+    );
+    const folderBefore = await fs.access(path.join(root, id)).then(
+      () => true,
+      () => false
+    );
+    assert.ok(fileBefore, "файл данных должен существовать до удаления");
+    assert.ok(folderBefore, "папка с картинками должна существовать до удаления");
+
+    const { status, data } = await api("POST", "/api/delete-tier-collection", { collection: id });
+    assert.equal(status, 200);
+    assert.equal(data.ok, true);
+
+    const fileAfter = await fs.access(path.join(root, `tier-${id}.json`)).then(
+      () => true,
+      () => false
+    );
+    const folderAfter = await fs.access(path.join(root, id)).then(
+      () => true,
+      () => false
+    );
+    assert.equal(fileAfter, false, "файл данных должен исчезнуть с диска");
+    assert.equal(folderAfter, false, "папка с картинками должна исчезнуть с диска");
+
+    // Встроенный раздел "characters" удалять отсюда нельзя – он не свой.
+    const { status: builtin } = await api("POST", "/api/delete-tier-collection", {
+      collection: "characters",
+    });
+    assert.equal(builtin, 400, "встроенный раздел не должен удаляться этим путём");
+  });
+});
+
 test("наружу хранилища выйти нельзя", async () => {
   await withServer(async ({ api, base }) => {
     const { status } = await api("GET", "/api/file-history?path=../../../etc/passwd");
@@ -795,23 +849,47 @@ test("починка ссылок после разового сжатия на�
 });
 
 test("осиротевшие обложки находятся по всем трём источникам ссылок, а используемые не трогаются", async () => {
-  // Четыре файла: используется отзывом, используется избранным,
-  // используется тайтлом коллекции (плюс персонажем внутри неё) и один
-  // ничем не используемый – он и должен оказаться единственным в списке.
+  // Шесть файлов: используется отзывом, используется избранным,
+  // используется тайтлом коллекции (плюс персонажем внутри неё), лежит
+  // только в галерее отзыва/избранного (не активная сейчас копия, но
+  // всё равно выбираема через саму галерею – не должна считаться
+  // осиротевшей) и один ничем не используемый – он и должен оказаться
+  // единственным в списке.
   await withServer(async ({ api, root }) => {
     await fs.mkdir(path.join(root, "covers-backup"), { recursive: true });
-    for (const name of ["review.webp", "fav.webp", "title.webp", "char.webp", "orphan.webp"]) {
+    for (const name of [
+      "review.webp",
+      "fav.webp",
+      "title.webp",
+      "char.webp",
+      "review-gallery.webp",
+      "fav-gallery.webp",
+      "orphan.webp",
+    ]) {
       await fs.writeFile(path.join(root, "covers-backup", name), "x");
     }
 
     await fs.writeFile(
       path.join(root, "reviews.json"),
-      JSON.stringify([{ id: 1, title: "Отзыв", cover_backup: "/covers-backup/review.webp" }]),
+      JSON.stringify([
+        {
+          id: 1,
+          title: "Отзыв",
+          cover_backup: "/covers-backup/review.webp",
+          cover_gallery: ["/covers-backup/review.webp", "/covers-backup/review-gallery.webp"],
+        },
+      ]),
       "utf8"
     );
     await fs.writeFile(
       path.join(root, "favorites.json"),
-      JSON.stringify([{ name: "Любимое", image_backup: "covers-backup/fav.webp" }]),
+      JSON.stringify([
+        {
+          name: "Любимое",
+          image_backup: "covers-backup/fav.webp",
+          image_gallery: ["covers-backup/fav.webp", "covers-backup/fav-gallery.webp"],
+        },
+      ]),
       "utf8"
     );
     await fs.writeFile(
@@ -834,7 +912,7 @@ test("осиротевшие обложки находятся по всем т�
     assert.deepEqual(
       data.orphans,
       ["covers-backup/orphan.webp"],
-      "используемые отзывом/избранным/тайтлом/персонажем не попали в список, неиспользуемый – попал"
+      "используемые отзывом/избранным/тайтлом/персонажем/галереей не попали в список, неиспользуемый – попал"
     );
   });
 });
