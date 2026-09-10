@@ -797,8 +797,8 @@ i18nRegister({
   "Настройки профиля → раздел API → Request an API Key.":
     "Profile settings → API section → Request an API Key.",
   "не импортировать": "don’t import",
-  "Не получилось достучаться до AniList. Проверьте интернет и попробуйте ещё раз.":
-    "Couldn’t reach AniList. Check your connection and try again.",
+  "Не получилось достучаться до AniList. Проверьте интернет и попробуйте ещё раз – или дело в самом AniList: у них тоже случаются перебои и временные отключения API.":
+    "Couldn’t reach AniList. Check your connection and try again – or it may be AniList itself: they have outages and temporary API shutdowns too.",
   "не тронуто": "untouched",
   "Не удалось узнать формат файла. Понимаем выгрузки: MyAnimeList и Шикимори (XML), ":
     "Couldn’t recognise the file format. Supported exports: MyAnimeList and Shikimori (XML), ",
