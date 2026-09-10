@@ -209,7 +209,33 @@ function parsePassport(text) {
 // сервера с базой "код → файл" – у GitHub нет подстановки короткого
 // кода вместо id, только точный id, поэтому "код" здесь – честно
 // длинная строка, которую пересылают целиком, а не печатают руками.
-const SHARE_TOKEN_KEY = "tasteid_share_token";
+// vaultScopedKey (js/sync.js) – без него localStorage один на все
+// хранилища браузера, и токен, сохранённый в одном хранилище, тут же
+// оказывался и в другом, включая только что созданное «с нуля» (тот
+// же случай, что уже был с токеном синхронизации – см. её же историю
+// в sync.js).
+const SHARE_TOKEN_KEY = vaultScopedKey("tasteid_share_token");
+
+// Для всех, кто сохранил этот токен до исправления, он продолжает
+// работать без повторного ввода – просто теперь считается
+// принадлежащим тому хранилищу, которое было открыто первым после
+// обновления (обычно оно и есть единственное, которое у человека уже
+// было). Хранилища, заведённые позже, начинают с чистого листа, как и
+// должны (см. её же историю у migrateLegacySyncKeys() в sync.js).
+(function migrateLegacyShareToken() {
+  const LEGACY_KEY = "tasteid_share_token";
+  if (LEGACY_KEY === SHARE_TOKEN_KEY) return; // "default" хранилище – уже тот же ключ
+  try {
+    if (localStorage.getItem(SHARE_TOKEN_KEY) !== null) return;
+    const legacyValue = localStorage.getItem(LEGACY_KEY);
+    if (legacyValue === null) return;
+    localStorage.setItem(SHARE_TOKEN_KEY, legacyValue);
+    localStorage.removeItem(LEGACY_KEY);
+  } catch {
+    // localStorage недоступен (приватный режим и т.п.) – без миграции,
+    // но не роняем остальной код из-за этого.
+  }
+})();
 
 function getShareToken() {
   return localStorage.getItem(SHARE_TOKEN_KEY) || "";
