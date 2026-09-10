@@ -84,6 +84,16 @@ export class Vault {
     }
   }
 
+  // Имена файлов данных прямо в корне хранилища (reviews.json, свои
+  // tier-<id>.json и т.д.) – без рекурсии в подпапки. Нужен только
+  // поиску осиротевших разделов тир-листа (findOrphanedTierFiles в
+  // core/api.js): узнать, какие tier-*.json вообще лежат на диске,
+  // чтобы сверить со списком известных разделов в site-settings.json.
+  async listRootFiles() {
+    const entries = await fs.readdir(this.root, { withFileTypes: true });
+    return entries.filter((e) => e.isFile()).map((e) => e.name);
+  }
+
   // Чтение с умолчанием: отсутствующий файл – это не поломка, а первый
   // запуск. Пустой список отзывов и пустые настройки выглядят одинаково
   // и для приложения, и для человека.

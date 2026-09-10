@@ -1046,6 +1046,39 @@ async function findOrphanedCovers({ vault }) {
   return { ok: true, orphans };
 }
 
+// Свой раздел тир-листа, удалённый до того, как deleteTierCollection
+// выше стал стирать сам файл (то есть уже существующие на диске tier-
+// <id>.json, которые ещё не подхватило это исправление) – находит их
+// сверкой с тем же site-settings.json, что и сам список разделов.
+// "characters-tier.json" сюда не попадает вовсе – это не свой раздел,
+// а встроенный, под другим именем файла.
+async function findOrphanedTierFiles({ vault }) {
+  const settings = await vault.readJson("site-settings.json", {});
+  const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+  const known = new Set(collections.map((c) => c.id).filter(isSafeName));
+
+  const files = await vault.listRootFiles();
+  const orphans = files.filter((name) => {
+    const m = /^tier-(.+)\.json$/.exec(name);
+    return m && !known.has(m[1]);
+  });
+  return { ok: true, orphans };
+}
+
+// Удаление одного найденного файла-сироты выше – вместе с его же
+// папкой картинок (см. deleteTierCollection: та же пара действий, тот
+// же imageFolder). Имя проверяется тем же шаблоном, что и поиск, а не
+// isSafeName напрямую – в имени файла есть ".json", которого одинокий
+// id не допускает.
+async function deleteOrphanedTierFile({ vault, body }) {
+  const name = body?.name;
+  const m = typeof name === "string" && /^tier-([^/\\]+)\.json$/.exec(name);
+  if (!m || name.includes("..")) throw new ApiError("Недопустимое имя файла");
+  await vault.deleteDataFile(name);
+  await vault.deleteMediaFolder(imageFolder(m[1]));
+  return { ok: true };
+}
+
 // ── Таблица адресов ────────────────────────────
 
 export const ROUTES = {
@@ -1059,6 +1092,8 @@ export const ROUTES = {
   "POST /api/save-favorite": saveFavorite,
   "POST /api/save-chars-tier": saveCharsTier,
   "POST /api/delete-tier-collection": deleteTierCollection,
+  "GET /api/find-orphaned-tier-files": findOrphanedTierFiles,
+  "POST /api/delete-orphaned-tier-file": deleteOrphanedTierFile,
   "POST /api/save-site-settings": saveSiteSettings,
   "GET /api/export-backup": exportBackup,
   "POST /api/restore-backup": restoreBackup,

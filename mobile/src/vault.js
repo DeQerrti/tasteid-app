@@ -107,6 +107,22 @@ export class MobileVault {
     }
   }
 
+  // Тот же приём, что в electron/vault.js: имена файлов данных прямо в
+  // корне хранилища, без рекурсии – нужен только поиску осиротевших
+  // разделов тир-листа (findOrphanedTierFiles в core/api.js).
+  async listRootFiles() {
+    let entries;
+    try {
+      entries = (await Filesystem.readdir({ path: this.root, directory: DIR })).files;
+    } catch (e) {
+      if (isMissing(e)) return [];
+      throw e;
+    }
+    return entries
+      .filter((e) => (typeof e === "string" ? true : e.type === "file"))
+      .map((e) => (typeof e === "string" ? e : e.name));
+  }
+
   // Убрать хранилище – на телефоне это единственный способ «удалить»
   // его: тут нет проводника, чтобы потом заново открыть отвязанную
   // папку, как на компьютере через «Открыть существующее». Раньше это

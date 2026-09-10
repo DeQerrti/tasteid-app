@@ -508,6 +508,25 @@ function settingsViewHtml() {
         </div>
         <div class="status-msg" id="status-orphaned-covers"></div>
         <div id="orphaned-covers-list"></div>
+
+        <!-- Тот же смысл, что у осиротевших обложек выше, только для
+             файлов своих разделов тир-листа (tier-<id>.json): удаление
+             раздела теперь стирает файл сам (см. её же комментарий у
+             deleteTierCollection в core/api.js), но разделы, удалённые
+             ДО этого исправления, уже оставили такие файлы на диске –
+             эта секция находит их. На телефоне это ещё и единственный
+             способ вообще их увидеть: папка приложения не открывается
+             обычным проводником без root. -->
+        <h2 class="section-h" data-i18n>Осиротевшие разделы тир-листа</h2>
+        <p class="panel-intro" data-i18n>
+          Раньше удаление своего раздела тир-листа не стирало сам файл с диска – такие файлы могли
+          накопиться ещё до того, как это починили. Здесь можно найти и убрать их.
+        </p>
+        <div class="row">
+          <button class="btn btn-ghost" onclick="scanOrphanedTierFiles()" data-i18n>Найти неиспользуемые разделы</button>
+        </div>
+        <div class="status-msg" id="status-orphaned-tier-files"></div>
+        <div id="orphaned-tier-files-list"></div>
       </div>
     </main>
   </div>
