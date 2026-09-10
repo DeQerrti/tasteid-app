@@ -413,6 +413,47 @@ function favPersonLinkedTitlesHtml(r) {
   `;
 }
 
+// Карточки привязанных СУЩНОСТЕЙ «Любимого» (linked_favorite_ids) – в
+// отличие от тайтлов это не всегда отзывы: сэйю ↔ персонаж, персонаж ↔
+// автор, что угодно из любого раздела, включая свои. Группируем по
+// типу целевой записи – один заголовок-раздел на группу, тем же
+// порядком, в каком группы впервые встретились в linked_favorite_ids
+// (сам он этим же порядком собирается в редакторе, см.
+// renderLinkedFavoriteGroups в favorites-edit.js).
+function favLinkedFavoritesHtml(r) {
+  const ids = r.linked_favorite_ids || [];
+  if (!ids.length) return "";
+  const favData = favExportData?.favData || [];
+  const entries = ids.map((id) => favData.find((e) => e.id === id)).filter(Boolean);
+  if (!entries.length) return "";
+
+  const groups = [];
+  for (const e of entries) {
+    let g = groups.find((x) => x.type === e.type);
+    if (!g) {
+      g = { type: e.type, items: [] };
+      groups.push(g);
+    }
+    g.items.push(e);
+  }
+
+  const overrides = window.SITE_LABEL_OVERRIDES?.favTypes || {};
+  const labelFor = (type) => {
+    if (type === "character") return overrides.character || i18n("Персонажи");
+    if (type === "person") return overrides.person || i18n("Персоны");
+    return (favCustomCollections().find((c) => c.id === type) || {}).label || type;
+  };
+
+  return groups
+    .map(
+      (g) => `
+    <div class="fav-modal-titles-title">${esc(labelFor(g.type))}</div>
+    <div class="grid-chars fav-modal-titles-grid">${g.items.map((e, i) => favPersonCard(e, i)).join("")}</div>
+  `
+    )
+    .join("");
+}
+
 function favPersonModalBodyHtml(r) {
   const subLine = r.type === "person"
     ? (SUBTYPE_LABELS[r.subtype] || i18n("Персона"))
@@ -461,6 +502,7 @@ function favPersonModalBodyHtml(r) {
       ${quotesHtml}
       ${factsHtml}
       ${favPersonLinkedTitlesHtml(r)}
+      ${favLinkedFavoritesHtml(r)}
     </div>
   `;
 }
@@ -552,12 +594,28 @@ document.addEventListener("DOMContentLoaded", () => {
     // видны в порядке их разметки, а не открытия.
     if (e.target.closest(".review-edit-btn")) return;
     const titleWrap = e.target.closest(".review-card-wrap");
-    if (!titleWrap) return;
-    const id = titleWrap.dataset.reviewId;
-    const review = (cache.reviews || []).find((r) => String(r.id ?? encodeURIComponent(r.title)) === id);
-    if (review) {
-      closeFavPersonModal();
-      openReviewModal(review);
+    if (titleWrap) {
+      const id = titleWrap.dataset.reviewId;
+      const review = (cache.reviews || []).find((r) => String(r.id ?? encodeURIComponent(r.title)) === id);
+      if (review) {
+        closeFavPersonModal();
+        openReviewModal(review);
+      }
+      return;
+    }
+    // Привязанные сущности «Любимого» (favLinkedFavoritesHtml) – те же
+    // карточки .card-char, что и на самих вкладках «Персонажи»/«Персоны»
+    // (favBindCardClicks слушает #fav-mode-body, сюда не достаёт) –
+    // открывают модалку ДРУГОЙ записи поверх этой же, по той же причине
+    // сперва закрывая текущую (см. комментарий про z-index выше).
+    const charCard = e.target.closest(".card-char[data-fav-id]");
+    if (charCard) {
+      const id = charCard.dataset.favId;
+      const entry = (favExportData?.favData || []).find((r) => String(r.id) === id);
+      if (entry) {
+        closeFavPersonModal();
+        openFavPersonModal(entry);
+      }
     }
   });
   document.addEventListener("keydown", (e) => {

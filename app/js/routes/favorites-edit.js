@@ -34,6 +34,11 @@ let fePrevTitle = null;
 // у «Тайтлы» в шаблоне mount() ниже.
 let linkedReviewIds = [];
 
+// Привязанные СУЩНОСТИ «Любимого» (id из favorites.json, любого типа –
+// сэйю к персонажу, персонаж к автору и т.д.) – см. её же комментарий у
+// favLinkGroups() ниже.
+let linkedFavoriteIds = [];
+
 function feOn(target, type, handler, opts) {
   target.addEventListener(type, handler, opts);
   feCleanupFns.push(() => target.removeEventListener(type, handler, opts));
@@ -45,6 +50,7 @@ async function mount(container, params) {
   favImageGallery = [];
   profileCustomFields = [];
   linkedReviewIds = [];
+  linkedFavoriteIds = [];
   allEntries = [];
   groupLists = { character: [], person: [] };
   orderDirty = false;
@@ -149,6 +155,14 @@ async function mount(container, params) {
       <div id="linked-titles-list" class="linked-titles-list"></div>
       <button type="button" class="btn btn-ghost" onclick="openTitleLinkSearch()">${i18n("Добавить источник")}</button>
 
+      <!-- Связи с другими сущностями «Любимого» (не тайтлами) – сэйю к
+           персонажу, персонаж к автору и т.д., в любую сторону. Один
+           блок на раздел «Любимого» (Персонажи/Персоны/свои разделы),
+           собирается заново при каждом mount()/fillFavForm() –
+           появившийся в /settings-edit новый раздел получает свою
+           строку сам, без правки разметки здесь (см. favLinkGroups()). -->
+      <div id="linked-favorites-groups"></div>
+
       <div class="divider"></div>
       <button class="btn-save" id="btn-save" onclick="saveEntry()">${i18n("Сохранить")}</button>
       <div class="status-msg" id="status"></div>
@@ -166,6 +180,9 @@ async function mount(container, params) {
 
       <div class="order-hint" id="order-hint">${i18n("Перетащите за ⠿, чтобы изменить порядок, затем нажмите «Сохранить порядок»")}</div>
     </main>`;
+
+  renderLinkedFavoriteGroups();
+  feOn(document, "tags-map-updated", renderLinkedFavoriteGroups);
 
   feOn(document.getElementById("fe-back"), "click", (e) => {
     e.preventDefault();
@@ -990,6 +1007,179 @@ function addLinkedTitle(id) {
   closeTitleLinkSearch();
 }
 
+// ── Связи с другими сущностями «Любимого» ─────────
+// В отличие от «Тайтлы» (всегда reviews.json), здесь целью может быть
+// запись ЛЮБОГО раздела «Любимого» – сэйю к персонажу, персонаж к
+// автору, что угодно, включая свои разделы. Раздел (не «сущность») и
+// определяет группу: один блок «Персонажи»/«Персоны»/«Составы» на
+// каждый существующий раздел, кроме самих Тайтлов (у них уже есть своя
+// секция выше). Список берём из тех же данных, что уже загружены для
+// самого списка записей внизу страницы (allEntries) – отдельно
+// спрашивать нечего.
+function favLinkGroups() {
+  const overrides = window.SITE_LABEL_OVERRIDES?.favTypes || {};
+  const builtins = [
+    { id: "character", label: overrides.character || i18n("Персонажи"), addLabel: i18n("Добавить персонажа") },
+    { id: "person", label: overrides.person || i18n("Персоны"), addLabel: i18n("Добавить персону") },
+  ];
+  const custom = favCustomCollections().map((c) => ({
+    id: c.id,
+    label: c.label,
+    addLabel: i18n("Добавить запись"),
+  }));
+  return [...builtins, ...custom];
+}
+
+function renderLinkedFavoriteGroups() {
+  const box = document.getElementById("linked-favorites-groups");
+  if (!box) return;
+  box.innerHTML = favLinkGroups()
+    .map(
+      (g) => `
+    <h2 class="section-title">${esc(g.label)}</h2>
+    <div id="linked-fav-list-${esc(g.id)}" class="linked-titles-list"></div>
+    <button type="button" class="btn btn-ghost" onclick="openFavoriteLinkSearch('${esc(g.id)}')">${esc(g.addLabel)}</button>
+  `
+    )
+    .join("");
+  favLinkGroups().forEach((g) => renderLinkedFavoritesGroup(g.id));
+}
+
+function renderLinkedFavoritesGroup(groupId) {
+  const box = document.getElementById(`linked-fav-list-${groupId}`);
+  if (!box) return;
+  const entries = linkedFavoriteIds
+    .map((id) => allEntries.find((e) => e.id === id))
+    .filter((e) => e && e.type === groupId);
+  box.innerHTML = entries.length
+    ? entries
+        .map(
+          (e) => `
+    <div class="linked-title-chip linked-fav-chip" draggable="true" data-id="${e.id}" data-group="${esc(groupId)}" title="${i18n("Перетащить")}">
+      <img src="${esc(e.image || e.image_backup || PH_SQ)}" alt="" loading="lazy">
+      <span>${esc(e.name)}</span>
+      <button type="button" class="linked-title-del" title="${i18n("Удалить")}" onclick="removeLinkedFavorite(${e.id})">✕</button>
+    </div>`
+        )
+        .join("")
+    : `<div class="linked-titles-empty">${i18n("Пока ничего не привязано.")}</div>`;
+  bindLinkedFavoriteDnd(box);
+}
+
+let favLinkDragSrc = null;
+
+function bindLinkedFavoriteDnd(box) {
+  box.querySelectorAll(".linked-fav-chip").forEach((chip) => {
+    chip.addEventListener("dragstart", () => {
+      favLinkDragSrc = chip;
+      chip.classList.add("dragging");
+    });
+    chip.addEventListener("dragend", () => {
+      box.querySelectorAll(".linked-fav-chip").forEach((el) => el.classList.remove("dragging", "drag-over"));
+      favLinkDragSrc = null;
+    });
+    chip.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!favLinkDragSrc || chip === favLinkDragSrc) return;
+      box.querySelectorAll(".linked-fav-chip").forEach((el) => el.classList.remove("drag-over"));
+      chip.classList.add("drag-over");
+    });
+    chip.addEventListener("dragleave", () => chip.classList.remove("drag-over"));
+    chip.addEventListener("drop", (e) => {
+      e.preventDefault();
+      chip.classList.remove("drag-over");
+      if (!favLinkDragSrc || chip === favLinkDragSrc) return;
+
+      const srcId = Number(favLinkDragSrc.dataset.id);
+      const targetId = Number(chip.dataset.id);
+      const srcIdx = linkedFavoriteIds.indexOf(srcId);
+      let targetIdx = linkedFavoriteIds.indexOf(targetId);
+      if (srcIdx === -1 || targetIdx === -1) return;
+
+      const rect = chip.getBoundingClientRect();
+      const before = e.clientX < rect.left + rect.width / 2;
+
+      linkedFavoriteIds.splice(srcIdx, 1);
+      targetIdx = linkedFavoriteIds.indexOf(targetId);
+      linkedFavoriteIds.splice(before ? targetIdx : targetIdx + 1, 0, srcId);
+      renderLinkedFavoritesGroup(chip.dataset.group);
+    });
+  });
+}
+
+function removeLinkedFavorite(id) {
+  const entry = allEntries.find((e) => e.id === id);
+  linkedFavoriteIds = linkedFavoriteIds.filter((x) => x !== id);
+  if (entry) renderLinkedFavoritesGroup(entry.type);
+}
+
+let favoriteLinkModalEl = null;
+let favoriteLinkGroupId = null;
+
+function favoriteLinkModalEnsure() {
+  if (favoriteLinkModalEl) return favoriteLinkModalEl;
+  favoriteLinkModalEl = document.createElement("div");
+  favoriteLinkModalEl.id = "favorite-link-modal-overlay";
+  favoriteLinkModalEl.className = "modal-overlay hidden";
+  favoriteLinkModalEl.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" type="button" onclick="closeFavoriteLinkSearch()">✕</button>
+      <div class="modal-title" id="favorite-link-modal-title"></div>
+      <input type="text" id="favorite-link-search" class="fav-title-search" placeholder="${i18n("Имя...")}" oninput="renderFavoriteLinkResults()">
+      <div id="favorite-link-results" class="linked-titles-results"></div>
+    </div>`;
+  document.body.appendChild(favoriteLinkModalEl);
+  favoriteLinkModalEl.onclick = (e) => {
+    if (e.target === favoriteLinkModalEl) closeFavoriteLinkSearch();
+  };
+  return favoriteLinkModalEl;
+}
+
+function openFavoriteLinkSearch(groupId) {
+  favoriteLinkGroupId = groupId;
+  const overlay = favoriteLinkModalEnsure();
+  const group = favLinkGroups().find((g) => g.id === groupId);
+  document.getElementById("favorite-link-modal-title").textContent = group ? group.addLabel : i18n("Добавить");
+  overlay.classList.remove("hidden");
+  const input = document.getElementById("favorite-link-search");
+  input.value = "";
+  renderFavoriteLinkResults();
+  input.focus();
+}
+
+function closeFavoriteLinkSearch() {
+  favoriteLinkModalEl?.classList.add("hidden");
+}
+
+function renderFavoriteLinkResults() {
+  const box = document.getElementById("favorite-link-results");
+  if (!box) return;
+  const q = (document.getElementById("favorite-link-search")?.value || "").trim().toLowerCase();
+  const results = allEntries
+    .filter((e) => e.type === favoriteLinkGroupId)
+    .filter((e) => e.id !== favEditingId)
+    .filter((e) => !linkedFavoriteIds.includes(e.id))
+    .filter((e) => !q || e.name.toLowerCase().includes(q))
+    .slice(0, 30);
+  box.innerHTML = results.length
+    ? results
+        .map(
+          (e) => `
+    <div class="linked-title-result linked-fav-result" onclick="addLinkedFavorite(${e.id})">
+      <img src="${esc(e.image || e.image_backup || PH_SQ)}" alt="" loading="lazy">
+      <span>${esc(e.name)}</span>
+    </div>`
+        )
+        .join("")
+    : `<div class="linked-titles-empty">${i18n("Ничего не найдено")}</div>`;
+}
+
+function addLinkedFavorite(id) {
+  if (!linkedFavoriteIds.includes(id)) linkedFavoriteIds.push(id);
+  renderLinkedFavoritesGroup(favoriteLinkGroupId);
+  closeFavoriteLinkSearch();
+}
+
 function onTypeChange() {
   const isPerson = document.getElementById("f-type").value === "person";
   document.getElementById("field-subtype").classList.toggle("visible", isPerson);
@@ -1151,8 +1341,10 @@ function resetFavToNew() {
   favImageGallery = [];
   profileCustomFields = [];
   linkedReviewIds = [];
+  linkedFavoriteIds = [];
   renderProfileCustomFields();
   renderLinkedTitles();
+  renderLinkedFavoriteGroups();
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("page-subtitle").textContent = i18n("Персонажи и персоны");
   document.getElementById("btn-save").textContent = i18n("Сохранить");
@@ -1204,6 +1396,8 @@ function fillFavForm(r) {
   renderProfileCustomFields();
   linkedReviewIds = r.linked_review_ids?.length ? [...r.linked_review_ids] : [];
   renderLinkedTitles();
+  linkedFavoriteIds = r.linked_favorite_ids?.length ? [...r.linked_favorite_ids] : [];
+  renderLinkedFavoriteGroups();
   document.getElementById("f-type").value = r.type || "character";
   document.getElementById("f-subtype").value = r.subtype || "actor";
   syncFavTypePickerLabel();
@@ -1469,6 +1663,11 @@ async function saveEntry() {
     from: document.getElementById("f-from").value.trim() || null,
     profile: buildProfileField(),
     linked_review_ids: linkedReviewIds.length ? [...linkedReviewIds] : null,
+    // Свой же id сюда попасть не должен (поиск его и так не предлагает,
+    // это просто подстраховка на случай правки другим путём).
+    linked_favorite_ids: linkedFavoriteIds.filter((id) => id !== favEditingId).length
+      ? linkedFavoriteIds.filter((id) => id !== favEditingId)
+      : null,
   };
   if (type === "person") {
     entry.subtype = document.getElementById("f-subtype").value || null;

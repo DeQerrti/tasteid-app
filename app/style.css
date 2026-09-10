@@ -613,6 +613,12 @@ html:not(.kb-nav) *:focus {
 .linked-title-result img { width: 34px; aspect-ratio: 2/3; object-fit: cover; flex-shrink: 0; }
 .linked-title-result span { font-size: .85rem; }
 
+/* Связи с сущностями «Любимого» (не тайтлами) – та же коробка, но
+   аватар круглый и квадратный, как у самих карточек персонажей/персон,
+   а не портретная обложка тайтла. */
+.linked-fav-chip img { aspect-ratio: 1/1; border-radius: 50%; }
+.linked-fav-result img { aspect-ratio: 1/1; border-radius: 50%; }
+
 /* ══ ЗАГРУЗКА И ПУСТЫЕ СОСТОЯНИЯ ═════════════════
    Крутилка и «заглушка вместо контента» нужны и публичной странице,
    и админке — раньше и то и другое было скопировано в трёх файлах. */
