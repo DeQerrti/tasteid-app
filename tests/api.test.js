@@ -976,6 +976,69 @@ test("осиротевшие обложки находятся по всем т�
   });
 });
 
+test("удаление одного файла умеет и портрет персонажа (вложенный путь), а не только плоские папки", async () => {
+  // Раньше DELETABLE_MEDIA_PATH пускал только covers/covers-backup/
+  // favorites/title-covers – ровно то, что как раз только что нашёл
+  // расширенный поиск осиротевших обложек (см. её же тест выше) под
+  // chars/ и под собственными разделами тир-листа, кнопка «Удалить все
+  // найденные» падала на них с «Недопустимый путь для удаления».
+  await withServer(async ({ api, root }) => {
+    await api("POST", "/api/save-site-settings", {
+      tierCollections: [{ id: "openings", label: "Опенинги" }],
+    });
+
+    await fs.mkdir(path.join(root, "chars", "Тайтл"), { recursive: true });
+    await fs.writeFile(path.join(root, "chars", "Тайтл", "сирота.webp"), "x");
+    await fs.mkdir(path.join(root, "openings", "Тайтл"), { recursive: true });
+    await fs.writeFile(path.join(root, "openings", "Тайтл", "сирота.webp"), "x");
+    // Незнакомая "коллекция" – не chars и не в site-settings.json – так
+    // и должна остаться недоступной для удаления по одному файлу, это
+    // не ослабление проверки, а её расширение на уже известные разделы.
+    await fs.mkdir(path.join(root, "чужое", "Тайтл"), { recursive: true });
+    await fs.writeFile(path.join(root, "чужое", "Тайтл", "файл.webp"), "x");
+
+    const { status: charsStatus, data: charsData } = await api("POST", "/api/delete-media", {
+      path: "/chars/Тайтл/сирота.webp",
+    });
+    assert.equal(charsStatus, 200);
+    assert.equal(charsData.ok, true);
+    assert.equal(
+      await fs.access(path.join(root, "chars", "Тайтл", "сирота.webp")).then(
+        () => true,
+        () => false
+      ),
+      false,
+      "портрет персонажа во встроенных «Персонажах» должен удалиться"
+    );
+
+    const { status: openingsStatus } = await api("POST", "/api/delete-media", {
+      path: "/openings/Тайтл/сирота.webp",
+    });
+    assert.equal(openingsStatus, 200);
+    assert.equal(
+      await fs.access(path.join(root, "openings", "Тайтл", "сирота.webp")).then(
+        () => true,
+        () => false
+      ),
+      false,
+      "то же самое для своего раздела тир-листа, известного по site-settings.json"
+    );
+
+    const { status: unknownStatus } = await api("POST", "/api/delete-media", {
+      path: "/чужое/Тайтл/файл.webp",
+    });
+    assert.equal(unknownStatus, 400, "путь вне известных разделов по-прежнему отклоняется");
+    assert.equal(
+      await fs.access(path.join(root, "чужое", "Тайтл", "файл.webp")).then(
+        () => true,
+        () => false
+      ),
+      true,
+      "и файл действительно остался нетронутым"
+    );
+  });
+});
+
 test("резервная копия обложки по ссылке сжимается в webp", async () => {
   // Раньше backupCover() сохранял обложку ровно в том виде, в каком её
   // отдал источник, – без сжатия и без пересборки, в отличие от ручной

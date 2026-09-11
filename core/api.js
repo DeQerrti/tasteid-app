@@ -679,16 +679,34 @@ async function fetchMalUserList({ body, malHttpGet }) {
 // заброшенные копии никому уже не нужных обложек). Та же история у
 // favorites/ и title-covers/ – собственных загрузок «Любимого» и
 // названий тир-листа (см. её же basePath в favorites-edit.js/
-// chars-edit.js). Область намеренно ограничена этими четырьмя плоскими
-// папками – это чистка своих же файлов известных фич, а не удаление
-// чего угодно из хранилища; chars/<тайтл>/ сюда специально не входит –
-// портреты персонажей удаляются только вместе со всей папкой раздела
-// (deleteMediaFolder), не по одному файлу.
+// chars-edit.js). Эти четыре плоские папки – чистка своих же файлов
+// известных фич, а не удаление чего угодно из хранилища.
 const DELETABLE_MEDIA_PATH = /^\/(covers|covers-backup|favorites|title-covers)\/[^/]+$/;
+
+// Портрет персонажа – своя, вложенная форма: <раздел>/<тайтл>/<файл>
+// (chars/ у встроенных «Персонажей», id коллекции у своих разделов тир-
+// листа). Удаление ОДНОГО персонажа из тир-листа (deleteChar,
+// chars-edit.js) не трогает файл на диске – значит, такие файлы тоже
+// годятся в осиротевшие (см. findOrphanedCovers) и должны быть
+// удаляемы по одному, а не только вместе со всей папкой раздела
+// (deleteMediaFolder). <раздел> проверяем по тому же списку, что и
+// vault.listAllMedia() (см. её же историю в electron/vault.js) – иначе
+// это было бы удаление произвольного пути из двух сегментов.
+async function isDeletableMediaPath(vault, relPath) {
+  if (DELETABLE_MEDIA_PATH.test(relPath)) return true;
+  const m = /^\/([^/]+)\/[^/]+\/[^/]+$/.exec(relPath);
+  if (!m) return false;
+  const base = m[1];
+  if (base === "chars") return true;
+  const settings = await vault.readJson("site-settings.json", {});
+  const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+  return collections.some((c) => c.id === base);
+}
 
 async function deleteMedia({ vault, body }) {
   const relPath = String(body.path || "");
-  if (!DELETABLE_MEDIA_PATH.test(relPath)) throw new ApiError("Недопустимый путь для удаления");
+  if (!(await isDeletableMediaPath(vault, relPath)))
+    throw new ApiError("Недопустимый путь для удаления");
   await vault.deleteMedia(relPath.slice(1));
   return { ok: true };
 }

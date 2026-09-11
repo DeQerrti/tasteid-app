@@ -433,15 +433,23 @@ async function contentHash(base64) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Та же регулярка, что и в core/api.js у DELETABLE_MEDIA_PATH – держать
-// в синхроне вручную, отдельного общего модуля между сервером и
-// рендерером здесь нет. Только эти пути сервер вообще умеет удалить по
-// одному файлу напрямую (см. её же использование в syncOne/
-// syncOneByFetch и deleteLocalMedia ниже) – для остального (chars/,
-// свои разделы тир-листа) удаление всегда идёт целой папкой через
-// deleteMediaFolder/deleteRemoteMediaFolder, а не по одному файлу через
-// синхронизацию.
+// Та же логика, что и isDeletableMediaPath в core/api.js – держать в
+// синхроне вручную, отдельного общего модуля между сервером и
+// рендерером здесь нет. Только такие пути сервер вообще умеет удалить
+// по одному файлу напрямую (см. её же использование в syncOne/
+// syncOneByFetch и deleteLocalMedia ниже). Вложенную форму
+// (<раздел>/<тайтл>/<файл> – портрет персонажа) здесь, в отличие от
+// сервера, не сверяем со списком известных разделов: раз для пути уже
+// есть entry в состоянии синхронизации (единственное условие, при
+// котором этот код вообще вызывается – см. её же комментарий у
+// syncOne), значит, это устройство само его туда когда-то положило
+// через тот же самый vault.listAllMedia(), который уже отфильтровал
+// что попало, – перепроверять нечем и незачем.
 const DELETABLE_MEDIA_PATH = /^\/(covers|covers-backup|favorites|title-covers)\/[^/]+$/;
+const DELETABLE_NESTED_MEDIA_PATH = /^\/[^/]+\/[^/]+\/[^/]+$/;
+function isDeletableMediaPath(path) {
+  return DELETABLE_MEDIA_PATH.test(path) || DELETABLE_NESTED_MEDIA_PATH.test(path);
+}
 
 // Тихая попытка, как и остальные операции, которые синхронизация сама
 // решает сделать без явного нажатия человеком (см. её же комментарий у
@@ -493,7 +501,7 @@ async function syncOne(config, path, localBase64, entry, remoteTree) {
     // репозитории файла нет" и заливало свою копию заново, воскрешая
     // то, что явно удалили в другом месте, – ровно то, из-за чего
     // осиротевшая обложка возвращалась после удаления снова и снова.
-    if (entry && DELETABLE_MEDIA_PATH.test("/" + path)) {
+    if (entry && isDeletableMediaPath("/" + path)) {
       return { action: "delete" };
     }
     // В репозитории файла ещё нет вообще – отправляем, конфликтовать не с чем.
@@ -652,7 +660,7 @@ async function syncOneByFetch(config, path, localBase64, localHash, entry) {
 
   if (!remote) {
     // Та же история, что и в syncOne() выше (см. её же комментарий там).
-    if (entry && DELETABLE_MEDIA_PATH.test("/" + path)) {
+    if (entry && isDeletableMediaPath("/" + path)) {
       return { action: "delete" };
     }
     const sha = await putRemoteFile(config, path, localBase64);
