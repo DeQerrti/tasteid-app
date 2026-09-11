@@ -719,10 +719,19 @@ async function runSync(config, onProgress) {
   // остаток списка не стоит лишних запросов.
   const IMG_EXT = /\.(png|jpe?g|webp|gif)$/i;
   if (remoteTree) {
-    for (const path of remoteTree.keys()) {
-      if (IMG_EXT.test(path) && !(path in backup.images)) {
-        items.push({ kind: "images", path, isNewRemote: true });
-      }
+    for (const [path, sha] of remoteTree) {
+      if (!IMG_EXT.test(path) || path in backup.images) continue;
+      // Ещё один защитный слой поверх await у deleteRemoteMedia в
+      // deleteMediaFile() (js/utils.js): если это устройство уже
+      // синхронизировало именно эту версию файла раньше (тот же sha в
+      // state.images) – значит, это не "картинка, которой тут никогда
+      // не было", а собственное удаление, чьё DELETE в репозитории по
+      // каким-то причинам ещё не долетело или не отразилось на этом
+      // bulk-списке. Не воскрешаем – настоящее удаление (или его новая
+      // попытка) сделает своё дело отдельно, вне этого прохода.
+      const entry = state.images[path];
+      if (entry && entry.sha === sha) continue;
+      items.push({ kind: "images", path, isNewRemote: true });
     }
   }
 

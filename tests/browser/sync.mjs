@@ -292,6 +292,46 @@ ok(
   `статус честно сообщил про удаление (статус: «${statusAfterRemoteDelete}»)`
 );
 
+console.log(
+  "Гонка при удалении нескольких сирот подряд: своё же удаление ещё не долетело до репозитория — не подтягивать файл обратно"
+);
+// Тот же реальный случай, что нашёлся при удалении сразу нескольких
+// осиротевших обложек через «Историю версий» и немедленном переходе в
+// «Синхронизацию»: локальный файл уже стёрт (как после /api/delete-media
+// внутри deleteMediaFile), а его же собственный запрос на удаление в
+// репозитории (deleteRemoteMedia) в этот момент ещё не долетел –
+// gh.files по-прежнему хранит старую версию с тем же sha, что и
+// state.images здесь. Раньше это читалось как "картинка, которой тут
+// никогда не было", и файл тут же возвращался обратно на диск.
+await page.evaluate(
+  (webp) => window.__fakeFiles.set("TasteID/covers-backup/гонка.webp", webp),
+  WEBP
+);
+await page.click("#sync-now-btn");
+await page.waitForFunction(
+  () => document.getElementById("status-sync")?.textContent?.includes("Готово"),
+  null,
+  { timeout: 8000 }
+);
+ok(
+  gh.files.has("covers-backup/гонка.webp"),
+  "файл для проверки гонки сначала синхронизировался как обычно"
+);
+
+// Локальное удаление случилось (файла на диске больше нет), а вот
+// репозиторий - ещё нет: это и есть та самая гонка.
+await page.evaluate(() => window.__fakeFiles.delete("TasteID/covers-backup/гонка.webp"));
+await page.click("#sync-now-btn");
+await page.waitForFunction(
+  () => document.getElementById("status-sync")?.textContent?.includes("Готово"),
+  null,
+  { timeout: 8000 }
+);
+ok(
+  !(await page.evaluate(() => window.__fakeFiles.has("TasteID/covers-backup/гонка.webp"))),
+  "не подтянула обратно локально удалённый файл только из-за того, что своё же удаление в репозитории ещё не долетело"
+);
+
 console.log("Вторая синхронизация — поменялось только в репозитории, значит, забираем");
 gh.files.set("reviews.json", {
   base64: b64(JSON.stringify([{ title: "Пришло с другого устройства" }], null, 2)),
