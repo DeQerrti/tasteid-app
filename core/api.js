@@ -1046,7 +1046,17 @@ async function findOrphanedCovers({ vault }) {
       add(title.cover_backup);
       for (const list of title.tierlists || []) {
         for (const tier of list.tiers || []) {
-          for (const ch of tier.chars || []) add(ch.img_backup);
+          for (const ch of tier.chars || []) {
+            // img, а не только img_backup: у персонажа, выбранного прямо
+            // из уже загруженной галереи (см. её же imgBackup = "" в
+            // openModalAddChar, chars-edit.js), путь на диск лежит
+            // именно в img – img_backup остаётся пустым, это поле
+            // только для случая "вставили внешнюю ссылку, сделали
+            // резервную копию". Без add(ch.img) такие персонажи всегда
+            // считались бы осиротевшими, хотя видны в тир-листе.
+            add(ch.img);
+            add(ch.img_backup);
+          }
         }
       }
     }

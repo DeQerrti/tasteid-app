@@ -907,6 +907,8 @@ test("осиротевшие обложки находятся по всем т�
       ]),
       "utf8"
     );
+    await fs.mkdir(path.join(root, "chars", "Тайтл"), { recursive: true });
+    await fs.writeFile(path.join(root, "chars", "Тайтл", "gallery-char.webp"), "x");
     await fs.writeFile(
       path.join(root, "characters-tier.json"),
       JSON.stringify([
@@ -914,7 +916,18 @@ test("осиротевшие обложки находятся по всем т�
           name: "Тайтл",
           cover_backup: "/covers-backup/title.webp",
           tierlists: [
-            { tiers: [{ chars: [{ name: "Герой", img_backup: "covers-backup/char.webp" }] }] },
+            {
+              tiers: [
+                { chars: [{ name: "Герой", img_backup: "covers-backup/char.webp" }] },
+                // img, а не img_backup – так выглядит персонаж, выбранный
+                // прямо из уже загруженной галереи (см. её же
+                // openModalAddChar в chars-edit.js): img_backup у него
+                // пустой, путь на диск лежит только в img. Без учёта
+                // этого поля такой персонаж всегда считался бы
+                // осиротевшим, хотя он есть в тир-листе.
+                { chars: [{ name: "Из галереи", img: "/chars/Тайтл/gallery-char.webp" }] },
+              ],
+            },
           ],
         },
         { name: "Своя обложка", cover_backup: "/title-covers/title-upload.webp" },
