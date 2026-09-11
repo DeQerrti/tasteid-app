@@ -438,10 +438,10 @@ async function contentHash(base64) {
 // рендерером здесь нет. Только эти пути сервер вообще умеет удалить по
 // одному файлу напрямую (см. её же использование в syncOne/
 // syncOneByFetch и deleteLocalMedia ниже) – для остального (chars/,
-// favorites/, свои разделы тир-листа) удаление всегда идёт целой
-// папкой через deleteMediaFolder/deleteRemoteMediaFolder, а не по
-// одному файлу через синхронизацию.
-const DELETABLE_MEDIA_PATH = /^\/(covers|covers-backup)\/[^/]+$/;
+// свои разделы тир-листа) удаление всегда идёт целой папкой через
+// deleteMediaFolder/deleteRemoteMediaFolder, а не по одному файлу через
+// синхронизацию.
+const DELETABLE_MEDIA_PATH = /^\/(covers|covers-backup|favorites|title-covers)\/[^/]+$/;
 
 // Тихая попытка, как и остальные операции, которые синхронизация сама
 // решает сделать без явного нажатия человеком (см. её же комментарий у

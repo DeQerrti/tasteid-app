@@ -914,13 +914,17 @@ test("починка ссылок после разового сжатия на�
   });
 });
 
-test("осиротевшие обложки находятся по всем трём источникам ссылок, а используемые не трогаются", async () => {
-  // Шесть файлов: используется отзывом, используется избранным,
-  // используется тайтлом коллекции (плюс персонажем внутри неё), лежит
-  // только в галерее отзыва/избранного (не активная сейчас копия, но
-  // всё равно выбираема через саму галерею – не должна считаться
-  // осиротевшей) и один ничем не используемый – он и должен оказаться
-  // единственным в списке.
+test("осиротевшие обложки находятся по всем трём источникам ссылок и по всем папкам загрузок, а используемые не трогаются", async () => {
+  // Шесть файлов в covers-backup: используется отзывом, используется
+  // избранным, используется тайтлом коллекции (плюс персонажем внутри
+  // неё), лежит только в галерее отзыва/избранного (не активная сейчас
+  // копия, но всё равно выбираема через саму галерею – не должна
+  // считаться осиротевшей) и один ничем не используемый – он и должен
+  // оказаться в списке. Плюс по одному использованному и одному
+  // осиротевшему файлу в favorites/ и title-covers/ – раньше поиск
+  // проверял только covers-backup/, и мусор в этих двух папках (свои
+  // загрузки через add-cover.js/chars-edit.js/favorites-edit.js, а не
+  // резервная копия по ссылке) никогда не находился вовсе.
   await withServer(async ({ api, root }) => {
     await fs.mkdir(path.join(root, "covers-backup"), { recursive: true });
     for (const name of [
@@ -934,6 +938,12 @@ test("осиротевшие обложки находятся по всем т�
     ]) {
       await fs.writeFile(path.join(root, "covers-backup", name), "x");
     }
+    await fs.mkdir(path.join(root, "favorites"), { recursive: true });
+    await fs.writeFile(path.join(root, "favorites", "fav-upload.webp"), "x");
+    await fs.writeFile(path.join(root, "favorites", "orphan-fav.webp"), "x");
+    await fs.mkdir(path.join(root, "title-covers"), { recursive: true });
+    await fs.writeFile(path.join(root, "title-covers", "title-upload.webp"), "x");
+    await fs.writeFile(path.join(root, "title-covers", "orphan-title.webp"), "x");
 
     await fs.writeFile(
       path.join(root, "reviews.json"),
@@ -955,6 +965,7 @@ test("осиротевшие обложки находятся по всем т�
           image_backup: "covers-backup/fav.webp",
           image_gallery: ["covers-backup/fav.webp", "covers-backup/fav-gallery.webp"],
         },
+        { name: "Своя загрузка", image_backup: "favorites/fav-upload.webp" },
       ]),
       "utf8"
     );
@@ -968,6 +979,7 @@ test("осиротевшие обложки находятся по всем т�
             { tiers: [{ chars: [{ name: "Герой", img_backup: "covers-backup/char.webp" }] }] },
           ],
         },
+        { name: "Своя обложка", cover_backup: "/title-covers/title-upload.webp" },
       ]),
       "utf8"
     );
@@ -977,8 +989,8 @@ test("осиротевшие обложки находятся по всем т�
     assert.equal(data.ok, true);
     assert.deepEqual(
       data.orphans,
-      ["covers-backup/orphan.webp"],
-      "используемые отзывом/избранным/тайтлом/персонажем/галереей не попали в список, неиспользуемый – попал"
+      ["covers-backup/orphan.webp", "favorites/orphan-fav.webp", "title-covers/orphan-title.webp"],
+      "используемые отзывом/избранным/тайтлом/персонажем/галереей/своей загрузкой не попали в список, неиспользуемые из всех папок – попали"
     );
   });
 });
