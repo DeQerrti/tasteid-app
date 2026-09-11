@@ -340,8 +340,11 @@ console.log("Картинка, заведённая только на друго
 // скачаться, сколько ни синхронизируйся, — runSync() строил список для
 // сравнения только обходом СВОЕГО диска.
 gh.files.set("chars/Другой/новая.webp", { base64: WEBP, sha: nextSha() });
-await page.click('.side-tab[data-panel="sync"]');
-await page.waitForTimeout(300);
+// Панель «Синхронизация» уже открыта сама, без клика по .side-tab –
+// это и есть то, что чинит history.replaceState() перед перезагрузкой
+// выше (см. её же комментарий в settings-sync.js): на телефоне сама
+// перезагрузка теперь сразу входит в панель (drill-down), а не
+// показывает список разделов, из которого нужно было бы кликнуть.
 await page.click("#sync-now-btn");
 await page.waitForFunction(
   () => document.getElementById("status-sync")?.textContent?.includes("Готово"),
@@ -375,8 +378,8 @@ gh.files.set("reviews.json", {
   base64: b64(JSON.stringify([{ title: "Другая правка в репозитории" }], null, 2)),
   sha: nextSha(),
 });
-await page.click('.side-tab[data-panel="sync"]');
-await page.waitForTimeout(300);
+// Панель «Синхронизация» уже открыта сама после прошлой перезагрузки –
+// см. её же комментарий у первого такого места выше.
 await page.click("#sync-now-btn");
 await page.waitForFunction(
   () => document.querySelectorAll("#sync-conflicts .edit-banner").length > 0,
@@ -424,8 +427,8 @@ ok(
 );
 
 console.log("Отключение");
-await page.click('.side-tab[data-panel="sync"]');
-await page.waitForTimeout(300);
+// Панель «Синхронизация» уже открыта сама после перезагрузки, решившей
+// конфликт, – см. её же комментарий у первого такого места выше.
 await page.evaluate(() => (window.confirmDialog = async () => true));
 await page.click('#panel-sync button[onclick="disconnectSync()"]');
 await page.waitForTimeout(300);
