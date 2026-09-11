@@ -304,11 +304,16 @@ async function startSync() {
     // увидеть «Готово» ни на миг.
     clearSyncError();
     renderSyncPanel();
-    flashStatus(
-      "status-sync",
-      true,
-      i18n("Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.", result)
-    );
+    // deletedLocally – файлы, которые кто-то удалил на другом
+    // устройстве, пока они ещё физически лежали здесь (см. её же
+    // комментарий у syncOne в js/sync.js); отдельной строкой, только
+    // когда такое правда случилось, чтобы не загромождать обычный
+    // статус на пустом месте.
+    let doneMsg = i18n("Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.", result);
+    if (result.deletedLocally) {
+      doneMsg += " " + i18n("Убрано отсюда как удалённое на другом устройстве: {n}.", { n: result.deletedLocally });
+    }
+    flashStatus("status-sync", true, doneMsg);
 
     if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
       setTimeout(() => location.reload(), 1200);

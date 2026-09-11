@@ -433,6 +433,32 @@ async function contentHash(base64) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Та же регулярка, что и в core/api.js у DELETABLE_MEDIA_PATH – держать
+// в синхроне вручную, отдельного общего модуля между сервером и
+// рендерером здесь нет. Только эти пути сервер вообще умеет удалить по
+// одному файлу напрямую (см. её же использование в syncOne/
+// syncOneByFetch и deleteLocalMedia ниже) – для остального (chars/,
+// favorites/, свои разделы тир-листа) удаление всегда идёт целой
+// папкой через deleteMediaFolder/deleteRemoteMediaFolder, а не по
+// одному файлу через синхронизацию.
+const DELETABLE_MEDIA_PATH = /^\/(covers|covers-backup)\/[^/]+$/;
+
+// Тихая попытка, как и остальные операции, которые синхронизация сама
+// решает сделать без явного нажатия человеком (см. её же комментарий у
+// АВТОСИНХРОНИЗАЦИЯ ниже и у deleteRemoteMedia выше) – файл просто
+// останется до следующего раза, если не получится.
+async function deleteLocalMedia(relPath) {
+  try {
+    await fetch("/api/delete-media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/" + relPath }),
+    });
+  } catch {
+    // Сеть/сервер недоступны – оставляем как есть, попробуем в следующий раз.
+  }
+}
+
 // ── Один файл: решить, что с ним делать, и сделать ─
 // localBase64 – текущее содержимое, уже в base64. entry – {hash, sha}
 // из прошлой синхронизации, либо undefined, если файл ещё ни разу не
@@ -460,6 +486,16 @@ async function syncOne(config, path, localBase64, entry, remoteTree) {
   }
 
   if (remoteSha === undefined) {
+    // Файл уже синхронизировался отсюда раньше (entry есть), а теперь
+    // пропал из репозитория целиком – значит, его удалили на другом
+    // устройстве (например, через поиск осиротевших обложек), а на
+    // этом он ещё физически лежал. Раньше это место видело только "в
+    // репозитории файла нет" и заливало свою копию заново, воскрешая
+    // то, что явно удалили в другом месте, – ровно то, из-за чего
+    // осиротевшая обложка возвращалась после удаления снова и снова.
+    if (entry && DELETABLE_MEDIA_PATH.test("/" + path)) {
+      return { action: "delete" };
+    }
     // В репозитории файла ещё нет вообще – отправляем, конфликтовать не с чем.
     const sha = await putRemoteFile(config, path, localBase64);
     return { action: "push", hash: localHash, sha };
@@ -616,6 +652,10 @@ async function syncOneByFetch(config, path, localBase64, localHash, entry) {
   }
 
   if (!remote) {
+    // Та же история, что и в syncOne() выше (см. её же комментарий там).
+    if (entry && DELETABLE_MEDIA_PATH.test("/" + path)) {
+      return { action: "delete" };
+    }
     const sha = await putRemoteFile(config, path, localBase64);
     return { action: "push", hash: localHash, sha };
   }
@@ -652,6 +692,7 @@ async function runSync(config, onProgress) {
     pushed: 0,
     pulled: 0,
     skipped: 0,
+    deletedLocally: 0,
     conflicts: [],
     pulledFiles: {},
     pulledImages: {},
@@ -710,6 +751,12 @@ async function runSync(config, onProgress) {
       // остаться конфликтом и при следующей синхронизации, пока
       // человек не выберет сторону через resolveConflict.
       result.conflicts.push({ kind: item.kind, path: item.path, ...outcome });
+    } else if (outcome.action === "delete") {
+      // См. её же комментарий у syncOne/syncOneByFetch выше – удалили
+      // на другом устройстве, а здесь файл ещё физически лежал.
+      await deleteLocalMedia(item.path);
+      delete state[item.kind][item.path];
+      result.deletedLocally++;
     }
   }
 

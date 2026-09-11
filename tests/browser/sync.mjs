@@ -244,6 +244,44 @@ ok(
   "файл, удалённый на устройстве, пропал и из репозитория — не будет подтянут обратно как «новый»"
 );
 
+console.log("Осиротевшая обложка, удалённая на ДРУГОМ устройстве, — не заливается обратно, а удаляется и здесь");
+// Кладём файл прямо на подставной диск и синхронизируем по-настоящему –
+// так у него появляется настоящая entry (hash+sha) в состоянии
+// синхронизации, как будто эту обложку когда-то раньше отправили
+// отсюда же (а не подделываем entry напрямую).
+await page.evaluate((webp) => window.__fakeFiles.set("TasteID/covers-backup/сирота.webp", webp), WEBP);
+await page.click("#sync-now-btn");
+await page.waitForFunction(
+  () => document.getElementById("status-sync")?.textContent?.includes("Готово"),
+  null,
+  { timeout: 8000 }
+);
+ok(gh.files.has("covers-backup/сирота.webp"), "осиротевшая обложка сначала правда легла в репозиторий");
+
+// Другое устройство удалило её там (например, через поиск осиротевших
+// обложек в «Истории версий») – это устройство об этом ничего не знает,
+// файл у него всё ещё физически лежит на диске.
+gh.files.delete("covers-backup/сирота.webp");
+await page.click("#sync-now-btn");
+await page.waitForFunction(
+  () => document.getElementById("status-sync")?.textContent?.includes("Готово"),
+  null,
+  { timeout: 8000 }
+);
+const statusAfterRemoteDelete = await page.evaluate(() => document.getElementById("status-sync").textContent);
+ok(
+  !gh.files.has("covers-backup/сирота.webp"),
+  "не залилась обратно в репозиторий только из-за того, что физически ещё лежала здесь"
+);
+ok(
+  !(await page.evaluate(() => window.__fakeFiles.has("TasteID/covers-backup/сирота.webp"))),
+  "и здесь тоже удалилась вместо того, чтобы остаться висеть вечным сиротой"
+);
+ok(
+  /убрано отсюда/i.test(statusAfterRemoteDelete),
+  `статус честно сообщил про удаление (статус: «${statusAfterRemoteDelete}»)`
+);
+
 console.log("Вторая синхронизация — поменялось только в репозитории, значит, забираем");
 gh.files.set("reviews.json", {
   base64: b64(JSON.stringify([{ title: "Пришло с другого устройства" }], null, 2)),

@@ -1099,6 +1099,8 @@ i18nRegister({
     "Done, but {n} file(s) changed both here and in the repository – pick what to keep.",
   "Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.":
     "Done: sent {pushed}, pulled {pulled}, unchanged {skipped}.",
+  "Убрано отсюда как удалённое на другом устройстве: {n}.":
+    "Removed here as deleted on another device: {n}.",
   "Оставить моё": "Keep mine",
   "Взять оттуда": "Take theirs",
   "Конфликты решены.": "Conflicts resolved.",
