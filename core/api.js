@@ -394,6 +394,15 @@ async function deleteTierCollection({ vault, body }) {
   }
   await vault.deleteDataFile(collectionFile(collection));
   await vault.deleteMediaFolder(imageFolder(collection));
+  // Раздел целиком, а не одна запись внутри общего файла (как при
+  // удалении отзыва – там история остаётся не просто так, ссылка
+  // должна остаться рабочей при откате). Здесь после удаления файла
+  // сам раздел больше нигде не появится – ни вкладки в «Истории
+  // версий» (initBackupHistoryPanel строит список вкладок из ЖИВЫХ
+  // tierCollections в настройках), ни самого раздела, куда откатывать.
+  // Без этой строки .history/tier-<id>.json/ оставался бы висеть
+  // навсегда, недостижимый ни из одного места интерфейса.
+  await vault.clearHistory(collectionFile(collection));
   return { ok: true };
 }
 

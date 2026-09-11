@@ -516,6 +516,12 @@ test("удаление своего раздела тир-листа стира�
       filename: "a.webp",
       contentBase64: Buffer.from("картинка").toString("base64"),
     });
+    // Ещё одно сохранение – чтобы у файла данных появилась хоть одна
+    // прошлая версия в .history, а не только сам живой файл.
+    await api("POST", "/api/save-chars-tier", {
+      collection: id,
+      data: [{ id: "t1", title: "Тайтл, правка", tierlists: [] }],
+    });
 
     const fileBefore = await fs.access(path.join(root, `tier-${id}.json`)).then(
       () => true,
@@ -525,8 +531,13 @@ test("удаление своего раздела тир-листа стира�
       () => true,
       () => false
     );
+    const historyBefore = await fs.access(path.join(root, ".history", `tier-${id}.json`)).then(
+      () => true,
+      () => false
+    );
     assert.ok(fileBefore, "файл данных должен существовать до удаления");
     assert.ok(folderBefore, "папка с картинками должна существовать до удаления");
+    assert.ok(historyBefore, "история версий файла должна существовать до удаления");
 
     const { status, data } = await api("POST", "/api/delete-tier-collection", { collection: id });
     assert.equal(status, 200);
@@ -540,8 +551,17 @@ test("удаление своего раздела тир-листа стира�
       () => true,
       () => false
     );
+    const historyAfter = await fs.access(path.join(root, ".history", `tier-${id}.json`)).then(
+      () => true,
+      () => false
+    );
     assert.equal(fileAfter, false, "файл данных должен исчезнуть с диска");
     assert.equal(folderAfter, false, "папка с картинками должна исчезнуть с диска");
+    assert.equal(
+      historyAfter,
+      false,
+      "история версий должна исчезнуть тоже – раздел больше нигде не появится, откатывать некуда"
+    );
 
     // Встроенный раздел "characters" удалять отсюда нельзя – он не свой.
     const { status: builtin } = await api("POST", "/api/delete-tier-collection", {
@@ -551,10 +571,6 @@ test("удаление своего раздела тир-листа стира�
   });
 });
 
-// Уже существующие файлы-сироты (созданные до того, как удаление стало
-// чистить за собой само) – находятся сверкой со списком разделов в
-// site-settings.json, а не как-то иначе, и убираются тем же путём, что
-// и deleteTierCollection (файл + папка картинок разом).
 test("наружу хранилища выйти нельзя", async () => {
   await withServer(async ({ api, base }) => {
     const { status } = await api("GET", "/api/file-history?path=../../../etc/passwd");
