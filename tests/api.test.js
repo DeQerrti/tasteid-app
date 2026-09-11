@@ -555,68 +555,6 @@ test("удаление своего раздела тир-листа стира�
 // чистить за собой само) – находятся сверкой со списком разделов в
 // site-settings.json, а не как-то иначе, и убираются тем же путём, что
 // и deleteTierCollection (файл + папка картинок разом).
-test("осиротевшие файлы разделов тир-листа находятся и удаляются вместе с папкой картинок", async () => {
-  await withServer(async ({ api, root }) => {
-    // Живой раздел – есть и в настройках, и файл на диске.
-    await api("POST", "/api/save-site-settings", {
-      tierCollections: [{ id: "openings", label: "Опенинги" }],
-    });
-    await api("POST", "/api/save-chars-tier", {
-      collection: "openings",
-      data: [{ id: "t1", title: "Живой" }],
-    });
-    // Сирота – файл на диске есть, а в настройках раздела уже нет
-    // (ровно то, что оставляло старое удаление).
-    await api("POST", "/api/save-chars-tier", {
-      collection: "orphan-collection",
-      data: [{ id: "t1", title: "Мёртвый" }],
-    });
-    await api("POST", "/api/upload-char-image", {
-      basePath: "orphan-collection",
-      folder: "Мёртвый",
-      filename: "a.webp",
-      contentBase64: Buffer.from("картинка").toString("base64"),
-    });
-
-    const { data: found } = await api("GET", "/api/find-orphaned-tier-files");
-    assert.deepEqual(
-      found.orphans,
-      ["tier-orphan-collection.json"],
-      "живой раздел не попал в список, файл-сирота – попал"
-    );
-
-    const folderBefore = await fs.access(path.join(root, "orphan-collection")).then(
-      () => true,
-      () => false
-    );
-    assert.ok(folderBefore, "папка картинок сироты должна существовать до удаления");
-
-    const { status, data } = await api("POST", "/api/delete-orphaned-tier-file", {
-      name: "tier-orphan-collection.json",
-    });
-    assert.equal(status, 200);
-    assert.equal(data.ok, true);
-
-    const fileAfter = await fs.access(path.join(root, "tier-orphan-collection.json")).then(
-      () => true,
-      () => false
-    );
-    const folderAfter = await fs.access(path.join(root, "orphan-collection")).then(
-      () => true,
-      () => false
-    );
-    assert.equal(fileAfter, false, "файл сироты должен исчезнуть");
-    assert.equal(folderAfter, false, "папка картинок сироты должна исчезнуть вместе с ним");
-
-    // Живой раздел остался нетронутым.
-    const liveStillThere = await fs.access(path.join(root, "tier-openings.json")).then(
-      () => true,
-      () => false
-    );
-    assert.ok(liveStillThere, "живой раздел не должен был пострадать");
-  });
-});
-
 test("наружу хранилища выйти нельзя", async () => {
   await withServer(async ({ api, base }) => {
     const { status } = await api("GET", "/api/file-history?path=../../../etc/passwd");

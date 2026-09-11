@@ -371,101 +371,6 @@
     scanOrphanedCovers();
   }
 
-  // ── Осиротевшие разделы тир-листа ────────────────
-  // Тот же приём, что у осиротевших обложек выше, только источник –
-  // findOrphanedTierFiles (файлы tier-<id>.json без соответствующего
-  // раздела в site-settings.json), а удаление – deleteOrphanedTierFile
-  // (стирает и сам файл, и его папку с картинками разом).
-  let lastOrphanedTierFiles = [];
-
-  async function scanOrphanedTierFiles() {
-    const statusEl = document.getElementById("status-orphaned-tier-files");
-    if (statusEl) {
-      statusEl.textContent = i18n("Ищем…");
-      statusEl.className = "status-msg";
-    }
-    try {
-      const res = await fetch("/api/find-orphaned-tier-files", { credentials: "include" });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      renderOrphanedTierFiles(data.orphans);
-      if (statusEl) statusEl.textContent = "";
-    } catch (e) {
-      if (statusEl) {
-        statusEl.textContent = e.message;
-        statusEl.className = "status-msg err";
-      }
-    }
-  }
-
-  function renderOrphanedTierFiles(orphans) {
-    lastOrphanedTierFiles = orphans;
-    const listEl = document.getElementById("orphaned-tier-files-list");
-    if (!listEl) return;
-    if (!orphans.length) {
-      listEl.innerHTML = `<p class="panel-intro">${esc(i18n("Не найдено ни одного – всё используется."))}</p>`;
-      return;
-    }
-    const head = `
-      <div class="version-list-head">
-        <span class="version-list-count">${i18n("Найдено: {n}", { n: orphans.length })}</span>
-        <button class="btn-mini danger" onclick="deleteAllOrphanedTierFiles()">${i18n("Удалить все найденные")}</button>
-      </div>`;
-    listEl.innerHTML =
-      head +
-      orphans
-        .map(
-          (name) => `
-      <div class="version-row">
-        <div class="version-main">
-          <div class="version-msg" title="${esc(name)}">${esc(name)}</div>
-        </div>
-      </div>`
-        )
-        .join("");
-  }
-
-  async function deleteAllOrphanedTierFiles() {
-    if (!lastOrphanedTierFiles.length) return;
-    if (
-      !(await confirmDialog(
-        i18n(
-          "Удалить {n} файлов вместе с их папками картинок? Это нельзя отменить через «Историю версий» – сами файлы там не хранятся.",
-          { n: lastOrphanedTierFiles.length }
-        ),
-        i18n("Удалить")
-      ))
-    )
-      return;
-    const count = lastOrphanedTierFiles.length;
-    let failed = 0;
-    for (const name of lastOrphanedTierFiles) {
-      try {
-        const res = await fetch("/api/delete-orphaned-tier-file", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ name }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        // Тихо, как и сам deleteRemoteMedia (js/sync.js) – без неё
-        // картинки раздела остались бы висеть в репозитории
-        // синхронизации и вернулись бы обратно на следующей
-        // автосинхронизации, ровно как файл данных до этого исправления.
-        const m = /^tier-([^/\\]+)\.json$/.exec(name);
-        if (m) deleteRemoteMediaFolder(m[1]);
-      } catch {
-        failed++;
-      }
-    }
-    backupToast(
-      failed ? i18n("Удалено: {n}, не удалось: {f}", { n: count - failed, f: failed }) : i18n("Удалено: {n}", { n: count }),
-      !failed
-    );
-    scanOrphanedTierFiles();
-  }
-
   window.initBackupHistoryPanel = initBackupHistoryPanel;
   window.selectBackupFile = selectBackupFile;
   window.downloadBackupVersion = downloadBackupVersion;
@@ -475,6 +380,4 @@
   window.clearFileHistory = clearFileHistory;
   window.scanOrphanedCovers = scanOrphanedCovers;
   window.deleteAllOrphanedCovers = deleteAllOrphanedCovers;
-  window.scanOrphanedTierFiles = scanOrphanedTierFiles;
-  window.deleteAllOrphanedTierFiles = deleteAllOrphanedTierFiles;
 })();

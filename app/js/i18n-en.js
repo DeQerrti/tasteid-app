@@ -1269,13 +1269,6 @@ i18nRegister({
     "Delete {n} files nothing references anymore?\n\nThis can't be undone through “Version History” – the files themselves aren't kept there.",
   "Удалено: {n}": "Deleted: {n}",
   "Удалено: {n}, не удалось: {f}": "Deleted: {n}, failed: {f}",
-  "Осиротевшие разделы тир-листа": "Orphaned tier-list sections",
-  "Раньше удаление своего раздела тир-листа не стирало сам файл с диска – такие файлы могли накопиться ещё до того, как это починили. Здесь можно найти и убрать их.":
-    "Deleting a custom tier-list section used to leave its file on disk – some may have piled up before this was fixed. You can find and remove them here.",
-  "Найти неиспользуемые разделы": "Find unused sections",
-  "Не найдено ни одного – всё используется.": "None found – everything's in use.",
-  "Удалить {n} файлов вместе с их папками картинок? Это нельзя отменить через «Историю версий» – сами файлы там не хранятся.":
-    "Delete {n} files along with their image folders? This can't be undone through “Version History” – the files themselves aren't kept there.",
   Переключить: "Switch",
   "Переключение между «Названиями» и «Числами/Звёздами» сбросит текущие названия полок на значения по умолчанию. Продолжить?":
     "Switching between “Names” and “Numbers/Stars” will reset the current shelf names to their defaults. Continue?",
