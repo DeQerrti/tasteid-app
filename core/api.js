@@ -1016,7 +1016,23 @@ async function pruneHistory({ vault, body }) {
 async function findOrphanedCovers({ vault }) {
   const refs = new Set();
   const add = (value) => {
-    if (value) refs.add(String(value).replace(/^\/+/, ""));
+    if (!value) return;
+    // decodeURIComponent – персонажи хранят img уже готовым к вставке в
+    // <img src>, то есть с закодированными пробелами и т.п. (см. её же
+    // построение в chars-edit.js: encodeURIComponent на каждый сегмент
+    // пути), а vault.listAllMedia() ниже отдаёт настоящие, "сырые" имена
+    // файлов с диска – без decode они никогда не совпадали бы даже для
+    // персонажа, который прямо сейчас виден в тир-листе, стоит только
+    // имени тайтла или файла содержать пробел или другой не-ASCII знак.
+    let clean = String(value);
+    try {
+      clean = decodeURIComponent(clean);
+    } catch {
+      // "%" не часть корректной escape-последовательности (редкий, но
+      // возможный символ в имени файла) – используем как есть, лучше
+      // отдать значение без decode, чем уронить весь поиск на нём.
+    }
+    refs.add(clean.replace(/^\/+/, ""));
   };
 
   const reviews = await vault.readJson("reviews.json", []);

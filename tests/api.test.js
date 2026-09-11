@@ -909,6 +909,8 @@ test("осиротевшие обложки находятся по всем т�
     );
     await fs.mkdir(path.join(root, "chars", "Тайтл"), { recursive: true });
     await fs.writeFile(path.join(root, "chars", "Тайтл", "gallery-char.webp"), "x");
+    await fs.mkdir(path.join(root, "chars", "Two Words"), { recursive: true });
+    await fs.writeFile(path.join(root, "chars", "Two Words", "Space Name.webp"), "x");
     await fs.writeFile(
       path.join(root, "characters-tier.json"),
       JSON.stringify([
@@ -926,6 +928,18 @@ test("осиротевшие обложки находятся по всем т�
                 // этого поля такой персонаж всегда считался бы
                 // осиротевшим, хотя он есть в тир-листе.
                 { chars: [{ name: "Из галереи", img: "/chars/Тайтл/gallery-char.webp" }] },
+                // %20, а не живой пробел – ровно так chars-edit.js
+                // собирает img для показа (encodeURIComponent на каждый
+                // сегмент пути), а vault.listAllMedia() ниже отдаёт
+                // настоящее, "сырое" имя файла с диска, с живым
+                // пробелом. Без decodeURIComponent в add() эти два
+                // никогда бы не совпали, и любой тайтл/файл с пробелом
+                // (или другим не-ASCII знаком) в имени всегда считался
+                // бы осиротевшим – реальный случай, найденный на 540
+                // ложных срабатываниях подряд.
+                {
+                  chars: [{ name: "С пробелом", img: "/chars/Two%20Words/Space%20Name.webp" }],
+                },
               ],
             },
           ],
