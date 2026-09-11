@@ -316,6 +316,16 @@ async function startSync() {
     flashStatus("status-sync", true, doneMsg);
 
     if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
+      // Клик по .side-tab на ПК не трогает URL вовсе (переключение чисто
+      // визуальное, сайдбар и так виден всегда – см. её же комментарий в
+      // settings-edit.js), так что адресная строка оставалась на
+      // "#/settings-edit" без ?panel=sync, даже когда открыта именно
+      // «Синхронизация». Перезагрузка страницы без этой строки после
+      // себя открывала панель по умолчанию («Оформление»), а не ту, на
+      // которой стояли, – человек только что забрал что-то с другого
+      // устройства и тут же оказывался неизвестно где, будто его
+      // "выкинуло" из синхронизации.
+      history.replaceState(null, "", "#/settings-edit?panel=sync");
       setTimeout(() => location.reload(), 1200);
     }
   } catch (e) {
@@ -378,7 +388,13 @@ async function pickConflict(index, choice) {
       document.getElementById("sync-conflicts").innerHTML = "";
       localStorage.setItem(AUTOSYNC_CONFLICTS_KEY, "");
       flashStatus("status-sync", true, i18n("Конфликты решены."));
-      if (choice === "remote") setTimeout(() => location.reload(), 900);
+      // См. её же комментарий у похожей перезагрузки в startSync() выше –
+      // без этой строки перезагрузка открывала бы панель по умолчанию
+      // вместо «Синхронизации».
+      if (choice === "remote") {
+        history.replaceState(null, "", "#/settings-edit?panel=sync");
+        setTimeout(() => location.reload(), 900);
+      }
     }
   } catch (e) {
     flashStatus("status-sync", false, e.message);
