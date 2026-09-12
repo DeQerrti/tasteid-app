@@ -97,6 +97,11 @@ function resetToNew() {
   document.getElementById("f-status").value = "planning";
   document.getElementById("rewatch-count").value = 0;
   syncTypePickerLabel();
+  // Без этого поле молча становилось "planning", а кнопка статуса
+  // продолжала показывать подпись от только что сохранённого отзыва
+  // (например, "Архив") – тот же баг, из-за которого завели
+  // syncStatusPickerLabel() в fillForm() выше.
+  syncStatusPickerLabel();
 
   // Свернуть обе панели источников, панель обложки и выпадающие списки типов
   closeTypeDropdown();
