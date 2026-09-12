@@ -57,6 +57,7 @@
 <script src="/js/gallery-modal.js?v=1"></script>
 <script src="/js/focus-modal.js?v=1"></script>
 <script src="/js/theme.js?v=16"></script>
+<script src="/js/quick-appearance.js?v=1"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
 
@@ -1397,6 +1398,38 @@ section.group { margin-bottom: 3.5rem; }
   transition: opacity .12s;
 }
 .tl-tooltip.visible { opacity: 1; }
+
+/* ── Быстрая панель «Размер шрифта»/«Масштаб» по правому клику
+   (js/quick-appearance.js) ── */
+.quick-appearance-menu {
+  position: fixed;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: .85rem 1rem;
+  z-index: 9999;
+  box-shadow: 0 12px 40px var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  min-width: 220px;
+}
+.qa-row { display: flex; align-items: center; gap: .6rem; }
+.qa-label {
+  font-family: 'DM Sans', sans-serif; font-size: .62rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-dim); flex-shrink: 0; width: 90px;
+}
+.qa-row input[type="range"] { flex: 1; accent-color: var(--red); cursor: pointer; }
+.qa-value {
+  font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim); min-width: 34px; text-align: right;
+}
+.qa-reset {
+  align-self: flex-start; background: none; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: .65rem; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--text-dim); padding: 0; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.qa-reset:hover { color: var(--red-hi); }
 .tl-tt-title {
   font-family: 'Playfair Display', serif;
   font-size: .92rem; font-weight: 700;

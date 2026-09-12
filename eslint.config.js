@@ -377,6 +377,7 @@ const sharedBrowserGlobals = [
   "scaleType",
   "selectedTheme",
   "sePrevSkin",
+  "setZoom",
   "settingsDirty",
   "shelves",
   "statusBuckets",

@@ -472,6 +472,7 @@ i18nRegister({
   Мельче: "Smaller",
   Крупнее: "Larger",
   Сбросить: "Reset",
+  "Сбросить оба": "Reset both",
   Применить: "Apply",
   Фильтры: "Filters",
   "Тегов пока нет.": "No tags yet.",
