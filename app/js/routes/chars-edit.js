@@ -196,8 +196,10 @@ async function mount(container, params) {
               </select>
             </div>
             <button type="button" class="btn btn-ghost hidden" id="m-folder-open-btn" onclick="openCharsFolder()" data-i18n>Открыть папку</button>
+            <button type="button" class="btn btn-ghost hidden" id="m-folder-compress-btn" onclick="compressCurrentFolder()" data-i18n>Пережать все файлы</button>
           </div>
         </div>
+        <div class="status-msg" id="folder-compress-status"></div>
 
         <div class="gallery-status" id="gallery-status"></div>
         <span class="manual-toggle" onclick="toggleGalleryBulkMode()" id="gallery-bulk-toggle" data-i18n>Выбрать несколько</span>
@@ -1187,6 +1189,98 @@ async function openCharsFolder() {
   }
 }
 
+// Пережимает все файлы в выбранной папке заново через /api/compress-folder
+// (реальная работа – на сервере, см. её же compressFolder в core/api.js).
+// Одна из "133 картинки за раз" историй: человек скопировал оригиналы
+// прямо в папку через проводник – см. её же комментарий в
+// quick-appearance.js про то, что такие файлы приложение вообще не
+// трогает при обычной загрузке. Эта кнопка – ручной способ сделать то,
+// что при обычной загрузке через приложение происходит само.
+async function compressCurrentFolder() {
+  const folder = document.getElementById("m-folder").value;
+  if (!folder) return;
+  const statusEl = document.getElementById("folder-compress-status");
+
+  const ok = confirm(
+    i18n(
+      "Все файлы в этой папке будут пережаты заново, даже уже сжатые. Некоторые могут сменить имя (расширение). Старые версии уйдут в корзину. Продолжить?"
+    )
+  );
+  if (!ok) return;
+
+  const btn = document.getElementById("m-folder-compress-btn");
+  btn.disabled = true;
+  statusEl.className = "status-msg";
+  statusEl.textContent = i18n("Пережимаем…");
+
+  try {
+    const res = await fetch("/api/compress-folder", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ collection: COLLECTION, folder }),
+    });
+    const resp = await res.json();
+    if (!res.ok) {
+      statusEl.className = "status-msg err";
+      statusEl.textContent = i18n("Ошибка: ") + (resp.error || i18n("неизвестная"));
+      return;
+    }
+
+    // Сервер уже переписал ссылки во ВСЕХ коллекциях прямо на диске (см.
+    // её же fixRef внутри compressFolder), но если этот редактор сейчас
+    // открыт на этой же коллекции, наш data[] в памяти всё ещё указывает
+    // на старые имена файлов – не поправим здесь, и следующее "Сохранить
+    // всё" перезапишет диск обратно старыми путями поверх того, что
+    // сервер только что исправил.
+    const renameMap = new Map(resp.renames || []);
+    if (renameMap.size) {
+      // Та же логика, что и у fixRef на сервере (compressFolder,
+      // core/api.js) – см. её же комментарий там про то, почему ch.img
+      // нужно кодировать обратно посегментно, а не просто подставлять
+      // сырой путь из renames.
+      const fixRef = (value) => {
+        if (!value) return value;
+        const hadSlash = value.startsWith("/");
+        const decoded = decodeURIComponent(value);
+        const clean = decoded.replace(/^\/+/, "");
+        const next = renameMap.get(clean);
+        if (!next) return value;
+        const wasEncoded = decoded !== value;
+        const result = wasEncoded ? next.split("/").map(encodeURIComponent).join("/") : next;
+        return hadSlash ? "/" + result : result;
+      };
+      for (const title of data) {
+        title.cover_backup = fixRef(title.cover_backup);
+        for (const list of title.tierlists || []) {
+          for (const tier of list.tiers || []) {
+            for (const ch of tier.chars || []) {
+              ch.img = fixRef(ch.img);
+              ch.img_backup = fixRef(ch.img_backup);
+            }
+          }
+        }
+      }
+      renderEditor();
+    }
+
+    // Кэш превью этой папки хранит старые имена/URL – без сброса
+    // галерея продолжит показывать превью, среди которых часть уже не
+    // существует под этим путём.
+    delete galleryCache[folder];
+    const title = pendingTier ? data.find((t) => t.id === pendingTier.titleId) : null;
+    await loadGallery(folder, title);
+
+    statusEl.className = "status-msg ok";
+    statusEl.textContent = i18n("Готово: пережато файлов — ") + resp.converted;
+  } catch (e) {
+    statusEl.className = "status-msg err";
+    statusEl.textContent = i18n("Ошибка сети: ") + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function onFolderChange() {
   const folder = document.getElementById("m-folder").value;
   if (!folder) return;
@@ -1213,6 +1307,12 @@ async function loadGallery(folder, title) {
   document
     .getElementById("m-folder-open-btn")
     .classList.toggle("hidden", !isElectronDesktop || !folder);
+  // "Пережать все файлы" – в отличие от кнопки выше, работает и на
+  // телефоне тоже (compressImage там свой, через canvas – см. её же
+  // комментарий у compressFolder в core/api.js), скрыта только когда
+  // нечего пережимать.
+  document.getElementById("m-folder-compress-btn").classList.toggle("hidden", !folder);
+  document.getElementById("folder-compress-status").textContent = "";
 
   if (!folder) {
     statusEl.textContent = i18n("Выберите папку выше.");
@@ -1302,6 +1402,7 @@ async function openModal(titleId, listId, ti) {
     document.getElementById("gallery-status").textContent = i18n("Папки не найдены в chars/. Введите URL вручную.");
     document.getElementById("manual-section").classList.add("visible");
     document.getElementById("m-folder-open-btn").classList.add("hidden");
+    document.getElementById("m-folder-compress-btn").classList.add("hidden");
     return;
   }
 

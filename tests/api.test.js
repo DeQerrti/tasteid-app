@@ -1039,6 +1039,117 @@ test("удаление одного файла умеет и портрет пе
   });
 });
 
+test("пережатие папки конвертирует файлы и чинит ссылки во всех разделах", async () => {
+  // Мотивация – ровно тот же случай 133 картинок, скопированных прямой
+  // выгрузкой в chars/ мимо приложения (см. её же комментарий у
+  // compressFolder в core/api.js): такие файлы никогда не проходят через
+  // обычное сжатие при загрузке, оно происходит только здесь и по
+  // отдельной команде. PNG крупнее лимита в 1200px – чтобы после сжатия
+  // сменилось не только расширение (png → webp), но и реально стал
+  // меньше вес, а не просто переименовался файл.
+  await withServer(async ({ api, root }) => {
+    await api("POST", "/api/save-site-settings", {
+      tierCollections: [{ id: "openings", label: "Опенинги" }],
+    });
+
+    const png = await sharp({
+      create: { width: 2000, height: 2000, channels: 3, background: { r: 10, g: 200, b: 40 } },
+    })
+      .png()
+      .toBuffer();
+
+    await fs.mkdir(path.join(root, "chars", "Тайтл"), { recursive: true });
+    // Пробел в имени – та же история с decodeURIComponent, что и в
+    // findOrphanedCovers (см. её же тест выше): img хранится
+    // percent-encoded, а на диске и в img_backup имя обычное.
+    await fs.writeFile(path.join(root, "chars", "Тайтл", "Мой Герой.png"), png);
+
+    await fs.writeFile(
+      path.join(root, "characters-tier.json"),
+      JSON.stringify([
+        {
+          name: "Тайтл",
+          cover_backup: null,
+          tierlists: [
+            {
+              tiers: [
+                {
+                  chars: [
+                    {
+                      name: "Герой",
+                      img: "/chars/Тайтл/Мой%20Герой.png",
+                      img_backup: "chars/Тайтл/Мой Герой.png",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      "utf8"
+    );
+    // Ссылка на тот же файл из ДРУГОГО раздела тир-листа – редкий, но
+    // возможный случай (обложка тайтла в "openings" когда-то была
+    // выбрана из галереи "Персонажей"); compressFolder должен поправить
+    // её тоже, а не только тот раздел, в котором лежит сама папка.
+    await fs.writeFile(
+      path.join(root, "tier-openings.json"),
+      JSON.stringify([{ name: "Другой раздел", cover_backup: "chars/Тайтл/Мой Герой.png" }]),
+      "utf8"
+    );
+
+    const { status, data } = await api("POST", "/api/compress-folder", {
+      collection: "characters",
+      folder: "Тайтл",
+    });
+    assert.equal(status, 200);
+    assert.equal(data.ok, true);
+    assert.equal(data.converted, 1);
+    assert.deepEqual(data.renames, [["chars/Тайтл/Мой Герой.png", "chars/Тайтл/Мой Герой.webp"]]);
+
+    const oldExists = await fs.access(path.join(root, "chars", "Тайтл", "Мой Герой.png")).then(
+      () => true,
+      () => false
+    );
+    assert.equal(oldExists, false, "старый png должен уйти (в корзину, не безвозвратно)");
+    const newBytes = await fs.readFile(path.join(root, "chars", "Тайтл", "Мой Герой.webp"));
+    assert.ok(newBytes.length < png.length, "webp должен быть заметно легче исходного png");
+
+    const chars = JSON.parse(await fs.readFile(path.join(root, "characters-tier.json"), "utf8"));
+    const ch = chars[0].tierlists[0].tiers[0].chars[0];
+    assert.equal(
+      ch.img,
+      "/chars/%D0%A2%D0%B0%D0%B9%D1%82%D0%BB/%D0%9C%D0%BE%D0%B9%20%D0%93%D0%B5%D1%80%D0%BE%D0%B9.webp",
+      "img переписан с полным посегментным encodeURIComponent, как и настоящий f.url из listImages"
+    );
+    assert.equal(
+      ch.img_backup,
+      "chars/Тайтл/Мой Герой.webp",
+      "img_backup переписан без слэша, как и было изначально"
+    );
+
+    const openings = JSON.parse(await fs.readFile(path.join(root, "tier-openings.json"), "utf8"));
+    assert.equal(
+      openings[0].cover_backup,
+      "chars/Тайтл/Мой Герой.webp",
+      "ссылка из СОВСЕМ ДРУГОГО раздела тир-листа тоже почищена"
+    );
+
+    // Повторное пережатие уже готового webp: файл не меняет расширение
+    // (compressImage всегда отдаёт webp), значит переименований нет и
+    // чинить нечего – функция не должна на этом падать.
+    const second = await api("POST", "/api/compress-folder", {
+      collection: "characters",
+      folder: "Тайтл",
+    });
+    assert.equal(second.status, 200);
+    assert.equal(second.data.ok, true);
+    assert.equal(second.data.converted, 1);
+    assert.deepEqual(second.data.renames, []);
+  });
+});
+
 test("резервная копия обложки по ссылке сжимается в webp", async () => {
   // Раньше backupCover() сохранял обложку ровно в том виде, в каком её
   // отдал источник, – без сжатия и без пересборки, в отличие от ручной

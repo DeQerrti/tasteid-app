@@ -976,6 +976,11 @@ i18nRegister({
   "Ошибка: ": "Error: ",
   "Папки не найдены в chars/. Введите URL вручную.":
     "No folders found in chars/. Enter a URL by hand.",
+  "Пережать все файлы": "Re-compress all files",
+  "Все файлы в этой папке будут пережаты заново, даже уже сжатые. Некоторые могут сменить имя (расширение). Старые версии уйдут в корзину. Продолжить?":
+    "All files in this folder will be re-compressed, even ones already compressed. Some may change name (extension). Old versions will go to the recycle bin. Continue?",
+  "Пережимаем…": "Re-compressing…",
+  "Готово: пережато файлов — ": "Done: files re-compressed — ",
   "Пересмотров: 1 …": "Rewatches: 1 …",
   "Пересмотров: 2–4 …": "Rewatches: 2–4 …",
   "Пересмотров: 5+ …": "Rewatches: 5+ …",

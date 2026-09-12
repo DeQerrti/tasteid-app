@@ -441,6 +441,139 @@ async function uploadCharImage({ vault, body }) {
   return { ok: true, url };
 }
 
+// Реальный случай, из-за которого это появилось: сотня картинок
+// персонажей одного тайтла, скопированных в папку прямо через
+// проводник (см. её же историю у newTitleFolderSlug в chars-edit.js) –
+// такие файлы никогда не проходят через сжатие (ни через canvas в
+// браузере при обычной загрузке файла, ни через compressImage здесь
+// при резервной копии по ссылке), остаются в оригинальном качестве и
+// формате. Пережимает решительно всё в папке заново (не только то, что
+// больше предела или не webp) – по прямой просьбе, а не "по возможности
+// компактнее": так проще объяснить и предсказать результат, но и
+// нажимать эту кнопку на уже сжатой папке смысла нет, только даром
+// теряется качество на повторном перекодировании.
+//
+// compressImage – тот же самый параметр, что и у backupCover ниже,
+// только на телефоне за него отвечает canvas (mobile/src/main.js), а
+// не sharp – сюда он приходит уже одинаковым по сигнатуре с обеих
+// сторон, отдельно проверять платформу не нужно.
+async function compressFolder({ vault, body, compressImage }) {
+  if (!compressImage) throw new ApiError("Сжатие картинок здесь недоступно");
+  const collection = body?.collection || "characters";
+  const folder = body?.folder;
+  if (collection !== "characters" && !isSafeName(collection)) {
+    throw new ApiError("Недопустимое название коллекции");
+  }
+  if (!isSafeName(folder)) throw new ApiError("Недопустимое название папки");
+
+  const base = imageFolder(collection);
+  const { files } = await vault.listImages(base, folder);
+  if (!files.length) return { ok: true, converted: 0 };
+
+  // Ключ – путь БЕЗ ведущего "/", раскодированный (см. её же историю у
+  // decodeURIComponent в findOrphanedCovers): url из listImages уже
+  // закодирован по сегментам (encodeURIComponent), а хранится в
+  // персонажах/тайтлах то в закодированном виде, то в сыром – зависит
+  // от того, как именно картинку когда-то добавили (см. её же разбор в
+  // CLAUDE.md, раздел про поиск осиротевших файлов).
+  const renameMap = new Map();
+  let converted = 0;
+
+  for (const f of files) {
+    const oldRel = decodeURIComponent(f.url).replace(/^\/+/, "");
+    const oldFilename = oldRel.split("/").pop();
+    const ext = (oldFilename.split(".").pop() || "").toLowerCase();
+    const mime =
+      ext === "png"
+        ? "image/png"
+        : ext === "gif"
+          ? "image/gif"
+          : ext === "webp"
+            ? "image/webp"
+            : "image/jpeg";
+
+    const raw = base64ToBuffer(await vault.readMedia(oldRel));
+    const { bytes: outBytes, ext: newExt } = await compressImage(raw, mime);
+    const newFilename = oldFilename.replace(/\.[^.]+$/, "") + "." + newExt;
+
+    await vault.saveMedia(base, newFilename, outBytes, folder);
+    if (newFilename !== oldFilename) {
+      await vault.deleteMedia(oldRel);
+      renameMap.set(oldRel, `${base}/${folder}/${newFilename}`);
+    }
+    converted++;
+  }
+
+  // Та же логика, что и у repairCoverReferences ниже, только адресно
+  // по тому, что мы сами только что переименовали здесь, – и, в
+  // отличие от неё, чинит ещё и ch.img (не только ch.img_backup): у
+  // персонажа, выбранного когда-то из уже загруженной галереи, путь
+  // всегда лежит именно там (см. её же историю в findOrphanedCovers).
+  // ch.img при этом хранится percent-encoded посегментно (см. её же
+  // listImages выше и комментарий в findOrphanedCovers), а
+  // cover_backup/ch.img_backup – сырым именем с диска. Поэтому здесь,
+  // в отличие от repairCoverReferences (та чинит только сырые поля),
+  // нужно восстанавливать кодировку у результата, а не только
+  // ведущий слэш – иначе у персонажа из галереи ch.img после
+  // пережатия стал бы валидным путём с живым пробелом/кириллицей,
+  // который браузер не всегда поймёт как один и тот же ресурс.
+  if (renameMap.size) {
+    const fixRef = (value) => {
+      if (!value) return value;
+      const hadSlash = value.startsWith("/");
+      const decoded = decodeURIComponent(value);
+      const clean = decoded.replace(/^\/+/, "");
+      const next = renameMap.get(clean);
+      if (!next) return value;
+      const wasEncoded = decoded !== value;
+      const result = wasEncoded ? next.split("/").map(encodeURIComponent).join("/") : next;
+      return hadSlash ? "/" + result : result;
+    };
+
+    const settings = await vault.readJson("site-settings.json", {});
+    const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
+    const collectionIds = new Set([
+      "characters",
+      ...collections.map((c) => c.id).filter(isSafeName),
+    ]);
+    for (const id of collectionIds) {
+      const titles = await vault.readJson(collectionFile(id), []);
+      let touched = false;
+      for (const title of titles) {
+        const nextCover = fixRef(title.cover_backup);
+        if (nextCover !== title.cover_backup) {
+          title.cover_backup = nextCover;
+          touched = true;
+        }
+        for (const list of title.tierlists || []) {
+          for (const tier of list.tiers || []) {
+            for (const ch of tier.chars || []) {
+              const nextImg = fixRef(ch.img);
+              if (nextImg !== ch.img) {
+                ch.img = nextImg;
+                touched = true;
+              }
+              const nextBackup = fixRef(ch.img_backup);
+              if (nextBackup !== ch.img_backup) {
+                ch.img_backup = nextBackup;
+                touched = true;
+              }
+            }
+          }
+        }
+      }
+      if (touched) await vault.writeJson(collectionFile(id), titles);
+    }
+  }
+
+  // Раздаём переименования наружу – файл на диске уже поправлен выше,
+  // но открытый прямо сейчас редактор (chars-edit.js) держит свою же
+  // копию тех же данных в памяти браузера, и туда эта запись не долетит
+  // сама. Без этого правки на экране не совпадали бы с тем, что реально
+  // на диске, до следующей полной перезагрузки страницы.
+  return { ok: true, converted, renames: [...renameMap.entries()] };
+}
+
 // Папка темы раньше появлялась на диске только вместе с первой
 // загруженной в неё картинкой (см. saveMedia() выше) – значит, и в
 // списке "Папка (источник)" её не было видно (listChars() читает папки
@@ -1133,6 +1266,7 @@ export const ROUTES = {
   "POST /api/restore-backup": restoreBackup,
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/ensure-chars-folder": ensureCharsFolder,
+  "POST /api/compress-folder": compressFolder,
   "POST /api/backup-cover": backupCover,
   "POST /api/fetch-mal-list": fetchMalUserList,
   "POST /api/delete-media": deleteMedia,
