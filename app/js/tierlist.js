@@ -627,17 +627,35 @@ function tlBindTooltip() {
   // всего касания сразу. Порог совпадает с touch-drag.js.
   const TAP_SLIP = 12; // px: палец уехал – прокрутка, а не тап
   const TAP_TIME = 260; // мс: дольше – долгое нажатие, не тап
+  // Короткий тап уже занят тултипом выше – открывать оригинал по нему
+  // означало бы, что тултип с именем/оценкой станет недоступен с
+  // телефона вовсе. Долгое нажатие свободно: у этих карточек, в отличие
+  // от .char-card в редакторе, нет draggable="true" и touch-drag.js их
+  // не трогает.
+  const LONG_PRESS = 500; // мс удержания – открыть картинку целиком
 
   document.querySelectorAll(".tl-poster, .tl-char-poster").forEach(card => {
     card.addEventListener("mouseenter", e => { tlShowTip(card, tip); tlMoveTip(e, tip); });
     card.addEventListener("mousemove",  e => tlMoveTip(e, tip));
     card.addEventListener("mouseleave", () => tip.classList.remove("visible"));
+    card.addEventListener("click", () => {
+      const img = card.querySelector("img");
+      if (img?.src) openImageLightbox(img.src, card.dataset.tlTitle);
+    });
 
     let touchStart = null;
+    let longPressTimer = null;
+    let longPressFired = false;
 
     card.addEventListener("touchstart", e => {
       const p = e.touches[0];
       touchStart = { x: p.clientX, y: p.clientY, time: Date.now() };
+      longPressFired = false;
+      longPressTimer = setTimeout(() => {
+        longPressFired = true;
+        const img = card.querySelector("img");
+        if (img?.src) openImageLightbox(img.src, card.dataset.tlTitle);
+      }, LONG_PRESS);
     }, { passive: true });
 
     card.addEventListener("touchmove", e => {
@@ -645,10 +663,21 @@ function tlBindTooltip() {
       const p = e.touches[0];
       if (Math.hypot(p.clientX - touchStart.x, p.clientY - touchStart.y) > TAP_SLIP) {
         touchStart = null; // палец уехал – не тап, дальше это уже прокрутка
+        clearTimeout(longPressTimer);
       }
     }, { passive: true });
 
     card.addEventListener("touchend", e => {
+      clearTimeout(longPressTimer);
+      if (longPressFired) {
+        // Картинка уже открыта долгим нажатием – тултип поверх неё не
+        // нужен, и обычный клик после отпускания тоже (иначе лайтбокс
+        // тут же попытался бы открыться второй раз).
+        longPressFired = false;
+        touchStart = null;
+        e.preventDefault();
+        return;
+      }
       const wasTap = touchStart && Date.now() - touchStart.time <= TAP_TIME;
       touchStart = null;
       if (!wasTap) return;
@@ -669,7 +698,10 @@ function tlBindTooltip() {
       }
     }, { passive: false });
 
-    card.addEventListener("touchcancel", () => { touchStart = null; });
+    card.addEventListener("touchcancel", () => {
+      touchStart = null;
+      clearTimeout(longPressTimer);
+    });
   });
 
   document.addEventListener("touchstart", e => {

@@ -95,6 +95,28 @@ let originalTitleCoverBackup = null;
 // scheduleBackupModalImg ниже) – ей ещё никто не успел сослаться.
 let pendingBackupCleanup = [];
 
+// Автопрокрутка у края экрана во время перетаскивания персонажа между
+// тирами (charsDragSrc). Колесом мыши во время перетаскивания прокрутить
+// нельзя в принципе – это ограничение самого браузера: пока идёт
+// нативный HTML5 drag (dragstart уже случился), обычные события мыши
+// (mousemove/wheel) вообще не рождаются, только drag-события
+// (dragover/dragenter/…), поэтому обработчик "wheel" здесь просто
+// никогда бы не сработал. Автопрокрутка у края – стандартный обход
+// этого ограничения, тот же приём, что и в touch-drag.js (edgeScroll)
+// для перетаскивания пальцем. Слушатель один на весь документ и вешается
+// один раз при загрузке страницы (а не при каждой перерисовке
+// редактора, как остальные bind*) – "dragover" бы иначе плодил по
+// одному новому слушателю на документ на каждый renderEditor().
+(() => {
+  const EDGE = 80; // px от края окна, где начинается прокрутка
+  const STEP = 14; // px за событие dragover
+  document.addEventListener("dragover", (e) => {
+    if (!charsDragSrc) return;
+    if (e.clientY < EDGE) window.scrollBy(0, -STEP);
+    else if (e.clientY > window.innerHeight - EDGE) window.scrollBy(0, STEP);
+  });
+})();
+
 let COLLECTION = "characters";
 let COLLECTION_LABEL = "Персонажи";
 let DATA_FILE = "characters-tier.json";
@@ -878,6 +900,24 @@ function renderEditor() {
   bindDragDrop();
   bindTierRowDrag();
   bindCeSizeSlider();
+  bindCeCharLightbox();
+}
+
+// Клик по картинке персонажа открывает её в исходном размере (см. её же
+// image-lightbox.js). На телефоне удержание карточки уже занято
+// перетаскиванием в другой тир (touch-drag.js, HOLD=260мс) – трогать
+// этот жест нельзя, а вот короткий тап без сдвига пальца драг не
+// запускает и после отпускания браузер сам присылает обычный "click",
+// так что отдельная обработка касаний здесь не нужна: тот же
+// обработчик срабатывает и от мыши, и от короткого тапа.
+function bindCeCharLightbox() {
+  document.querySelectorAll(".char-card").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".char-card-del")) return;
+      const img = card.querySelector("img");
+      if (img?.src) openImageLightbox(img.src, img.alt);
+    });
+  });
 }
 
 // Тот же ползунок, что и "Размер" в режиме просмотра (js/tierlist.js) –
@@ -888,7 +928,7 @@ function renderEditor() {
 function ceSizeSliderHtml() {
   return `<div style="display:flex;align-items:center;gap:.75rem;margin:.6rem 0 .8rem">
     <span style="font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">${i18n("Размер")}</span>
-    <input type="range" min="60" max="400" value="${ceCharHeight}" step="10"
+    <input type="range" min="60" max="1000" value="${ceCharHeight}" step="10"
       id="ce-char-size-slider"
       style="flex:1;max-width:200px;accent-color:var(--red);cursor:pointer">
     <span id="ce-char-size-val" style="font-family:'DM Sans',sans-serif;font-size:.65rem;color:var(--text-dim);min-width:42px">${ceCharHeight}px</span>

@@ -29,6 +29,13 @@ function qaShouldIntercept(target) {
   if (target.closest('input, textarea, select, [contenteditable="true"]')) return false;
   const sel = window.getSelection?.();
   if (sel && !sel.isCollapsed && sel.toString().length) return false;
+  // На телефоне "contextmenu" рождается и от долгого нажатия пальцем, не
+  // только от правой кнопки мыши – а долгое нажатие на карточке с
+  // картинкой в тир-листе (просмотр и редактор) уже занято своим:
+  // открытием картинки целиком (см. её же image-lightbox.js) или, в
+  // редакторе, перетаскиванием в другой тир (touch-drag.js). Без этой
+  // проверки оба жеста спорили бы за одно и то же долгое нажатие.
+  if (target.closest(".tl-poster, .tl-char-poster, .char-card")) return false;
   return true;
 }
 
