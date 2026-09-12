@@ -19,7 +19,6 @@
 //  состояния у неё нет.
 // ══════════════════════════════════════════════
 
-let qaAppInfo = null; // null – ещё не спрашивали, false – обычный сайт без /api/app/*
 let qaMenuEl = null;
 
 // Не перехватываем клик там, где он и так что-то значит: над полем
@@ -33,21 +32,33 @@ function qaShouldIntercept(target) {
   return true;
 }
 
-async function qaEnsureAppInfo() {
-  if (qaAppInfo !== null) return qaAppInfo;
+// Без кэша – раньше /api/app/info запрашивался один раз и на этом всё:
+// сам масштаб внутри ответа так и оставался тем, каким был при первом
+// открытии панели (обычно 100%), и повторное открытие показывало его
+// же, даже после того как ползунок здесь же реально сдвинули. Запрос
+// локальный (Electron IPC на компьютере, свой же сервер на телефоне),
+// спрашивать заново при каждом открытии дёшево.
+async function qaFetchAppInfo() {
   try {
     const res = await fetch("/api/app/info");
-    qaAppInfo = res.ok ? await res.json() : false;
+    return res.ok ? await res.json() : null;
   } catch {
-    qaAppInfo = false;
+    return null;
   }
-  return qaAppInfo;
 }
 
-function qaCurrentTextScale() {
-  const raw = getComputedStyle(document.documentElement).getPropertyValue("--text-scale");
-  const n = Math.round(parseFloat(raw) * 100);
-  return Number.isFinite(n) && n > 0 ? n : 100;
+// Читаем из настроек на диске (currentSiteSettings, js/config.js), а не
+// из getComputedStyle(документа) – тот тоже, по идее, должен совпадать
+// (см. её же qaApplyTextScale ниже), но зависит от того, что этот
+// инлайн-стиль на <html> с прошлого открытия панели никто больше не
+// перезаписал (например, applyTheme() в js/theme.js, которую заново
+// зовут после сохранения кое-где ещё в настройках). Значение на диске –
+// то же самое, что видит и сама страница настроек, и его нельзя
+// случайно потерять так же.
+async function qaCurrentTextScale() {
+  const settings = await currentSiteSettings().catch(() => ({}));
+  const n = Math.round(Number(settings.textScale));
+  return Number.isFinite(n) && n > 0 ? Math.min(150, Math.max(80, n)) : 100;
 }
 
 // Тот же диапазон и шаг, что у ползунка в «Оформлении» (settings-edit.js).
@@ -80,8 +91,7 @@ async function qaSaveTextScale(percent) {
   }
 }
 
-function qaBuildMenuHtml(info) {
-  const scale = qaCurrentTextScale();
+function qaBuildMenuHtml(info, scale) {
   // setZoom() – из settings-app.js, а тот подключён только в самом
   // index.html (панель настроек это отдельный маршрут SPA); в add.html
   // (своя отдельная страница для модалки добавления/правки отзыва) его
@@ -123,11 +133,11 @@ function qaOnKeydown(e) {
 
 async function qaOpen(x, y) {
   qaClose();
-  const info = await qaEnsureAppInfo();
+  const [info, scale] = await Promise.all([qaFetchAppInfo(), qaCurrentTextScale()]);
 
   qaMenuEl = document.createElement("div");
   qaMenuEl.className = "quick-appearance-menu";
-  qaMenuEl.innerHTML = qaBuildMenuHtml(info);
+  qaMenuEl.innerHTML = qaBuildMenuHtml(info, scale);
   document.body.appendChild(qaMenuEl);
 
   // Сначала вставить, потом позиционировать – размеры (offsetWidth и
