@@ -46,12 +46,27 @@ let activeListId = null;
 let pendingTier = null;
 let charsDragSrc = null;
 let selectedGalleryImg = null;
+// Массовое добавление сразу нескольких персонажей из уже загруженной
+// папки (см. её же комментарий у toggleGalleryBulkMode ниже) – реальный
+// случай: 133 картинки персонажей одного тайтла, скопированные в папку
+// заранее, добавлять по одной непрактично. Map, а не Set, – сразу
+// хранит и имя, и путь к файлу, оба нужны при самом добавлении.
+let galleryBulkMode = false;
+const selectedGalleryNames = new Map();
 let galleryCache = {};
 let foldersCache = null;
 let editingTitleId = null;
 let dropIndicator = null;
 let backupTitleCoverTimer = null;
 let backupModalImgTimer = null;
+// Ползунок размера карточек персонажа – тот же приём и то же имя
+// ключа, что у "Ползунок размера" в js/tierlist.js (режим просмотра),
+// только своё под редактор: 133 персонажа одного тайтла (реальный
+// случай) при фиксированных 72×108 не разглядеть и не найти нужного
+// среди мелких одинаковых миниатюр. 108 – прежняя фиксированная высота
+// картинки, чтобы у тех, кто ползунок ни разу не трогал, ничего не
+// изменилось визуально.
+let ceCharHeight = parseInt(localStorage.getItem("ce-char-height") || "108");
 // Пакетная загрузка нескольких фото разом (см. onUploadFilesPicked
 // ниже) – {id, file, name, previewUrl, status: pending/uploading/done/
 // error, error} на каждый выбранный файл. previewUrl – собственный
@@ -185,7 +200,12 @@ async function mount(container, params) {
         </div>
 
         <div class="gallery-status" id="gallery-status"></div>
+        <span class="manual-toggle" onclick="toggleGalleryBulkMode()" id="gallery-bulk-toggle" data-i18n>Выбрать несколько</span>
         <div class="gallery-grid" id="gallery-grid"></div>
+        <div class="hidden" id="gallery-bulk-actions" style="display:flex;gap:.5rem;margin:-.5rem 0 1rem">
+          <button type="button" class="btn btn-primary" id="gallery-bulk-add-btn" onclick="addSelectedGalleryChars()"></button>
+          <button type="button" class="btn btn-ghost" onclick="clearGalleryBulkSelection()" data-i18n>Снять выбор</button>
+        </div>
 
         <div class="field">
           <label data-i18n>Имя персонажа *</label>
@@ -841,6 +861,7 @@ function renderEditor() {
       <button class="editor-edit-btn" onclick="openEditTitleForm(event,'${esc(title.id)}')" title="${i18n("Редактировать")}">✎</button>
     </div>
     <div class="list-tabs">${tabs}</div>
+    ${ceSizeSliderHtml()}
     <div class="tl-editor-rows" id="tl-editor-rows">${rows}</div>
     <div class="add-tier-row">
       <input type="text" id="new-tier-name" placeholder="${i18n("Название нового тира")}" data-i18n-placeholder="${i18n("Название нового тира")}" onkeydown="if(event.key==='Enter'){event.preventDefault();addTier();}">
@@ -854,6 +875,39 @@ function renderEditor() {
 
   bindDragDrop();
   bindTierRowDrag();
+  bindCeSizeSlider();
+}
+
+// Тот же ползунок, что и "Размер" в режиме просмотра (js/tierlist.js) –
+// только высота ставится на сам <img>, а не на карточку целиком: у
+// карточки редактора, в отличие от постера в просмотре, под картинкой
+// ещё есть постоянная подпись с именем, и её высоту раздувать вместе с
+// картинкой не нужно.
+function ceSizeSliderHtml() {
+  return `<div style="display:flex;align-items:center;gap:.75rem;margin:.6rem 0 .8rem">
+    <span style="font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">${i18n("Размер")}</span>
+    <input type="range" min="60" max="400" value="${ceCharHeight}" step="10"
+      id="ce-char-size-slider"
+      style="flex:1;max-width:200px;accent-color:var(--red);cursor:pointer">
+    <span id="ce-char-size-val" style="font-family:'DM Sans',sans-serif;font-size:.65rem;color:var(--text-dim);min-width:42px">${ceCharHeight}px</span>
+  </div>`;
+}
+
+function bindCeSizeSlider() {
+  const slider = document.getElementById("ce-char-size-slider");
+  if (!slider) return;
+  slider.addEventListener("input", () => {
+    ceCharHeight = parseInt(slider.value);
+    localStorage.setItem("ce-char-height", ceCharHeight);
+    document.getElementById("ce-char-size-val").textContent = ceCharHeight + "px";
+    document.querySelectorAll(".char-card img").forEach((img) => {
+      img.style.height = ceCharHeight + "px";
+    });
+    document.querySelectorAll(".add-char-btn").forEach((btn) => {
+      btn.style.height = ceCharHeight + "px";
+      btn.style.width = Math.round((ceCharHeight * 72) / 108) + "px";
+    });
+  });
 }
 
 const CHAR_PLACEHOLDER = imagePlaceholder(72, 108);
@@ -864,7 +918,7 @@ function renderTierRow(title, list, tier, ti) {
       (ch, ci) => `
     <div class="char-card" draggable="true"
       data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}" data-char="${ci}">
-      <img src="${esc(ch.img || ch.img_backup || "")}" alt="${esc(ch.name)}" ${imgFallbackAttrs(ch.img, ch.img_backup, CHAR_PLACEHOLDER)}>
+      <img src="${esc(ch.img || ch.img_backup || "")}" alt="${esc(ch.name)}" style="height:${ceCharHeight}px" ${imgFallbackAttrs(ch.img, ch.img_backup, CHAR_PLACEHOLDER)}>
       <div class="char-card-name">${esc(ch.name)}</div>
       <button class="char-card-del" onclick="deleteChar('${esc(title.id)}','${esc(list.id)}',${ti},${ci})">✕</button>
     </div>
@@ -885,7 +939,7 @@ function renderTierRow(title, list, tier, ti) {
       </div>
       <div class="tl-editor-cards" data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}">
         ${chars}
-        <button class="add-char-btn" onclick="openModal('${esc(title.id)}','${esc(list.id)}',${ti})">${i18n("Добавить")}</button>
+        <button class="add-char-btn" style="height:${ceCharHeight}px;width:${Math.round((ceCharHeight * 72) / 108)}px" onclick="openModal('${esc(title.id)}','${esc(list.id)}',${ti})">${i18n("Добавить")}</button>
       </div>
     </div>`;
 }
@@ -1147,6 +1201,11 @@ async function onFolderChange() {
 async function loadGallery(folder, title) {
   const statusEl = document.getElementById("gallery-status");
   const gridEl = document.getElementById("gallery-grid");
+  // Список персонажей вот-вот перерисуется заново (новая папка либо
+  // обновление после массового добавления ниже) – прежний выбор для
+  // массового добавления в нём уже не найти, оставлять его висеть
+  // незачем.
+  selectedGalleryNames.clear();
 
   // Кнопка "Открыть папку" – только на настольном приложении (см.
   // isElectronDesktop) и только когда есть что открывать (папка
@@ -1197,15 +1256,17 @@ async function loadGallery(folder, title) {
       const used = usedNames.has(f.name);
       return `<div class="gallery-item${used ? " used" : ""}"
         data-name="${esc(f.name)}" data-url="${esc(f.url)}"
-        onclick="selectGalleryItem(this)"
+        onclick="onGalleryItemClick(this)"
         title="${esc(f.name)}${used ? " (уже добавлен)" : ""}">
       <img src="${esc(f.preview || f.url)}" alt="${esc(f.name)}" loading="lazy"
         data-placeholder="${esc(imagePlaceholder(80, 120))}">
       <div class="gallery-item-name">${esc(f.name)}</div>
       <div class="gallery-check">✓</div>
+      <div class="gallery-bulk-check">✓</div>
     </div>`;
     })
     .join("");
+  updateGalleryBulkBar();
 }
 
 // Общая часть очистки формы добавления персонажа – и при открытии
@@ -1270,6 +1331,76 @@ function selectGalleryItem(el) {
   document.getElementById("m-img-backup").value = "";
   document.getElementById("m-img-backup-status").textContent = "";
   document.getElementById("m-img-preview").style.display = "none";
+}
+
+// ── Массовое добавление из уже загруженной папки ──
+// Обычный клик по картинке (selectGalleryItem выше) добавляет ровно
+// одного персонажа сразу и требует нажать "Добавить" на каждого –
+// нормально для нескольких штук, но не для сотни персонажей, заранее
+// скинутых в папку через проводник (реальный случай – 133 файла разом).
+// "Выбрать несколько" переключает клик по галерее на накопление
+// выбора вместо немедленного добавления; имя персонажа при этом всегда
+// берётся из имени файла – спрашивать его отдельно для каждой из
+// полусотни картинок было бы не быстрее, чем добавлять по одной.
+function onGalleryItemClick(el) {
+  if (galleryBulkMode) toggleGalleryBulkItem(el);
+  else selectGalleryItem(el);
+}
+
+function toggleGalleryBulkItem(el) {
+  const name = el.dataset.name;
+  if (selectedGalleryNames.has(name)) {
+    selectedGalleryNames.delete(name);
+    el.classList.remove("bulk-selected");
+  } else {
+    selectedGalleryNames.set(name, el.dataset.url);
+    el.classList.add("bulk-selected");
+  }
+  updateGalleryBulkBar();
+}
+
+function updateGalleryBulkBar() {
+  const bar = document.getElementById("gallery-bulk-actions");
+  if (!bar) return;
+  const n = selectedGalleryNames.size;
+  bar.classList.toggle("hidden", n === 0);
+  document.getElementById("gallery-bulk-add-btn").textContent = i18n("Добавить выбранных ({n})", { n });
+}
+
+function toggleGalleryBulkMode() {
+  galleryBulkMode = !galleryBulkMode;
+  document.getElementById("gallery-grid").classList.toggle("bulk-mode", galleryBulkMode);
+  document.getElementById("gallery-bulk-toggle").textContent = galleryBulkMode
+    ? i18n("Отменить выбор нескольких")
+    : i18n("Выбрать несколько");
+  if (!galleryBulkMode) clearGalleryBulkSelection();
+}
+
+function clearGalleryBulkSelection() {
+  selectedGalleryNames.clear();
+  document.querySelectorAll(".gallery-item.bulk-selected").forEach((el) => el.classList.remove("bulk-selected"));
+  updateGalleryBulkBar();
+}
+
+async function addSelectedGalleryChars() {
+  if (!selectedGalleryNames.size || !pendingTier) return;
+  const { titleId, listId, tierIdx } = pendingTier;
+  const title = data.find((t) => t.id === titleId);
+  const list = title?.tierlists.find((l) => l.id === listId);
+  if (!list) return;
+
+  for (const [name, url] of selectedGalleryNames) {
+    list.tiers[tierIdx].chars.push({ name, img: url });
+  }
+  ceDirty = true;
+  renderEditor();
+
+  // loadGallery() ниже сама чистит выбор (см. её же комментарий там) и
+  // заново пересчитывает, кто уже "использован" – только что
+  // добавленные персонажи должны сразу же показаться отмеченными.
+  const folder = document.getElementById("m-folder")?.value;
+  const freshTitle = data.find((t) => t.id === titleId);
+  if (folder) await loadGallery(folder, freshTitle);
 }
 
 function toggleManual() {
@@ -1546,6 +1677,10 @@ function closeModal() {
   // создаться, никому уже не пригодится.
   deleteMediaFile(document.getElementById("m-img-backup").value.trim());
   document.getElementById("m-img-backup").value = "";
+  // Следующее открытие модалки – для другого тира или другой темы,
+  // режим массового выбора из прошлого раза там ни при чём.
+  if (galleryBulkMode) toggleGalleryBulkMode();
+  else clearGalleryBulkSelection();
 }
 
 function closeModalOnOverlay(e) {

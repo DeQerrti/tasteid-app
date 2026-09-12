@@ -2024,13 +2024,17 @@ section.group { margin-bottom: 3.5rem; }
 }
 
 .char-card {
-  width: 72px; flex-shrink: 0; position: relative; cursor: grab;
+  width: auto; flex-shrink: 0; position: relative; cursor: grab;
   border-radius: 1px; overflow: hidden; border: 1px solid var(--border);
   transition: border-color .15s, transform .15s; background: var(--surface2); animation: ceFadeUp .2s ease both;
 }
 .char-card:active { cursor: grabbing; }
 .char-card.dragging { opacity: .3; }
-.char-card img { width: 100%; height: 108px; object-fit: contain; object-position: center top; display: block; filter: brightness(.85); pointer-events: none; background: var(--surface); }
+/* Высота – инлайн-стилем с самого <img> (ползунок размера, см. её же
+   комментарий у ceCharHeight в chars-edit.js) – ширина картинки auto,
+   пропорции сохраняются, а не растягиваются/обрезаются в фиксированную
+   рамку, как было раньше при постоянных 72×108. */
+.char-card img { width: auto; max-width: 100%; display: block; filter: brightness(.85); pointer-events: none; background: var(--surface); }
 .char-card-name { font-family: 'DM Sans', sans-serif; font-size: .52rem; color: var(--text); padding: .2rem .3rem; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .char-card-del {
   position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%;
@@ -2103,6 +2107,21 @@ section.group { margin-bottom: 3.5rem; }
   background: var(--red-hi); display: none; align-items: center; justify-content: center; font-size: .6rem; color: #fff;
 }
 .gallery-item.selected .gallery-check { display: flex; }
+
+/* Массовое добавление сразу нескольких (см. её же комментарий у
+   toggleGalleryBulkMode в chars-edit.js) – свой чекбокс в другом углу,
+   чтобы не путать с одиночным выбором выше (.gallery-check): у него
+   своя отметка "выбран для добавления одним", у этого – "в списке на
+   массовое добавление", оба могли бы стоять одновременно. Виден только
+   в режиме массового выбора, а не всегда, как .gallery-check. */
+.gallery-bulk-check {
+  position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid var(--border2); background: var(--surface2);
+  display: none; align-items: center; justify-content: center; font-size: .6rem; color: var(--text-dim);
+}
+.gallery-grid.bulk-mode .gallery-bulk-check { display: flex; }
+.gallery-item.bulk-selected .gallery-bulk-check { background: var(--red-hi); border-color: var(--red-hi); color: #fff; }
+.gallery-item.bulk-selected { border-color: var(--red-hi); }
 
 /* Пакетная загрузка нескольких фото разом (см. её же комментарий у
    onUploadFilesPicked в chars-edit.js) – список строк "превью + имя",
