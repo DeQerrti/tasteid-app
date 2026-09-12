@@ -447,11 +447,12 @@ async function uploadCharImage({ vault, body }) {
 // такие файлы никогда не проходят через сжатие (ни через canvas в
 // браузере при обычной загрузке файла, ни через compressImage здесь
 // при резервной копии по ссылке), остаются в оригинальном качестве и
-// формате. Пережимает решительно всё в папке заново (не только то, что
-// больше предела или не webp) – по прямой просьбе, а не "по возможности
-// компактнее": так проще объяснить и предсказать результат, но и
-// нажимать эту кнопку на уже сжатой папке смысла нет, только даром
-// теряется качество на повторном перекодировании.
+// формате. Пережимает всё, кроме уже webp (см. её же проверку ext ниже) –
+// webp здесь может появиться только одним способом: уже пройдя через
+// это же самое сжатие раньше (оно единственное, что вообще производит
+// webp на выходе). Пережимать такой файл заново – чистый минус: вес не
+// уменьшится, а от повторного перекодирования картинка только потеряет
+// в качестве.
 //
 // compressImage – тот же самый параметр, что и у backupCover ниже,
 // только на телефоне за него отвечает canvas (mobile/src/main.js), а
@@ -468,7 +469,7 @@ async function compressFolder({ vault, body, compressImage }) {
 
   const base = imageFolder(collection);
   const { files } = await vault.listImages(base, folder);
-  if (!files.length) return { ok: true, converted: 0 };
+  if (!files.length) return { ok: true, converted: 0, skipped: 0 };
 
   // Ключ – путь БЕЗ ведущего "/", раскодированный (см. её же историю у
   // decodeURIComponent в findOrphanedCovers): url из listImages уже
@@ -478,19 +479,31 @@ async function compressFolder({ vault, body, compressImage }) {
   // CLAUDE.md, раздел про поиск осиротевших файлов).
   const renameMap = new Map();
   let converted = 0;
+  let skipped = 0;
 
   for (const f of files) {
     const oldRel = decodeURIComponent(f.url).replace(/^\/+/, "");
     const oldFilename = oldRel.split("/").pop();
     const ext = (oldFilename.split(".").pop() || "").toLowerCase();
-    const mime =
-      ext === "png"
-        ? "image/png"
-        : ext === "gif"
-          ? "image/gif"
-          : ext === "webp"
-            ? "image/webp"
-            : "image/jpeg";
+
+    // webp – единственный формат, в который вообще умеет сжимать
+    // compressImage (см. её же electron/image.js и mobile/src/main.js:
+    // обе версии всегда возвращают ext: "webp"), а значит webp здесь
+    // может появиться только одним способом – уже пройдя через это же
+    // самое сжатие (при обычной загрузке через приложение или через эту
+    // же кнопку раньше). Гонять его по кругу заново (расшифровка →
+    // пересборка → webp quality 85) – чистый минус: вес не уменьшится
+    // (уменьшать уже нечего), а от повторного перекодирования картинка
+    // только потеряет в качестве. Настоящий смысл кнопки – файлы,
+    // скопированные в папку напрямую мимо приложения (see comment above
+    // compressCurrentFolder in chars-edit.js), те всегда в исходном
+    // формате (png/jpg/…), не webp.
+    if (ext === "webp") {
+      skipped++;
+      continue;
+    }
+
+    const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
 
     const raw = base64ToBuffer(await vault.readMedia(oldRel));
     const { bytes: outBytes, ext: newExt } = await compressImage(raw, mime);
@@ -571,7 +584,7 @@ async function compressFolder({ vault, body, compressImage }) {
   // копию тех же данных в памяти браузера, и туда эта запись не долетит
   // сама. Без этого правки на экране не совпадали бы с тем, что реально
   // на диске, до следующей полной перезагрузки страницы.
-  return { ok: true, converted, renames: [...renameMap.entries()] };
+  return { ok: true, converted, skipped, renames: [...renameMap.entries()] };
 }
 
 // Папка темы раньше появлялась на диске только вместе с первой

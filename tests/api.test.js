@@ -1106,6 +1106,7 @@ test("пережатие папки конвертирует файлы и чи�
     assert.equal(status, 200);
     assert.equal(data.ok, true);
     assert.equal(data.converted, 1);
+    assert.equal(data.skipped, 0);
     assert.deepEqual(data.renames, [["chars/Тайтл/Мой Герой.png", "chars/Тайтл/Мой Герой.webp"]]);
 
     const oldExists = await fs.access(path.join(root, "chars", "Тайтл", "Мой Герой.png")).then(
@@ -1136,16 +1137,18 @@ test("пережатие папки конвертирует файлы и чи�
       "ссылка из СОВСЕМ ДРУГОГО раздела тир-листа тоже почищена"
     );
 
-    // Повторное пережатие уже готового webp: файл не меняет расширение
-    // (compressImage всегда отдаёт webp), значит переименований нет и
-    // чинить нечего – функция не должна на этом падать.
+    // Повторное пережатие уже готового webp: файл пропускается целиком
+    // (webp может появиться только через это же самое сжатие, гонять его
+    // по кругу заново – чистый минус в качестве без пользы в весе), не
+    // конвертируется и не переименовывается.
     const second = await api("POST", "/api/compress-folder", {
       collection: "characters",
       folder: "Тайтл",
     });
     assert.equal(second.status, 200);
     assert.equal(second.data.ok, true);
-    assert.equal(second.data.converted, 1);
+    assert.equal(second.data.converted, 0, "уже webp – пропущен, а не пережат заново");
+    assert.equal(second.data.skipped, 1);
     assert.deepEqual(second.data.renames, []);
   });
 });

@@ -1243,7 +1243,7 @@ async function compressCurrentFolder() {
 
   const ok = confirm(
     i18n(
-      "Все файлы в этой папке будут пережаты заново, даже уже сжатые. Некоторые могут сменить имя (расширение). Старые версии уйдут в корзину. Продолжить?"
+      "Все НЕ webp файлы в этой папке будут пережаты (webp уже готовые – пропускаются). Некоторые могут сменить имя (расширение). Старые версии уйдут в корзину. Продолжить?"
     )
   );
   if (!ok) return;
@@ -1312,7 +1312,10 @@ async function compressCurrentFolder() {
     await loadGallery(folder, title);
 
     statusEl.className = "status-msg ok";
-    statusEl.textContent = i18n("Готово: пережато файлов — ") + resp.converted;
+    statusEl.textContent =
+      i18n("Готово: пережато файлов — ") +
+      resp.converted +
+      (resp.skipped ? ", " + i18n("уже были webp — ") + resp.skipped : "");
   } catch (e) {
     statusEl.className = "status-msg err";
     statusEl.textContent = i18n("Ошибка сети: ") + e.message;
