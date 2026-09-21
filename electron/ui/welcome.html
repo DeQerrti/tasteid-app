@@ -46,6 +46,11 @@
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=1"></script>
 <script src="/js/utils.js?v=19"></script>
+<script>
+// config.js и theme.js зовут vaultScopedKey() из sync.js. Здесь sync.js не
+// нужен (нет ни хранилища, ни токена), поэтому – заглушка без суффикса.
+function vaultScopedKey(base) { return base; }
+</script>
 <script src="/js/theme.js?v=14"></script>
 <script src="/js/config.js?v=14"></script>
 <style>
@@ -204,18 +209,10 @@ let busy = false;
 
 const $ = (id) => document.getElementById(id);
 
-// Своя, а не общая из app/js/utils.js: экран приветствия к сайту
-// отношения не имеет и его скриптов не подключает. Нужна ровно в одном
-// месте – имя полки едет в value="…", и кавычка в нём (а её вполне
-// можно напечатать: «Так себе», например) разваливала бы поле при
-// следующей перерисовке списка.
-const esc = (v) =>
-  String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+// esc() берётся из /js/utils.js (подключён выше). Своя копия здесь была
+// ошибкой: const esc поверх function esc из utils.js – SyntaxError
+// «Identifier 'esc' has already been declared», и весь этот скрипт
+// (язык, шаги мастера) не запускался вовсе.
 const api = async (url, body) => {
   const res = await fetch(url, {
     method: body ? "POST" : "GET",
@@ -369,7 +366,7 @@ function seedShelves(type) {
     return;
   }
   const max = chosen.numericMax;
-  const names = [i18n("Резонанс"), i18n("Эталон"), i18n("Отлично"), i18n("Аттракцион"), i18n("Фоновый шум"), i18n("Брак"), i18n("Разочарование")].map(t);
+  const names = [i18n("Резонанс"), i18n("Эталон"), i18n("Отлично"), i18n("Аттракцион"), i18n("Фоновый шум"), i18n("Брак"), i18n("Разочарование")];
   const n = Math.min(names.length, max);
   const step = max / n;
   shelves = [];
