@@ -67,6 +67,7 @@ const sharedBrowserGlobals = [
   "defaultScoreMap",
   "defaultStatusMap",
   "defrostGradeScale",
+  "defrostStatusBuckets",
   "deleteMediaFile",
   "deleteRemoteMedia",
   "deleteRemoteMediaFolder",
