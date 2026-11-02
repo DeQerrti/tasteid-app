@@ -137,7 +137,11 @@ async function loadCurrentSettings() {
     { key: "onhold", label: i18n("Отложено"), removable: false },
     { key: "planning", label: i18n("Планирую"), removable: false },
   ];
-  statusBuckets = settings.statusBuckets ? JSON.parse(JSON.stringify(settings.statusBuckets)) : builtinDefaults;
+  // defrostStatusBuckets (js/theme.js) – иначе редактор показывал бы и
+  // заново сохранял встроенные статусы на языке прошлого сохранения.
+  statusBuckets = settings.statusBuckets
+    ? defrostStatusBuckets(JSON.parse(JSON.stringify(settings.statusBuckets)))
+    : builtinDefaults;
   archiveLabel = statuses.archive || i18n("Архив");
   hiddenStatusesState = new Set(settings.hiddenStatuses || []);
   statusOrderState = Array.isArray(settings.statusOrder) ? [...settings.statusOrder] : [];
@@ -218,4 +222,3 @@ async function loadCurrentSettings() {
   // месте.
   settingsDirty = false;
 }
-
