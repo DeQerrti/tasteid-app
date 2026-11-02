@@ -424,6 +424,16 @@ const DEFAULT_LABELS = {
   },
 };
 
+// Подпись «заморожена», если совпадает со значением по умолчанию на
+// ЛЮБОМ языке интерфейса: сохранение пишет подпись на том языке, что
+// был активен в тот момент, поэтому после переключения ru → en застывал
+// русский текст, а после en → ru – английский. Сравниваем с сырым
+// русским ключом и с его переводом из словаря (I18N_EN загружается
+// всегда, даже при русском интерфейсе).
+function isFrozenDefault(value, rawRu) {
+  return value === rawRu || (I18N_EN[rawRu] !== undefined && value === I18N_EN[rawRu]);
+}
+
 // Сырые русские значения по умолчанию – только для очистки «замороженных»
 // оверрайдов, унаследованных от старого бага сохранения (см. её же
 // историю в settings-labels.js/settings-tabs.js): раньше сохранение
@@ -446,7 +456,7 @@ function stripFrozenLabelDefaults(overrides) {
   for (const group of Object.keys(FROZEN_LABEL_DEFAULTS)) {
     if (!cleaned[group]) continue;
     for (const key of Object.keys(FROZEN_LABEL_DEFAULTS[group])) {
-      if (cleaned[group][key] === FROZEN_LABEL_DEFAULTS[group][key]) delete cleaned[group][key];
+      if (isFrozenDefault(cleaned[group][key], FROZEN_LABEL_DEFAULTS[group][key])) delete cleaned[group][key];
     }
   }
   return cleaned;
@@ -467,7 +477,7 @@ function defrostStatusBuckets(buckets) {
   if (!Array.isArray(buckets)) return buckets;
   return buckets.map((b) => {
     const raw = RAW_STATUS_BUCKET_LABELS_RU[b?.key];
-    return raw && b.label === raw ? { ...b, label: i18n(raw) } : b;
+    return raw && isFrozenDefault(b.label, raw) ? { ...b, label: i18n(raw) } : b;
   });
 }
 
@@ -508,13 +518,13 @@ function defrostGradeScale(gradeScale) {
     if (cloned.type === "categorical") {
       const raw = RAW_CATEGORICAL_GRADES_RU[s.key];
       if (!raw) return;
-      if (s.name === raw.name) s.name = i18n(raw.name);
-      if (s.desc === raw.desc) s.desc = i18n(raw.desc);
+      if (isFrozenDefault(s.name, raw.name)) s.name = i18n(raw.name);
+      if (isFrozenDefault(s.desc, raw.desc)) s.desc = i18n(raw.desc);
     } else {
       const m = /^shelf_(\d+)$/.exec(s.key);
       if (!m) return;
       const rawName = RAW_NUMERIC_SHELF_NAMES_RU[Number(m[1]) - 1];
-      if (rawName && s.name === rawName) s.name = i18n(rawName);
+      if (rawName && isFrozenDefault(s.name, rawName)) s.name = i18n(rawName);
     }
   });
   return cloned;
