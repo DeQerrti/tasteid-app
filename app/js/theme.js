@@ -264,7 +264,7 @@ async function applyTheme() {
   window.SITE_CATEGORY_COLORS = settings.categoryColors || {};
   window.SITE_TYPE_COLORS = settings.typeColors || {};
   window.SITE_GRADE_SCALE = defrostGradeScale(settings.gradeScale || null);
-  window.SITE_STATUS_BUCKETS = settings.statusBuckets || null;
+  window.SITE_STATUS_BUCKETS = defrostStatusBuckets(settings.statusBuckets || null);
   window.SITE_HIDDEN_STATUSES = new Set(settings.hiddenStatuses || []);
   window.SITE_STATUS_ORDER = Array.isArray(settings.statusOrder) ? settings.statusOrder : null;
   window.SITE_TIER_COLLECTIONS = settings.tierCollections || null;
@@ -450,6 +450,25 @@ function stripFrozenLabelDefaults(overrides) {
     }
   }
   return cleaned;
+}
+
+// Та же история, что у FROZEN_LABEL_DEFAULTS, только для встроенных
+// статусов («В процессе»/«Отложено»/«Планирую»): их подписи живут не в
+// settings.labels, а прямо в settings.statusBuckets, и при любом
+// сохранении настроек массив пишется целиком, с подписью на языке,
+// который был активен в тот момент. Поэтому после переключения на
+// английский «Архив» переводился (он в labels и чистится выше), а эти
+// три оставались русскими. Если подпись совпадает с сырым русским
+// значением по умолчанию – отдаём свежий перевод; переименованные
+// пользователем статусы не трогаем.
+const RAW_STATUS_BUCKET_LABELS_RU = { current: "В процессе", onhold: "Отложено", planning: "Планирую" };
+
+function defrostStatusBuckets(buckets) {
+  if (!Array.isArray(buckets)) return buckets;
+  return buckets.map((b) => {
+    const raw = RAW_STATUS_BUCKET_LABELS_RU[b?.key];
+    return raw && b.label === raw ? { ...b, label: i18n(raw) } : b;
+  });
 }
 
 // Та же история, что у FROZEN_LABEL_DEFAULTS выше, только для шкалы
