@@ -1260,7 +1260,7 @@ html[data-skin="brutal-dark"] h2 {
   --border: #e6e7ee;
   --border2: #dcdee6;
   --text: #4a4d5e;
-  --text-dim: #8b8fa3;
+  --text-dim: #646a80; /* было #8b8fa3 – около 2.8:1 к фону */
   --text-hi: #2b2d3d;
 
   --neo-light: rgba(255, 255, 255, 0.75);
@@ -1313,7 +1313,47 @@ html[data-skin="brutal-dark"] h2 {
    у html[data-skin="brutal"] *, но через наследование, а не таранишь
    специфичность). */
 [data-skin="neomorphism"] body {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
+}
+/* Один гротеск на всё. Раньше здесь был DM Sans – в нём нет кириллицы,
+   и весь русский текст молча набирался системным Arial/Segoe, а латиница
+   – DM Sans. Плюс вкладки, подписи оценок, цифры статистики, заголовки
+   настроек оставались засечковыми от классической темы: на одном
+   экране выходило три-четыре разных шрифта. Manrope (app/fonts) с
+   кириллицей, и * – как у брутализма – ловит всё, а не только список. */
+html[data-skin="neomorphism"] *,
+html[data-skin="neomorphism-dark"] * {
+  font-family: "Manrope", "DM Sans", sans-serif;
+  font-style: normal;
+}
+/* Тир-лист и блоки статистики в духе темы: колонка яруса без
+   подмешанного цвета полки (цвет – полосой слева), блоки статистики –
+   выпуклые карточки, а не невидимые прямоугольники цвета фона. */
+[data-skin="neomorphism"] .tl-label,
+[data-skin="neomorphism-dark"] .tl-label {
+  background: var(--surface);
+  padding-left: calc(0.7rem + 6px);
+}
+[data-skin="neomorphism"] .tl-label-name,
+[data-skin="neomorphism-dark"] .tl-label-name {
+  color: var(--text-hi);
+  font-weight: 700;
+}
+[data-skin="neomorphism"] .tl-row::before,
+[data-skin="neomorphism-dark"] .tl-row::before {
+  width: 6px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="neomorphism"] .tl-poster img,
+[data-skin="neomorphism-dark"] .tl-poster img {
+  filter: var(--card-img-filter);
+}
+[data-skin="neomorphism"] .stat-grid .stat-card,
+[data-skin="neomorphism-dark"] .stat-grid .stat-card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
 }
 
 /* Заголовки: курсивный засечковый шрифт базовой темы читается как
@@ -1328,7 +1368,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism"] .btn-save,
 [data-skin="neomorphism"] .card-title,
 [data-skin="neomorphism"] .review-title {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
   font-style: normal;
 }
 
@@ -1517,7 +1557,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism"] input[type="color"] {
   border-radius: 10px;
   box-shadow: none;
-  border: none;
+  border: 1px solid rgba(31, 35, 48, 0.18);
 }
 [data-skin="neomorphism"] .btn,
 [data-skin="neomorphism"] .btn-new,
@@ -1614,20 +1654,29 @@ html[data-skin="brutal-dark"] h2 {
   --border: #24262f;
   --border2: #1c1e26;
   --text: #b6b9c9;
-  --text-dim: #6f7386;
+  /* Было #6f7386 – около 3:1 к фону, даты и счётчики сливались.
+     #9a9fb3 – около 5.5:1. */
+  --text-dim: #9a9fb3;
   --text-hi: #eef0f7;
 
-  --neo-light: rgba(255, 255, 255, 0.06);
+  /* Светлая половина тени была 0.06 – на тёмном фоне её почти не
+     видно, и карточки с блоками «висели в воздухе». Плюс тонкий блик
+     по верхнему краю (inset), чтобы элемент читался как выпуклый. */
+  --neo-light: rgba(255, 255, 255, 0.085);
   --neo-dark: rgba(0, 0, 0, 0.6);
 
   --radius-btn: 999px;
   --card-radius: 24px;
   --card-border: none;
-  --card-shadow: 8px 8px 16px var(--neo-dark), -8px -8px 16px var(--neo-light);
-  --card-shadow-hover: 11px 11px 22px var(--neo-dark), -11px -11px 22px var(--neo-light);
+  --card-shadow:
+    8px 8px 16px var(--neo-dark), -7px -7px 15px var(--neo-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --card-shadow-hover:
+    11px 11px 22px var(--neo-dark), -10px -10px 20px var(--neo-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --card-corner-display: none;
-  --card-img-filter: saturate(0.98) brightness(0.9);
-  --card-img-filter-hover: saturate(1.06) brightness(1);
+  --card-img-filter: none;
+  --card-img-filter-hover: saturate(1.06) brightness(1.04);
 
   --badge-bg: rgba(15, 16, 20, 0.75);
   --badge-text: #f4f5f9;
@@ -1656,7 +1705,7 @@ html[data-skin="brutal-dark"] h2 {
 /* См. комментарий у [data-skin="neomorphism"] body чуть выше по файлу —
    тот же пробел, тёмный вариант унаследовал его вместе со светлым. */
 [data-skin="neomorphism-dark"] body {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
 }
 
 [data-skin="neomorphism-dark"] .logo,
@@ -1668,7 +1717,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism-dark"] .btn-save,
 [data-skin="neomorphism-dark"] .card-title,
 [data-skin="neomorphism-dark"] .review-title {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
   font-style: normal;
 }
 
@@ -1841,7 +1890,9 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism-dark"] input[type="color"] {
   border-radius: 10px;
   box-shadow: none;
-  border: none;
+  /* Тонкая рамка: без неё тёмные образцы («Фон страницы», «Блоки»)
+     сливались с подложкой и были просто не видны. */
+  border: 1px solid rgba(238, 240, 247, 0.22);
 }
 [data-skin="neomorphism-dark"] .btn,
 [data-skin="neomorphism-dark"] .btn-new,
