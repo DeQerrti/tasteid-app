@@ -132,17 +132,33 @@ jobs:
       - run: npm run build:mobile
       - run: npx cap sync android
       - run: chmod +x android/gradlew
-      # Сборка отладочная, и это осознанно: обычную Android отказывается
-      # ставить без подписи, а для подписи нужен ключ, который в
-      # открытом репозитории держать нельзя. Отладочная подписана
-      # общим ключом и ставится с телефона как есть.
-      - run: ./gradlew assembleDebug
+      # Ключ подписи – из секретов репозитория, не из самого репозитория:
+      # он открытый, и ключ в нём позволил бы кому угодно выпустить
+      # «обновление» TasteID. Файл ключа хранится в секрете base64-строкой
+      # и разворачивается во временную папку машины только на эту сборку.
+      # Без секретов сборка падает сразу и понятно, а не выпускает APK,
+      # который телефон не поставит.
+      - name: Ключ подписи
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Нет секрета ANDROID_KEYSTORE_BASE64 – см. раздел «Ключ подписи Android» в README."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          echo "TASTEID_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+      - run: ./gradlew assembleRelease
         working-directory: android
+        env:
+          TASTEID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          TASTEID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          TASTEID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       - name: Назвать файл по-человечески
         run: |
           version=${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk "dist/TasteID-${version#v}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/TasteID-${version#v}.apk"
       - uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}

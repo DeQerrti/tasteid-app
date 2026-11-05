@@ -24,31 +24,36 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // Отладочный ключ — свой, а не тот, что Gradle создаёт сам при
-    // первом запуске. На GitHub Actions каждая сборка идёт на новой,
-    // одноразовой машине: без своего файла Gradle генерировал бы
-    // СЛУЧАЙНЫЙ ключ заново при каждой сборке, и телефон отказывался бы
-    // ставить новую версию поверх старой («сертификаты не совпадают») —
-    // помогало только сначала вручную удалить приложение. Ключ в
-    // репозитории — обычная практика для отладочных сборок: его пароль
-    // и алиас всегда одни и те же ("android" / androiddebugkey), он не
-    // защищает ничего секретного, а только даёт всем сборкам один и тот
-    // же отпечаток.
+    // Ключ подписи выпусков — НЕ в репозитории. Раньше здесь лежал
+    // debug.keystore с общеизвестным паролем, а репозиторий открытый:
+    // любой мог подписать им свой APK, и телефон принял бы его как
+    // обновление TasteID — с доступом ко всем данным приложения.
+    //
+    // Теперь ключ приходит из переменных окружения: на GitHub Actions —
+    // из секретов репозитория (см. джоб android в build.yml), локально —
+    // если задать их вручную. Ключ один и тот же для всех выпусков, так
+    // что новая версия ставится поверх старой, как и раньше. Без этих
+    // переменных собирается только отладочная версия (assembleDebug) —
+    // с личным отладочным ключом Gradle из ~/.android, которого нет больше
+    // ни у кого.
+    def releaseKeystore = System.getenv("TASTEID_KEYSTORE_FILE")
     signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv("TASTEID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("TASTEID_KEY_ALIAS")
+                keyPassword System.getenv("TASTEID_KEY_PASSWORD")
+            }
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (releaseKeystore) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

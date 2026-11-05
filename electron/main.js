@@ -10,7 +10,16 @@
 //    папки нет или пропала      → экран приветствия
 // ══════════════════════════════════════════════
 
-import { app, BrowserWindow, dialog, shell, Menu, nativeTheme, protocol } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  shell,
+  Menu,
+  nativeTheme,
+  protocol,
+  safeStorage,
+} from "electron";
 import { promises as fs, appendFileSync as fsAppendFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -117,6 +126,69 @@ async function saveConfig(patch) {
   config = { ...config, ...patch };
   await fs.mkdir(path.dirname(configFile()), { recursive: true });
   await fs.writeFile(configFile(), JSON.stringify(config, null, 2));
+}
+
+function isWebUrl(url) {
+  try {
+    const { protocol: scheme } = new URL(url);
+    return scheme === "https:" || scheme === "http:";
+  } catch {
+    return false;
+  }
+}
+
+// ── Токен синхронизации – зашифрованным, не в localStorage ──
+// localStorage – это обычные файлы в папке профиля приложения: любая
+// программа, которая их прочитает (или резервная копия этой папки),
+// получает токен с доступом к репозиториям на GitHub. safeStorage
+// шифрует его ключом самой системы (DPAPI на Windows, Связка ключей на
+// macOS, libsecret на Linux) – расшифровать получится только под этой
+// же учётной записью на этом же компьютере.
+//
+// Файл – по токену на хранилище (ключ – id хранилища), как и
+// остальные ключи синхронизации в sync.js (см. vaultScopedKey там).
+// Страница получает расшифрованный токен строкой window.__TASTEID
+// (см. injectEnv в protocol.js) – то есть только в памяти, на диск он
+// больше не попадает. Если шифрование системе недоступно (Linux без
+// связки ключей), маршрут честно отвечает secure: false, и sync.js
+// оставляет токен там, где он был, – синхронизация не должна ломаться
+// из-за этого.
+const syncTokensFile = () => path.join(app.getPath("userData"), "sync-tokens.json");
+let syncTokens = null; // { [vaultId]: расшифрованный токен } – кеш в памяти
+
+async function loadSyncTokens() {
+  if (syncTokens) return syncTokens;
+  syncTokens = {};
+  if (!safeStorage.isEncryptionAvailable()) return syncTokens;
+  let stored = {};
+  try {
+    stored = JSON.parse(await fs.readFile(syncTokensFile(), "utf8")) || {};
+  } catch {
+    return syncTokens;
+  }
+  for (const [vaultId, encrypted] of Object.entries(stored)) {
+    try {
+      syncTokens[vaultId] = safeStorage.decryptString(Buffer.from(encrypted, "base64"));
+    } catch {
+      // Файл скопировали с другого компьютера или из-под другой учётной
+      // записи – расшифровать нельзя. Синхронизация попросит токен заново.
+    }
+  }
+  return syncTokens;
+}
+
+async function saveSyncToken(vaultId, token) {
+  if (!safeStorage.isEncryptionAvailable()) return { secure: false };
+  const tokens = await loadSyncTokens();
+  if (token) tokens[vaultId] = token;
+  else delete tokens[vaultId];
+  const stored = {};
+  for (const [id, value] of Object.entries(tokens)) {
+    stored[id] = safeStorage.encryptString(value).toString("base64");
+  }
+  await fs.mkdir(path.dirname(syncTokensFile()), { recursive: true });
+  await fs.writeFile(syncTokensFile(), JSON.stringify(stored, null, 2));
+  return { secure: true };
 }
 
 async function exists(p) {
@@ -365,8 +437,15 @@ function appRoutes() {
         throw new Error(tr("Не получилось удалить папку: ") + e.message);
       }
       await saveConfig({ vaults: vaults.filter((v) => v.id !== body.id) });
+      await saveSyncToken(body.id, null);
       return { ok: true };
     },
+
+    // Токен синхронизации текущего хранилища (см. saveSyncToken выше).
+    // token: null – забыть. На телефоне этого маршрута нет: там общий
+    // ответ { ok: true } без secure, и sync.js оставляет токен как был.
+    "POST /api/app/sync-token": async ({ body }) =>
+      saveSyncToken(config.currentVaultId || "default", body.token || null),
 
     "POST /api/app/open-vault-folder": async () => {
       if (vault) await shell.openPath(vault.root);
@@ -758,9 +837,13 @@ async function createWindow({ compact = false } = {}) {
     }
   });
 
-  // Внешние ссылки – в браузер, а не поверх приложения.
+  // Внешние ссылки – в браузер, а не поверх приложения. Только
+  // http(s): ссылки в карточках приходят и из импорта, и из
+  // синхронизации, а shell.openExternal с file://, ms-settings: и
+  // прочими системными схемами умеет запускать программы и открывать
+  // файлы на диске – не то, что должен делать клик по ссылке на тайтл.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (isWebUrl(url)) shell.openExternal(url);
     return { action: "deny" };
   });
 }
@@ -1003,6 +1086,8 @@ app.whenReady().then(async () => {
       appRoutes: appRoutes(),
       getLang: appLanguage,
       getVaultId: () => config.currentVaultId || "default",
+      getSyncToken: async () =>
+        (await loadSyncTokens())[config.currentVaultId || "default"] || null,
     })
   );
 
