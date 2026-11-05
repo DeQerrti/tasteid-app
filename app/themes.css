@@ -2043,7 +2043,7 @@ html[data-skin="neomorphism-dark"] * {
    «Настройки», вводные абзацы и вкладки в settings-edit.html оставались
    в шрифте классической темы, хотя цвета уже были в духе «рисованной». */
 [data-skin="doodle"] body {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 
 /* Заголовки — крупный маркер, остальной интерфейс — разборчивый
@@ -2084,7 +2084,7 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle"] textarea,
 [data-skin="doodle"] .side-tab,
 [data-skin="doodle"] #admin-settings-link {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 /* .side-tab и #admin-settings-link жили в группе Caveat выше — тот же
    почерк, что и в рельсе (.tab-btn), но без компенсирующего
@@ -2413,15 +2413,18 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle-dark"] {
   color-scheme: dark;
 
-  --bg: #1c2620;
-  --bg2: #16201b;
-  --surface: #212f27;
-  --surface2: #1a251f;
-  --border: #e8e4d9;
-  --border2: #e8e4d9;
-  --text: #d8d4c5;
-  --text-dim: #8b9187;
-  --text-hi: #f5f2e6;
+  /* «Мел на грифельной доске»: графит вместо тёмно-зелёного – иначе
+     тема выглядела копией тёмной ботанической в другом шрифте. Мел –
+     тёплый белый, акцент – тот же оранжевый (theme.js). */
+  --bg: #23262b;
+  --bg2: #1c1f23;
+  --surface: #2b2f35;
+  --surface2: #25282d;
+  --border: #e9e6dc;
+  --border2: #e9e6dc;
+  --text: #dcd8cc;
+  --text-dim: #a19e95;
+  --text-hi: #f7f4ea;
 
   --doodle-wobble: 255px 15px 225px 15px/15px 225px 15px 255px;
   --doodle-wobble-pill: 40% 60% 55% 45% / 45% 40% 60% 55%;
@@ -2429,14 +2432,17 @@ html[data-skin="neomorphism-dark"] * {
 
   --radius-btn: 999px;
   --card-radius: 20px;
-  --card-border: 2px solid var(--text);
-  --card-shadow: 3px 4px 0 rgba(0, 0, 0, 0.6);
+  /* Меловая рамка в покое полупрозрачная: двадцать ярко-белых
+     «нарисованных» рамок спорили с обложками. Яркая – при наведении
+     (см. правило .review-card-wrap:hover ниже). */
+  --card-border: 2px solid rgba(233, 230, 220, 0.3);
+  --card-shadow: 3px 4px 0 rgba(0, 0, 0, 0.55);
   --card-shadow-hover: 5px 6px 0 rgba(0, 0, 0, 0.6);
   --card-corner-display: none;
-  --card-img-filter: contrast(1.05) brightness(0.92);
-  --card-img-filter-hover: contrast(1.1) brightness(1);
+  --card-img-filter: none;
+  --card-img-filter-hover: contrast(1.06) brightness(1.03);
 
-  --badge-bg: rgba(20, 28, 23, 0.8);
+  --badge-bg: rgba(28, 31, 35, 0.82);
   --badge-text: #f5f2e6;
   --badge-text-dim: #c7c2b0;
   --badge-border: rgba(255, 255, 255, 0.15);
@@ -2448,8 +2454,8 @@ html[data-skin="neomorphism-dark"] * {
   --tint-line-hi: rgba(216, 212, 197, 0.24);
 
   --scrim: rgba(0, 0, 0, 0.7);
-  --poster-scrim: rgba(20, 28, 23, 0.6);
-  --nav-bg: rgba(28, 38, 32, 0.94);
+  --poster-scrim: rgba(28, 31, 35, 0.6);
+  --nav-bg: rgba(35, 38, 43, 0.94);
   --shadow: rgba(0, 0, 0, 0.6);
   --shadow-soft: rgba(0, 0, 0, 0.3);
 
@@ -2462,7 +2468,7 @@ html[data-skin="neomorphism-dark"] * {
 
 /* См. комментарий у [data-skin="doodle"] body чуть выше по файлу. */
 [data-skin="doodle-dark"] body {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 
 [data-skin="doodle-dark"] .logo,
@@ -2500,7 +2506,7 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle-dark"] textarea,
 [data-skin="doodle-dark"] .side-tab,
 [data-skin="doodle-dark"] #admin-settings-link {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 /* См. комментарий у [data-skin="doodle"] .side-tab чуть выше по файлу. */
 [data-skin="doodle-dark"] .side-tab,
@@ -2856,4 +2862,48 @@ html[data-skin="neomorphism-dark"] * {
   [data-skin="soft-dark"] nav#rail ~ main {
     padding-right: calc(2.5rem + 100px);
   }
+}
+
+/* ══ РИСОВАННАЯ: названия, рамки, тир-лист ═══════
+   Названия карточек – Pangolin, а не Caveat: это основной текст сетки,
+   а Caveat в 11–12px рукописным курсивом приходилось разбирать. Caveat
+   остаётся заголовкам и меню, где кегль крупный. */
+/* Заголовок раздела в настройках (голый h1) оставался Playfair из
+   базовых стилей – тем же маркером Caveat, что и заголовки секций. */
+[data-skin="doodle"] h1,
+[data-skin="doodle-dark"] h1 {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-style: normal;
+}
+[data-skin="doodle"] .card-title,
+[data-skin="doodle-dark"] .card-title {
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+}
+[data-skin="doodle-dark"] .review-card-wrap:hover .review-card,
+[data-skin="doodle-dark"] .card:hover {
+  border-color: var(--border2);
+}
+/* Тир-лист: колонка яруса без подмешанного цвета полки, название
+   цветом мела/чернил, цвет полки – полосой слева. */
+[data-skin="doodle"] .tl-label,
+[data-skin="doodle-dark"] .tl-label {
+  background: var(--surface);
+  padding-left: calc(0.7rem + 6px);
+}
+[data-skin="doodle"] .tl-label-name,
+[data-skin="doodle-dark"] .tl-label-name {
+  color: var(--text-hi);
+}
+[data-skin="doodle"] .tl-row::before,
+[data-skin="doodle-dark"] .tl-row::before {
+  width: 6px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="doodle"] .tl-poster img,
+[data-skin="doodle-dark"] .tl-poster img {
+  filter: var(--card-img-filter);
 }
