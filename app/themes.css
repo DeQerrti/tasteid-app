@@ -671,7 +671,10 @@ html[data-skin="brutal"] .card-title,
 html[data-skin="brutal"] .review-title,
 html[data-skin="brutal"] h1,
 html[data-skin="brutal"] h2 {
-  font-family: "Courier New", ui-monospace, monospace;
+  /* Свой моноширинный шрифт из app/fonts (см. README там) вместо
+     системного Courier New: тот жидкий, кириллица в нём бедная, и не
+     на каждом устройстве он вообще есть. */
+  font-family: "IBM Plex Mono", "Courier New", ui-monospace, monospace;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -783,6 +786,26 @@ html[data-skin="brutal"] h2 {
 [data-skin="brutal"] .tl-label,
 [data-skin="brutal"] .tl-editor-label {
   border-right: 3px solid #000;
+}
+/* Тир-лист в палитре темы: колонка яруса без подмешанного цвета полки,
+   название – обычным цветом текста, а цвет полки – толстой полосой по
+   левому краю ряда. То же в тёмном варианте ниже. */
+[data-skin="brutal"] .tl-label {
+  background: var(--surface);
+}
+[data-skin="brutal"] .tl-label-name {
+  color: var(--text-hi);
+}
+[data-skin="brutal"] .tl-row::before {
+  width: 8px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="brutal"] .tl-label {
+  padding-left: calc(0.7rem + 8px);
+}
+[data-skin="brutal"] .tl-poster img {
+  filter: var(--card-img-filter);
 }
 
 /* ── Бейджи на обложках ── */
@@ -932,11 +955,14 @@ html[data-skin="brutal"] h2 {
   --radius-btn: 0;
   --card-radius: 0;
   --card-border: 3px solid #fff;
-  --card-shadow: 6px 6px 0 #fff;
-  --card-shadow-hover: 10px 10px 0 var(--red);
+  /* Белая тень со сдвигом у каждой из двух десятков карточек делала из
+     сетки частокол белых рамок, который спорил с обложками. В покое –
+     тёмно-серая, «удар» акцентом – только у той, на которую навели. */
+  --card-shadow: 5px 5px 0 #3a3a3a;
+  --card-shadow-hover: 8px 8px 0 var(--red);
   --card-corner-display: none;
-  --card-img-filter: contrast(1.08) saturate(1.05) brightness(0.95);
-  --card-img-filter-hover: contrast(1.15) saturate(1.15) brightness(1);
+  --card-img-filter: contrast(1.05) saturate(1.05);
+  --card-img-filter-hover: contrast(1.12) saturate(1.12);
 
   --badge-bg: #fff;
   --badge-text: #000;
@@ -975,7 +1001,7 @@ html[data-skin="brutal-dark"] .card-title,
 html[data-skin="brutal-dark"] .review-title,
 html[data-skin="brutal-dark"] h1,
 html[data-skin="brutal-dark"] h2 {
-  font-family: "Courier New", ui-monospace, monospace;
+  font-family: "IBM Plex Mono", "Courier New", ui-monospace, monospace;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1072,6 +1098,21 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="brutal-dark"] .tl-label,
 [data-skin="brutal-dark"] .tl-editor-label {
   border-right: 3px solid #fff;
+}
+[data-skin="brutal-dark"] .tl-label {
+  background: var(--surface);
+  padding-left: calc(0.7rem + 8px);
+}
+[data-skin="brutal-dark"] .tl-label-name {
+  color: var(--text-hi);
+}
+[data-skin="brutal-dark"] .tl-row::before {
+  width: 8px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="brutal-dark"] .tl-poster img {
+  filter: var(--card-img-filter);
 }
 
 [data-skin="brutal-dark"] .type-tag,
