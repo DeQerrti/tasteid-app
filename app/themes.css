@@ -365,8 +365,10 @@
   --card-shadow: 0 10px 26px -14px rgba(0, 0, 0, 0.55);
   --card-shadow-hover: 0 18px 38px -16px rgba(0, 0, 0, 0.65);
   --card-corner-display: none;
-  --card-img-filter: saturate(0.96) brightness(0.95);
-  --card-img-filter-hover: saturate(1.05) brightness(1);
+  /* Без затемнения: вместе с зелёным фоном brightness(.95) давал
+     мутную вуаль на всей сетке. */
+  --card-img-filter: none;
+  --card-img-filter-hover: saturate(1.05) brightness(1.04);
 
   --badge-bg: rgba(41, 54, 31, 0.85);
   --badge-text: #eef2e2;
@@ -548,6 +550,30 @@
 [data-skin="soft-dark"] .tl-label,
 [data-skin="soft-dark"] .tl-editor-label {
   border-right-color: var(--bg2);
+}
+/* Колонка яруса – нейтральная зелёная, а не подмешанный цвет полки:
+   сине-серая или фиолетовая заплатка на зелёном выглядела чужой.
+   Цвет полки остаётся в названии (высветленным, чтобы читался на
+   тёмно-зелёном) и в полосе по левому краю ряда. */
+[data-skin="soft-dark"] .tl-label {
+  background: var(--surface2);
+}
+[data-skin="soft-dark"] .tl-label-name {
+  color: color-mix(in srgb, var(--tl-color, var(--text-hi)) 60%, var(--text-hi));
+}
+[data-skin="soft-dark"] .tl-row::before {
+  width: 4px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="soft-dark"] .tl-poster img {
+  filter: none;
+}
+/* Подложка столбиков графиков темнее поверхности карточки: на
+   #29361f зелёные сегменты «Фильм»/«Сериал» сливались с фоном. */
+[data-skin="soft-dark"] .year-bar-track {
+  background: var(--bg);
+  border-color: var(--border);
 }
 [data-skin="soft-dark"] .tl-poster,
 [data-skin="soft-dark"] .tl-char-poster {
@@ -2693,6 +2719,14 @@ html[data-skin="brutal-dark"] h2 {
   mask-repeat: repeat-y;
   -webkit-mask-repeat: repeat-y;
   transform: scaleX(-1);
+}
+
+/* В тёмном варианте лиана тише и чуть отодвинута от края окна: на
+   почти чёрном фоне 0.4 спорила с обложками, а вплотную к полосе
+   прокрутки выглядела обрезанной. */
+[data-skin="soft-dark"] body::after {
+  opacity: 0.22;
+  right: 10px;
 }
 
 /* Контент должен лежать поверх украшения. Навигации здесь нет

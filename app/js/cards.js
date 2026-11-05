@@ -38,9 +38,13 @@ function gradeColorStyle(info) {
   return info?.grade?.color ? `;--gc:${esc(info.grade.color)}` : "";
 }
 
+// Цвет полки – ромбом, сама подпись – светлым текстом, как у
+// .card-grade-row в «Отзывах». Раньше подпись красилась цветом полки
+// целиком: на чёрном это читалось, а на цветном фоне (тёмная
+// ботаническая тема) фиолетовый и синий мелким курсивом пропадали.
 function gradeInlineHtml(info) {
   if (!info) return "";
-  return `<span class="card-grade-inline" style="color:${info.grade.color}" data-tip="${esc(info.grade.desc)}">${esc(gradeValueLabel(info.raw))}</span>`;
+  return `<span class="card-grade-inline" data-tip="${esc(info.grade.desc)}"><span class="card-grade-dot" style="--gc:${esc(info.grade.color)}"></span><span class="card-grade-text">${esc(gradeValueLabel(info.raw))}</span></span>`;
 }
 
 // Локаль – по языку интерфейса, а не жёстко "ru-RU": с английским
