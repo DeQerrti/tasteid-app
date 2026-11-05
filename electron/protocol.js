@@ -91,11 +91,17 @@ function json(data, { status = 200 } = {}) {
 const HEAD_TAG = /<head[^>]*>/i;
 
 function injectEnv(html, env) {
-  const script = `<script>window.__TASTEID=${JSON.stringify(env)};</script>`;
+  // "<" экранируем: строка оказывается внутри <script>, и "</script>" в
+  // любом значении закрыл бы его раньше времени.
+  const data = JSON.stringify(env).replace(/</g, "\\u003c");
+  const script = `<script>window.__TASTEID=${data};</script>`;
   return HEAD_TAG.test(html) ? html.replace(HEAD_TAG, (m) => m + script) : script + html;
 }
 
-async function serveFile(filePath, { store = true, lang, vaultId } = {}) {
+// syncToken – расшифрованный токен синхронизации (см. saveSyncToken в
+// main.js). Страница с ним не должна оседать в дисковом кеше Chromium,
+// поэтому для неё no-store вместо no-cache.
+async function serveFile(filePath, { store = true, lang, vaultId, syncToken } = {}) {
   let stat;
   try {
     stat = await fs.stat(filePath);
@@ -105,7 +111,14 @@ async function serveFile(filePath, { store = true, lang, vaultId } = {}) {
   if (!stat.isFile()) return null;
   const isHtml = path.extname(filePath).toLowerCase() === ".html";
   let body = await fs.readFile(filePath, isHtml ? "utf8" : undefined);
-  if (isHtml) body = injectEnv(body, { admin: true, lang, vaultId });
+  if (isHtml) {
+    const env = { admin: true, lang, vaultId };
+    if (syncToken) {
+      env.syncToken = syncToken;
+      store = false;
+    }
+    body = injectEnv(body, env);
+  }
   return new Response(body, {
     status: 200,
     headers: {
@@ -130,7 +143,14 @@ async function readJsonBody(request) {
   }
 }
 
-export function createHandler({ appDir, getVault, appRoutes = {}, getLang, getVaultId }) {
+export function createHandler({
+  appDir,
+  getVault,
+  appRoutes = {},
+  getLang,
+  getVaultId,
+  getSyncToken,
+}) {
   return async function handle(request) {
     const url = new URL(request.url);
     const pathname = url.pathname;
@@ -195,15 +215,19 @@ export function createHandler({ appDir, getVault, appRoutes = {}, getLang, getVa
 
       // ── Страницы и скрипты – из состава приложения ──
       const clean = pathname === "/" ? "/index.html" : pathname;
+      // Токен нужен только страницам – за каждым скриптом и шрифтом его
+      // не достаём.
+      const pageToken = async () => (getSyncToken ? await getSyncToken() : null);
       const direct = resolveInside(appDir, clean);
       if (direct) {
-        const res = await serveFile(direct, { lang, vaultId });
+        const syncToken = clean.toLowerCase().endsWith(".html") ? await pageToken() : null;
+        const res = await serveFile(direct, { lang, vaultId, syncToken });
         if (res) return res;
       }
       // Красивые адреса вида /add – так же, как их разворачивал хостинг.
       const asPage = resolveInside(appDir, `${clean}.html`);
       if (asPage) {
-        const res = await serveFile(asPage, { lang, vaultId });
+        const res = await serveFile(asPage, { lang, vaultId, syncToken: await pageToken() });
         if (res) return res;
       }
 

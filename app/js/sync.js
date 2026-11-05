@@ -196,19 +196,86 @@ function checkSyncErrorBanner() {
   showSyncErrorBanner(error);
 }
 
+// ── Токен – в зашифрованном хранилище системы, где оно есть ──
+// На компьютере electron/main.js шифрует токен средствами системы и
+// отдаёт его странице только в памяти – строкой window.__TASTEID.syncToken
+// при загрузке (см. saveSyncToken там). Тогда в localStorage лежит
+// конфиг БЕЗ токена: owner, repo и прочее, а сам токен – отдельно.
+// Где такого хранилища нет (телефон, Linux без связки ключей, dev-сервер),
+// маршрут не отвечает secure: true, и токен остаётся в конфиге, как
+// было всегда.
+let syncTokenInMemory =
+  (typeof window !== "undefined" && window.__TASTEID?.syncToken) || null;
+
 function getSyncConfig() {
+  let config;
   try {
-    return JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY)) || null;
+    config = JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY)) || null;
   } catch {
     return null;
   }
+  if (config && !config.token && syncTokenInMemory) config = { ...config, token: syncTokenInMemory };
+  return config;
 }
 
 function saveSyncConfig(config) {
   localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(config));
+  if (config?.token) moveSyncTokenToSecureStore(config.token);
 }
 
+// Отправляет токен в зашифрованное хранилище и, если оно его приняло,
+// убирает токен из localStorage. Не ждём его в saveSyncConfig: до ответа
+// токен просто полежит там же, где лежал раньше, – хуже, чем было, не
+// становится ни на миг.
+async function moveSyncTokenToSecureStore(token) {
+  let result;
+  try {
+    const res = await fetch("/api/app/sync-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    result = res.ok ? await res.json() : null;
+  } catch {
+    return;
+  }
+  if (!result?.secure) return;
+  syncTokenInMemory = token;
+  try {
+    const stored = JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY));
+    // Конфиг могли за это время сменить или убрать – трогаем, только
+    // если в нём всё ещё этот же токен.
+    if (stored?.token === token) {
+      delete stored.token;
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(stored));
+    }
+  } catch {
+    // localStorage недоступен – токен и так уже в зашифрованном хранилище.
+  }
+}
+
+function forgetSecureSyncToken() {
+  syncTokenInMemory = null;
+  fetch("/api/app/sync-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: null }),
+  }).catch(() => {});
+}
+
+// Токены, сохранённые до этой версии, лежат в localStorage открытым
+// текстом – переносим их при первом же запуске.
+(function migrateSyncTokenToSecureStore() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY));
+    if (stored?.token) moveSyncTokenToSecureStore(stored.token);
+  } catch {
+    // Нечего переносить.
+  }
+})();
+
 function clearSyncConfig() {
+  forgetSecureSyncToken();
   localStorage.removeItem(SYNC_CONFIG_KEY);
   localStorage.removeItem(SYNC_STATE_KEY);
   localStorage.removeItem(AUTOSYNC_CONFLICTS_KEY);
