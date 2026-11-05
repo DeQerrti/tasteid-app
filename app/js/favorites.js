@@ -283,7 +283,7 @@ function favTitleCard(r, index, forExport) {
 
   return `<div class="review-card-wrap" data-review-id="${editId}" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${editBtn}
-    <div class="card" style="animation-delay:0ms">
+    <div class="card" style="animation-delay:0ms${gradeColorStyle(info)}">
       <span class="type-tag ${tagClass}">${esc(tagLabel)}</span>
       <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">

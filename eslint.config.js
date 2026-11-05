@@ -102,6 +102,7 @@ const sharedBrowserGlobals = [
   "getSyncState",
   "githubApi",
   "GRADE_ORDER",
+  "gradeColorStyle",
   "gradeInlineHtml",
   "gradeLabels",
   "GRADES",

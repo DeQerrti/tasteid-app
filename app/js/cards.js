@@ -31,9 +31,20 @@ function findReviewForTitle(title, type) {
   return grade ? { grade, score, raw: found.grade } : null;
 }
 
+// Цвет полки оценки для полосы на карточке (.card-body в index.html
+// рисует её из --gc). Дописывается к уже существующему style="…" карточки,
+// поэтому начинается с ";". Без оценки – пусто, полосы нет.
+function gradeColorStyle(info) {
+  return info?.grade?.color ? `;--gc:${esc(info.grade.color)}` : "";
+}
+
+// Цвет полки – ромбом, сама подпись – светлым текстом, как у
+// .card-grade-row в «Отзывах». Раньше подпись красилась цветом полки
+// целиком: на чёрном это читалось, а на цветном фоне (тёмная
+// ботаническая тема) фиолетовый и синий мелким курсивом пропадали.
 function gradeInlineHtml(info) {
   if (!info) return "";
-  return `<span class="card-grade-inline" style="color:${info.grade.color}" data-tip="${esc(info.grade.desc)}">${esc(gradeValueLabel(info.raw))}</span>`;
+  return `<span class="card-grade-inline" data-tip="${esc(info.grade.desc)}"><span class="card-grade-dot" style="--gc:${esc(info.grade.color)}"></span><span class="card-grade-text">${esc(gradeValueLabel(info.raw))}</span></span>`;
 }
 
 // Локаль – по языку интерфейса, а не жёстко "ru-RU": с английским
@@ -122,7 +133,7 @@ function manualCard(r, index) {
 
   return `<div class="review-card-wrap" data-review-id="${editId}" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${pencil}
-    <div class="card" style="animation-delay:0ms">
+    <div class="card" style="animation-delay:0ms${gradeColorStyle(info)}">
       <div class="card-poster">
         <span class="type-tag tag-manual">${esc(tagLabel)}</span>
         ${watchBadge ? `<span class="watch-badge">${esc(watchBadge)}</span>` : ""}

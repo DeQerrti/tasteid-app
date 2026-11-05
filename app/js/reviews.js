@@ -805,7 +805,7 @@ function reviewCard(r, i) {
   return `<div class="review-card-wrap" data-review-idx="${i}"
     role="button" tabindex="0" aria-label="${i18n("Открыть отзыв: {v0}", { v0: esc(r.title) })}">
     ${editBtn}
-    <div class="card" style="animation-delay:${Math.min(i * 40, 600)}ms">
+    <div class="card" style="animation-delay:${Math.min(i * 40, 600)}ms${grade ? `;--gc:${esc(grade.color)}` : ""}">
       <div class="card-poster">
         ${typeLabel ? `<span class="type-tag tag-manual">${esc(typeLabel)}</span>` : ""}
         ${rewatchHtml}

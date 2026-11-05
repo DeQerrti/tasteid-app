@@ -512,7 +512,7 @@ function renderStackedBarChart(title, id, yearsByType) {
 
   return `<section class="stat-section stat-card wide">
     <h2 class="section-title">${esc(title)}</h2>
-    <div class="year-bars-wrap" id="${id}">${bars}</div>
+    <div class="year-bars-wrap${years.length > 20 ? " dense" : ""}" id="${id}">${bars}</div>
   </section>`;
 }
 

@@ -365,8 +365,10 @@
   --card-shadow: 0 10px 26px -14px rgba(0, 0, 0, 0.55);
   --card-shadow-hover: 0 18px 38px -16px rgba(0, 0, 0, 0.65);
   --card-corner-display: none;
-  --card-img-filter: saturate(0.96) brightness(0.95);
-  --card-img-filter-hover: saturate(1.05) brightness(1);
+  /* Без затемнения: вместе с зелёным фоном brightness(.95) давал
+     мутную вуаль на всей сетке. */
+  --card-img-filter: none;
+  --card-img-filter-hover: saturate(1.05) brightness(1.04);
 
   --badge-bg: rgba(41, 54, 31, 0.85);
   --badge-text: #eef2e2;
@@ -549,6 +551,30 @@
 [data-skin="soft-dark"] .tl-editor-label {
   border-right-color: var(--bg2);
 }
+/* Колонка яруса – нейтральная зелёная, а не подмешанный цвет полки:
+   сине-серая или фиолетовая заплатка на зелёном выглядела чужой.
+   Цвет полки остаётся в названии (высветленным, чтобы читался на
+   тёмно-зелёном) и в полосе по левому краю ряда. */
+[data-skin="soft-dark"] .tl-label {
+  background: var(--surface2);
+}
+[data-skin="soft-dark"] .tl-label-name {
+  color: color-mix(in srgb, var(--tl-color, var(--text-hi)) 60%, var(--text-hi));
+}
+[data-skin="soft-dark"] .tl-row::before {
+  width: 4px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="soft-dark"] .tl-poster img {
+  filter: none;
+}
+/* Подложка столбиков графиков темнее поверхности карточки: на
+   #29361f зелёные сегменты «Фильм»/«Сериал» сливались с фоном. */
+[data-skin="soft-dark"] .year-bar-track {
+  background: var(--bg);
+  border-color: var(--border);
+}
 [data-skin="soft-dark"] .tl-poster,
 [data-skin="soft-dark"] .tl-char-poster {
   border-radius: 12px;
@@ -645,7 +671,10 @@ html[data-skin="brutal"] .card-title,
 html[data-skin="brutal"] .review-title,
 html[data-skin="brutal"] h1,
 html[data-skin="brutal"] h2 {
-  font-family: "Courier New", ui-monospace, monospace;
+  /* Свой моноширинный шрифт из app/fonts (см. README там) вместо
+     системного Courier New: тот жидкий, кириллица в нём бедная, и не
+     на каждом устройстве он вообще есть. */
+  font-family: "IBM Plex Mono", "Courier New", ui-monospace, monospace;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -757,6 +786,26 @@ html[data-skin="brutal"] h2 {
 [data-skin="brutal"] .tl-label,
 [data-skin="brutal"] .tl-editor-label {
   border-right: 3px solid #000;
+}
+/* Тир-лист в палитре темы: колонка яруса без подмешанного цвета полки,
+   название – обычным цветом текста, а цвет полки – толстой полосой по
+   левому краю ряда. То же в тёмном варианте ниже. */
+[data-skin="brutal"] .tl-label {
+  background: var(--surface);
+}
+[data-skin="brutal"] .tl-label-name {
+  color: var(--text-hi);
+}
+[data-skin="brutal"] .tl-row::before {
+  width: 8px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="brutal"] .tl-label {
+  padding-left: calc(0.7rem + 8px);
+}
+[data-skin="brutal"] .tl-poster img {
+  filter: var(--card-img-filter);
 }
 
 /* ── Бейджи на обложках ── */
@@ -906,11 +955,14 @@ html[data-skin="brutal"] h2 {
   --radius-btn: 0;
   --card-radius: 0;
   --card-border: 3px solid #fff;
-  --card-shadow: 6px 6px 0 #fff;
-  --card-shadow-hover: 10px 10px 0 var(--red);
+  /* Белая тень со сдвигом у каждой из двух десятков карточек делала из
+     сетки частокол белых рамок, который спорил с обложками. В покое –
+     тёмно-серая, «удар» акцентом – только у той, на которую навели. */
+  --card-shadow: 5px 5px 0 #3a3a3a;
+  --card-shadow-hover: 8px 8px 0 var(--red);
   --card-corner-display: none;
-  --card-img-filter: contrast(1.08) saturate(1.05) brightness(0.95);
-  --card-img-filter-hover: contrast(1.15) saturate(1.15) brightness(1);
+  --card-img-filter: contrast(1.05) saturate(1.05);
+  --card-img-filter-hover: contrast(1.12) saturate(1.12);
 
   --badge-bg: #fff;
   --badge-text: #000;
@@ -949,7 +1001,7 @@ html[data-skin="brutal-dark"] .card-title,
 html[data-skin="brutal-dark"] .review-title,
 html[data-skin="brutal-dark"] h1,
 html[data-skin="brutal-dark"] h2 {
-  font-family: "Courier New", ui-monospace, monospace;
+  font-family: "IBM Plex Mono", "Courier New", ui-monospace, monospace;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1046,6 +1098,21 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="brutal-dark"] .tl-label,
 [data-skin="brutal-dark"] .tl-editor-label {
   border-right: 3px solid #fff;
+}
+[data-skin="brutal-dark"] .tl-label {
+  background: var(--surface);
+  padding-left: calc(0.7rem + 8px);
+}
+[data-skin="brutal-dark"] .tl-label-name {
+  color: var(--text-hi);
+}
+[data-skin="brutal-dark"] .tl-row::before {
+  width: 8px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="brutal-dark"] .tl-poster img {
+  filter: var(--card-img-filter);
 }
 
 [data-skin="brutal-dark"] .type-tag,
@@ -1193,7 +1260,7 @@ html[data-skin="brutal-dark"] h2 {
   --border: #e6e7ee;
   --border2: #dcdee6;
   --text: #4a4d5e;
-  --text-dim: #8b8fa3;
+  --text-dim: #646a80; /* было #8b8fa3 – около 2.8:1 к фону */
   --text-hi: #2b2d3d;
 
   --neo-light: rgba(255, 255, 255, 0.75);
@@ -1246,7 +1313,47 @@ html[data-skin="brutal-dark"] h2 {
    у html[data-skin="brutal"] *, но через наследование, а не таранишь
    специфичность). */
 [data-skin="neomorphism"] body {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
+}
+/* Один гротеск на всё. Раньше здесь был DM Sans – в нём нет кириллицы,
+   и весь русский текст молча набирался системным Arial/Segoe, а латиница
+   – DM Sans. Плюс вкладки, подписи оценок, цифры статистики, заголовки
+   настроек оставались засечковыми от классической темы: на одном
+   экране выходило три-четыре разных шрифта. Manrope (app/fonts) с
+   кириллицей, и * – как у брутализма – ловит всё, а не только список. */
+html[data-skin="neomorphism"] *,
+html[data-skin="neomorphism-dark"] * {
+  font-family: "Manrope", "DM Sans", sans-serif;
+  font-style: normal;
+}
+/* Тир-лист и блоки статистики в духе темы: колонка яруса без
+   подмешанного цвета полки (цвет – полосой слева), блоки статистики –
+   выпуклые карточки, а не невидимые прямоугольники цвета фона. */
+[data-skin="neomorphism"] .tl-label,
+[data-skin="neomorphism-dark"] .tl-label {
+  background: var(--surface);
+  padding-left: calc(0.7rem + 6px);
+}
+[data-skin="neomorphism"] .tl-label-name,
+[data-skin="neomorphism-dark"] .tl-label-name {
+  color: var(--text-hi);
+  font-weight: 700;
+}
+[data-skin="neomorphism"] .tl-row::before,
+[data-skin="neomorphism-dark"] .tl-row::before {
+  width: 6px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="neomorphism"] .tl-poster img,
+[data-skin="neomorphism-dark"] .tl-poster img {
+  filter: var(--card-img-filter);
+}
+[data-skin="neomorphism"] .stat-grid .stat-card,
+[data-skin="neomorphism-dark"] .stat-grid .stat-card {
+  border: none;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
 }
 
 /* Заголовки: курсивный засечковый шрифт базовой темы читается как
@@ -1261,7 +1368,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism"] .btn-save,
 [data-skin="neomorphism"] .card-title,
 [data-skin="neomorphism"] .review-title {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
   font-style: normal;
 }
 
@@ -1450,7 +1557,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism"] input[type="color"] {
   border-radius: 10px;
   box-shadow: none;
-  border: none;
+  border: 1px solid rgba(31, 35, 48, 0.18);
 }
 [data-skin="neomorphism"] .btn,
 [data-skin="neomorphism"] .btn-new,
@@ -1547,20 +1654,29 @@ html[data-skin="brutal-dark"] h2 {
   --border: #24262f;
   --border2: #1c1e26;
   --text: #b6b9c9;
-  --text-dim: #6f7386;
+  /* Было #6f7386 – около 3:1 к фону, даты и счётчики сливались.
+     #9a9fb3 – около 5.5:1. */
+  --text-dim: #9a9fb3;
   --text-hi: #eef0f7;
 
-  --neo-light: rgba(255, 255, 255, 0.06);
+  /* Светлая половина тени была 0.06 – на тёмном фоне её почти не
+     видно, и карточки с блоками «висели в воздухе». Плюс тонкий блик
+     по верхнему краю (inset), чтобы элемент читался как выпуклый. */
+  --neo-light: rgba(255, 255, 255, 0.085);
   --neo-dark: rgba(0, 0, 0, 0.6);
 
   --radius-btn: 999px;
   --card-radius: 24px;
   --card-border: none;
-  --card-shadow: 8px 8px 16px var(--neo-dark), -8px -8px 16px var(--neo-light);
-  --card-shadow-hover: 11px 11px 22px var(--neo-dark), -11px -11px 22px var(--neo-light);
+  --card-shadow:
+    8px 8px 16px var(--neo-dark), -7px -7px 15px var(--neo-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --card-shadow-hover:
+    11px 11px 22px var(--neo-dark), -10px -10px 20px var(--neo-light),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --card-corner-display: none;
-  --card-img-filter: saturate(0.98) brightness(0.9);
-  --card-img-filter-hover: saturate(1.06) brightness(1);
+  --card-img-filter: none;
+  --card-img-filter-hover: saturate(1.06) brightness(1.04);
 
   --badge-bg: rgba(15, 16, 20, 0.75);
   --badge-text: #f4f5f9;
@@ -1589,7 +1705,7 @@ html[data-skin="brutal-dark"] h2 {
 /* См. комментарий у [data-skin="neomorphism"] body чуть выше по файлу —
    тот же пробел, тёмный вариант унаследовал его вместе со светлым. */
 [data-skin="neomorphism-dark"] body {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
 }
 
 [data-skin="neomorphism-dark"] .logo,
@@ -1601,7 +1717,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism-dark"] .btn-save,
 [data-skin="neomorphism-dark"] .card-title,
 [data-skin="neomorphism-dark"] .review-title {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Manrope", "DM Sans", sans-serif;
   font-style: normal;
 }
 
@@ -1774,7 +1890,9 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="neomorphism-dark"] input[type="color"] {
   border-radius: 10px;
   box-shadow: none;
-  border: none;
+  /* Тонкая рамка: без неё тёмные образцы («Фон страницы», «Блоки»)
+     сливались с подложкой и были просто не видны. */
+  border: 1px solid rgba(238, 240, 247, 0.22);
 }
 [data-skin="neomorphism-dark"] .btn,
 [data-skin="neomorphism-dark"] .btn-new,
@@ -1925,7 +2043,7 @@ html[data-skin="brutal-dark"] h2 {
    «Настройки», вводные абзацы и вкладки в settings-edit.html оставались
    в шрифте классической темы, хотя цвета уже были в духе «рисованной». */
 [data-skin="doodle"] body {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 
 /* Заголовки — крупный маркер, остальной интерфейс — разборчивый
@@ -1966,7 +2084,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle"] textarea,
 [data-skin="doodle"] .side-tab,
 [data-skin="doodle"] #admin-settings-link {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 /* .side-tab и #admin-settings-link жили в группе Caveat выше — тот же
    почерк, что и в рельсе (.tab-btn), но без компенсирующего
@@ -2295,15 +2413,18 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle-dark"] {
   color-scheme: dark;
 
-  --bg: #1c2620;
-  --bg2: #16201b;
-  --surface: #212f27;
-  --surface2: #1a251f;
-  --border: #e8e4d9;
-  --border2: #e8e4d9;
-  --text: #d8d4c5;
-  --text-dim: #8b9187;
-  --text-hi: #f5f2e6;
+  /* «Мел на грифельной доске»: графит вместо тёмно-зелёного – иначе
+     тема выглядела копией тёмной ботанической в другом шрифте. Мел –
+     тёплый белый, акцент – тот же оранжевый (theme.js). */
+  --bg: #23262b;
+  --bg2: #1c1f23;
+  --surface: #2b2f35;
+  --surface2: #25282d;
+  --border: #e9e6dc;
+  --border2: #e9e6dc;
+  --text: #dcd8cc;
+  --text-dim: #a19e95;
+  --text-hi: #f7f4ea;
 
   --doodle-wobble: 255px 15px 225px 15px/15px 225px 15px 255px;
   --doodle-wobble-pill: 40% 60% 55% 45% / 45% 40% 60% 55%;
@@ -2311,14 +2432,17 @@ html[data-skin="brutal-dark"] h2 {
 
   --radius-btn: 999px;
   --card-radius: 20px;
-  --card-border: 2px solid var(--text);
-  --card-shadow: 3px 4px 0 rgba(0, 0, 0, 0.6);
+  /* Меловая рамка в покое полупрозрачная: двадцать ярко-белых
+     «нарисованных» рамок спорили с обложками. Яркая – при наведении
+     (см. правило .review-card-wrap:hover ниже). */
+  --card-border: 2px solid rgba(233, 230, 220, 0.3);
+  --card-shadow: 3px 4px 0 rgba(0, 0, 0, 0.55);
   --card-shadow-hover: 5px 6px 0 rgba(0, 0, 0, 0.6);
   --card-corner-display: none;
-  --card-img-filter: contrast(1.05) brightness(0.92);
-  --card-img-filter-hover: contrast(1.1) brightness(1);
+  --card-img-filter: none;
+  --card-img-filter-hover: contrast(1.06) brightness(1.03);
 
-  --badge-bg: rgba(20, 28, 23, 0.8);
+  --badge-bg: rgba(28, 31, 35, 0.82);
   --badge-text: #f5f2e6;
   --badge-text-dim: #c7c2b0;
   --badge-border: rgba(255, 255, 255, 0.15);
@@ -2330,8 +2454,8 @@ html[data-skin="brutal-dark"] h2 {
   --tint-line-hi: rgba(216, 212, 197, 0.24);
 
   --scrim: rgba(0, 0, 0, 0.7);
-  --poster-scrim: rgba(20, 28, 23, 0.6);
-  --nav-bg: rgba(28, 38, 32, 0.94);
+  --poster-scrim: rgba(28, 31, 35, 0.6);
+  --nav-bg: rgba(35, 38, 43, 0.94);
   --shadow: rgba(0, 0, 0, 0.6);
   --shadow-soft: rgba(0, 0, 0, 0.3);
 
@@ -2344,7 +2468,7 @@ html[data-skin="brutal-dark"] h2 {
 
 /* См. комментарий у [data-skin="doodle"] body чуть выше по файлу. */
 [data-skin="doodle-dark"] body {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 
 [data-skin="doodle-dark"] .logo,
@@ -2382,7 +2506,7 @@ html[data-skin="brutal-dark"] h2 {
 [data-skin="doodle-dark"] textarea,
 [data-skin="doodle-dark"] .side-tab,
 [data-skin="doodle-dark"] #admin-settings-link {
-  font-family: "Patrick Hand", cursive;
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
 }
 /* См. комментарий у [data-skin="doodle"] .side-tab чуть выше по файлу. */
 [data-skin="doodle-dark"] .side-tab,
@@ -2695,6 +2819,14 @@ html[data-skin="brutal-dark"] h2 {
   transform: scaleX(-1);
 }
 
+/* В тёмном варианте лиана тише и чуть отодвинута от края окна: на
+   почти чёрном фоне 0.4 спорила с обложками, а вплотную к полосе
+   прокрутки выглядела обрезанной. */
+[data-skin="soft-dark"] body::after {
+  opacity: 0.22;
+  right: 10px;
+}
+
 /* Контент должен лежать поверх украшения. Навигации здесь нет
    намеренно: у неё уже z-index 100 ради position: sticky, и если
    опустить её до единицы, main начнёт проезжать поверх при скролле. */
@@ -2730,4 +2862,48 @@ html[data-skin="brutal-dark"] h2 {
   [data-skin="soft-dark"] nav#rail ~ main {
     padding-right: calc(2.5rem + 100px);
   }
+}
+
+/* ══ РИСОВАННАЯ: названия, рамки, тир-лист ═══════
+   Названия карточек – Pangolin, а не Caveat: это основной текст сетки,
+   а Caveat в 11–12px рукописным курсивом приходилось разбирать. Caveat
+   остаётся заголовкам и меню, где кегль крупный. */
+/* Заголовок раздела в настройках (голый h1) оставался Playfair из
+   базовых стилей – тем же маркером Caveat, что и заголовки секций. */
+[data-skin="doodle"] h1,
+[data-skin="doodle-dark"] h1 {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-style: normal;
+}
+[data-skin="doodle"] .card-title,
+[data-skin="doodle-dark"] .card-title {
+  font-family: "Pangolin", "Patrick Hand", sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+}
+[data-skin="doodle-dark"] .review-card-wrap:hover .review-card,
+[data-skin="doodle-dark"] .card:hover {
+  border-color: var(--border2);
+}
+/* Тир-лист: колонка яруса без подмешанного цвета полки, название
+   цветом мела/чернил, цвет полки – полосой слева. */
+[data-skin="doodle"] .tl-label,
+[data-skin="doodle-dark"] .tl-label {
+  background: var(--surface);
+  padding-left: calc(0.7rem + 6px);
+}
+[data-skin="doodle"] .tl-label-name,
+[data-skin="doodle-dark"] .tl-label-name {
+  color: var(--text-hi);
+}
+[data-skin="doodle"] .tl-row::before,
+[data-skin="doodle-dark"] .tl-row::before {
+  width: 6px;
+  opacity: 1;
+  z-index: 1;
+}
+[data-skin="doodle"] .tl-poster img,
+[data-skin="doodle-dark"] .tl-poster img {
+  filter: var(--card-img-filter);
 }
