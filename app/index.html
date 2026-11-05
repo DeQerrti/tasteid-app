@@ -42,7 +42,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <meta name="theme-color" content="#0a0a0c">
 <link rel="stylesheet" href="/fonts.css?v=1">
-<link rel="stylesheet" href="/style.css?v=23">
+<link rel="stylesheet" href="/style.css?v=24">
 <!-- admin.css – раньше только у страниц редактирования (настройки,
      add.html и т.д.), теперь ещё и для маршрутов SPA-роутера: у
      #/reviews-order (js/routes/reviews-order.js) собственная шапка
@@ -126,7 +126,8 @@ nav#rail .logo {
 }
 .rail-sub {
   font-family: 'DM Sans', sans-serif;
-  font-size: .6rem; letter-spacing: .06em; text-transform: uppercase;
+  font-size: .62rem; letter-spacing: .03em; text-transform: uppercase;
+  white-space: nowrap;
   color: var(--text-dim);
   padding: 0 6px 14px;
   border-bottom: 1px solid var(--border);
@@ -137,7 +138,7 @@ nav#rail .logo {
 
 .tab-btn {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   letter-spacing: .04em;
   color: var(--text-dim);
@@ -224,7 +225,7 @@ body.rail-collapsed #rail-edge-trigger {
 
 #admin-settings-link {
   display: block;
-  font-size: .85rem;
+  font-size: .95rem;
   padding: .5rem .7rem;
   color: var(--text-dim);
   text-decoration: none;
@@ -518,11 +519,14 @@ section.group { margin-bottom: 3.5rem; }
   object-fit: cover;
   display: block;
   background: var(--surface2);
-  filter: var(--card-img-filter, grayscale(.15) brightness(.9));
+  /* Раньше grayscale(.15) brightness(.9): обложки в покое выглядели
+     пыльными, и вся сетка – мутной. Теперь почти без фильтра; при
+     наведении карточка всё так же чуть «оживает» (см. :hover ниже). */
+  filter: var(--card-img-filter, brightness(.96));
   transition: filter .3s;
   flex-shrink: 0;
 }
-.card:hover img { filter: var(--card-img-filter-hover, grayscale(0) brightness(.98)); }
+.card:hover img { filter: var(--card-img-filter-hover, brightness(1.04)); }
 .card-char img  { aspect-ratio: 1/1; }
 .card-char { cursor: pointer; }
 
@@ -532,6 +536,11 @@ section.group { margin-bottom: 3.5rem; }
   display: flex;
   flex-direction: column;
   flex: 1;
+  /* Полоса оценки: цвет полки шкалы (--gc ставят на .card шаблоны в
+     cards.js, favorites.js и reviews.js). Оценка – главная идея
+     приложения, и так сетку можно читать по цвету, не вчитываясь в
+     подпись. Без оценки --gc не задан, и полосы нет. */
+  box-shadow: inset 0 3px 0 var(--gc, transparent);
 }
 
 .card-title {
@@ -559,7 +568,7 @@ section.group { margin-bottom: 3.5rem; }
   margin-top: auto;
   padding-top: .3rem;
   font-family: 'DM Sans', sans-serif;
-  font-size: .72rem;
+  font-size: .78rem;
   color: var(--text-dim);
   display: flex;
   justify-content: space-between;
@@ -578,9 +587,16 @@ section.group { margin-bottom: 3.5rem; }
 }
 .card-grade-inline {
   font-family: 'Cormorant Garamond', serif;
-  font-size: .78rem;
+  font-size: .92rem;
   font-style: italic;
   font-weight: 600;
+  min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* На узкой карточке телефона рядом с годом «Разочарование» в полный
+   кегль не помещается – оценку там и так видно по цветной полосе. */
+@media (max-width: 700px) {
+  .card-grade-inline { font-size: .68rem; }
 }
 
 /* ══ TYPE TAGS ═══════════════════════════════════ */
@@ -748,7 +764,7 @@ section.group { margin-bottom: 3.5rem; }
   display: flex; align-items: center; gap: .4rem;
   margin-top: .3rem;
   font-family: 'Cormorant Garamond', serif;
-  font-size: .82rem; font-weight: 600; font-style: italic;
+  font-size: .95rem; font-weight: 600; font-style: italic;
   color: var(--text-hi);
 }
 /* Тот же приём отрисовки, что у .tab-btn.active::before (index.html) –
@@ -1144,9 +1160,16 @@ section.group { margin-bottom: 3.5rem; }
   scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
   min-height: 180px;
 }
-.year-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+/* Столбики тянутся на всю ширину блока, а не стоят фиксированными 32px:
+   раньше при десятке лет график занимал четверть карточки, а остальное
+   было пустым. Нижний предел ширины оставляет прокрутку для длинных
+   рядов (годы выхода), верхний – не даёт трём столбикам стать плитами. */
+.year-bar-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex: 1 1 0; min-width: 24px; max-width: 120px;
+}
 .year-bar-track {
-  width: 32px; height: 140px;
+  width: 100%; height: 160px;
   background: var(--surface2); border: 1px solid var(--border);
   display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
 }
@@ -1159,8 +1182,12 @@ section.group { margin-bottom: 3.5rem; }
   min-height: 2px;
 }
 .year-bar-seg { width: 100%; min-height: 1px; }
-.year-bar-val   { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim); line-height: 1; }
-.year-bar-label { font-family: 'DM Sans', sans-serif; font-size: .6rem; color: var(--text-dim); writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .05em; }
+.year-bar-val   { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text); line-height: 1; }
+/* Подпись года горизонтальная, пока столбики достаточно широкие;
+   вертикальной она остаётся только в плотном ряду (.dense – больше 20
+   лет, см. renderStackedBarChart в stats.js), где иначе не помещается. */
+.year-bar-label { font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); letter-spacing: .02em; white-space: nowrap; }
+.year-bars-wrap.dense .year-bar-label { writing-mode: vertical-rl; transform: rotate(180deg); font-size: .64rem; }
 
 .grade-bars { display: flex; flex-direction: column; gap: .75rem; }
 .grade-row  { display: flex; align-items: center; gap: 1rem; }
@@ -1307,7 +1334,7 @@ section.group { margin-bottom: 3.5rem; }
   font-family: 'Playfair Display', serif;
   font-weight: 700;
   font-style: italic;
-  font-size: .92rem;
+  font-size: 1.05rem;
   color: var(--tl-color, var(--text-hi));
   text-align: center;
   line-height: 1.2;
@@ -1317,7 +1344,7 @@ section.group { margin-bottom: 3.5rem; }
 }
 .tl-label-count {
   font-family: 'DM Sans', sans-serif;
-  font-size: .58rem;
+  font-size: .72rem;
   letter-spacing: .1em;
   color: var(--text-dim);
 }
@@ -1377,10 +1404,13 @@ section.group { margin-bottom: 3.5rem; }
   aspect-ratio: 2/3;
   object-fit: cover;
   display: block;
-  filter: grayscale(.2) brightness(.82);
+  /* Было grayscale(.2) brightness(.82) – весь тир-лист выглядел мутным,
+     будто под тёмной вуалью. Тот же почти нейтральный фильтр, что у
+     карточек (.card img выше). */
+  filter: brightness(.96);
   transition: filter .25s;
 }
-.tl-poster:hover img { filter: grayscale(0) brightness(.98); }
+.tl-poster:hover img { filter: brightness(1.04); }
 
 /* ── Тултип тир-листа – расширен и текст переносится ── */
 .tl-tooltip {
@@ -1505,7 +1535,7 @@ section.group { margin-bottom: 3.5rem; }
 }
 .rv-filter-label {
   font-family: 'DM Sans', sans-serif;
-  font-size: .62rem;
+  font-size: .68rem;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -1514,8 +1544,8 @@ section.group { margin-bottom: 3.5rem; }
 }
 .rv-filter-btn {
   font-family: 'DM Sans', sans-serif;
-  font-size: .65rem;
-  padding: .22rem .65rem;
+  font-size: .76rem;
+  padding: .3rem .75rem;
   border-radius: 1px;
   border: 1px solid var(--border2);
   background: none;
@@ -1668,9 +1698,9 @@ section.group { margin-bottom: 3.5rem; }
 }
 .tl-mode-btn {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  letter-spacing: .1em;
+  letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--text-dim);
   background: var(--surface);
@@ -1730,7 +1760,7 @@ section.group { margin-bottom: 3.5rem; }
    <style> внутри renderNow(), общим стал вместе с самим переключателем. */
 .section-count {
   font-family: 'DM Sans', sans-serif;
-  font-size: .65rem;
+  font-size: .78rem;
   font-weight: 400;
   font-style: normal;
   color: var(--text-dim);
@@ -2909,8 +2939,11 @@ section.group { margin-bottom: 3.5rem; }
   margin-top: 4px;
 }
 :where(.set-view) .hide-tags-toggle-icon { flex-shrink: 0; }
-:where(.set-view) .btn.hide-tags-toggle.on { border-color: var(--accent-line); background: var(--accent-fill); color: var(--red-hi); }
-:where(.set-view) .btn.hide-tags-toggle.on:hover { background: var(--accent-fill-hi); color: var(--red-hi); }
+/* Включённое состояние – спокойная подсветка, а не красная плашка:
+   во всю ширину красным это читалось как ошибка, хотя это просто
+   включённая настройка. */
+:where(.set-view) .btn.hide-tags-toggle.on { border-color: var(--accent-line); background: var(--tint-hi); color: var(--text-hi); }
+:where(.set-view) .btn.hide-tags-toggle.on:hover { background: var(--accent-fill); color: var(--text-hi); }
 
 /* ── Сворачиваемые разделы настроек ──────────────
    Тот же приём, что у .sec/.sec-toggle в редакторе отзыва: каждый
@@ -3272,11 +3305,11 @@ section.group { margin-bottom: 3.5rem; }
      «mergeIds is not defined». -->
 <script src="/js/external-ids.js?v=12"></script>
 <script src="/js/api.js?v=13"></script>
-<script src="/js/cards.js?v=14"></script>
+<script src="/js/cards.js?v=15"></script>
 <script src="/js/now.js?v=12"></script>
-<script src="/js/favorites.js?v=12"></script>
-<script src="/js/reviews.js?v=17"></script>
-<script src="/js/stats.js?v=15"></script>
+<script src="/js/favorites.js?v=13"></script>
+<script src="/js/reviews.js?v=18"></script>
+<script src="/js/stats.js?v=16"></script>
 <script src="/js/tierlist.js?v=14"></script>
 <script src="/js/backup-history.js?v=2"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и
