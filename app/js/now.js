@@ -34,6 +34,135 @@ let nowLastSnapshot = null;
 // между сеансами – так же, как режим самого тир-листа (tlState.mode).
 const nowState = { buckets: [], completed: [], mode: null };
 
+// Поиск, фильтр по типу и сортировка над сеткой. Живут до перезагрузки
+// страницы, как и выбранная вкладка: при переключении статуса поиск и
+// сортировка остаются, а тип сбрасывается на «Все», только если в новом
+// статусе такого типа нет вовсе.
+const nowFilter = { type: "all", q: "", sort: "date" };
+
+function nowModeItems() {
+  if (nowState.mode === "archive") return nowState.completed;
+  return nowState.buckets.find((b) => b.key === nowState.mode)?.items || [];
+}
+
+// "date" – порядок как в файле (свежее сверху, так сортирует сервер);
+// остальное – копия, исходный список не трогаем.
+function nowSorted(items) {
+  if (nowFilter.sort === "title") {
+    return [...items].sort((a, b) =>
+      String(a.title || "").localeCompare(String(b.title || ""), undefined, { sensitivity: "base" })
+    );
+  }
+  if (nowFilter.sort === "year") {
+    return [...items].sort((a, b) => (parseInt(b.year, 10) || 0) - (parseInt(a.year, 10) || 0));
+  }
+  return items;
+}
+
+// Чипы типов – только те типы, что есть в открытом статусе, с числом
+// записей; самые частые первыми. Один тип на весь статус – фильтровать
+// нечего, ряд не показываем.
+function renderNowChips() {
+  const box = document.getElementById("now-chips");
+  if (!box) return;
+  const items = nowModeItems();
+  const counts = new Map();
+  for (const r of items) {
+    const key = r.type || "";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  if (nowFilter.type !== "all" && !counts.has(nowFilter.type)) nowFilter.type = "all";
+  if (counts.size < 2) {
+    box.innerHTML = "";
+    return;
+  }
+  const chip = (key, label, n) =>
+    `<button type="button" class="now-chip${nowFilter.type === key ? " active" : ""}" data-type="${esc(key)}" aria-pressed="${nowFilter.type === key}">${esc(label)} <span class="section-count">${n}</span></button>`;
+  box.innerHTML =
+    chip("all", i18n("Все"), items.length) +
+    [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, n]) => chip(key, TYPE_LABELS[key] || key || "–", n))
+      .join("");
+}
+
+// Прячет не подходящие под поиск и тип карточки в уже нарисованном
+// разделе, а не пересобирает разметку: узлы <img> остаются теми же, и
+// сетка не мигает на каждую набранную букву (та же причина, что у
+// nowModeBodies ниже). Класс, а не атрибут hidden: у .grid-now и
+// .year-divider свой display, и он сильнее атрибута.
+function nowApplyFilter() {
+  const el = nowModeBodies[nowState.mode];
+  if (!el) return;
+  const q = normTitle(nowFilter.q);
+  let visible = 0;
+  el.querySelectorAll(".grid-now").forEach((grid) => {
+    let inGrid = 0;
+    grid.querySelectorAll(".review-card-wrap").forEach((wrap) => {
+      const ok =
+        (nowFilter.type === "all" || wrap.dataset.type === nowFilter.type) &&
+        (!q || (wrap.dataset.title || "").includes(q));
+      wrap.classList.toggle("now-hidden", !ok);
+      if (ok) inGrid++;
+    });
+    grid.classList.toggle("now-hidden", !inGrid);
+    // Год архива без единой подходящей карточки – вместе с заголовком.
+    const divider = grid.previousElementSibling;
+    if (divider?.classList.contains("year-divider")) divider.classList.toggle("now-hidden", !inGrid);
+    visible += inGrid;
+  });
+  let empty = el.querySelector(".now-filter-empty");
+  const hasCards = !!el.querySelector(".review-card-wrap");
+  if (!empty && hasCards) {
+    empty = document.createElement("div");
+    empty.className = "state-box now-filter-empty";
+    empty.textContent = i18n("Ничего не нашлось – измените запрос или сбросьте фильтр.");
+    el.appendChild(empty);
+  }
+  empty?.classList.toggle("now-hidden", visible > 0);
+}
+
+function bindNowTools() {
+  const chips = document.getElementById("now-chips");
+  chips?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".now-chip");
+    if (!btn) return;
+    nowFilter.type = btn.dataset.type;
+    renderNowChips();
+    nowApplyFilter();
+  });
+  document.getElementById("now-search")?.addEventListener("input", (e) => {
+    nowFilter.q = e.target.value;
+    nowApplyFilter();
+  });
+  // Сортировка меняет порядок, а не видимость, – уже нарисованные разделы
+  // сбрасываем и строим заново (в «Архиве» другая сортировка ещё и
+  // убирает разбивку по годам, см. archiveBodyHtml).
+  document.getElementById("now-sort")?.addEventListener("change", (e) => {
+    nowFilter.sort = e.target.value;
+    nowModeBodies = {};
+    const container = document.getElementById("now-mode-body");
+    if (container) container.replaceChildren();
+    renderNowBody();
+  });
+}
+
+function nowToolsHtml() {
+  const opt = (value, label) =>
+    `<option value="${value}"${nowFilter.sort === value ? " selected" : ""}>${esc(label)}</option>`;
+  return `<div class="now-tools">
+    <div class="now-chips" id="now-chips"></div>
+    <div class="now-tools-right">
+      <input type="search" id="now-search" class="now-search" value="${esc(nowFilter.q)}" placeholder="${esc(i18n("Поиск по названию"))}" aria-label="${esc(i18n("Поиск по названию"))}">
+      <select id="now-sort" class="now-sort" aria-label="${esc(i18n("Сортировка"))}">
+        ${opt("date", i18n("Сначала недавние"))}
+        ${opt("title", i18n("По названию"))}
+        ${opt("year", i18n("По году выхода"))}
+      </select>
+    </div>
+  </div>`;
+}
+
 async function loadNow() {
   if (loading.now) return;
   loading.now = true;
@@ -47,7 +176,7 @@ async function loadNow() {
       items: reviews.filter(r => r.status === b.key),
     }));
     const completed = reviews.filter(r =>
-      r.status === "completed" || (!r.status && (r.preview || r.grade))
+      r.status === "completed" || (!r.status && (r.review_full || r.preview || r.grade))
     );
     const snapshot = JSON.stringify({ buckets, completed });
     if (snapshot === nowLastSnapshot) return;
@@ -142,7 +271,7 @@ function makeArchiveYearJumpHtml(completed) {
       completed
         .map((r) => {
           const raw = r.date_end || r.date_start || r.date;
-          return raw ? new Date(raw).getFullYear() : null;
+          return raw ? parseLocalDate(raw).getFullYear() : null;
         })
         .filter((y) => y !== null)
     ),
@@ -175,6 +304,12 @@ function archiveBodyHtml(completed) {
     return `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
   }
 
+  // Не по дате – разбивка по годам завершения теряет смысл (внутри
+  // каждого года был бы свой алфавит), показываем одним списком.
+  if (nowFilter.sort !== "date") {
+    return `<div class="grid-now">${nowSorted(completed).map((r, i) => manualCard(r, i)).join("")}</div>`;
+  }
+
   const sorted = [...completed].sort((a, b) => {
     const da = new Date(a.date_end || a.date_start || a.date || 0);
     const db = new Date(b.date_end || b.date_start || b.date || 0);
@@ -183,7 +318,7 @@ function archiveBodyHtml(completed) {
   const byYear = {};
   for (const r of sorted) {
     const raw = r.date_end || r.date_start || r.date;
-    const y = raw ? new Date(raw).getFullYear() : "–";
+    const y = raw ? parseLocalDate(raw).getFullYear() : "–";
     if (!byYear[y]) byYear[y] = [];
     byYear[y].push(r);
   }
@@ -206,7 +341,7 @@ function nowModeBodyHtml() {
   if (!b || !b.items.length) {
     return `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
   }
-  return `<div class="grid-now">${b.items.map((r, i) => manualCard(r, i)).join("")}</div>`;
+  return `<div class="grid-now">${nowSorted(b.items).map((r, i) => manualCard(r, i)).join("")}</div>`;
 }
 
 // Кэш уже отрисованных разделов – та же причина, что решили для
@@ -236,6 +371,8 @@ function renderNowBody() {
   for (const [mode, el] of Object.entries(nowModeBodies)) {
     el.hidden = mode !== nowState.mode;
   }
+  renderNowChips();
+  nowApplyFilter();
   nowBindCardClicks();
 }
 
@@ -251,7 +388,7 @@ function nowBindCardClicks() {
   const body = document.getElementById("now-mode-body");
   if (!body || body.dataset.clickBound) return;
   body.dataset.clickBound = "1";
-  body.addEventListener("click", (e) => {
+  const open = (e) => {
     if (e.target.closest(".review-edit-btn")) return;
     const wrap = e.target.closest(".review-card-wrap");
     if (!wrap) return;
@@ -260,6 +397,17 @@ function nowBindCardClicks() {
       (r) => String(r.id ?? encodeURIComponent(r.title)) === id
     );
     if (review) openReviewModal(review);
+  };
+  body.addEventListener("click", open);
+  // Enter и пробел – то, чего браузер ждёт от role="button" (карточка
+  // теперь фокусируема, см. manualCard в cards.js). Только когда фокус
+  // на самой карточке: Enter на карандаше внутри неё – это переход по
+  // его ссылке, а не открытие отзыва.
+  body.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    if (!e.target.classList?.contains("review-card-wrap")) return;
+    e.preventDefault();
+    open(e);
   });
 }
 
@@ -275,7 +423,8 @@ function renderNow({ buckets, completed }) {
     return;
   }
 
-  box.innerHTML = `${nowModeToggleHtml()}<div id="now-mode-body"></div>`;
+  box.innerHTML = `${nowModeToggleHtml()}${nowToolsHtml()}<div id="now-mode-body"></div>`;
   bindNowModeToggle();
+  bindNowTools();
   renderNowBody();
 }

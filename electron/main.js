@@ -846,6 +846,17 @@ async function createWindow({ compact = false } = {}) {
     if (isWebUrl(url)) shell.openExternal(url);
     return { action: "deny" };
   });
+
+  // То же самое для обычного перехода: ссылка без target="_blank" (или
+  // location.href из данных) иначе открыла бы чужой сайт прямо в окне
+  // приложения – без кнопки «назад» и на месте страницы, у которой есть
+  // доступ к хранилищу. Внутри окна живёт только своя схема app://; всё
+  // остальное уходит в браузер (http/https) или никуда.
+  win.webContents.on("will-navigate", (event, url) => {
+    if (url.startsWith(`${SCHEME}://`)) return;
+    event.preventDefault();
+    if (isWebUrl(url)) shell.openExternal(url);
+  });
 }
 
 function openMain() {

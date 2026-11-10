@@ -319,6 +319,13 @@ export class Vault {
   // найти вообще всё: covers/, chars/<тайтл>/, свои коллекции
   // тир-листа, – не зная заранее, какие из этих папок вообще есть.
   async listAllMedia() {
+    return (await this.listAllMediaStat({ stat: false })).map((f) => f.path);
+  }
+
+  // Тот же список, но с размером и временем изменения каждого файла –
+  // для синхронизации (core/api.js: syncManifest): по ним видно, что
+  // файл с прошлого раза не трогали, и читать его содержимое незачем.
+  async listAllMediaStat({ stat = true } = {}) {
     const IMG = /\.(png|jpe?g|webp|gif)$/i;
     const out = [];
 
@@ -334,7 +341,20 @@ export class Vault {
         if (entry.name === ".history") continue; // прошлые версии – не картинки
         const childRel = rel ? `${rel}/${entry.name}` : entry.name;
         if (entry.isDirectory()) await walk(path.join(dir, entry.name), childRel);
-        else if (IMG.test(entry.name)) out.push(childRel);
+        else if (IMG.test(entry.name)) {
+          const item = { path: childRel };
+          if (stat) {
+            try {
+              const info = await fs.stat(path.join(dir, entry.name));
+              item.size = info.size;
+              item.mtime = Math.round(info.mtimeMs);
+            } catch {
+              // Файл исчез между списком и stat – без размера его просто
+              // прочтут (или не найдут) обычным путём.
+            }
+          }
+          out.push(item);
+        }
       }
     };
 
@@ -370,7 +390,7 @@ export class Vault {
       await walk(dir, base);
     }
 
-    return out.sort();
+    return out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   }
 
   // base64, а не Buffer – тот же вид, в котором отдаёт файл MobileVault

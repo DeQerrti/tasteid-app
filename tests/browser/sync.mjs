@@ -105,6 +105,20 @@ async function handleGithub(route) {
     });
   }
 
+  // Git Blobs API – содержимое по sha (см. getRemoteBlob в app/js/sync.js):
+  // так забираются файлы, чей sha уже известен из списка выше, в том
+  // числе крупнее 1 МБ, которые Contents API отдаёт пустыми.
+  const blobMatch = p.match(/^\/repos\/[^/]+\/[^/]+\/git\/blobs\/(.+)$/);
+  if (blobMatch && method === "GET") {
+    const entry = [...gh.files.values()].find((e) => e.sha === decodeURIComponent(blobMatch[1]));
+    if (!entry) return respond(404, { message: "Not Found" });
+    return respond(200, {
+      content: entry.base64.replace(/(.{60})/g, "$1\n"),
+      encoding: "base64",
+      sha: entry.sha,
+    });
+  }
+
   const contentsMatch = p.match(/^\/repos\/[^/]+\/[^/]+\/contents\/(.+)$/);
   if (contentsMatch) {
     const filePath = decodeURIComponent(contentsMatch[1]);

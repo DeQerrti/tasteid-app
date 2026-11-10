@@ -451,7 +451,21 @@ function encodePath(path) {
 // для PUT ниже. 404 – файла ещё нет, это не ошибка. GitHub режет
 // base64 на строки по 60 символов – переносы строк из content нужно
 // убрать перед использованием.
-async function getRemoteFile(config, path) {
+//
+// knownSha – sha файла, если он уже известен из общего списка
+// (getRepoTree). Тогда содержимое берём сразу через Git Blobs API, а не
+// через Contents API: тот отдаёт содержимое только файлам до 1 МБ, а у
+// файлов крупнее (до 100 МБ) возвращает пустую строку в content – без
+// ошибки. Крупная картинка из-за этого «забиралась» пустой и помечалась
+// синхронизированной, а reviews.json, перевалив за 1 МБ, перестал бы
+// забираться с другого устройства вовсе. Blobs API отдаёт до 100 МБ.
+async function getRemoteFile(config, path, knownSha) {
+  if (knownSha) {
+    const content = await getRemoteBlob(config, knownSha);
+    if (content !== null) return { base64: content, sha: knownSha };
+    // Такого blob уже нет (файл переписали сразу после списка) – идём
+    // обычным путём, за актуальной версией.
+  }
   const res = await githubApi(
     config,
     `/repos/${config.owner}/${config.repo}/contents/${encodePath(path)}`
@@ -461,7 +475,27 @@ async function getRemoteFile(config, path) {
     throw new SyncError(i18n("Не получилось прочитать файл из репозитория: {path}", { path }));
   }
   const data = await res.json();
-  return { base64: data.content.replace(/\n/g, ""), sha: data.sha };
+  let content = (data.content || "").replace(/\n/g, "");
+  // Тот самый случай «больше 1 МБ»: content пустой, хотя файл не пустой.
+  if (!content && data.size > 0 && data.sha) {
+    content = await getRemoteBlob(config, data.sha);
+    if (content === null) {
+      throw new SyncError(i18n("Не получилось прочитать файл из репозитория: {path}", { path }));
+    }
+  }
+  return { base64: content, sha: data.sha };
+}
+
+// Содержимое по sha, base64 без переносов строк. null – такого blob нет.
+async function getRemoteBlob(config, sha) {
+  const res = await githubApi(
+    config,
+    `/repos/${config.owner}/${config.repo}/git/blobs/${encodeURIComponent(sha)}`
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new SyncError(i18n("Не получилось прочитать файл из репозитория."));
+  const data = await res.json();
+  return (data.content || "").replace(/\n/g, "");
 }
 
 async function putRemoteFile(config, path, base64, sha) {
@@ -534,6 +568,82 @@ async function deleteLocalMedia(relPath) {
   }
 }
 
+// ── Своё хранилище: прочитать и записать ────────
+// Ответ своего же сервера – тоже ответ, который надо проверять: раньше
+// запись забранных файлов шла «в пустоту» (fetch без единого взгляда на
+// res.ok), и отказ сервера выглядел для синхронизации как успех.
+async function fetchLocalJson(url) {
+  let res;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new SyncError(i18n("Не получилось прочитать данные хранилища на этом устройстве."));
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new SyncError(
+      data.error || i18n("Не получилось прочитать данные хранилища на этом устройстве.")
+    );
+  }
+  return data;
+}
+
+async function readLocalMedia(path) {
+  const data = await fetchLocalJson(`/api/read-media?path=${encodeURIComponent(path)}`);
+  return data.base64;
+}
+
+// Записывает забранное в хранилище тем же путём, что и резервная копия
+// (restoreBackup трогает только переданное). Файл данных, который
+// сервер не принял, – ошибка всей синхронизации: молча пропустить его
+// значит пометить «забрано» то, чего на диске нет. Картинки, которые не
+// записались, возвращаются списком – их просто не помечают забранными,
+// и следующая синхронизация попробует снова.
+async function applyPulled({ files, images }) {
+  let res;
+  try {
+    res = await fetch("/api/restore-backup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ format: "tasteid-backup", files: files || {}, images: images || {} }),
+    });
+  } catch {
+    throw new SyncError(i18n("Не получилось записать забранные файлы на это устройство."));
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new SyncError(
+      data.error || i18n("Не получилось записать забранные файлы на это устройство.")
+    );
+  }
+  const restored = new Set(data.restored || []);
+  for (const path of Object.keys(files || {})) {
+    if (!restored.has(path)) {
+      throw new SyncError(
+        i18n("Файл из репозитория не подошёл и не записан: {path}", { path })
+      );
+    }
+  }
+  return new Set(data.failedImages || []);
+}
+
+// Забранный файл данных – из base64 в объект. Битый JSON в репозитории
+// даёт понятную ошибку с именем файла, а не голое «Unexpected token».
+function parsePulledJson(path, base64) {
+  try {
+    return JSON.parse(base64ToText(base64));
+  } catch {
+    throw new SyncError(i18n("Файл из репозитория не подошёл и не записан: {path}", { path }));
+  }
+}
+
+// Забранные картинки пишутся пачками примерно такого размера (в
+// символах base64), а не одним запросом на всё: у сервера на компьютере
+// предел тела запроса 64 МБ (electron/protocol.js), и первая
+// синхронизация нового устройства – сотни картинок разом – в один
+// запрос просто не помещалась.
+const SYNC_IMAGE_BATCH_CHARS = 8 * 1024 * 1024;
+
 // ── Один файл: решить, что с ним делать, и сделать ─
 // localBase64 – текущее содержимое, уже в base64. entry – {hash, sha}
 // из прошлой синхронизации, либо undefined, если файл ещё ни разу не
@@ -579,7 +689,7 @@ async function syncOne(config, path, localBase64, entry, remoteTree) {
   if (localChanged && remoteChanged) {
     // Спорный файл – здесь и только здесь нужно настоящее содержимое
     // с той стороны, не только его sha из общего списка.
-    const remote = await getRemoteFile(config, path);
+    const remote = await getRemoteFile(config, path, remoteSha);
     if (!remote) {
       // Файл успели удалить в промежутке между списком и этим запросом
       // (гонка, крайне маловероятная) – отправляем свою версию, как при
@@ -613,7 +723,7 @@ async function syncOne(config, path, localBase64, entry, remoteTree) {
 
   // Только remote изменился – содержимое нужно забрать по-настоящему,
   // одного sha для этого недостаточно.
-  const remote = await getRemoteFile(config, path);
+  const remote = await getRemoteFile(config, path, remoteSha);
   if (!remote) {
     // Файл удалили в репозитории в промежутке между списком и этим
     // запросом – ничего не делаем, следующая синхронизация разберётся
@@ -630,8 +740,8 @@ async function syncOne(config, path, localBase64, entry, remoteTree) {
 // сравнивать нечего, содержимого нет никакого, только сам факт, что
 // путь есть у кого-то другого. Тянем прямо, без разговора о конфликте:
 // конфликтовать может только с чем-то, что уже есть с нашей стороны.
-async function pullNewRemoteImage(config, path) {
-  const remote = await getRemoteFile(config, path);
+async function pullNewRemoteImage(config, path, sha) {
+  const remote = await getRemoteFile(config, path, sha);
   if (!remote) return { action: "none" }; // сняли из репозитория в last-second – и ладно
   return { action: "pull", base64: remote.base64, sha: remote.sha };
 }
@@ -750,12 +860,27 @@ async function syncOneByFetch(config, path, localBase64, localHash, entry) {
 }
 
 // ── Полная синхронизация ────────────────────────
-// Возвращает { pushed, pulled, skipped, conflicts, pulledFiles, pulledImages }.
-// pulledFiles/pulledImages готовы к передаче в /api/restore-backup –
-// тем же путём, каким резервная копия восстанавливает файлы.
+// Возвращает { pushed, pulled, skipped, deletedLocally, conflicts,
+// pulledFiles, pulledImages }. Забранное runSync записывает в хранилище
+// сам (applyPulled) – вызывающему коду делать это повторно не нужно;
+// pulledFiles/pulledImages остаются только как перечень того, что
+// пришло (по ним решают, перечитывать ли страницу): у файлов – их
+// содержимое, у картинок – просто отметка true, сами картинки в памяти
+// не держим.
+//
+// Запись в состояние синхронизации («этот файл уже забран») делается
+// только ПОСЛЕ того, как файл правда лёг на диск. Раньше порядок был
+// обратный: сначала пометить, потом писать, не глядя на ответ. Отказ
+// записи (а он был гарантирован, когда картинок больше 64 МБ за раз)
+// оставлял устройство в состоянии «всё забрано», хотя не забрано
+// ничего: картинки больше никогда не скачивались, а старый локальный
+// JSON на следующей синхронизации уезжал в репозиторий поверх нового.
 async function runSync(config, onProgress) {
   const state = getSyncState();
-  const backup = await (await fetch("/api/export-backup")).json();
+  // Список вместо полной резервной копии – см. её же комментарий у
+  // syncManifest в core/api.js: содержимое картинок здесь не приходит
+  // вовсе, только размер и время изменения.
+  const manifest = await fetchLocalJson("/api/sync-manifest");
   // Один запрос на весь список файлов репозитория вместо одного на
   // каждый файл (см. её же комментарий у getRepoTree/syncOne) – самая
   // частая синхронизация (несколько файлов реально изменились из
@@ -772,17 +897,18 @@ async function runSync(config, onProgress) {
     pulledImages: {},
   };
 
+  const localImages = manifest.images || {};
   const items = [
-    ...Object.entries(backup.files).map(([path, value]) => ({
+    ...Object.entries(manifest.files || {}).map(([path, value]) => ({
       kind: "files",
       path,
       base64: textToBase64(JSON.stringify(value, null, 2)),
     })),
-    ...Object.entries(backup.images).map(([path, base64]) => ({ kind: "images", path, base64 })),
+    ...Object.entries(localImages).map(([path, stat]) => ({ kind: "images", path, stat })),
   ];
 
   // Картинки, заведённые впервые на ДРУГОМ устройстве, – их здесь ещё
-  // никогда не было, а backup.images выше собран обходом СВОЕГО диска
+  // никогда не было, а список выше собран обходом СВОЕГО диска
   // (vault.listAllMedia()): то, чего на диске нет, туда и не попадает.
   // Без этого шага такой файл не пропадал бы после ошибки – он вообще
   // ни разу не пытался бы скачаться, сколько ни синхронизируйся:
@@ -794,7 +920,7 @@ async function runSync(config, onProgress) {
   const IMG_EXT = /\.(png|jpe?g|webp|gif)$/i;
   if (remoteTree) {
     for (const [path, sha] of remoteTree) {
-      if (!IMG_EXT.test(path) || path in backup.images) continue;
+      if (!IMG_EXT.test(path) || path in localImages) continue;
       // Ещё один защитный слой поверх await у deleteRemoteMedia в
       // deleteMediaFile() (js/utils.js): если это устройство уже
       // синхронизировало именно эту версию файла раньше (тот же sha в
@@ -805,46 +931,154 @@ async function runSync(config, onProgress) {
       // попытка) сделает своё дело отдельно, вне этого прохода.
       const entry = state.images[path];
       if (entry && entry.sha === sha) continue;
-      items.push({ kind: "images", path, isNewRemote: true });
+      items.push({ kind: "images", path, sha, isNewRemote: true });
     }
   }
 
-  let done = 0;
-  for (const item of items) {
-    onProgress?.(++done, items.length, item.path);
-
-    const entry = state[item.kind][item.path];
-    const outcome = item.isNewRemote
-      ? await pullNewRemoteImage(config, item.path)
-      : await syncOne(config, item.path, item.base64, entry, remoteTree);
-
-    if (outcome.action === "none") {
-      result.skipped++;
-      state[item.kind][item.path] = { hash: outcome.hash, sha: outcome.sha };
-    } else if (outcome.action === "push") {
-      result.pushed++;
-      state[item.kind][item.path] = { hash: outcome.hash, sha: outcome.sha };
-    } else if (outcome.action === "pull") {
+  // Забранные картинки копятся в пачку и пишутся на диск по мере её
+  // наполнения (см. SYNC_IMAGE_BATCH_CHARS); в состояние попадают только
+  // те, что записались.
+  let batch = {};
+  let batchEntries = {};
+  let batchChars = 0;
+  const flushImages = async () => {
+    const paths = Object.keys(batch);
+    if (!paths.length) return;
+    const failed = await applyPulled({ images: batch });
+    for (const path of paths) {
+      if (failed.has(path)) continue;
+      state.images[path] = batchEntries[path];
+      result.pulledImages[path] = true;
       result.pulled++;
-      state[item.kind][item.path] = { hash: await contentHash(outcome.base64), sha: outcome.sha };
-      if (item.kind === "images") result.pulledImages[item.path] = outcome.base64;
-      else result.pulledFiles[item.path] = JSON.parse(base64ToText(outcome.base64));
-    } else if (outcome.action === "conflict") {
-      // Состояние для конфликтных файлов не трогаем – конфликт должен
-      // остаться конфликтом и при следующей синхронизации, пока
-      // человек не выберет сторону через resolveConflict.
-      result.conflicts.push({ kind: item.kind, path: item.path, ...outcome });
-    } else if (outcome.action === "delete") {
-      // См. её же комментарий у syncOne/syncOneByFetch выше – удалили
-      // на другом устройстве, а здесь файл ещё физически лежал.
-      await deleteLocalMedia(item.path);
-      delete state[item.kind][item.path];
-      result.deletedLocally++;
     }
-  }
+    batch = {};
+    batchEntries = {};
+    batchChars = 0;
+    // Сразу на диск: если синхронизация оборвётся дальше, уже
+    // записанные картинки не придётся качать заново.
+    saveSyncState(state);
+  };
 
-  state.lastSyncAt = new Date().toISOString();
-  saveSyncState(state);
+  // Забранные файлы данных – отдельно и в самом конце, см. ниже.
+  const pulledFilesPending = [];
+
+  try {
+    let done = 0;
+    for (const item of items) {
+      onProgress?.(++done, items.length, item.path);
+
+      const entry = state[item.kind][item.path];
+      // Размер и время изменения – вместе с хешем, чтобы в следующий раз
+      // узнать нетронутый файл, не читая его.
+      const stat =
+        item.kind === "images" && item.stat && item.stat.size != null && item.stat.mtime != null
+          ? { size: item.stat.size, mtime: item.stat.mtime }
+          : null;
+
+      let outcome;
+      if (item.isNewRemote) {
+        outcome = await pullNewRemoteImage(config, item.path, item.sha);
+      } else {
+        let base64 = item.base64;
+        if (item.kind === "images") {
+          // Картинку не трогали здесь (тот же размер и время, что при
+          // прошлой синхронизации) и не трогали в репозитории (тот же
+          // sha) – делать нечего, и читать её с диска незачем. Так
+          // проходит почти всё хранилище при обычной синхронизации.
+          const untouchedHere =
+            entry && stat && entry.size === stat.size && entry.mtime === stat.mtime;
+          if (untouchedHere && entry.sha && remoteTree && remoteTree.get(item.path) === entry.sha) {
+            result.skipped++;
+            continue;
+          }
+          base64 = await readLocalMedia(item.path);
+        }
+        outcome = await syncOne(config, item.path, base64, entry, remoteTree);
+      }
+
+      if (outcome.action === "none") {
+        result.skipped++;
+        state[item.kind][item.path] = { hash: outcome.hash, sha: outcome.sha, ...stat };
+      } else if (outcome.action === "push") {
+        result.pushed++;
+        state[item.kind][item.path] = { hash: outcome.hash, sha: outcome.sha, ...stat };
+      } else if (outcome.action === "pull") {
+        if (item.kind === "images") {
+          batch[item.path] = outcome.base64;
+          // Без size/mtime: какими они станут у только что записанного
+          // файла, отсюда не видно. Следующая синхронизация один раз
+          // прочтёт его и запомнит.
+          batchEntries[item.path] = { hash: await contentHash(outcome.base64), sha: outcome.sha };
+          batchChars += outcome.base64.length;
+          if (batchChars >= SYNC_IMAGE_BATCH_CHARS) await flushImages();
+        } else {
+          pulledFilesPending.push({
+            path: item.path,
+            base64: outcome.base64,
+            sha: outcome.sha,
+            localHash: await contentHash(item.base64),
+          });
+        }
+      } else if (outcome.action === "conflict") {
+        // Состояние для конфликтных файлов не трогаем – конфликт должен
+        // остаться конфликтом и при следующей синхронизации, пока
+        // человек не выберет сторону через resolveConflict.
+        result.conflicts.push({ kind: item.kind, path: item.path, ...outcome });
+      } else if (outcome.action === "delete") {
+        // См. её же комментарий у syncOne/syncOneByFetch выше – удалили
+        // на другом устройстве, а здесь файл ещё физически лежал.
+        await deleteLocalMedia(item.path);
+        delete state[item.kind][item.path];
+        result.deletedLocally++;
+      }
+    }
+
+    await flushImages();
+
+    // Файлы данных пишем последними и с проверкой: синхронизация идёт
+    // долго (по файлу за раз), и за это время человек мог сохранить
+    // отзыв или настройку. Список в начале этого уже не видел – и
+    // раньше версия из репозитория ложилась поверх свежей правки, молча.
+    // Перечитываем файлы прямо перед записью: изменился с начала – это
+    // уже «поменяли и здесь, и там», то есть конфликт, а не забор.
+    if (pulledFilesPending.length) {
+      const fresh = await fetchLocalJson("/api/sync-manifest?images=0");
+      const toWrite = {};
+      const entries = {};
+      for (const f of pulledFilesPending) {
+        const freshBase64 = textToBase64(JSON.stringify((fresh.files || {})[f.path], null, 2));
+        const freshHash = await contentHash(freshBase64);
+        if (freshHash !== f.localHash) {
+          result.conflicts.push({
+            kind: "files",
+            path: f.path,
+            action: "conflict",
+            localBase64: freshBase64,
+            remote: { base64: f.base64, sha: f.sha },
+            localHash: freshHash,
+          });
+          continue;
+        }
+        toWrite[f.path] = parsePulledJson(f.path, f.base64);
+        entries[f.path] = { hash: await contentHash(f.base64), sha: f.sha };
+      }
+      if (Object.keys(toWrite).length) {
+        await applyPulled({ files: toWrite });
+        for (const [path, value] of Object.entries(toWrite)) {
+          state.files[path] = entries[path];
+          result.pulledFiles[path] = value;
+          result.pulled++;
+        }
+      }
+    }
+
+    state.lastSyncAt = new Date().toISOString();
+  } finally {
+    // И при ошибке тоже: в state к этому месту лежит только то, что
+    // правда сделано (отправлено или записано на диск), терять это из-за
+    // сбоя на следующем файле незачем.
+    saveSyncState(state);
+  }
   // Тот же флаг читают и ручная кнопка, и автосинхронизация – не важно,
   // кто досчитал до конфликта последним, важно, что он есть или его нет.
   localStorage.setItem(AUTOSYNC_CONFLICTS_KEY, result.conflicts.length ? "1" : "");
@@ -854,25 +1088,36 @@ async function runSync(config, onProgress) {
 
 // Применить решение по одному конфликту: "local" – отправить свою
 // версию поверх удалённой, "remote" – забрать удалённую версию себе.
-// При выборе "remote" возвращает содержимое (объект для файла, base64
-// для картинки) – вызывающая сторона сама решает, как его записать
-// (через /api/restore-backup).
+// При выборе "remote" сама записывает её в хранилище и только после
+// этого запоминает, что файл синхронизирован: раньше запоминала сразу,
+// а писал вызывающий код, не проверяя ответ, – при отказе записи
+// следующая синхронизация отправляла локальную версию поверх удалённой,
+// то есть делала ровно обратное выбранному.
 async function resolveConflict(config, conflict, choice) {
-  const state = getSyncState();
-
   if (choice === "local") {
     const sha = await putRemoteFile(config, conflict.path, conflict.localBase64, conflict.remote.sha);
+    const state = getSyncState();
     state[conflict.kind][conflict.path] = { hash: conflict.localHash, sha };
     saveSyncState(state);
     return null;
   }
 
+  const isImage = conflict.kind === "images";
+  const value = isImage
+    ? conflict.remote.base64
+    : parsePulledJson(conflict.path, conflict.remote.base64);
+  const failed = await applyPulled(
+    isImage ? { images: { [conflict.path]: value } } : { files: { [conflict.path]: value } }
+  );
+  if (failed.has(conflict.path)) {
+    throw new SyncError(i18n("Не получилось записать забранные файлы на это устройство."));
+  }
+
   const hash = await contentHash(conflict.remote.base64);
+  const state = getSyncState();
   state[conflict.kind][conflict.path] = { hash, sha: conflict.remote.sha };
   saveSyncState(state);
-  return conflict.kind === "images"
-    ? conflict.remote.base64
-    : JSON.parse(base64ToText(conflict.remote.base64));
+  return value;
 }
 
 // ══════════════════════════════════════════════
@@ -921,18 +1166,9 @@ async function runAutoSync() {
   if (!config || syncInFlight) return;
   syncInFlight = true;
   try {
-    const result = await runSync(config);
-    if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
-      await fetch("/api/restore-backup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          format: "tasteid-backup",
-          files: result.pulledFiles,
-          images: result.pulledImages,
-        }),
-      });
-    }
+    // Забранное runSync записывает в хранилище сам (см. её же
+    // комментарий там) – отдельного шага здесь больше нет.
+    await runSync(config);
     clearSyncError();
     hideSyncErrorBanner();
   } catch (e) {

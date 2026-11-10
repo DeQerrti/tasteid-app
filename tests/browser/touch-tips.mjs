@@ -143,18 +143,22 @@ const grade = await centerOf("#tab-now [data-tip]");
 if (!grade) {
   ok(false, `в хранилище нет ни одной карточки с оценкой — проверять нечего`);
 } else {
+  // Карточка «Статусов» теперь сама role="button" (открывается и с
+  // клавиатуры, см. manualCard в app/js/cards.js) – значит, по тому же
+  // правилу, что уже действует на вкладке «Отзывы» (см. touchstart в
+  // app/js/utils.js), нажатие открывает отзыв, а подсказку поверх него
+  // не вешает. Раньше здесь случалось и то и другое разом.
   await tap(grade.x, grade.y);
-  const shown = await tipState();
-  ok(shown.shown, "нажатие показывает подсказку, а не мигает ею невидимо");
-  ok(shown.onScreen, "подсказка целиком на экране, а не за краем");
-  ok(shown.text.length > 0, "в подсказке есть текст");
-
-  await tap(grade.x, grade.y);
-  ok(!(await tipState()).shown, "повторное нажатие по тому же убирает подсказку");
-
-  await tap(grade.x, grade.y);
-  await tap(8, 700);
-  ok(!(await tipState()).shown, "нажатие мимо убирает подсказку");
+  ok(!(await tipState()).shown, "нажатие по оценке на карточке не вешает подсказку поверх отзыва");
+  ok(
+    await page.evaluate(() => {
+      const m = document.querySelector("#review-modal-title");
+      return !!m && !m.closest(".hidden");
+    }),
+    "а открывает сам отзыв"
+  );
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
 }
 
 console.log("Облако тегов в «Статистике»");

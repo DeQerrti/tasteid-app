@@ -264,8 +264,12 @@ async function importReviews({ vault, body }) {
       if (!body.overwrite) continue;
       // Меняем только то, что пришло из выгрузки. Текст отзыва, флаг
       // «любимое» и теги – своё, нажитое, и импорт их не касается.
-      existing.status = item.status;
-      existing.grade = item.grade;
+      // Статус и оценку – тоже только когда они в выгрузке есть. Раньше
+      // пустое значение (тайтл без оценки на MAL, список без статусов)
+      // записывалось поверх своего и молча стирало уже поставленную
+      // оценку.
+      if (item.status) existing.status = item.status;
+      if (item.grade) existing.grade = item.grade;
       existing.rewatch_count = item.rewatch_count;
       if (item.date_start) existing.date_start = item.date_start;
       if (item.date_end) existing.date_end = item.date_end;
@@ -293,7 +297,6 @@ async function importReviews({ vault, body }) {
       rewatch_count: item.rewatch_count,
       date_end: item.date_end,
       favorites: null,
-      preview: null,
       grade: item.grade,
       tags: [],
       id: maxId,
@@ -650,14 +653,23 @@ async function backupCover({ vault, body, compressImage }) {
   if (!res.ok) throw new ApiError(`Картинка не скачалась: ${res.status}`, 502);
 
   const type = res.headers.get("content-type") || "";
-  let ext = /png/.test(type)
-    ? "png"
-    : /webp/.test(type)
-      ? "webp"
-      : /gif/.test(type)
-        ? "gif"
-        : "jpg";
   let buffer = new Uint8Array(await res.arrayBuffer());
+
+  // Ответ 200 – ещё не картинка: источник с защитой от ботов или
+  // истёкшая ссылка нередко отдают с тем же 200 обычную HTML-страницу
+  // («подтвердите, что вы не робот», «файл не найден»). Раньше такое
+  // сохранялось под именем .jpg, и у отзыва появлялась «резервная
+  // копия», которая не открывается. Формат определяем по первым байтам
+  // самого файла – заголовку Content-Type верить нельзя в обе стороны
+  // (CDN часто отдаёт картинку как application/octet-stream). Что не
+  // опознано и не названо сервером картинкой – не сохраняем.
+  const sniffed = sniffImageExt(buffer);
+  if (!sniffed && !/^image\//i.test(type)) {
+    throw new ApiError("По ссылке не картинка – резервная копия не сделана", 502);
+  }
+  let ext =
+    sniffed ||
+    (/png/.test(type) ? "png" : /webp/.test(type) ? "webp" : /gif/.test(type) ? "gif" : "jpg");
 
   // compressImage приходит снаружи (electron/image.js на компьютере –
   // sharp, mobile/src/main.js на телефоне – canvas браузера): само
@@ -857,6 +869,18 @@ async function deleteMedia({ vault, body }) {
   return { ok: true };
 }
 
+// Формат картинки по её первым байтам (см. backupCover выше). null –
+// не опознано: либо это не картинка, либо формат, которого здесь нет
+// (avif, svg) – тогда решает Content-Type.
+function sniffImageExt(bytes) {
+  const at = (i, ...sig) => sig.every((b, k) => bytes[i + k] === b);
+  if (at(0, 0x89, 0x50, 0x4e, 0x47)) return "png";
+  if (at(0, 0xff, 0xd8, 0xff)) return "jpg";
+  if (at(0, 0x47, 0x49, 0x46, 0x38)) return "gif";
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return "webp";
+  return null;
+}
+
 // Uint8Array, а не Buffer: этот файл делят настольное приложение и
 // телефон, а Buffer есть только в Node.
 function base64ToBuffer(data) {
@@ -954,6 +978,37 @@ async function repairCoverReferences({ vault }) {
   return { ok: true, fixed };
 }
 
+// ── Один текст отзыва вместо «превью» и «полного» ──
+// Раньше у отзыва было два текста: preview (пара предложений рядом с
+// обложкой на карточке) и review_full (развёрнутый, по клику). Карточки
+// текст давно не показывают, по клику открывается сразу весь отзыв, и
+// preview остался полем, которое ни на что не влияет, но путает: часть
+// отзывов хранила свой единственный текст именно в нём.
+//
+// Переносим: где был только preview – он становится текстом отзыва; где
+// были оба – остаётся review_full; само поле preview из записи убирается
+// в обоих случаях. Запускается тихо при каждом старте (см. js/config.js)
+// и ничего не пишет, если переносить нечего. Прежняя версия файла, как
+// при любой записи, уезжает в историю версий.
+async function migratePreview({ vault }) {
+  const list = await vault.readJson("reviews.json", []);
+  let moved = 0;
+  let dropped = 0;
+  for (const r of list) {
+    if (!r || typeof r !== "object" || !("preview" in r)) continue;
+    const full = typeof r.review_full === "string" ? r.review_full.trim() : "";
+    const preview = typeof r.preview === "string" ? r.preview.trim() : "";
+    if (!full && preview) {
+      r.review_full = preview;
+      moved++;
+    }
+    delete r.preview;
+    dropped++;
+  }
+  if (dropped) await vault.writeJson("reviews.json", list);
+  return { ok: true, moved, dropped };
+}
+
 // ── Настройки ──────────────────────────────────
 
 async function getSiteSettings({ vault }) {
@@ -989,7 +1044,10 @@ async function saveSiteSettings({ vault, body }) {
 const BACKUP_FORMAT = "tasteid-backup";
 const BACKUP_VERSION = 1;
 
-async function exportBackup({ vault }) {
+// Все файлы данных хранилища – общее для резервной копии и для
+// синхронизации (syncManifest ниже): список один, чтобы новый файл
+// данных не оказался в копии, но мимо синхронизации, или наоборот.
+async function collectDataFiles(vault) {
   const settings = await vault.readJson("site-settings.json", {});
   const collections = Array.isArray(settings.tierCollections) ? settings.tierCollections : [];
 
@@ -1004,6 +1062,11 @@ async function exportBackup({ vault }) {
     const name = collectionFile(id);
     files[name] = await vault.readJson(name, []);
   }
+  return files;
+}
+
+async function exportBackup({ vault }) {
+  const files = await collectDataFiles(vault);
 
   // По одной и с перехватом: копия без одной картинки несравнимо лучше,
   // чем отсутствие копии вообще. Раньше первый же нечитаемый файл
@@ -1076,20 +1139,76 @@ async function restoreBackup({ vault, body }) {
     await vault.writeJson(name, files[name]);
   }
 
+  // failedImages – какие именно картинки не записались. Одного счётчика
+  // мало: синхронизация (app/js/sync.js) должна знать, какие пути нельзя
+  // помечать «уже забрано», иначе незаписанная картинка больше никогда
+  // не скачается.
   let restoredImages = 0;
+  const failedImages = [];
   if (hasImages) {
     for (const [relPath, base64] of Object.entries(images)) {
-      if (typeof base64 !== "string" || !base64) continue;
+      if (typeof base64 !== "string" || !base64) {
+        failedImages.push(relPath);
+        continue;
+      }
       try {
         await vault.writeMedia(relPath, base64);
         restoredImages++;
       } catch {
         // см. комментарий выше
+        failedImages.push(relPath);
       }
     }
   }
 
-  return { ok: true, restored: names, images: restoredImages };
+  return { ok: true, restored: names, images: restoredImages, failedImages };
+}
+
+// ── Синхронизация: что лежит в хранилище, без содержимого картинок ──
+// Раньше синхронизация каждый раз брала полную резервную копию
+// (exportBackup выше): все картинки хранилища читались с диска и
+// кодировались в один JSON – через несколько секунд после ЛЮБОГО
+// сохранения, даже если поменялась одна строчка в отзыве. На хранилище
+// в сотню мегабайт картинок это сотни мегабайт памяти на каждую правку,
+// а где-то за 350 МБ ответ перестаёт помещаться в одну строку вовсе, и
+// синхронизация падает целиком.
+//
+// Здесь – только список: файлы данных целиком (они маленькие) и у
+// каждой картинки размер с временем изменения. По ним sync.js понимает,
+// что файл с прошлого раза не трогали, и не читает его вообще; саму
+// картинку забирает поштучно (readMediaFile ниже) и только когда она
+// правда нужна. ?images=0 – без обхода картинок, когда нужны только
+// свежие файлы данных.
+async function syncManifest({ vault, query }) {
+  const files = await collectDataFiles(vault);
+  const images = {};
+  if (query?.get("images") !== "0") {
+    // listAllMediaStat есть у обоих хранилищ; запасной путь – на случай
+    // реализации без него: без размера и времени sync.js просто прочтёт
+    // каждый файл, как раньше.
+    const list = vault.listAllMediaStat
+      ? await vault.listAllMediaStat()
+      : (await vault.listAllMedia()).map((p) => ({ path: p }));
+    for (const { path: relPath, size, mtime } of list) {
+      images[relPath] = { size: size ?? null, mtime: mtime ?? null };
+    }
+  }
+  return { ok: true, files, images };
+}
+
+// Одна картинка в base64 – под тем же относительным путём, каким её
+// отдаёт список выше. Только картинки и только из папок с картинками:
+// путь из запроса, и без проверки этим же адресом читался бы любой файл
+// хранилища.
+const READABLE_MEDIA_PATH = /^[^/.][^/]*(\/[^/]+){1,2}\.(png|jpe?g|webp|gif)$/i;
+async function readMediaFile({ vault, query }) {
+  const relPath = String(query.get("path") || "");
+  if (!READABLE_MEDIA_PATH.test(relPath)) throw new ApiError("Недопустимый путь картинки");
+  try {
+    return { ok: true, base64: await vault.readMedia(relPath) };
+  } catch {
+    throw new ApiError("Картинка не читается", 404);
+  }
 }
 
 // ── История версий ─────────────────────────────
@@ -1277,6 +1396,8 @@ export const ROUTES = {
   "POST /api/save-site-settings": saveSiteSettings,
   "GET /api/export-backup": exportBackup,
   "POST /api/restore-backup": restoreBackup,
+  "GET /api/sync-manifest": syncManifest,
+  "GET /api/read-media": readMediaFile,
   "POST /api/upload-char-image": uploadCharImage,
   "POST /api/ensure-chars-folder": ensureCharsFolder,
   "POST /api/compress-folder": compressFolder,
@@ -1284,6 +1405,7 @@ export const ROUTES = {
   "POST /api/fetch-mal-list": fetchMalUserList,
   "POST /api/delete-media": deleteMedia,
   "POST /api/repair-cover-references": repairCoverReferences,
+  "POST /api/migrate-preview": migratePreview,
   "POST /api/restore-file-version": restoreFileVersion,
   "POST /api/clear-file-history": clearFileHistory,
   "POST /api/prune-history": pruneHistory,

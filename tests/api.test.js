@@ -332,7 +332,7 @@ test("импорт не трогает текст отзыва и «любимо
       title: "Dune",
       type: "movie",
       year: "2021",
-      preview: "мой текст",
+      review_full: "мой текст",
       favorite: true,
       tags: ["Топ визуал"],
       grade: "etalon",
@@ -344,7 +344,7 @@ test("импорт не трогает текст отзыва и «любимо
 
     const list = await (await fetch(`${base}/reviews.json`)).json();
     assert.equal(list.length, 1);
-    assert.equal(list[0].preview, "мой текст");
+    assert.equal(list[0].review_full, "мой текст");
     assert.equal(list[0].favorite, true);
     assert.deepEqual(list[0].tags, ["Топ визуал"]);
     assert.equal(list[0].grade, "brak", "оценка из выгрузки применяется");
@@ -1340,4 +1340,153 @@ test("список с MyAnimeList по нику: упирается в свой 
     "полные страницы до самого потолка – список наверняка длиннее"
   );
   assert.equal(result.anime.length, 20 * 300, "потолок в 20 страниц (MAL_MAX_PAGES в core/api.js)");
+});
+
+// ── Синхронизация: список вместо полной копии ──
+
+test("список для синхронизации отдаёт файлы данных и картинки без их содержимого", async () => {
+  await withServer(async ({ api }) => {
+    await api("POST", "/api/save-review", { title: "Monster", type: "anime" });
+    await api("POST", "/api/upload-char-image", {
+      folder: "Тайтл",
+      filename: "портрет.webp",
+      contentBase64: "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==",
+    });
+
+    const { status, data } = await api("GET", "/api/sync-manifest");
+    assert.equal(status, 200);
+    assert.equal(data.files["reviews.json"][0].title, "Monster");
+    const stat = data.images["chars/Тайтл/портрет.webp"];
+    assert.ok(stat, "картинка есть в списке");
+    assert.equal(stat.size, 25, "размер – настоящий, в байтах");
+    assert.equal(typeof stat.mtime, "number", "время изменения – числом");
+    assert.ok(!JSON.stringify(data.images).includes("UklGR"), "самого содержимого в списке нет");
+
+    const { data: filesOnly } = await api("GET", "/api/sync-manifest?images=0");
+    assert.deepEqual(filesOnly.images, {}, "?images=0 – без обхода картинок");
+  });
+});
+
+test("картинка читается по одной и только из папок с картинками", async () => {
+  await withServer(async ({ api }) => {
+    const webp = "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==";
+    await api("POST", "/api/upload-char-image", {
+      folder: "Тайтл",
+      filename: "портрет.webp",
+      contentBase64: webp,
+    });
+    await api("POST", "/api/save-review", { title: "Monster" });
+
+    const good = await api(
+      "GET",
+      "/api/read-media?path=" + encodeURIComponent("chars/Тайтл/портрет.webp")
+    );
+    assert.equal(good.status, 200);
+    assert.equal(good.data.base64, webp);
+
+    for (const bad of [
+      "reviews.json",
+      "../reviews.json",
+      ".history/reviews.json/x.json",
+      "chars/../x.webp",
+    ]) {
+      const { status } = await api("GET", "/api/read-media?path=" + encodeURIComponent(bad));
+      assert.notEqual(status, 200, `«${bad}» этим адресом не читается`);
+    }
+    const missing = await api(
+      "GET",
+      "/api/read-media?path=" + encodeURIComponent("chars/Нет/нет.webp")
+    );
+    assert.equal(missing.status, 404);
+  });
+});
+
+test("восстановление называет картинки, которые не записались", async () => {
+  await withServer(async ({ api }) => {
+    const { status, data } = await api("POST", "/api/restore-backup", {
+      format: "tasteid-backup",
+      files: {},
+      images: {
+        "covers/ok.webp": "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==",
+        "../наружу.webp": "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==",
+      },
+    });
+    assert.equal(status, 200);
+    assert.equal(data.images, 1);
+    assert.deepEqual(data.failedImages, ["../наружу.webp"]);
+  });
+});
+
+test("импорт с перезаписью не стирает свою оценку и статус пустыми из выгрузки", async () => {
+  await withServer(async ({ api, base }) => {
+    await api("POST", "/api/save-review", {
+      title: "Dune",
+      type: "movie",
+      year: "2021",
+      status: "completed",
+      grade: "etalon",
+    });
+    await api("POST", "/api/import-reviews", {
+      overwrite: true,
+      items: [{ title: "Dune", type: "movie", year: "2021" }],
+    });
+    const list = await (await fetch(`${base}/reviews.json`)).json();
+    assert.equal(list[0].grade, "etalon", "оценка осталась");
+    assert.equal(list[0].status, "completed", "статус остался");
+  });
+});
+
+test("резервная копия обложки не сохраняет страницу вместо картинки", async () => {
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end("<html><body>Подтвердите, что вы не робот</body></html>");
+  });
+  await new Promise((resolve) => server.listen(0, resolve));
+  try {
+    await withServer(async ({ api, vault }) => {
+      const { status, data } = await api("POST", "/api/backup-cover", {
+        url: `http://127.0.0.1:${server.address().port}/cover.jpg`,
+        filename: "not-a-picture",
+      });
+      assert.equal(status, 502);
+      assert.match(data.error, /не картинка/);
+      assert.deepEqual(await vault.listAllMedia(), [], "на диск ничего не легло");
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("перенос превью: единственный текст переезжает в основной, поле preview убирается", async () => {
+  await withServer(async ({ api, base, vault }) => {
+    await vault.writeJson("reviews.json", [
+      { id: 1, title: "Только превью", preview: "короткий текст", review_full: null },
+      { id: 2, title: "Оба", preview: "выжимка", review_full: "полный текст" },
+      { id: 3, title: "Пустое превью", preview: null, url: "https://example.com" },
+      { id: 4, title: "Без поля" },
+    ]);
+    const { status, data } = await api("POST", "/api/migrate-preview", {});
+    assert.equal(status, 200);
+    assert.equal(data.moved, 1);
+    assert.equal(data.dropped, 3);
+
+    const list = await (await fetch(`${base}/reviews.json`)).json();
+    assert.ok(
+      list.every((r) => !("preview" in r)),
+      "поля preview больше нет ни у кого"
+    );
+    const byId = Object.fromEntries(list.map((r) => [r.id, r]));
+    assert.equal(byId[1].review_full, "короткий текст");
+    assert.equal(byId[2].review_full, "полный текст");
+    assert.ok(!byId[3].review_full, "пустое превью текстом не становится");
+
+    const historyBefore = (await vault.history("reviews.json")).length;
+    const again = await api("POST", "/api/migrate-preview", {});
+    assert.equal(again.data.dropped, 0);
+    assert.equal(
+      (await vault.history("reviews.json")).length,
+      historyBefore,
+      "повторный запуск ничего не пишет"
+    );
+  });
 });

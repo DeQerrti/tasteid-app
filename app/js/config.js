@@ -988,6 +988,12 @@ const SUBTYPE_LABELS = {
 // обложки у каждого хранилища свои), без единого диалога: localStorage
 // – на каждом устройстве отдельно (не через sync.js), но повторный
 // вызов ничего не ломает, если вдруг всё же понадобится ещё раз.
+// Перенос старого «превью» в текст отзыва (см. core/api.js:
+// migratePreview). Без отметки «уже делали»: запрос сам ничего не пишет,
+// когда переносить нечего, а старые записи с preview могут прийти и
+// позже – синхронизацией с устройства, где приложение ещё не обновили.
+fetch("/api/migrate-preview", { method: "POST" }).catch(() => {});
+
 const coverRepairFlagKey = vaultScopedKey("tasteid-cover-refs-repaired-1");
 if (!localStorage.getItem(coverRepairFlagKey)) {
   fetch("/api/repair-cover-references", { method: "POST" })

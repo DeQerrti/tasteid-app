@@ -40,7 +40,7 @@ async function loadStats() {
 // окончания (или начала, если конца нет – старые записи без date_end)
 function statsCompletedYear(r) {
   const raw = r.date_end || r.date_start || r.date;
-  return raw ? new Date(raw).getFullYear() : null;
+  return raw ? parseLocalDate(raw).getFullYear() : null;
 }
 
 function statsRender() {
@@ -48,7 +48,7 @@ function statsRender() {
   const reviews = cache.reviews || [];
 
   const completed = reviews.filter(r =>
-    r.status === "completed" || (!r.status && (r.preview || r.grade))
+    r.status === "completed" || (!r.status && (r.review_full || r.preview || r.grade))
   );
 
   const yearsSet = new Set();

@@ -1134,6 +1134,38 @@ i18nRegister({
   "Не получилось прочитать файл из репозитория: {path}": "Couldn't read the file from the repository: {path}",
   "Синхронизация TasteID": "TasteID sync",
   "Не получилось отправить файл: {path}": "Couldn't send the file: {path}",
+  "Не получилось прочитать файл из репозитория.": "Couldn't read the file from the repository.",
+  "Не получилось прочитать данные хранилища на этом устройстве.":
+    "Couldn't read the vault data on this device.",
+  "Не получилось записать забранные файлы на это устройство.":
+    "Couldn't write the pulled files to this device.",
+  "Файл из репозитория не подошёл и не записан: {path}":
+    "The file from the repository isn't valid and wasn't written: {path}",
+  "Ничего не нашлось – измените запрос или сбросьте фильтр.":
+    "Nothing found – change the search or clear the filter.",
+  "По году выхода": "By release year",
+  "По названию": "By title",
+  "Поиск по названию": "Search by title",
+  "Сначала недавние": "Most recent first",
+  Сортировка: "Sort",
+  "Ваш отзыв – откроется по клику на карточку.":
+    "Your review – opens when the card is clicked.",
+  "Без категории": "No category",
+  "В Любимом": "In Favorites",
+  "выбрано: {n}": "selected: {n}",
+  "Есть несохранённые изменения": "Unsaved changes",
+  Источник: "Source",
+  "Найти тег": "Find a tag",
+  "Слов: {words} · знаков: {chars}": "Words: {words} · characters: {chars}",
+  "Так выглядит карточка": "How the card looks",
+  "Такого тега нет – его можно завести кнопкой «Новый тег».":
+    "No such tag – you can create it with “New tag”.",
+  "Теги не выбраны – нажмите на тег ниже или найдите его по названию.":
+    "No tags selected – click a tag below or find it by name.",
+  "Убрать источник": "Remove source",
+  "Убрать обложку": "Remove cover",
+  "«{title}» обновлён.": "“{title}” updated.",
+  "«{title}» сохранён.": "“{title}” saved.",
 });
 
 // ── Забрать чужой тайтл себе (паспорта) ────────

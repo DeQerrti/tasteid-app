@@ -263,20 +263,9 @@ async function startSync() {
     const progressEl = document.getElementById("sync-progress");
     if (progressEl) progressEl.textContent = "";
 
-    // Забранные файлы и картинки записываем тем же путём, что и
-    // резервную копию, – restoreBackup трогает только то, что
-    // передано, остальные файлы хранилища не затронет.
-    if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
-      await fetch("/api/restore-backup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          format: "tasteid-backup",
-          files: result.pulledFiles,
-          images: result.pulledImages,
-        }),
-      });
-    }
+    // Забранные файлы и картинки runSync записывает в хранилище сам и
+    // сам проверяет, что запись прошла (см. её же комментарий в
+    // js/sync.js) – здесь остаётся только показать итог.
 
     if (result.conflicts.length) {
       flashStatus(
@@ -369,18 +358,10 @@ function renderConflicts(config, conflicts) {
 async function pickConflict(index, choice) {
   const conflict = window.__syncConflicts[index];
   try {
-    const remoteValue = await resolveConflict(window.__syncConfig, conflict, choice);
-    if (choice === "remote") {
-      const payload =
-        conflict.kind === "images"
-          ? { images: { [conflict.path]: remoteValue } }
-          : { files: { [conflict.path]: remoteValue } };
-      await fetch("/api/restore-backup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ format: "tasteid-backup", ...payload }),
-      });
-    }
+    // «Взять оттуда» resolveConflict записывает в хранилище сам (см. её
+    // же комментарий в js/sync.js); не записалось – бросит ошибку, и
+    // конфликт останется в списке.
+    await resolveConflict(window.__syncConfig, conflict, choice);
     window.__syncConflicts.splice(index, 1);
     if (window.__syncConflicts.length) {
       renderConflicts(window.__syncConfig, window.__syncConflicts);

@@ -17,8 +17,10 @@ function fillForm(r) {
   // не начинать с пустоты.
   coverGallery = r.cover_gallery?.length ? [...r.cover_gallery] : r.cover_backup ? [r.cover_backup] : [];
   document.getElementById("f-url").value = r.url || "";
-  document.getElementById("f-preview").value = r.preview || "";
-  document.getElementById("f-review-full").value = r.review_full || "";
+  // У старых отзывов текст мог лежать только в preview (поля «полный
+  // текст» тогда не заполняли) – показываем его в том же единственном
+  // поле, иначе он пропал бы из редактора вместе с полем «превью».
+  document.getElementById("f-review-full").value = r.review_full || r.preview || "";
   document.getElementById("f-source").value = r.source || "teletype";
   document.getElementById("f-type").value = r.type || "anime";
   document.getElementById("f-status").value = r.status || "completed";
@@ -39,13 +41,9 @@ function fillForm(r) {
   document.getElementById("f-favorite").checked = r.favorite === true;
   syncFavToggle();
 
-  // Разворачиваем разделы, в которых уже что-то заполнено
-  collapseAllSections();
-  openFilledSections(r);
-
   // Поля дат
   updateDateFields();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
   const startEl = document.getElementById("f-date-start");
   const endEl = document.getElementById("f-date-end");
   if (startEl) startEl.value = r.date_start || today;
@@ -63,12 +61,11 @@ function fillForm(r) {
   renderGradeInput();
 
   selectedTags = new Set(r.tags || []);
-  document
-    .querySelectorAll(".tag-toggle")
-    .forEach((b) => b.classList.toggle("active", selectedTags.has(b.dataset.tag)));
+  renderTagsGrid();
   featuredCardTags = new Set(r.featured_tags_on_card || []);
   noTagsOnCard = !!r.no_tags_on_card;
   renderCardTagsList();
+  renderEdPreview();
 }
 
 // ── сброс ──────────────────────────────────────
@@ -87,7 +84,7 @@ function resetToNew() {
   // одиночном add.html меняется обычный адрес документа.
   history.replaceState(null, "", IN_SPA_SHELL ? "#/add" : "add.html");
 
-  ["f-title", "f-year", "f-format", "f-cover", "f-url", "f-preview", "f-url2", "f-review-full", "f-cover-backup"].forEach(
+  ["f-title", "f-year", "f-format", "f-cover", "f-url", "f-url2", "f-review-full", "f-cover-backup"].forEach(
     (id) => (document.getElementById(id).value = "")
   );
   document.getElementById("f-cover-focus").value = "50% 50%";
@@ -114,20 +111,20 @@ function resetToNew() {
   document.getElementById("f-favorite").checked = false;
   syncFavToggle();
 
-  // Новый отзыв начинается с компактной формы
-  collapseAllSections();
-
   document.getElementById("cover-img").style.display = "none";
   selectedGrade = null;
   selectedTags.clear();
   featuredCardTags.clear();
   noTagsOnCard = false;
   renderGradeInput();
-  document.querySelectorAll(".tag-toggle").forEach((b) => b.classList.remove("active"));
+  document.getElementById("tag-q").value = "";
+  renderTagsGrid();
   renderCardTagsList();
   document.getElementById("status").textContent = "";
-  document.getElementById("status").className = "status-msg";
+  document.getElementById("status").className = "status-msg ed-status";
   updateDateFields();
+  setAddDirty(false);
+  renderEdPreview();
 }
 
 // ── инит по параметрам ─────────────────────────

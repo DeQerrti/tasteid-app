@@ -464,6 +464,15 @@ export class MobileVault {
   // папок ИЛИ список файлов в одной папке, порознь), а здесь нужно
   // найти вообще всё, не зная заранее, какие папки есть.
   async listAllMedia() {
+    return (await this.listAllMediaStat()).map((f) => f.path);
+  }
+
+  // Тот же список с размером и временем изменения – см. её же
+  // комментарий в electron/vault.js. Здесь они приходят прямо из
+  // readdir (Capacitor отдаёт их вместе с именем), отдельных обращений
+  // к мосту на каждый файл не нужно – и не должно быть (см. CLAUDE.md
+  // про мобильный мост и пачки).
+  async listAllMediaStat() {
     const IMG = /\.(png|jpe?g|webp|gif)$/i;
     const out = [];
 
@@ -479,7 +488,13 @@ export class MobileVault {
         if (entry.name === ".history") continue;
         const childRel = rel ? `${rel}/${entry.name}` : entry.name;
         if (entry.type === "directory") await walk(`${dir}/${entry.name}`, childRel);
-        else if (IMG.test(entry.name)) out.push(childRel);
+        else if (IMG.test(entry.name)) {
+          out.push({
+            path: childRel,
+            size: typeof entry.size === "number" ? entry.size : undefined,
+            mtime: typeof entry.mtime === "number" ? Math.round(entry.mtime) : undefined,
+          });
+        }
       }
     };
 
@@ -503,6 +518,6 @@ export class MobileVault {
       await walk(dir, base);
     }
 
-    return out.sort();
+    return out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   }
 }

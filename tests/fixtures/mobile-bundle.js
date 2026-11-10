@@ -17,6 +17,9 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 const FAKES = {
   "@capacitor/filesystem": "./tests/fixtures/fake-filesystem.js",
@@ -30,8 +33,13 @@ const FAKES = {
 // Возвращает путь к собранному файлу.
 export function buildMobileBundle(name = "bundle.js") {
   const out = join(mkdtempSync(join(tmpdir(), "tasteid-bundle-")), name);
-  execFileSync("npx", [
-    "esbuild",
+  // Не "npx esbuild": на Windows npx – это npx.cmd, и execFileSync без
+  // оболочки его не находит («spawnSync npx ENOENT») – из-за этого все
+  // проверки с мобильным мостом на Windows не запускались вовсе. Тем же
+  // node запускаем сам скрипт esbuild из node_modules – одинаково
+  // работает везде.
+  execFileSync(process.execPath, [
+    require.resolve("esbuild/bin/esbuild"),
     "mobile/src/main.js",
     "--bundle",
     "--format=iife",

@@ -4,22 +4,20 @@
 
 function setStatus(type, text) {
   const el = document.getElementById("status");
-  el.className = "status-msg" + (type ? " " + type : "");
+  el.className = "status-msg ed-status" + (type ? " " + type : "");
   el.textContent = text;
 }
 
 // ── сохранение ─────────────────────────────────
 async function saveReview() {
   const btn = document.getElementById("btn-save");
+  // Сохранить теперь можно тремя способами (кнопка в шапке, кнопка внизу,
+  // Ctrl+S) – пока идёт одно сохранение, остальные ничего не делают.
+  if (btn.disabled) return;
 
   const title = document.getElementById("f-title").value.trim();
   const url = document.getElementById("f-url").value.trim();
   const reviewFull = document.getElementById("f-review-full").value.trim();
-  // Превью необязательно: если заполнили только полный текст, само
-  // превью (короткий текст-заглушка для карточек/списков и признак
-  // «отзыв не пустой» в фильтрах – js/reviews.js, js/now.js, js/stats.js)
-  // подтягивается из полного текста, а не остаётся пустым.
-  const preview = document.getElementById("f-preview").value.trim() || reviewFull;
   const status = document.getElementById("f-status").value;
 
   if (!title) {
@@ -81,7 +79,6 @@ async function saveReview() {
     date_start: dateStart,
     rewatch_count: parseInt(document.getElementById("rewatch-count").value, 10) || 0,
     date_end: dateEnd,
-    preview: preview || null,
     review_full: reviewFull || null,
     grade: selectedGrade,
     tags: [...selectedTags],
@@ -106,7 +103,9 @@ async function saveReview() {
     });
     const data = await res.json();
     if (res.ok) {
-      setStatus("ok", editingId !== null ? `«${title}» обновлён.` : `«${title}» сохранён.`);
+      setStatus("ok", editingId !== null
+          ? i18n("«{title}» обновлён.", { title })
+          : i18n("«{title}» сохранён.", { title }));
       setAddDirty(false);
       // Раньше здесь удаляли прежнюю резервную копию, если после
       // сохранения активной стала другая, – с галереей обложек это
@@ -142,7 +141,7 @@ async function saveReview() {
   }
 
   btn.disabled = false;
-  btn.textContent = editingId !== null ? "Сохранить изменения" : i18n("Сохранить отзыв");
+  btn.textContent = editingId !== null ? i18n("Сохранить изменения") : i18n("Сохранить отзыв");
 }
 
 // ── Признак несохранённых изменений ────────────
@@ -154,6 +153,14 @@ let addDirty = false;
 function setAddDirty(value) {
   addDirty = value;
   if (fromPassportModal) window.addDirty = value;
+  // Отметка в шапке и предпросмотр карточки – оба следуют за любым
+  // изменением формы, а все они проходят через эту функцию.
+  const state = document.getElementById("ed-state");
+  if (state) {
+    state.textContent = value ? i18n("Есть несохранённые изменения") : "";
+    state.classList.toggle("dirty", !!value);
+  }
+  renderEdPreview();
 }
 
 function markAddDirty() {

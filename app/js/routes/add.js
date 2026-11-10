@@ -160,213 +160,231 @@ async function mount(container, params) {
   if (IN_SPA_SHELL) setLeaveGuard(leaveAddView);
 
   container.innerHTML = `
-    <header class="app-topbar">
+    <!-- Шапка липкая (.app-topbar, admin.css) – поэтому «Сохранить» живёт
+         здесь, а не только в самом низу длинной формы: сохранить можно с
+         любого места, без прокрутки. #edit-banner – только «Новый отзыв»
+         в режиме правки (fillForm/resetToNew по-прежнему показывают и
+         прячут его через style.display). -->
+    <header class="app-topbar ed-bar">
       <a href="#" class="logo topbar-back" id="add-back"><span class="arrow">&larr;</span>TasteID</a>
-      <h1 class="topbar-title" id="page-subtitle">${i18n("Добавить отзыв")}</h1>
+      <div class="ed-bar-title">
+        <h1 class="topbar-title" id="page-subtitle">${i18n("Добавить отзыв")}</h1>
+        <span class="ed-bar-name" id="edit-title-hint"></span>
+      </div>
+      <span class="ed-state" id="ed-state" aria-live="polite"></span>
+      <span class="ed-bar-new" id="edit-banner" style="display:none">
+        <button type="button" class="btn btn-ghost" onclick="resetToNew()">${i18n("Новый отзыв")}</button>
+      </span>
+      <button type="button" class="btn ed-save" id="btn-save" title="Ctrl+S" onclick="saveReview()">${i18n("Сохранить отзыв")}</button>
     </header>
 
-    <main class="add-view">
+    <main class="add-view ed">
+      <div class="status-msg ed-status" id="status"></div>
 
-      <!-- Баннер редактирования -->
-      <div class="edit-banner" id="edit-banner" style="display:none">
-        <div>Режим редактирования – <span class="edit-banner-title" id="edit-title-hint"></span></div>
-        <button class="btn-new" onclick="resetToNew()">${i18n("Новый отзыв")}</button>
-      </div>
+      <div class="ed-cols">
+        <!-- Слева – как отзыв будет выглядеть на «Статусах», и всё, что
+             относится к самой картинке. Карточку рисует та же manualCard()
+             (js/cards.js), что и на вкладке, – см. renderEdPreview(). В
+             одиночном add.html (модалка «Добавить себе») cards.js не
+             подключён, и блок предпросмотра там скрыт. -->
+        <aside class="ed-side">
+          <div class="ed-preview-wrap" id="ed-preview-wrap" hidden>
+            <div class="ed-cap">${i18n("Так выглядит карточка")}</div>
+            <div class="ed-preview" id="ed-preview" inert></div>
+          </div>
 
-      <!-- Основное -->
-      <h2 class="section-title">${i18n("Основное")}</h2>
-      <div class="grid">
-        <div class="field">
-          <label>${i18n("Название")}</label>
-          <input type="text" id="f-title" placeholder="${i18n("Название")}">
-        </div>
-        <div class="field">
-          <label>${i18n("Год")}</label>
-          <input type="text" id="f-year" placeholder="${i18n("Год выхода")}">
-        </div>
-        <div class="field">
-          <label>${i18n("Тип")}</label>
-          <div class="src-type-wrap" style="width:100%;">
-            <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleTypePickerDropdown()">
-              <span id="type-picker-label">${i18n("Аниме")}</span><span class="src-caret"></span>
-            </button>
-            <div class="src-type-dropdown hidden" id="type-picker-dropdown"></div>
-          </div>
-          <input type="hidden" id="f-type" value="anime">
-        </div>
-        <div class="field">
-          <label>${i18n("Статус")}</label>
-          <div class="src-type-wrap" style="width:100%;">
-            <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleStatusPickerDropdown()">
-              <span id="status-picker-label">${i18n("Завершено")}</span><span class="src-caret"></span>
-            </button>
-            <div class="src-type-dropdown hidden" id="status-picker-dropdown"></div>
-          </div>
-          <input type="hidden" id="f-status" value="completed">
-        </div>
-        <div class="field">
-          <label>${i18n("Формат")}</label>
-          <input type="text" id="f-format" placeholder="${i18n("Например: 12 серий")}">
-        </div>
-        <div class="field">
-          <label>&nbsp;</label>
           <input type="checkbox" id="f-favorite" hidden>
           <button type="button" class="btn btn-ghost fav-toggle" id="fav-toggle"
                   aria-pressed="false" onclick="toggleFavorite()">
             <svg class="fav-toggle-icon" width="15" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"></path></svg>
             <span id="fav-toggle-label">${i18n("Добавить в Любимое")}</span>
           </button>
-        </div>
-      </div>
 
-      <!-- Обложка – свёрнута за кнопкой, как и остальные разделы.
-           Отдельного заголовка нет: кнопка «Добавить обложку» и так
-           называет раздел, а лишняя строка только удлиняла форму. -->
-      <div class="src-field" id="cover-field">
-        <button type="button" class="src-add-btn" id="cover-add-btn" onclick="openCoverPanel()">${i18n("Добавить обложку")}</button>
-        <div class="cover-block hidden" id="cover-panel">
-          <div class="cover-preview-col">
-            <img id="cover-img" class="cover-preview" onclick="openCoverGallery()" title="${i18n("Все обложки этого отзыва")}">
-            <button type="button" class="btn btn-ghost cover-focus-btn hidden" id="cover-focus-btn" onclick="openFocusPickerForCover()">${i18n("Область картинки")}</button>
-          </div>
-          <input type="hidden" id="f-cover-focus" value="50% 50%">
-          <div class="cover-controls">
-            <div class="cover-controls-head">
-              <div class="field" style="margin-bottom:0;flex:1;">
-                <label>${i18n("Ссылка на обложку")}</label>
-                <input type="text" id="f-cover" placeholder="https://..." oninput="previewCover(this.value); scheduleBackupCover();">
+          <div class="src-field" id="cover-field">
+            <button type="button" class="src-add-btn" id="cover-add-btn" onclick="openCoverPanel()">${i18n("Добавить обложку")}</button>
+            <div class="cover-block hidden" id="cover-panel">
+              <div class="cover-preview-col">
+                <img id="cover-img" class="cover-preview" onclick="openCoverGallery()" title="${i18n("Все обложки этого отзыва")}">
+                <button type="button" class="btn btn-ghost cover-focus-btn hidden" id="cover-focus-btn" onclick="openFocusPickerForCover()">${i18n("Область картинки")}</button>
+                <button type="button" class="btn btn-ghost ed-gallery-btn" onclick="openCoverGallery()">${i18n("Все обложки этого отзыва")}</button>
               </div>
-              <button type="button" class="icon-btn" title="Убрать обложку" onclick="closeCoverPanel()">✕</button>
+              <input type="hidden" id="f-cover-focus" value="50% 50%">
+              <div class="cover-controls">
+                <div class="cover-controls-head">
+                  <div class="field" style="margin-bottom:0;flex:1;">
+                    <label for="f-cover">${i18n("Ссылка на обложку")}</label>
+                    <input type="text" id="f-cover" placeholder="https://..." oninput="previewCover(this.value); scheduleBackupCover();">
+                  </div>
+                  <button type="button" class="icon-btn" title="${i18n("Убрать обложку")}" aria-label="${i18n("Убрать обложку")}" onclick="closeCoverPanel()">✕</button>
+                </div>
+                <div class="hint">${i18n("Или загрузить файл – сожмётся и сконвертируется в WebP автоматически.")}</div>
+                <div class="cover-upload-row">
+                  <label class="btn btn-ghost file-btn">
+                    <input type="file" id="f-cover-upload" accept="image/*" onchange="updateFileBtnName(this); uploadCoverFile()">
+                    <span>${i18n("Выбрать файл")}</span>
+                  </label>
+                  <span class="file-btn-name" id="f-cover-upload-name"></span>
+                </div>
+                <label class="original-quality-toggle"><input type="checkbox" id="f-cover-original" onchange="onCoverOriginalToggle()"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
+                <div id="cover-upload-status" class="status-msg" style="margin:.4rem 0 0;text-align:left;min-height:0;"></div>
+              </div>
             </div>
-            <div class="hint">${i18n("Или загрузить файл – сожмётся и сконвертируется в WebP автоматически.")}</div>
-            <div class="cover-upload-row">
-              <label class="btn btn-ghost file-btn">
-                <input type="file" id="f-cover-upload" accept="image/*" onchange="updateFileBtnName(this); uploadCoverFile()">
-                <span>${i18n("Выбрать файл")}</span>
-              </label>
-              <span class="file-btn-name" id="f-cover-upload-name"></span>
+            <input type="hidden" id="f-cover-backup">
+          </div>
+        </aside>
+
+        <!-- Справа – сама форма. Разделы открыты всегда и идут по
+             важности: что это → как оценил → когда → текст → теги →
+             источник. Раньше всё после «Основного» было свёрнуто за
+             кнопками «Добавить…», а оценка лежала в самом низу. -->
+        <div class="ed-form">
+          <section class="ed-sec">
+            <h2 class="ed-h">${i18n("Основное")}</h2>
+            <div class="grid ed-grid">
+              <div class="field full">
+                <label for="f-title">${i18n("Название")}</label>
+                <input type="text" id="f-title" class="ed-title-input" placeholder="${i18n("Название")}">
+              </div>
+              <div class="field">
+                <label>${i18n("Тип")}</label>
+                <div class="src-type-wrap" style="width:100%;">
+                  <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleTypePickerDropdown()">
+                    <span id="type-picker-label">${i18n("Аниме")}</span><span class="src-caret"></span>
+                  </button>
+                  <div class="src-type-dropdown hidden" id="type-picker-dropdown"></div>
+                </div>
+                <input type="hidden" id="f-type" value="anime">
+              </div>
+              <div class="field">
+                <label>${i18n("Статус")}</label>
+                <div class="src-type-wrap" style="width:100%;">
+                  <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleStatusPickerDropdown()">
+                    <span id="status-picker-label">${i18n("Завершено")}</span><span class="src-caret"></span>
+                  </button>
+                  <div class="src-type-dropdown hidden" id="status-picker-dropdown"></div>
+                </div>
+                <input type="hidden" id="f-status" value="completed">
+              </div>
+              <div class="field">
+                <label for="f-year">${i18n("Год")}</label>
+                <input type="text" id="f-year" inputmode="numeric" placeholder="${i18n("Год выхода")}">
+              </div>
+              <div class="field">
+                <label for="f-format">${i18n("Формат")}</label>
+                <input type="text" id="f-format" placeholder="${i18n("Например: 12 серий")}">
+              </div>
             </div>
-            <label class="original-quality-toggle"><input type="checkbox" id="f-cover-original" onchange="onCoverOriginalToggle()"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
-            <div id="cover-upload-status" class="status-msg" style="margin:.4rem 0 0;text-align:left;min-height:0;"></div>
-          </div>
-        </div>
-        <input type="hidden" id="f-cover-backup">
-      </div>
+          </section>
 
-      <!-- Даты – состав полей зависит от статуса (см. updateDateFields) -->
-      <div class="sec collapsed" id="sec-dates">
-        <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('dates')">${i18n("Добавить дату")}</button>
-        <div class="sec-body">
-          <div class="sec-head">
-            <span class="sec-title">${i18n("Даты")}</span>
-            <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('dates', false)">✕</button>
-          </div>
-          <div id="dates-section"></div>
-          <div class="field" style="max-width:220px;margin-bottom:0;">
-            <label>${i18n("Пересмотров")}</label>
-            <input type="number" id="rewatch-count" min="0" value="0" step="1">
-          </div>
-        </div>
-      </div>
+          <section class="ed-sec">
+            <h2 class="ed-h">${i18n("Оценка")}</h2>
+            <div class="grades-grid" id="grades-grid"></div>
+          </section>
 
-      <!-- Источники. Второе поле спрятано до тех пор, пока не понадобится:
-           показывать сразу два предложения «добавить источник» смысла нет. -->
-      <div class="src-field" id="src-field-1">
-        <button type="button" class="src-add-btn" id="src-add-btn-1" onclick="openSourcePanel(1)">${i18n("Добавить источник")}</button>
-        <div class="src-panel hidden" id="src-panel-1">
-          <div class="src-panel-row">
-            <div class="src-type-wrap">
-              <button type="button" class="src-type-btn" id="src-type-btn-1" onclick="toggleTypeDropdown(1)">
-                <span id="src-type-label-1">Teletype</span><span class="src-caret"></span>
-              </button>
-              <div class="src-type-dropdown hidden" id="src-type-dropdown-1"></div>
+          <!-- Даты – состав полей зависит от статуса (см. updateDateFields);
+               у «Планирую» раздел прячется целиком. -->
+          <section class="ed-sec" id="sec-dates">
+            <h2 class="ed-h">${i18n("Даты")}</h2>
+            <div id="dates-section"></div>
+            <div class="field" style="max-width:220px;margin-bottom:0;">
+              <label for="rewatch-count">${i18n("Пересмотров")}</label>
+              <input type="number" id="rewatch-count" min="0" value="0" step="1">
             </div>
-            <input type="text" id="f-url" class="src-url-input" placeholder="https://" oninput="onSourceUrlChange(1)">
-            <button type="button" class="icon-btn" title="Убрать источник" onclick="closeSourcePanel(1)">✕</button>
-          </div>
-          <div class="hint" style="margin:.6rem 0 0;">${i18n("Ссылка на публикацию отзыва на стороне – например, на Teletype.")}</div>
-          <button type="button" class="btn-new" id="add-second-source" style="margin-top:.6rem;" onclick="showSecondSource()">${i18n("Добавить ещё один источник")}</button>
-        </div>
-        <input type="hidden" id="f-source" value="teletype">
-      </div>
+          </section>
 
-      <div class="src-field" id="src-field-2" style="margin-top:.75rem;" hidden>
-        <div class="src-panel" id="src-panel-2">
-          <div class="src-panel-row">
-            <div class="src-type-wrap">
-              <button type="button" class="src-type-btn" id="src-type-btn-2" onclick="toggleTypeDropdown(2)">
-                <span id="src-type-label-2">Teletype</span><span class="src-caret"></span>
-              </button>
-              <div class="src-type-dropdown hidden" id="src-type-dropdown-2"></div>
+          <!-- Текст отзыва – одно поле. Раньше их было два: «превью» (короткий
+               текст рядом с обложкой на карточке) и «полный текст». Карточки
+               текст давно не показывают, по клику сразу открывается весь
+               отзыв, и превью осталось полем, которое ни на что не влияет.
+               В данных поля preview тоже больше нет – см. migratePreview в
+               core/api.js. -->
+          <section class="ed-sec">
+            <h2 class="ed-h">${i18n("Текст отзыва")}</h2>
+            <div class="field" style="margin-bottom:0;">
+              <textarea id="f-review-full" aria-label="${i18n("Текст отзыва")}" placeholder="${i18n("Ваш отзыв – откроется по клику на карточку.")}" style="min-height:240px;"></textarea>
+              <div class="ed-count" id="ed-text-count"></div>
             </div>
-            <input type="text" id="f-url2" class="src-url-input" placeholder="https://" oninput="onSourceUrlChange(2)">
-            <button type="button" class="icon-btn" title="Убрать источник" onclick="hideSecondSource()">✕</button>
-          </div>
-        </div>
-        <input type="hidden" id="f-source2" value="">
-      </div>
+          </section>
 
-      <!-- Текст отзыва: превью и полный текст – один раздел. Это две части
-           одного и того же, разносить их по двум кнопкам было незачем. -->
-      <div class="sec collapsed" id="sec-text">
-        <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('text')">${i18n("Добавить текст отзыва")}</button>
-        <div class="sec-body">
-          <div class="sec-head">
-            <span class="sec-title">${i18n("Текст отзыва")}</span>
-            <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('text', false)">✕</button>
-          </div>
-          <div class="field">
-            <label>${i18n("Превью – показывается на карточке")}</label>
-            <textarea id="f-preview" placeholder="${i18n("Пара предложений – что это и о чём…")}"></textarea>
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>${i18n("Полный текст – необязательно")}</label>
-            <textarea id="f-review-full" placeholder="${i18n("Развёрнутый отзыв – откроется по клику на карточку. Если оставить пустым, при клике покажется превью со ссылкой на источник.")}" style="min-height:220px;"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <!-- Оценка и теги – тоже один раздел: и то и другое про «как оценил» -->
-      <div class="sec collapsed" id="sec-gradetags">
-        <button type="button" class="src-add-btn sec-toggle" onclick="toggleEditorSection('gradetags')">${i18n("Добавить оценку и теги")}</button>
-        <div class="sec-body">
-          <div class="sec-head">
-            <span class="sec-title">${i18n("Оценка и теги")}</span>
-            <button type="button" class="icon-btn" title="Свернуть" onclick="toggleEditorSection('gradetags', false)">✕</button>
-          </div>
-          <div class="grades-grid" id="grades-grid"></div>
-          <div class="field" style="margin:1.25rem 0 .75rem; display:flex; align-items:flex-end; gap:.6rem;">
-            <div style="flex:1;">
-              <label>${i18n("Теги")}</label>
+          <!-- Теги: поиск, выбранные отдельной строкой, остальные по
+               категориям (см. renderTagsGrid). Раньше все теги шли одной
+               сплошной стеной без групп, хотя категория есть у каждого. -->
+          <section class="ed-sec">
+            <h2 class="ed-h">${i18n("Теги")} <span class="ed-h-note" id="tags-count"></span></h2>
+            <div class="ed-tag-tools">
+              <input type="search" id="tag-q" data-no-dirty placeholder="${i18n("Найти тег")}" aria-label="${i18n("Найти тег")}">
               <button type="button" class="btn-new" onclick="openTagModal()">${i18n("Новый тег")}</button>
+              <button type="button" class="btn-new btn-new-danger" onclick="openTagModal({bulk:true})">${i18n("Удалить")}</button>
             </div>
-            <button type="button" class="btn-new btn-new-danger" onclick="openTagModal({bulk:true})">${i18n("Удалить")}</button>
-          </div>
-          <div class="tags-grid" id="tags-grid"></div>
+            <div class="ed-picked" id="tags-picked"></div>
+            <div class="ed-cats" id="tags-grid"></div>
 
-          <div class="field" id="card-tags-field" style="margin-top:1.25rem;" hidden>
-            <label>${i18n("Какие теги показывать на карточке")}</label>
-            <p class="card-tags-hint">${i18n("На карточке помещается немного – выберите, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.")}</p>
-            <div class="card-tag-row card-tags-none-row" id="card-tags-none-row" onclick="toggleNoTagsOnCard()">
-              <span class="tm-row-check"></span>
-              <span class="card-tag-row-name">${i18n("Не показывать теги на карточке")}</span>
+            <div class="field" id="card-tags-field" style="margin-top:1.25rem;" hidden>
+              <label>${i18n("Какие теги показывать на карточке")}</label>
+              <p class="card-tags-hint">${i18n("На карточке помещается немного – выберите, какие из выбранных тегов важнее. Остальные останутся видны внутри отзыва.")}</p>
+              <div class="card-tag-row card-tags-none-row" id="card-tags-none-row" onclick="toggleNoTagsOnCard()">
+                <span class="tm-row-check"></span>
+                <span class="card-tag-row-name">${i18n("Не показывать теги на карточке")}</span>
+              </div>
+              <div id="card-tags-list"></div>
+              <p class="card-tags-count" id="card-tags-count"></p>
             </div>
-            <div id="card-tags-list"></div>
-            <p class="card-tags-count" id="card-tags-count"></p>
+          </section>
+
+          <!-- Источники. Второе поле спрятано до тех пор, пока не понадобится:
+               показывать сразу два предложения «добавить источник» смысла нет. -->
+          <section class="ed-sec">
+            <h2 class="ed-h">${i18n("Источник")}</h2>
+            <div class="src-field" id="src-field-1">
+              <button type="button" class="src-add-btn" id="src-add-btn-1" onclick="openSourcePanel(1)">${i18n("Добавить источник")}</button>
+              <div class="src-panel hidden" id="src-panel-1">
+                <div class="src-panel-row">
+                  <div class="src-type-wrap">
+                    <button type="button" class="src-type-btn" id="src-type-btn-1" onclick="toggleTypeDropdown(1)">
+                      <span id="src-type-label-1">Teletype</span><span class="src-caret"></span>
+                    </button>
+                    <div class="src-type-dropdown hidden" id="src-type-dropdown-1"></div>
+                  </div>
+                  <input type="text" id="f-url" class="src-url-input" placeholder="https://" oninput="onSourceUrlChange(1)">
+                  <button type="button" class="icon-btn" title="${i18n("Убрать источник")}" aria-label="${i18n("Убрать источник")}" onclick="closeSourcePanel(1)">✕</button>
+                </div>
+                <div class="hint" style="margin:.6rem 0 0;">${i18n("Ссылка на публикацию отзыва на стороне – например, на Teletype.")}</div>
+                <button type="button" class="btn-new" id="add-second-source" style="margin-top:.6rem;" onclick="showSecondSource()">${i18n("Добавить ещё один источник")}</button>
+              </div>
+              <input type="hidden" id="f-source" value="teletype">
+            </div>
+
+            <div class="src-field" id="src-field-2" style="margin-top:.75rem;" hidden>
+              <div class="src-panel" id="src-panel-2">
+                <div class="src-panel-row">
+                  <div class="src-type-wrap">
+                    <button type="button" class="src-type-btn" id="src-type-btn-2" onclick="toggleTypeDropdown(2)">
+                      <span id="src-type-label-2">Teletype</span><span class="src-caret"></span>
+                    </button>
+                    <div class="src-type-dropdown hidden" id="src-type-dropdown-2"></div>
+                  </div>
+                  <input type="text" id="f-url2" class="src-url-input" placeholder="https://" oninput="onSourceUrlChange(2)">
+                  <button type="button" class="icon-btn" title="${i18n("Убрать источник")}" aria-label="${i18n("Убрать источник")}" onclick="hideSecondSource()">✕</button>
+                </div>
+              </div>
+              <input type="hidden" id="f-source2" value="">
+            </div>
+          </section>
+
+          <!-- Вторая кнопка сохранения – внизу формы: в модалке «Добавить
+               себе» шапка скрыта (см. initAddPage), и без неё сохранить
+               было бы нечем. Без id: состояние «Сохраняем…» показывает
+               кнопка в шапке, а от двойного нажатия защищает сам
+               saveReview(). -->
+          <button type="button" class="btn-save ed-save-bottom" onclick="saveReview()">${i18n("Сохранить")}</button>
+
+          <!-- Удаление: только в режиме правки. Ссылкой, а не кнопкой, и внизу –
+               чтобы не оказаться под пальцем рядом с «Сохранить». -->
+          <div class="danger-zone" id="danger-zone" hidden>
+            <button type="button" class="tm-link tm-danger" onclick="deleteReview()">${i18n("Удалить этот отзыв")}</button>
+            <span class="danger-hint">${i18n("Запись пропадёт из «Отзывов», «Любимого» и «Тир-листа». Вернуть можно через «Историю версий».")}</span>
           </div>
         </div>
-      </div>
-
-      <!-- Сохранить -->
-      <div class="divider"></div>
-      <button class="btn-save" id="btn-save" onclick="saveReview()">${i18n("Сохранить отзыв")}</button>
-      <div class="status-msg" id="status"></div>
-
-      <!-- Удаление: только в режиме правки. Ссылкой, а не кнопкой, и внизу –
-           чтобы не оказаться под пальцем рядом с «Сохранить». -->
-      <div class="danger-zone" id="danger-zone" hidden>
-        <button type="button" class="tm-link tm-danger" onclick="deleteReview()">${i18n("Удалить этот отзыв")}</button>
-        <span class="danger-hint">${i18n("Запись пропадёт из «Отзывов», «Любимого» и «Тир-листа». Вернуть можно через «Историю версий».")}</span>
       </div>
 
     </main>
@@ -487,6 +505,42 @@ async function mount(container, params) {
     if (row) editCategory(row.dataset.key);
   });
 
+  // ── Ctrl+S / Cmd+S – сохранить из любого места формы ──
+  // На document, а не на main: фокус может стоять и в шапке, и нигде.
+  // preventDefault обязателен – иначе браузер (и WebView) открывает своё
+  // «Сохранить страницу как…». Открытая модалка тегов – не время
+  // сохранять отзыв: там свои кнопки.
+  addOn(document, "keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== "s") return;
+    e.preventDefault();
+    const modal = document.getElementById("tag-modal-overlay");
+    if (modal && !modal.classList.contains("hidden")) return;
+    saveReview();
+  });
+
+  // ── Теги: клик и клавиатура – делегированно ──
+  // Имена тегов приходят от пользователя, в inline-onclick их пришлось бы
+  // экранировать дважды (та же причина, что у списков модалки выше).
+  for (const id of ["tags-grid", "tags-picked"]) {
+    const box = document.getElementById(id);
+    box.addEventListener("click", (e) => {
+      const el = e.target.closest(".tag-toggle");
+      if (el) toggleEditorTag(el.dataset.tag);
+    });
+    box.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const el = e.target.closest(".tag-toggle");
+      if (!el) return;
+      e.preventDefault();
+      const tag = el.dataset.tag;
+      toggleEditorTag(tag);
+      // Список перерисован – возвращаем фокус на тот же тег, иначе
+      // следующий Tab начинался бы с начала страницы.
+      document.querySelector(`#${id} .tag-toggle[data-tag="${CSS.escape(tag)}"]`)?.focus();
+    });
+  }
+  document.getElementById("tag-q").addEventListener("input", renderTagsGrid);
+
   // ── Подписки на справочники ──
   addOn(document, "tags-map-updated", renderGradeInput);
   addOn(document, "tags-map-updated", renderTagsGrid);
@@ -577,6 +631,9 @@ async function mount(container, params) {
   mainEl.addEventListener("change", (e) => {
     if (!e.target.closest("[data-no-dirty]")) markAddDirty();
   });
+  // Предпросмотр есть только там, где подключён js/cards.js (см.
+  // renderEdPreview) – в одиночном add.html блок остаётся скрытым.
+  document.getElementById("ed-preview-wrap").hidden = typeof manualCard !== "function";
   addOn(window, "beforeunload", (e) => {
     if (!addDirty) return;
     e.preventDefault();
@@ -679,7 +736,7 @@ function syncFavToggle() {
   const btn = document.getElementById("fav-toggle");
   btn.classList.toggle("on", on);
   btn.setAttribute("aria-pressed", String(on));
-  document.getElementById("fav-toggle-label").textContent = on ? "В Любимом" : i18n("Добавить в Любимое");
+  document.getElementById("fav-toggle-label").textContent = on ? i18n("В Любимом") : i18n("Добавить в Любимое");
 }
 
 // ── Второй источник ────────────────────────────
@@ -698,30 +755,60 @@ function hideSecondSource() {
   document.getElementById("f-source2").value = "";
 }
 
-// ── Сворачиваемые разделы ──────────────────────
-// Свёрнутый раздел – одна строка-кнопка вместо блока полей. Состояние
-// хранится классом collapsed на обёртке, так что кнопка и содержимое
-// не могут разъехаться между собой.
-function toggleEditorSection(name, open) {
-  const wrap = document.getElementById(`sec-${name}`);
-  if (!wrap) return;
-  const shouldOpen = open === undefined ? wrap.classList.contains("collapsed") : open;
-  wrap.classList.toggle("collapsed", !shouldOpen);
+// ── Предпросмотр карточки ──────────────────────
+// Слева от формы – карточка такой, какой она будет на «Статусах»: её
+// рисует та же manualCard() (js/cards.js), а не отдельная копия разметки,
+// так что предпросмотр не может разойтись с настоящей карточкой.
+//
+// Обновляется на любое изменение формы (см. setAddDirty в add-save.js и
+// явные вызовы в fillForm/resetToNew/previewCover). Узел <img> при этом
+// не пересоздаётся, пока не сменилась сама картинка: иначе обложка
+// мигала бы на каждую набранную букву названия.
+function editorDraftReview() {
+  const val = (id) => document.getElementById(id)?.value.trim() || "";
+  return {
+    title: val("f-title") || i18n("Название"),
+    type: val("f-type"),
+    status: val("f-status"),
+    year: val("f-year"),
+    cover: val("f-cover"),
+    cover_backup: val("f-cover-backup"),
+    cover_focus: val("f-cover-focus") || null,
+    date_start: val("f-date-start") || null,
+    date_end: val("f-date-end") || null,
+    grade: selectedGrade,
+  };
 }
 
-const EDITOR_SECTIONS = ["dates", "text", "gradetags"];
+function renderEdPreview() {
+  const title = document.getElementById("f-title");
+  if (!title) return; // вид уже размонтирован
+  const hint = document.getElementById("edit-title-hint");
+  if (hint) hint.textContent = title.value.trim();
 
-function collapseAllSections() {
-  EDITOR_SECTIONS.forEach((name) => toggleEditorSection(name, false));
-}
+  const text = document.getElementById("f-review-full").value;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  document.getElementById("ed-text-count").textContent = words
+    ? i18n("Слов: {words} · знаков: {chars}", { words, chars: text.length })
+    : "";
 
-// Раздел с данными разворачиваем сразу: иначе при редактировании
-// существующего отзыва человек не увидит, что там уже что-то есть.
-function openFilledSections(r) {
-  if (r.date_start || r.date_end || r.date) toggleEditorSection("dates", true);
-  if (r.preview || r.review_full) toggleEditorSection("text", true);
-  const hasGrade = r.grade !== undefined && r.grade !== null && r.grade !== "";
-  if (hasGrade || (r.tags || []).length) toggleEditorSection("gradetags", true);
+  const box = document.getElementById("ed-preview");
+  if (!box || typeof manualCard !== "function") return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = manualCard(editorDraftReview(), 0);
+  tmp.querySelector(".review-edit-btn")?.remove();
+  const next = tmp.firstElementChild;
+  const cur = box.firstElementChild;
+  if (!cur) {
+    box.replaceChildren(next);
+    return;
+  }
+  const curImg = cur.querySelector("img");
+  const nextImg = next.querySelector("img");
+  if (curImg.getAttribute("src") !== nextImg.getAttribute("src")) curImg.replaceWith(nextImg);
+  else curImg.style.objectPosition = nextImg.style.objectPosition;
+  cur.querySelector(".card-body").replaceWith(next.querySelector(".card-body"));
+  cur.querySelector(".card").setAttribute("style", next.querySelector(".card").getAttribute("style"));
 }
 
 // ── Даты в зависимости от статуса ──────────────
@@ -730,7 +817,7 @@ function updateDateFields() {
   const status = document.getElementById("f-status").value;
   const section = document.getElementById("dates-section");
   const wrap = document.getElementById("sec-dates");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalISO();
 
   const prevStart = document.getElementById("f-date-start")?.value || today;
   const prevEnd = document.getElementById("f-date-end")?.value || today;
@@ -740,13 +827,13 @@ function updateDateFields() {
   if (status === "planning") {
     section.innerHTML = "";
     wrap.hidden = true;
+    renderEdPreview();
     return;
   }
   wrap.hidden = false;
 
   if (status === "completed") {
     section.innerHTML = `
-      <div class="hint">${i18n("Если смотрели один день – заполните только «Завершено» или укажите одинаковые даты, на карточке покажется одна дата.")}</div>
       <div class="grid">
         <div class="field">
           <label>${i18n("Начато")} <span style="font-size:.6rem;opacity:.5">${i18n("(необязательно)")}</span></label>
@@ -756,7 +843,9 @@ function updateDateFields() {
           <label>${i18n("Завершено")}</label>
           <input type="date" id="f-date-end" value="${prevEnd}">
         </div>
-      </div>`;
+      </div>
+      <div class="hint">${i18n("Если смотрели один день – заполните только «Завершено» или укажите одинаковые даты, на карточке покажется одна дата.")}</div>`;
+    renderEdPreview();
     return;
   }
 
@@ -768,6 +857,7 @@ function updateDateFields() {
         <input type="date" id="f-date-start" value="${prevStart}">
       </div>
     </div>`;
+  renderEdPreview();
 }
 
 // ── Оценки – вид зависит от шкалы, настроенной в настройках ──
@@ -851,31 +941,67 @@ function renderGradeInput() {
 }
 
 // ── Теги – из TAGS_MAP (config.js) ─────────────
+// Сверху – выбранные (нажатие снимает тег), ниже – все теги по
+// категориям, в порядке справочника. Поле «Найти тег» сужает нижний
+// список; выбранные остаются на виду при любом запросе. Тег, которого
+// в справочнике уже нет (удалили, а в отзыве он остался), всё равно
+// виден среди выбранных – раньше снять его отсюда было нечем.
+function tagToggleHtml(tag, active) {
+  return `<span class="tag-toggle${active ? " active" : ""}" role="button" tabindex="0" aria-pressed="${active}" data-tag="${esc(tag)}" title="${esc(TAGS_MAP[tag]?.tip || "")}">${esc(tag)}</span>`;
+}
+
 function renderTagsGrid() {
   const tagsGrid = document.getElementById("tags-grid");
-  if (!tagsGrid) return;
-  tagsGrid.innerHTML = "";
+  const picked = document.getElementById("tags-picked");
+  if (!tagsGrid || !picked) return;
+
+  document.getElementById("tags-count").textContent = selectedTags.size
+    ? i18n("выбрано: {n}", { n: selectedTags.size })
+    : "";
+  picked.innerHTML = selectedTags.size
+    ? [...selectedTags].map((tag) => tagToggleHtml(tag, true)).join("")
+    : `<span class="ed-picked-empty">${i18n("Теги не выбраны – нажмите на тег ниже или найдите его по названию.")}</span>`;
+
+  const q = normTagQuery(document.getElementById("tag-q")?.value);
+  const byCat = new Map();
   for (const [tag, meta] of Object.entries(TAGS_MAP)) {
-    const btn = document.createElement("span");
-    btn.className = "tag-toggle";
-    btn.textContent = tag;
-    btn.dataset.tag = tag;
-    btn.title = meta.tip || "";
-    if (selectedTags.has(tag)) btn.classList.add("active");
-    btn.onclick = () => {
-      if (selectedTags.has(tag)) {
-        selectedTags.delete(tag);
-        btn.classList.remove("active");
-        featuredCardTags.delete(tag);
-      } else {
-        selectedTags.add(tag);
-        btn.classList.add("active");
-      }
-      markAddDirty();
-      renderCardTagsList();
-    };
-    tagsGrid.appendChild(btn);
+    if (q && !normTagQuery(tag).includes(q)) continue;
+    const cat = meta.cat || "";
+    if (!byCat.has(cat)) byCat.set(cat, []);
+    byCat.get(cat).push(tag);
   }
+  if (!byCat.size) {
+    tagsGrid.innerHTML = `<div class="ed-picked-empty">${i18n("Такого тега нет – его можно завести кнопкой «Новый тег».")}</div>`;
+    return;
+  }
+  tagsGrid.innerHTML = [...byCat.entries()]
+    .map(
+      ([cat, tags]) => `<div class="ed-cat">
+        <div class="ed-cat-name">${esc(CAT_LABELS[cat] || cat || i18n("Без категории"))}</div>
+        <div class="ed-cat-tags">${tags.map((tag) => tagToggleHtml(tag, selectedTags.has(tag))).join("")}</div>
+      </div>`
+    )
+    .join("");
+}
+
+function normTagQuery(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .trim();
+}
+
+function toggleEditorTag(tag) {
+  if (!tag) return;
+  if (selectedTags.has(tag)) {
+    selectedTags.delete(tag);
+    featuredCardTags.delete(tag);
+  } else {
+    selectedTags.add(tag);
+  }
+  markAddDirty();
+  renderTagsGrid();
+  renderCardTagsList();
 }
 
 // ── Какие из выбранных тегов показывать на карточке ──
@@ -930,6 +1056,9 @@ function renderCardTagsList() {
 function toggleCardTagFeatured(tag) {
   if (featuredCardTags.has(tag)) featuredCardTags.delete(tag);
   else if (featuredCardTags.size < CARD_TAGS_MAX) featuredCardTags.add(tag);
+  // Без этого выбор тегов для карточки не считался правкой: уйти со
+  // страницы можно было без вопроса, и выбор терялся молча.
+  markAddDirty();
   renderCardTagsList();
 }
 

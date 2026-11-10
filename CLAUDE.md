@@ -354,10 +354,12 @@ TypeScript **не нужен** — обсуждали и договорилис�
 - `npm run format:check` ругается примерно на 30 нетронутых файлов —
   это переводы строк CRLF (`core.autocrlf=true`), а не ошибка.
   Проверяй свои файлы `npx prettier --check --end-of-line auto <файлы>`.
-- В `npm run test:browser` несколько файлов (`backup.mjs`, `sync.mjs`,
-  `mobile-bridge.mjs`, `mobile-cover-compress.mjs`) падают с
-  `spawnSync npx ENOENT` — на Windows `npx` без `.cmd` не запускается.
-  Это окружение, а не код: те же тесты идут в CI на Linux.
+- `npm run test:browser` на Windows проходит целиком. Раньше файлы с
+  мобильным мостом (`backup.mjs`, `sync.mjs`, `mobile-bridge.mjs`,
+  `mobile-cover-compress.mjs`) падали с `spawnSync npx ENOENT`: сборка
+  тестового бандла звала `npx`, а на Windows это `npx.cmd`. Теперь
+  `tests/fixtures/mobile-bundle.js` запускает esbuild тем же `node` —
+  не возвращай туда `npx`.
 - В CI `backup.mjs` изредка падает случайно («Скачать резервную копию»
   не дошло до «Поделиться»), хотя тот же коммит в соседнем прогоне
   проходит. Сначала перезапусти упавший джоб (`gh run rerun <id>

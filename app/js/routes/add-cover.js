@@ -16,6 +16,7 @@ function previewCover(url) {
     img.style.display = "none";
     document.getElementById("cover-focus-btn")?.classList.add("hidden");
   }
+  renderEdPreview();
 }
 
 function openFocusPickerForCover() {
@@ -28,6 +29,7 @@ function openFocusPickerForCover() {
     onChange: (pos) => {
       document.getElementById("f-cover-focus").value = pos;
       document.getElementById("cover-img").style.objectPosition = pos;
+      renderEdPreview();
     },
   });
 }
@@ -96,7 +98,12 @@ function closeCoverPanel() {
 
 // Раскрыть/свернуть панель обложки по наличию значения – как у источников.
 function syncCoverPanel() {
-  const hasCover = document.getElementById("f-cover").value.trim().length > 0;
+  // Обложка, загруженная файлом, живёт только в f-cover-backup (внешней
+  // ссылки у неё нет) – раньше панель при этом оставалась свёрнутой,
+  // будто обложки нет вовсе.
+  const hasCover =
+    document.getElementById("f-cover").value.trim().length > 0 ||
+    document.getElementById("f-cover-backup").value.trim().length > 0;
   document.getElementById("cover-add-btn").classList.toggle("hidden", hasCover);
   document.getElementById("cover-panel").classList.toggle("hidden", !hasCover);
 }

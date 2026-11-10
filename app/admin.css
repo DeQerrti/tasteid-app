@@ -196,3 +196,172 @@
      .divider внутри он бы просто задвоил. */
   .save-dock .divider { display: none; }
 }
+
+/* ══ РЕДАКТОР ОТЗЫВА: шапка, две колонки, разделы ══
+   Разметка – js/routes/add.js. Лежит здесь, а не в <style> index.html:
+   редактор открывается в двух документах (index.html и одиночный
+   add.html, см. шапку add.js), и у каждого свой инлайн-<style> со своей
+   копией старых правил формы. admin.css подключён в обоих.
+
+   Он подключается РАНЬШЕ этих инлайн-стилей, поэтому всё, что должно их
+   перебить, написано специфичнее (main.add-view.ed … против .add-view …
+   в index.html и голых селекторов в add.html) – см. CLAUDE.md про каскад. */
+
+/* ── Шапка: название, отметка о правках, «Сохранить» ── */
+.app-topbar.ed-bar { flex-wrap: wrap; gap: 10px 14px; }
+.ed-bar-title { display: flex; align-items: baseline; gap: 12px; min-width: 0; flex: 1 1 160px; }
+.ed-bar-title .topbar-title { flex: 0 0 auto; }
+.ed-bar-name {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-hi);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ed-state {
+  font-family: "DM Sans", sans-serif;
+  font-size: .78rem;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ed-state.dirty::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red-hi);
+}
+.ed-bar-new { align-items: center; }
+.app-topbar.ed-bar .btn.ed-save {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  font-weight: 600;
+  padding: .5rem 1.1rem;
+}
+.app-topbar.ed-bar .btn.ed-save:hover { background: var(--red-hi); border-color: var(--red-hi); }
+.app-topbar.ed-bar .btn.ed-save:disabled { opacity: .5; cursor: default; }
+
+/* ── Каркас ── */
+main.add-view.ed { max-width: 1140px; padding: 1.4rem 2rem 5rem; }
+main.add-view.ed .ed-status { min-height: 0; margin: 0 0 .6rem; text-align: left; }
+main.add-view.ed .ed-status:empty { display: none; }
+.ed-cols { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 2rem; align-items: start; }
+.ed-side {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  position: sticky;
+  /* Ниже липкой шапки (она около 60px) и полосы окна в Electron. */
+  top: calc(var(--app-titlebar, 0px) + 76px);
+}
+.ed-form { min-width: 0; display: flex; flex-direction: column; gap: 1.9rem; }
+.ed-sec { min-width: 0; }
+.ed-h {
+  margin: 0 0 .8rem;
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--text-hi);
+  display: flex;
+  align-items: baseline;
+  gap: .7rem;
+}
+.ed-h-note { font-family: "DM Sans", sans-serif; font-style: normal; font-weight: 400; font-size: .78rem; color: var(--text-dim); }
+
+/* Подписи полей – обычным текстом, а не мелким разрядным капсом. */
+main.add-view.ed .field > label,
+main.add-view.ed .field label[for] {
+  font-size: .78rem;
+  letter-spacing: .01em;
+  text-transform: none;
+}
+main.add-view.ed .ed-grid { margin-bottom: 0; }
+main.add-view.ed .ed-grid .field { margin-bottom: 0; }
+main.add-view.ed input.ed-title-input {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.ed-count { margin-top: .35rem; font-family: "DM Sans", sans-serif; font-size: .74rem; color: var(--text-dim); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Левая колонка: предпросмотр, «Любимое», обложка ── */
+.ed-cap { font-family: "DM Sans", sans-serif; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: .45rem; }
+.ed-preview .review-card-wrap,
+.ed-preview .card { animation: none; cursor: default; height: auto; }
+main.add-view.ed .ed-side .btn.fav-toggle { width: 100%; }
+main.add-view.ed .ed-side .src-add-btn { width: 100%; }
+/* В узкой колонке блок обложки – столбиком. Маленькая миниатюра не
+   нужна, когда выше есть предпросмотр целой карточки; там, где его нет
+   (одиночный add.html), она остаётся – см. правило с :has ниже. */
+main.add-view.ed .ed-side .cover-block { flex-direction: column; gap: .8rem; padding: .85rem; margin-top: 0; }
+main.add-view.ed .ed-side .cover-preview-col { flex-direction: row; flex-wrap: wrap; align-items: center; align-self: stretch; }
+main.add-view.ed .ed-side .cover-controls { align-self: stretch; }
+main.add-view.ed .ed-side:has(.ed-preview-wrap:not([hidden])) .cover-preview { display: none !important; }
+main.add-view.ed .ed-gallery-btn { font-size: .62rem; padding: .3rem .5rem; white-space: nowrap; }
+
+/* ── Оценка ── */
+main.add-view.ed .grades-grid { margin-bottom: 0; }
+main.add-view.ed .grade-btn { font-size: .95rem; padding: .5rem 1rem; }
+
+/* ── Теги ── */
+.ed-tag-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+main.add-view.ed .ed-tag-tools input[type="search"] { flex: 1 1 220px; width: auto; }
+.ed-picked { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; min-height: 2rem; margin-bottom: .9rem; }
+.ed-picked-empty { font-family: "DM Sans", sans-serif; font-size: .82rem; color: var(--text-dim); }
+.ed-picked .tag-toggle.active::after { content: " ×"; opacity: .7; }
+.ed-cat { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: .4rem 1rem; padding: .6rem 0; border-top: 1px solid var(--border); }
+.ed-cat-name { font-family: "DM Sans", sans-serif; font-size: .78rem; color: var(--text-dim); padding-top: .3rem; }
+.ed-cat-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+main.add-view.ed .tag-toggle { font-size: .78rem; padding: .32rem .75rem; border-radius: 999px; letter-spacing: 0; }
+main.add-view.ed .tag-toggle.active { color: var(--text-hi); border-color: var(--accent-line); }
+
+main.add-view.ed .btn-save.ed-save-bottom { margin-top: .4rem; }
+main.add-view.ed .danger-zone { margin-top: 0; }
+
+/* ── Узкий экран и модалка «Добавить себе»: одна колонка ── */
+@media (max-width: 860px) {
+  main.add-view.ed { padding: 1rem 1rem 4rem; }
+  .ed-cols { grid-template-columns: minmax(0, 1fr); gap: 1.4rem; }
+  .ed-side { position: static; }
+  /* Предпросмотр на телефоне занял бы целый экран перед формой. */
+  .ed-preview-wrap { display: none; }
+  main.add-view.ed .ed-side:has(.ed-preview-wrap:not([hidden])) .cover-preview { display: block !important; }
+  .ed-cat { grid-template-columns: minmax(0, 1fr); }
+  .ed-cat-name { padding-top: 0; }
+  .ed-state { order: 5; flex-basis: 100%; }
+}
+
+/* Телефон: шапка липкая, поэтому она обязана быть в одну строку –
+   иначе название, «Новый отзыв» и «Сохранить» в три ряда съедали бы
+   четверть экрана поверх формы. Остаются «назад» и «Сохранить»; что
+   именно правят, видно по полю названия сразу под шапкой. display у
+   #edit-banner ставится из JS инлайном, отсюда !important. */
+@media (max-width: 700px) {
+  .app-topbar.ed-bar { flex-wrap: nowrap; }
+  .app-topbar.ed-bar .ed-bar-title { display: none; }
+  .app-topbar.ed-bar .ed-bar-new { display: none !important; }
+  .app-topbar.ed-bar .ed-state { order: 0; flex: 1 1 auto; min-width: 0; font-size: 0; justify-content: flex-end; }
+  .app-topbar.ed-bar .btn.ed-save { margin-left: auto; white-space: nowrap; }
+  .app-topbar.ed-bar .ed-state + .ed-bar-new + .btn.ed-save { margin-left: 0; }
+}
+
+/* Под палец: тег в редакторе – это кнопка (role="button"), а общее
+   правило «крупнее на тач-экране» в style.css знает только настоящие
+   button/.btn. Рост отступами, как и там, чтобы подпись осталась по
+   центру. */
+@media (pointer: coarse) {
+  main.add-view.ed .tag-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding-inline: .9rem;
+  }
+}

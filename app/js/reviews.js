@@ -48,7 +48,7 @@ let rvAllReviews = [];
 // следующем заходе на вкладку, когда loadReviews() перечитывал и
 // фильтровал заново.
 function reviewsWithReview(list) {
-  return list.filter(r => r.preview || r.grade);
+  return list.filter(r => r.review_full || r.preview || r.grade);
 }
 
 document.addEventListener("tags-map-updated", () => {
@@ -438,7 +438,7 @@ function reviewModalBodyHtml(r) {
   // закончил) был виден только на карточке в архиве, внутри отзыва не
   // было ни того ни другого, если даты различались.
   const fmtLongDate = raw =>
-    new Date(raw).toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" });
+    parseLocalDate(raw).toLocaleDateString(dateLocale(), { day: "numeric", month: "long", year: "numeric" });
   // "Ознакомился" не годится сразу по двум причинам: мужской род (см.
   // её же историю в этой сессии – везде убирали) и то, что не подходит
   // ни книге, ни игре, ни фильму разом ("посмотрел"/"прочитал"/"прошёл"
@@ -446,8 +446,18 @@ function reviewModalBodyHtml(r) {
   // залог, рода не имеет и одинаково годится любому типу. Период (начал
   // → закончил различаются) теперь на двух строках, а не через "→" в
   // одной – так яснее, где какая дата, чем читать одну подпись на обе.
+  //
+  // Завершённым считается только отзыв со статусом «завершено» (или
+  // старый, вовсе без статуса). У того, что ещё «В процессе»,
+  // «Отложено» или в любом своём статусе, единственная осмысленная дата –
+  // начало: раньше она подписывалась «Завершено», потому что ветка ниже
+  // брала первую попавшуюся дату и называла её завершением, не глядя на
+  // статус.
+  const isFinished = !r.status || r.status === "completed";
   let dateLines = [];
-  if (r.date_start && r.date_end && r.date_start !== r.date_end) {
+  if (!isFinished) {
+    if (r.date_start) dateLines = [{ label: i18n("Начато:"), date: fmtLongDate(r.date_start) }];
+  } else if (r.date_start && r.date_end && r.date_start !== r.date_end) {
     dateLines = [
       { label: i18n("Начато:"), date: fmtLongDate(r.date_start) },
       { label: i18n("Завершено:"), date: fmtLongDate(r.date_end) },
@@ -460,11 +470,16 @@ function reviewModalBodyHtml(r) {
   const btn1 = sourceBtnHtml(r.url, r.source);
   const btn2 = sourceBtnHtml(r.url2, r.source2);
 
-  const hasFullText = r.review_full && r.review_full.trim();
-  const textHtml = hasFullText
-    ? `<div class="review-modal-fulltext">${esc(r.review_full).split("\n").map(p => p ? `<p>${p}</p>` : "").join("")}</div>`
+  // Текст у отзыва один (review_full). r.preview – запасной вариант для
+  // записи, которую ещё не успели перенести (см. migratePreview в
+  // core/api.js): пришла синхронизацией с необновлённого устройства.
+  // Приписка про ссылку – только когда текста нет совсем, а источник
+  // указан.
+  const fullText = (r.review_full && r.review_full.trim()) || (r.preview && r.preview.trim()) || "";
+  const textHtml = fullText
+    ? `<div class="review-modal-fulltext">${esc(fullText).split("\n").map(p => p ? `<p>${p}</p>` : "").join("")}</div>`
     : `<div class="review-modal-fulltext">
-        <p>${esc(r.preview || i18n("Пока без текста."))}</p>
+        <p>${i18n("Пока без текста.")}</p>
         ${(btn1 || btn2) ? `<p class="review-modal-nofull-hint">${i18n("Развёрнутый текст сюда не перенесён – полный отзыв можно почитать по ссылке ниже.")}</p>` : ""}
       </div>`;
 
@@ -760,7 +775,7 @@ function reviewCard(r, i) {
 
   const dateRaw = r.date_end || r.date_start || r.date || null;
   const dateStr = dateRaw
-    ? new Date(dateRaw).toLocaleDateString(dateLocale(), { day: "numeric", month: "short" })
+    ? parseLocalDate(dateRaw).toLocaleDateString(dateLocale(), { day: "numeric", month: "short" })
     : "";
 
   const rewatchHtml = r.rewatch_count > 0
