@@ -73,6 +73,7 @@ const sharedBrowserGlobals = [
   "removeGalleryImage",
   "reviewGradeInfo",
   "selectGalleryImage",
+  "setSaveButtonsLabel",
   "deleteRemoteMedia",
   "deleteRemoteMediaFolder",
   "detectCsvFormat",

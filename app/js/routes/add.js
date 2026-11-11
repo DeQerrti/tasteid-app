@@ -314,7 +314,12 @@ async function mount(container, params) {
             <div class="ed-tag-tools">
               <input type="search" id="tag-q" data-no-dirty placeholder="${i18n("Найти тег")}" aria-label="${i18n("Найти тег")}">
               <button type="button" class="btn-new" onclick="openTagModal()">${i18n("Новый тег")}</button>
-              <button type="button" class="btn-new btn-new-danger" onclick="openTagModal({bulk:true})">${i18n("Удалить")}</button>
+              <!-- Раньше здесь стояла красная «Удалить» – массовое удаление
+                   тегов из словаря и из ВСЕХ отзывов разом, прямо рядом с
+                   поиском в форме одного отзыва. Теперь отсюда открывается
+                   только список тегов, а массовое удаление – внутри него,
+                   ссылкой «Удалить несколько» (tm-bulk-start-btn). -->
+              <button type="button" class="btn-new" onclick="openTagModal()">${i18n("Все теги")}</button>
             </div>
             <div class="ed-picked" id="tags-picked"></div>
             <div class="ed-cats" id="tags-grid"></div>
@@ -373,10 +378,12 @@ async function mount(container, params) {
 
           <!-- Вторая кнопка сохранения – внизу формы: в модалке «Добавить
                себе» шапка скрыта (см. initAddPage), и без неё сохранить
-               было бы нечем. Без id: состояние «Сохраняем…» показывает
-               кнопка в шапке, а от двойного нажатия защищает сам
-               saveReview(). -->
-          <button type="button" class="btn-save ed-save-bottom" onclick="saveReview()">${i18n("Сохранить")}</button>
+               было бы нечем. Подпись у неё та же, что у кнопки в шапке,
+               и меняется вместе с ней (setSaveButtonsLabel): раньше
+               сверху было «Сохранить изменения», а снизу просто
+               «Сохранить» – казалось, что это два разных действия. От
+               двойного нажатия по-прежнему защищает сам saveReview(). -->
+          <button type="button" class="btn-save ed-save-bottom" id="btn-save-bottom" onclick="saveReview()">${i18n("Сохранить отзыв")}</button>
 
           <!-- Удаление: только в режиме правки. Ссылкой, а не кнопкой, и внизу –
                чтобы не оказаться под пальцем рядом с «Сохранить». -->
@@ -431,6 +438,7 @@ async function mount(container, params) {
           </div>
           <div class="tm-list-head">
             <span>${i18n("Существующие теги")}</span>
+            <button type="button" class="tm-link tm-danger" id="tm-bulk-start-btn" style="margin-left:auto" onclick="tmBulkStart()">${i18n("Удалить несколько")}</button>
             <input type="search" id="tm-tag-search" placeholder="${i18n("Поиск")}" oninput="renderTmTagList()">
           </div>
           <div class="tm-list" id="tm-tag-list"></div>
@@ -809,6 +817,17 @@ function renderEdPreview() {
   else curImg.style.objectPosition = nextImg.style.objectPosition;
   cur.querySelector(".card-body").replaceWith(next.querySelector(".card-body"));
   cur.querySelector(".card").setAttribute("style", next.querySelector(".card").getAttribute("style"));
+}
+
+// Обе кнопки сохранения (в шапке и внизу формы) – одна подпись и одно
+// состояние: «Сохранить отзыв» / «Сохранить изменения» / «Сохраняем…».
+function setSaveButtonsLabel(text, disabled = false) {
+  for (const id of ["btn-save", "btn-save-bottom"]) {
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    btn.textContent = text;
+    btn.disabled = disabled;
+  }
 }
 
 // ── Даты в зависимости от статуса ──────────────

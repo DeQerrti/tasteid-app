@@ -80,7 +80,7 @@ function resetToNew() {
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("danger-zone").hidden = true;
   document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
-  document.getElementById("btn-save").textContent = i18n("Сохранить отзыв");
+  setSaveButtonsLabel(i18n("Сохранить отзыв"));
   // Сбросить ?edit=ID/#/add?edit=ID, чтобы обновление страницы не
   // открыло снова правку уже сохранённого отзыва. В SPA меняется
   // только хэш, и replaceState (в отличие от location.hash = …) не
@@ -191,7 +191,7 @@ async function initAddPage(params) {
     document.getElementById("edit-banner").style.display = "flex";
     document.getElementById("edit-title-hint").textContent = review.title;
     document.getElementById("page-subtitle").textContent = i18n("Редактировать отзыв");
-    document.getElementById("btn-save").textContent = i18n("Сохранить изменения");
+    setSaveButtonsLabel(i18n("Сохранить изменения"));
     document.title = `TasteID – ${i18n("Редактировать отзыв")}`;
     // Удаляем строго по номеру записи. У совсем старых записей номера
     // может не оказаться – тогда кнопки просто нет: удалять по названию
@@ -252,6 +252,7 @@ async function deleteReview() {
     setAddDirty(false);
     document.getElementById("danger-zone").hidden = true;
     document.getElementById("btn-save").disabled = true;
+    document.getElementById("btn-save-bottom").disabled = true;
     addLeaveTimer = setTimeout(() => closeAddView(), 1800);
   } catch (e) {
     setStatus("err", i18n("Не удалось удалить: ") + e.message);

@@ -109,6 +109,24 @@ let saved = await readReview();
 ok(saved.date_start === null, `в файле date_start осталось пустым (сейчас: ${saved.date_start})`);
 ok(saved.date_end === "2024-01-18", `в файле date_end не изменилось (сейчас: ${saved.date_end})`);
 
+// Обе кнопки сохранения подписаны одинаково (раньше сверху «Сохранить
+// изменения», снизу «Сохранить»), и в форме нет красной кнопки массового
+// удаления тегов – оно теперь внутри списка тегов.
+console.log("Кнопки редактора: одна подпись сохранения, удаление тегов в списке тегов");
+const topLabel = (await page.textContent("#btn-save")).trim();
+const bottomLabel = (await page.textContent("#btn-save-bottom")).trim();
+ok(topLabel === bottomLabel, `подписи совпадают («${topLabel}» / «${bottomLabel}»)`);
+ok(
+  (await page.locator(".ed-tag-tools .btn-new-danger").count()) === 0,
+  "у поиска тегов нет красной «Удалить»"
+);
+await page.click('.ed-tag-tools .btn-new:has-text("Все теги")');
+await page.click("#tm-bulk-start-btn");
+ok(await page.isVisible("#tm-bulk-bar"), "«Удалить несколько» в списке тегов включает выбор");
+ok(await page.isHidden("#tm-bulk-start-btn"), "в режиме выбора ссылка «Удалить несколько» скрыта");
+await page.evaluate(() => window.closeTagModal());
+ok(await page.isHidden("#tag-modal-overlay"), "окно тегов закрывается");
+
 console.log("Начало позже конца – сохранение не проходит");
 await page.fill("#f-date-start", "2026-06-11");
 await page.click("#btn-save");

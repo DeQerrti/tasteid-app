@@ -99,8 +99,7 @@ async function saveReview() {
 
   if (editingId !== null) review._editId = editingId;
 
-  btn.disabled = true;
-  btn.textContent = i18n("Сохраняем…");
+  setSaveButtonsLabel(i18n("Сохраняем…"), true);
   setStatus("", "");
 
   try {
@@ -149,8 +148,7 @@ async function saveReview() {
     setStatus("err", i18n("Ошибка сети: ") + e.message);
   }
 
-  btn.disabled = false;
-  btn.textContent = editingId !== null ? i18n("Сохранить изменения") : i18n("Сохранить отзыв");
+  setSaveButtonsLabel(editingId !== null ? i18n("Сохранить изменения") : i18n("Сохранить отзыв"));
 }
 
 // ── Признак несохранённых изменений ────────────

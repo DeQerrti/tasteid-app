@@ -87,6 +87,7 @@ function tmBulkStart() {
   document.getElementById("tag-modal-tag-panel").classList.add("bulk-mode");
   document.getElementById("tag-modal-overlay").classList.add("bulk-mode");
   document.getElementById("tm-bulk-bar").classList.remove("hidden");
+  document.getElementById("tm-bulk-start-btn").hidden = true;
   tmBulkSyncBar();
   renderTmTagList();
 }
@@ -97,6 +98,7 @@ function tmBulkCancel() {
   document.getElementById("tag-modal-tag-panel").classList.remove("bulk-mode");
   document.getElementById("tag-modal-overlay").classList.remove("bulk-mode");
   document.getElementById("tm-bulk-bar").classList.add("hidden");
+  document.getElementById("tm-bulk-start-btn").hidden = false;
   renderTmTagList();
 }
 

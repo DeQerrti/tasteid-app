@@ -606,6 +606,8 @@ i18nRegister({
   "Новый статус": "New status",
   "Новая тема": "New theme",
   "Новый тег": "New tag",
+  "Все теги": "All tags",
+  "Удалить несколько": "Delete several",
   "Новый тир-лист": "New tier list",
   "Обложка (URL)": "Cover (URL)",
   Ок: "OK",
