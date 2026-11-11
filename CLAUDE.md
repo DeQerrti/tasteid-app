@@ -358,8 +358,11 @@ TypeScript **не нужен** — обсуждали и договорилис�
   мобильным мостом (`backup.mjs`, `sync.mjs`, `mobile-bridge.mjs`,
   `mobile-cover-compress.mjs`) падали с `spawnSync npx ENOENT`: сборка
   тестового бандла звала `npx`, а на Windows это `npx.cmd`. Теперь
-  `tests/fixtures/mobile-bundle.js` запускает esbuild тем же `node` —
-  не возвращай туда `npx`.
+  `tests/fixtures/mobile-bundle.js` собирает бандл через сам модуль
+  esbuild (`buildSync`) — не возвращай туда ни `npx`, ни запуск
+  `node_modules/esbuild/bin/esbuild` через `node`: второй работает на
+  Windows, но на Linux этот файл — настоящая программа, а не скрипт, и
+  CI на нём падает (так уже было один раз).
 - В CI `backup.mjs` изредка падает случайно («Скачать резервную копию»
   не дошло до «Поделиться»), хотя тот же коммит в соседнем прогоне
   проходит. Сначала перезапусти упавший джоб (`gh run rerun <id>

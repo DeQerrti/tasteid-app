@@ -13,13 +13,13 @@
 // Отсюда правило: новый плагин Capacitor в mobile/src — новая заглушка
 // рядом и новая строка здесь. Одна, а не три.
 
-import { execFileSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import { buildSync } from "esbuild";
 
-const require = createRequire(import.meta.url);
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 const FAKES = {
   "@capacitor/filesystem": "./tests/fixtures/fake-filesystem.js",
@@ -33,18 +33,23 @@ const FAKES = {
 // Возвращает путь к собранному файлу.
 export function buildMobileBundle(name = "bundle.js") {
   const out = join(mkdtempSync(join(tmpdir(), "tasteid-bundle-")), name);
-  // Не "npx esbuild": на Windows npx – это npx.cmd, и execFileSync без
-  // оболочки его не находит («spawnSync npx ENOENT») – из-за этого все
-  // проверки с мобильным мостом на Windows не запускались вовсе. Тем же
-  // node запускаем сам скрипт esbuild из node_modules – одинаково
-  // работает везде.
-  execFileSync(process.execPath, [
-    require.resolve("esbuild/bin/esbuild"),
-    "mobile/src/main.js",
-    "--bundle",
-    "--format=iife",
-    ...Object.entries(FAKES).map(([pkg, fake]) => `--alias:${pkg}=${fake}`),
-    `--outfile=${out}`,
-  ]);
+  // Через сам модуль esbuild, а не запуском его из командной строки –
+  // оба способа запуска зависят от системы:
+  //   "npx esbuild" – на Windows npx это npx.cmd, и execFileSync без
+  //   оболочки его не находит («spawnSync npx ENOENT»): проверки с
+  //   мобильным мостом на Windows не запускались вовсе;
+  //   "node node_modules/esbuild/bin/esbuild" – на Windows это скрипт, а
+  //   на Linux установка подменяет этот файл настоящей программой, и
+  //   node падает на ней с SyntaxError (так один раз уже сломали CI).
+  // buildSync одинаков везде.
+  buildSync({
+    absWorkingDir: ROOT,
+    entryPoints: ["mobile/src/main.js"],
+    bundle: true,
+    format: "iife",
+    alias: FAKES,
+    outfile: out,
+    logLevel: "warning",
+  });
   return out;
 }
