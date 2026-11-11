@@ -36,7 +36,11 @@ jobs:
 
   browser:
     name: Проверки в браузере
-    runs-on: ubuntu-latest
+    # Версия закреплена, а не ubuntu-latest: GitHub переводит latest на
+    # Ubuntu 26, а Playwright 1.56.1 (package.json) Chromium на ней ещё не
+    # ставит – шаг установки браузера падал, не дойдя до самих проверок.
+    # Поднимать вместе с версией Playwright, когда та научится Ubuntu 26.
+    runs-on: ubuntu-24.04
     # Не в общем check: это Playwright и настоящий Chromium, а не только
     # Node — отдельный джоб не тормозит остальные проверки на каждый push
     # и не блокирует сборку (build/android ниже не зависят от него).
