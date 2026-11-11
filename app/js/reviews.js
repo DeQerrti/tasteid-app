@@ -633,6 +633,7 @@ function openReviewModal(r) {
   _reviewModalTitle = r.title;
   _reviewModalReview = r;
   document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
+  appendReviewLinkedFavorites(r);
   overlay.classList.remove("hidden");
   document.body.style.overflow = "hidden";
   // Фокус внутрь окна – иначе скринридер продолжит читать страницу
@@ -642,6 +643,58 @@ function openReviewModal(r) {
   // лишним элементом).
   overlay.querySelector(".review-modal-panel")?.focus();
 }
+
+// Обратная связь «тайтл → любимое»: персонажи, персоны и записи своих
+// разделов, у которых этот отзыв отмечен в «Тайтлах» (linked_review_ids,
+// правится в #/favorites-edit). Раньше связь была видна только с одной
+// стороны – из модалки персонажа; из отзыва нельзя было узнать, что
+// персонаж оттуда у тебя в любимом. favorites.json читается при каждом
+// открытии (он небольшой), а блок дописывается в окно уже после показа –
+// чтобы модалка не ждала чтения файла. Сами карточки – favPersonCard() и
+// группировка по разделам – те же, что у связей в модалке персонажа.
+async function appendReviewLinkedFavorites(r) {
+  if (r?.id === undefined || r?.id === null || typeof favPersonCard !== "function") return;
+  let favData = [];
+  try {
+    const res = await fetch("/favorites.json?_=" + Date.now());
+    favData = res.ok ? await res.json() : [];
+  } catch {
+    return;
+  }
+  const linked = (Array.isArray(favData) ? favData : []).filter((e) => (e.linked_review_ids || []).includes(r.id));
+  // Модалку могли закрыть или открыть другой отзыв, пока читался файл.
+  if (!linked.length || _reviewModalReview !== r) return;
+  const capture = document.getElementById("review-modal-capture");
+  if (!capture || capture.querySelector(".review-linked-favs")) return;
+
+  const groups = [];
+  for (const e of linked) {
+    let g = groups.find((x) => x.type === e.type);
+    if (!g) groups.push((g = { type: e.type, items: [] }));
+    g.items.push(e);
+  }
+  const overrides = window.SITE_LABEL_OVERRIDES?.favTypes || {};
+  const labelFor = (type) => {
+    if (type === "character") return overrides.character || i18n("Персонажи");
+    if (type === "person") return overrides.person || i18n("Персоны");
+    return ((window.SITE_FAV_COLLECTIONS || []).find((c) => c.id === type) || {}).label || type;
+  };
+  reviewLinkedFavData = favData;
+  const box = document.createElement("div");
+  box.className = "review-linked-favs";
+  box.innerHTML = groups
+    .map(
+      (g) => `
+      <div class="fav-modal-titles-title">${esc(labelFor(g.type))} · ${i18n("в любимом")}</div>
+      <div class="grid-chars fav-modal-titles-grid">${g.items.map((e, i) => favPersonCard(e, i)).join("")}</div>`
+    )
+    .join("");
+  const sources = capture.querySelector(".source-buttons");
+  capture.insertBefore(box, sources);
+}
+// Записи favorites.json, прочитанные последним appendReviewLinkedFavorites –
+// по ним клик по карточке открывает модалку персонажа.
+let reviewLinkedFavData = [];
 
 function closeReviewModal() {
   const overlay = document.getElementById("review-modal-overlay");
@@ -687,6 +740,7 @@ async function persistReviewCoverChange(r) {
   await postRecordOrThrow("/api/save-review", { ...r, _editId: r.id });
   cache.reviews = null;
   document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
+  appendReviewLinkedFavorites(r);
   refreshOpenReviewsTab();
 }
 
@@ -717,7 +771,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) closeReviewModal();
+    if (e.target === overlay) {
+      closeReviewModal();
+      return;
+    }
+    // Карточка из блока «… в любимом» (appendReviewLinkedFavorites) –
+    // открывает модалку персонажа вместо этой: оба оверлея с одним
+    // z-index, поверх были бы видны в порядке разметки, а не открытия.
+    const charCard = e.target.closest(".review-linked-favs .card-char[data-fav-id]");
+    if (charCard && typeof openFavPersonModal === "function") {
+      const entry = reviewLinkedFavData.find((x) => String(x.id) === charCard.dataset.favId);
+      if (entry) {
+        closeReviewModal();
+        openFavPersonModal(entry);
+      }
+    }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeReviewModal();

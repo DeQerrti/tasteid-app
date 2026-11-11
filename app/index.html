@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=12"></script>
+<script src="/js/i18n-en.js?v=13"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=29"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -1009,6 +1009,9 @@ section.group { margin-bottom: 3.5rem; }
 /* 140px, а не 120: в 120-пиксельной карточке подпись оценки рядом с
    годом обрезалась до «Резона…». */
 .fav-modal-titles-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+/* «Персонажи · в любимом» в модалке отзыва (appendReviewLinkedFavorites). */
+.review-linked-favs { margin: 1.6rem 0 .4rem; }
+.review-linked-favs .fav-modal-titles-grid { margin-bottom: 1.2rem; }
 
 /* Пустая анкета персонажа – подсказка владельцу (favEmptyProfileHtml). */
 .fav-empty-profile {
@@ -2559,6 +2562,25 @@ main.fe-view > .status-msg:empty { display: none; }
 .fe-imgbox #avatar-img { display: none !important; }
 .fe-img-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .fe-main { min-width: 0; }
+/* Поиск на AniList над формой (feLookup* в favorites-edit.js). */
+.fe-lookup { margin-bottom: 2rem; padding: .9rem 1rem; border: 1px dashed var(--border2); border-radius: 4px; }
+.fe-lookup[hidden] { display: none; }
+.fe-lookup-row { display: flex; gap: .6rem; }
+.fe-lookup-row input { flex: 1; min-width: 0; }
+.fe-lookup-hint { margin-top: .5rem; font-family: 'DM Sans', sans-serif; font-size: .75rem; color: var(--text-dim); line-height: 1.45; }
+.fe-lookup-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .6rem; margin-top: .8rem; }
+.fe-lookup-results:empty { display: none; }
+.fe-lookup-item {
+  display: flex; flex-direction: column; gap: .25rem; text-align: left; padding: 0 0 .5rem; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; color: inherit; font: inherit;
+  transition: border-color .15s;
+}
+.fe-lookup-item:hover, .fe-lookup-item:focus-visible { border-color: var(--red-hi); outline: none; }
+.fe-lookup-item img { width: 100%; aspect-ratio: 1/1; object-fit: cover; object-position: 50% 20%; display: block; }
+.fe-lookup-name { padding: 0 .5rem; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: .9rem; color: var(--text-hi); line-height: 1.25; }
+.fe-lookup-sub { padding: 0 .5rem; font-family: 'DM Sans', sans-serif; font-size: .66rem; color: var(--text-dim); line-height: 1.3; }
+.fe-lookup-msg { grid-column: 1 / -1; font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim); }
+.fe-lookup-msg.err { color: var(--err); }
 .fe-main > .section-title:first-child { margin-top: 0; }
 .fe-main #linked-titles-list:not(:empty) { margin-bottom: .8rem; }
 /* Кнопка «Добавить источник» стояла вплотную к следующему заголовку
@@ -3639,7 +3661,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/cards.js?v=19"></script>
 <script src="/js/now.js?v=16"></script>
 <script src="/js/favorites.js?v=18"></script>
-<script src="/js/reviews.js?v=24"></script>
+<script src="/js/reviews.js?v=25"></script>
 <script src="/js/stats.js?v=18"></script>
 <script src="/js/tierlist.js?v=14"></script>
 <script src="/js/backup-history.js?v=2"></script>
@@ -3671,7 +3693,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/router.js?v=1"></script>
 <script src="/js/routes/reviews-order.js?v=3"></script>
 <script src="/js/routes/chars-edit.js?v=2"></script>
-<script src="/js/routes/favorites-edit.js?v=3"></script>
+<script src="/js/routes/favorites-edit.js?v=4"></script>
 <script src="/js/routes/backup-history.js?v=1"></script>
 <script src="/js/routes/add.js?v=10"></script>
 <script src="/js/routes/add-tags-modal.js?v=2"></script>

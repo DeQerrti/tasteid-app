@@ -164,6 +164,103 @@ await page.waitForFunction(() => document.getElementById("f-type").value === "op
 ok((await page.inputValue("#f-type")) === "op", "тип новой записи – свой раздел");
 ok(await page.isHidden("#fe-danger"), "у новой записи кнопки удаления нет");
 
+console.log("Модалка отзыва показывает, кто из этого тайтла в любимом");
+const reviewId = (
+  await (
+    await fetch(`${base}/api/save-review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Тайтл со связями", type: "anime", status: "completed" }),
+    })
+  ).json()
+).id;
+const fav = readFav();
+fav.find((r) => r.id === 1).linked_review_ids = [reviewId];
+writeFileSync(join(vaultDir, "favorites.json"), JSON.stringify(fav));
+await page.goto(`${base}/`, { waitUntil: "domcontentloaded" });
+await page.waitForFunction(() => typeof window.openReviewModal === "function");
+await page.evaluate(async (id) => {
+  const list = await (await fetch("/reviews.json")).json();
+  window.openReviewModal(list.find((r) => r.id === id));
+}, reviewId);
+await page.waitForSelector(".review-linked-favs .card-char", { timeout: 5000 });
+ok(
+  (await page.textContent(".review-linked-favs")).includes("Альфа"),
+  "в модалке отзыва – связанный персонаж"
+);
+await page.click(".review-linked-favs .card-char");
+ok(
+  (await page.textContent("#fav-modal-title")).trim() === "Альфа",
+  "клик открывает анкету персонажа"
+);
+
+// Автозаполнение с AniList – сам AniList подменён: проверяется, что
+// форма заполняется и отзыв привязывается по номеру AniList (ids), а
+// сэйю из «Любимого» – по имени в обратном порядке слов.
+console.log("Автозаполнение персонажа с AniList");
+await fetch(`${base}/api/save-review`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    title: "Совсем другое название",
+    type: "anime",
+    status: "completed",
+    ids: { anilist: 777 },
+  }),
+});
+const favNow = readFav();
+favNow.push({ id: 50, type: "person", subtype: "seiyuu", name: "Koyama Rikiya" });
+writeFileSync(join(vaultDir, "favorites.json"), JSON.stringify(favNow));
+await page.route("https://graphql.anilist.co/**", (route) =>
+  route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      data: {
+        Page: {
+          characters: [
+            {
+              id: 1,
+              name: { full: "Kiritsugu Emiya", native: "衛宮切嗣" },
+              image: { large: "https://example.invalid/k.png" },
+              media: {
+                nodes: [
+                  {
+                    id: 777,
+                    idMal: null,
+                    title: { romaji: "Fate/Zero", english: null, native: null },
+                  },
+                ],
+                edges: [{ voiceActors: [{ name: { full: "Rikiya Koyama" } }] }],
+              },
+            },
+          ],
+        },
+      },
+    }),
+  })
+);
+await page.goto(`${base}/#/favorites-edit?type=character`, { waitUntil: "domcontentloaded" });
+await page.waitForSelector("#fe-lookup-q");
+await page.fill("#fe-lookup-q", "Kiritsugu");
+await page.press("#fe-lookup-q", "Enter");
+await page.click(".fe-lookup-item");
+ok((await page.inputValue("#f-name")) === "Kiritsugu Emiya", "имя заполнено");
+ok((await page.inputValue("#f-from")) === "Fate/Zero", "«Откуда» заполнено");
+ok(
+  (await page.inputValue("#f-image")) === "https://example.invalid/k.png",
+  "ссылка на картинку заполнена"
+);
+ok(
+  (await page.textContent("#linked-titles-list")).includes("Совсем другое название"),
+  "отзыв привязан по номеру AniList, хоть название и другое"
+);
+ok(
+  (await page.textContent("#linked-favorites-groups")).includes("Koyama Rikiya"),
+  "сэйю из «Любимого» привязан"
+);
+await page.unroute("https://graphql.anilist.co/**");
+
 ok(jsErrors.length === 0, `нет ошибок JS на странице (${jsErrors.join("; ")})`);
 
 await browser.close();

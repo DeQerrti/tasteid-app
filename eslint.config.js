@@ -93,6 +93,7 @@ const sharedBrowserGlobals = [
   "favCustomCollections",
   "favPersonCard",
   "favRoleTitle",
+  "openFavPersonModal",
   "FAV_ROLE_ORDER",
   "favTitleCard",
   "fetchAnilistMeta",

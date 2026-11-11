@@ -110,6 +110,18 @@ async function mount(container, params) {
         </aside>
 
         <div class="fe-main">
+          <!-- Автозаполнение с AniList (feLookup* ниже): только для
+               персонажей и персон – у своих разделов (жанры, опенинги…)
+               искать там нечего, блок прячет onTypeChange(). -->
+          <div class="fe-lookup" id="fe-lookup">
+            <div class="fe-lookup-row">
+              <input type="search" id="fe-lookup-q" data-no-dirty onkeydown="if (event.key === 'Enter') { event.preventDefault(); feLookupSearch(); }" placeholder="${i18n("Найти на AniList – имя персонажа или человека")}" aria-label="${i18n("Найти на AniList")}">
+              <button type="button" class="btn btn-ghost" id="fe-lookup-btn" onclick="feLookupSearch()">${i18n("Найти")}</button>
+            </div>
+            <div class="fe-lookup-hint" id="fe-lookup-hint">${i18n("Заполнит имя, картинку и «откуда» или роль, а ещё привяжет ваши отзывы на тайтлы и уже добавленных в «Любимое» людей и персонажей.")}</div>
+            <div class="fe-lookup-results" id="fe-lookup-results"></div>
+          </div>
+
           <h2 class="section-title">${i18n("Основное")}</h2>
           <div class="grid">
             <div class="field">
@@ -1219,7 +1231,17 @@ function addLinkedFavorite(id) {
 }
 
 function onTypeChange() {
-  const isPerson = document.getElementById("f-type").value === "person";
+  const type = document.getElementById("f-type").value;
+  const isPerson = type === "person";
+  // Поиск на AniList – только у персонажей и персон; результаты прошлого
+  // поиска (персонажи вместо людей или наоборот) при смене типа лишние.
+  const lookup = document.getElementById("fe-lookup");
+  if (lookup) {
+    lookup.hidden = type !== "character" && type !== "person";
+    const results = document.getElementById("fe-lookup-results");
+    if (results && lookup.dataset.type !== type) results.innerHTML = "";
+    lookup.dataset.type = type;
+  }
   document.getElementById("field-subtype").classList.toggle("visible", isPerson);
   document.getElementById("field-from").classList.toggle("hidden-field", isPerson);
   if (isPerson) document.getElementById("f-from").value = "";
@@ -1255,6 +1277,200 @@ function openFocusPickerForAvatar() {
       renderFePreview();
     },
   });
+}
+
+// ── Автозаполнение с AniList ─────────────────────
+// Раньше персонажа/персону заводили целиком руками: имя, ссылка на
+// картинку, «откуда», привязка тайтлов по одному. Импорт списков с
+// AniList/Shikimori (js/import.js) персонажей и людей не трогает вовсе –
+// только тайтлы. Здесь – поиск по имени в базе AniList (публичный
+// GraphQL без ключа, тот же адрес, что у импорта) и заполнение формы
+// выбранным результатом. Форма только заполняется – сохраняет человек
+// сам, той же кнопкой «Сохранить», и может всё поправить до этого.
+const FE_ANILIST = "https://graphql.anilist.co";
+let feLookupItems = [];
+
+const FE_CHARACTER_QUERY = `
+  query ($q: String) {
+    Page(perPage: 8) {
+      characters(search: $q) {
+        id
+        name { full native }
+        image { large }
+        media(perPage: 10, sort: POPULARITY_DESC) {
+          nodes { id idMal title { romaji english native } }
+          edges { voiceActors(language: JAPANESE) { name { full } } }
+        }
+      }
+    }
+  }`;
+
+const FE_STAFF_QUERY = `
+  query ($q: String) {
+    Page(perPage: 8) {
+      staff(search: $q) {
+        id
+        name { full native }
+        image { large }
+        primaryOccupations
+        staffMedia(perPage: 25, sort: POPULARITY_DESC) {
+          nodes { id idMal title { romaji english native } }
+        }
+        characterMedia(perPage: 25, sort: POPULARITY_DESC) {
+          nodes { id idMal title { romaji english native } }
+        }
+        characters(perPage: 25, sort: FAVOURITES_DESC) {
+          nodes { name { full } }
+        }
+      }
+    }
+  }`;
+
+// Занятия на AniList («Voice Actor», «Director», «Mangaka»…) → роль
+// персоны в TasteID. Первое совпавшее по порядку списка.
+function feLookupSubtype(occupations) {
+  const occ = (occupations || []).map((o) => o.toLowerCase());
+  const has = (...words) => occ.some((o) => words.some((w) => o.includes(w)));
+  if (has("voice")) return "seiyuu";
+  if (has("director")) return "director";
+  if (has("composer", "music")) return "composer";
+  if (has("mangaka", "author", "writer", "novelist", "original creator", "story")) return "author";
+  if (has("illustrator", "artist", "character design", "animator")) return "artist";
+  if (has("actor", "actress")) return "actor";
+  return null;
+}
+
+async function feLookupSearch() {
+  const q = document.getElementById("fe-lookup-q").value.trim();
+  const box = document.getElementById("fe-lookup-results");
+  const btn = document.getElementById("fe-lookup-btn");
+  if (!q) return;
+  const isPerson = document.getElementById("f-type").value === "person";
+  btn.disabled = true;
+  box.innerHTML = `<div class="fe-lookup-msg">${i18n("Ищем…")}</div>`;
+  try {
+    const res = await fetch(FE_ANILIST, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: isPerson ? FE_STAFF_QUERY : FE_CHARACTER_QUERY, variables: { q } }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.errors?.[0]?.message || i18n("Сервер ответил {status}", { status: res.status }));
+    feLookupItems = (isPerson ? data.data?.Page?.staff : data.data?.Page?.characters) || [];
+    feLookupRender(isPerson);
+  } catch (err) {
+    box.innerHTML = `<div class="fe-lookup-msg err">${esc(i18n("AniList не ответил: ") + err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function feLookupRender(isPerson) {
+  const box = document.getElementById("fe-lookup-results");
+  if (!feLookupItems.length) {
+    box.innerHTML = `<div class="fe-lookup-msg">${i18n("Ничего не нашлось")}</div>`;
+    return;
+  }
+  box.innerHTML = feLookupItems
+    .map((it, i) => {
+      const sub = isPerson
+        ? (it.primaryOccupations || []).join(", ")
+        : it.media?.nodes?.[0]?.title?.romaji || it.media?.nodes?.[0]?.title?.english || "";
+      return `<button type="button" class="fe-lookup-item" onclick="feLookupApply(${i})">
+        <img src="${esc(it.image?.large || PH_SQ)}" alt="" loading="lazy">
+        <span class="fe-lookup-name">${esc(it.name?.full || it.name?.native || "?")}</span>
+        ${sub ? `<span class="fe-lookup-sub">${esc(sub)}</span>` : ""}
+      </button>`;
+    })
+    .join("");
+}
+
+// Имена у AniList – «Имя Фамилия» латиницей, у человека в «Любимом»
+// бывает и «Фамилия Имя» – сравниваем без учёта порядка слов.
+function feLookupNameKey(name) {
+  return (name || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
+function feLookupApply(index) {
+  const it = feLookupItems[index];
+  if (!it) return;
+  const isPerson = document.getElementById("f-type").value === "person";
+
+  const name = it.name?.full || it.name?.native || "";
+  if (name) document.getElementById("f-name").value = name;
+  const img = it.image?.large;
+  if (img) {
+    document.getElementById("f-image").value = img;
+    document.getElementById("f-image-backup").value = "";
+    previewAvatar(img);
+    scheduleBackupImage();
+  }
+
+  // У человека – и работы в производстве (staffMedia), и роли озвучки
+  // (characterMedia): у сэйю первое почти всегда пустое.
+  const mediaNodes = isPerson
+    ? [...(it.staffMedia?.nodes || []), ...(it.characterMedia?.nodes || [])]
+    : it.media?.nodes || [];
+  if (isPerson) {
+    const sub = feLookupSubtype(it.primaryOccupations);
+    if (sub) selectSubtypePicker(sub);
+  } else {
+    const t = mediaNodes[0]?.title;
+    if (t) document.getElementById("f-from").value = t.romaji || t.english || t.native || "";
+  }
+
+  // Тайтлы: свои отзывы на те же произведения – по номеру AniList/MAL
+  // (ids в reviews.json, см. js/external-ids.js), иначе по названию.
+  const reviews = cache.reviews || [];
+  let addedTitles = 0;
+  for (const node of mediaNodes) {
+    const names = [node.title?.romaji, node.title?.english, node.title?.native].filter(Boolean).map(normTitle);
+    const match = reviews.filter(
+      (r) =>
+        (r.ids?.anilist && r.ids.anilist === node.id) ||
+        (node.idMal && r.ids?.mal === node.idMal) ||
+        names.includes(normTitle(r.title))
+    );
+    for (const r of match) {
+      if (typeof r.id === "number" && !linkedReviewIds.includes(r.id)) {
+        linkedReviewIds.push(r.id);
+        addedTitles++;
+      }
+    }
+  }
+  renderLinkedTitles();
+
+  // Записи «Любимого»: у персонажа – его сэйю, у человека – его
+  // персонажи, если они уже заведены (по имени).
+  const otherNames = isPerson
+    ? (it.characters?.nodes || []).map((c) => c.name?.full)
+    : (it.media?.edges || []).flatMap((e) => (e.voiceActors || []).map((v) => v.name?.full));
+  const keys = new Set(otherNames.filter(Boolean).map(feLookupNameKey));
+  let addedFavs = 0;
+  for (const e of allEntries) {
+    if (e.id === favEditingId || linkedFavoriteIds.includes(e.id)) continue;
+    if (keys.has(feLookupNameKey(e.name))) {
+      linkedFavoriteIds.push(e.id);
+      addedFavs++;
+    }
+  }
+  renderLinkedFavoriteGroups();
+  renderFePreview();
+
+  document.getElementById("fe-lookup-results").innerHTML = "";
+  setFavStatus(
+    "ok",
+    i18n("Заполнено с AniList: привязано тайтлов – {t}, записей «Любимого» – {f}. Проверьте и сохраните.", {
+      t: addedTitles,
+      f: addedFavs,
+    })
+  );
 }
 
 // ── Галерея картинок ─────────────────────────────
@@ -1437,7 +1653,7 @@ function resetFavToNew() {
   document.getElementById("image-upload-status").textContent = "";
   document.getElementById("f-image-upload").value = "";
   setFavStatus("", "");
-  renderFePreview();
+  onTypeChange();
 }
 
 function fillFavForm(r) {
