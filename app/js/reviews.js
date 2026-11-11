@@ -453,18 +453,27 @@ function reviewModalBodyHtml(r) {
   // начало: раньше она подписывалась «Завершено», потому что ветка ниже
   // брала первую попавшуюся дату и называла её завершением, не глядя на
   // статус.
+  //
+  // Даты – одной строкой (.review-dates): «8 ноября → 9 ноября · 2 дня»,
+  // «18 января 2024 · завершено», «с 3 марта · в процессе». Раньше –
+  // столбиком «Начато: …» / «Завершено: …» из мелких строк; срок
+  // приходилось считать в уме.
   const isFinished = !r.status || r.status === "completed";
-  let dateLines = [];
+  let datesHtml = "";
+  const note = (text) => `<span class="review-dates-note">· ${esc(text)}</span>`;
   if (!isFinished) {
-    if (r.date_start) dateLines = [{ label: i18n("Начато:"), date: fmtLongDate(r.date_start) }];
+    if (r.date_start) datesHtml = `<span>${esc(i18n("с {date}", { date: fmtLongDate(r.date_start) }))}</span>${note(i18n("в процессе"))}`;
   } else if (r.date_start && r.date_end && r.date_start !== r.date_end) {
-    dateLines = [
-      { label: i18n("Начато:"), date: fmtLongDate(r.date_start) },
-      { label: i18n("Завершено:"), date: fmtLongDate(r.date_end) },
-    ];
+    const days = Math.round((parseLocalDate(r.date_end) - parseLocalDate(r.date_start)) / 86400000) + 1;
+    datesHtml =
+      `<span>${esc(fmtLongDate(r.date_start))}</span><span class="review-dates-arrow">→</span><span>${esc(fmtLongDate(r.date_end))}</span>` +
+      (days > 0 ? note(`${days} ${plural(days, [i18n("день"), i18n("дня"), i18n("дней")])}`) : "");
   } else {
     const dateRaw = r.date_end || r.date_start || r.date || null;
-    if (dateRaw) dateLines = [{ label: i18n("Завершено:"), date: fmtLongDate(dateRaw) }];
+    if (dateRaw) {
+      const oneDay = r.date_start && r.date_start === r.date_end;
+      datesHtml = `<span>${esc(fmtLongDate(dateRaw))}</span>${note(oneDay ? i18n("за один день") : i18n("завершено"))}`;
+    }
   }
 
   const btn1 = sourceBtnHtml(r.url, r.source);
@@ -519,7 +528,7 @@ function reviewModalBodyHtml(r) {
         <div>
           <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
           <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
-          ${dateLines.map(({ label, date }) => `<div class="review-dateline">${label} <span>${esc(date)}</span></div>`).join("")}
+          ${datesHtml ? `<div class="review-dates">${datesHtml}</div>` : ""}
           ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
           ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
         </div>

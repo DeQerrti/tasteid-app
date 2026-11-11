@@ -30,6 +30,23 @@
   color-scheme: dark;
 }
 
+/* Подписи под обложками (год, роль, «откуда») и бейдж типа на обложке –
+   чуть крупнее и плотнее: после того как кириллица в них стала Manrope
+   (см. fonts.css), прежний кегль .78rem/.58rem читался мелко. Только
+   классические темы – у остальных свои размеры. */
+:is([data-skin="classic"], [data-skin="classic-light"]) .card-meta {
+  font-size: .8rem;
+  font-weight: 500;
+}
+:is([data-skin="classic"], [data-skin="classic-light"]) .type-tag {
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+@media (max-width: 700px) {
+  :is([data-skin="classic"], [data-skin="classic-light"]) .card-meta { font-size: .66rem; }
+}
+
 /* ══ КЛАССИЧЕСКАЯ СВЕТЛАЯ ════════════════════════
    Тот же журнальный визуальный язык, что у тёмной классической —
    тонкие рамки, маленькое скругление, засечковые заголовки курсивом —

@@ -240,10 +240,52 @@ function favModeBodyHtml() {
     return `<div class="grid-chars">${characters.length ? characters.map((r, i) => favPersonCard(r, i)).join("") : empty}</div>`;
   }
   if (key === "favPersons") {
-    return `<div class="grid-chars">${persons.length ? persons.map((r, i) => favPersonCard(r, i)).join("") : empty}</div>`;
+    if (!persons.length) return `<div class="grid-chars">${empty}</div>`;
+    return `<div class="grid-chars">${favPersonsByRoleHtml(persons)}</div>`;
   }
   const entries = favData.filter((r) => r.type === key);
   return `<div class="grid-chars">${entries.length ? entries.map((r, i) => favPersonCard(r, i)).join("") : empty}</div>`;
+}
+
+// «Персоны» разделами по ролям (Сэйю / Режиссёры / Авторы / …) со
+// счётчиком – одной сплошной сеткой 11 сэйю вперемешку с 4 режиссёрами
+// читались плохо. Внутри раздела порядок прежний (как в favorites.json,
+// то есть как их расставили в редакторе). Заголовки – ячейки той же
+// сетки на всю ширину (.fav-role-head), чтобы не плодить отдельные
+// гриды. Если роль у всех одна – заголовков нет, всё как раньше.
+const FAV_ROLE_ORDER = ["seiyuu", "director", "author", "composer", "artist", "actor"];
+function favRoleTitle(role) {
+  const titles = {
+    seiyuu: i18n("Сэйю"),
+    director: i18n("Режиссёры"),
+    author: i18n("Авторы"),
+    composer: i18n("Композиторы"),
+    artist: i18n("Художники"),
+    actor: i18n("Актёры"),
+  };
+  return titles[role] || SUBTYPE_LABELS[role] || i18n("Без роли");
+}
+function favPersonsByRoleHtml(persons) {
+  const groups = new Map();
+  for (const p of persons) {
+    const role = p.subtype || "";
+    if (!groups.has(role)) groups.set(role, []);
+    groups.get(role).push(p);
+  }
+  if (groups.size < 2) return persons.map((r, i) => favPersonCard(r, i)).join("");
+  const rank = (role) => {
+    const i = FAV_ROLE_ORDER.indexOf(role);
+    return i === -1 ? FAV_ROLE_ORDER.length + (role ? 0 : 1) : i;
+  };
+  let index = 0;
+  return [...groups.keys()]
+    .sort((a, b) => rank(a) - rank(b))
+    .map((role) => {
+      const items = groups.get(role);
+      const head = `<div class="fav-role-head">${esc(favRoleTitle(role))}<span class="section-count">${items.length}</span></div>`;
+      return head + items.map((r) => favPersonCard(r, index++)).join("");
+    })
+    .join("");
 }
 
 // requestAnimationFrame схлопывает быструю серию кликов в один рендер –
@@ -289,12 +331,10 @@ function favTitleCard(r, index, forExport) {
       <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
-        ${r.year || info
-          ? `<div class="card-meta">
-              ${r.year ? `<span>${esc(String(r.year))}</span>` : ""}
-              ${gradeInlineHtml(info)}
-            </div>`
-          : ""}
+        <div class="card-meta">
+          ${r.year ? `<span>${esc(String(r.year))}</span>` : "<span></span>"}
+          ${info ? gradeInlineHtml(info) : `<span class="card-nograde">${i18n("без оценки")}</span>`}
+        </div>
       </div>
     </div>
   </div>`;
@@ -442,6 +482,20 @@ function favLinkedFavoritesHtml(r) {
     .join("");
 }
 
+// Пустая анкета (ни био, ни цитат, ни своих полей) – подсказка с кнопкой
+// в редактор, а не просто пустое окно. Только владельцу и не на снимке:
+// блок лежит внутри #fav-modal-capture, поэтому помечен data-no-export
+// и прячется при съёмке (см. favPersonExport).
+function favEmptyProfileHtml(r) {
+  if (!isAdmin()) return "";
+  const p = r.profile || {};
+  if (p.bio || p.quotes?.length || p.gender || p.custom?.length) return "";
+  return `<div class="fav-empty-profile" data-no-export>
+    <span>${i18n("Анкета пока пустая: биография, цитаты, свои поля.")}</span>
+    <a href="#/favorites-edit?edit=${esc(String(r.id))}">${i18n("+ Заполнить")}</a>
+  </div>`;
+}
+
 function favPersonModalBodyHtml(r) {
   const subLine = r.type === "person"
     ? (SUBTYPE_LABELS[r.subtype] || i18n("Персона"))
@@ -491,6 +545,7 @@ function favPersonModalBodyHtml(r) {
       ${bioHtml}
       ${quotesHtml}
       ${factsHtml}
+      ${favEmptyProfileHtml(r)}
       ${favPersonLinkedTitlesHtml(r)}
       ${favLinkedFavoritesHtml(r)}
     </div>
@@ -537,6 +592,9 @@ async function favPersonExport() {
         useCORS: true,
         allowTaint: false,
         logging: false,
+        // Подсказка «Анкета пока пустая» – для владельца на экране, не
+        // для картинки, которой делятся (favEmptyProfileHtml).
+        ignoreElements: (node) => node.hasAttribute?.("data-no-export"),
         onclone: (clonedDoc) => {
           clonedDoc.documentElement.setAttribute(
             "data-skin",
