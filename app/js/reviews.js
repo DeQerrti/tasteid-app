@@ -493,9 +493,12 @@ function reviewModalBodyHtml(r) {
   // сделанных для этого отзыва (см. её же смысл в add-cover.js:
   // coverGallery) – не только текущую. Если ни одной резервной копии
   // ещё нет (например, обложка только по внешней ссылке, без бэкапа) –
-  // открывать нечего, курсор/подсказку не показываем вовсе.
+  // открывать нечего, курсор/подсказку не показываем вовсе. Одна-
+  // единственная картинка – тоже: галерея из той же самой обложки,
+  // что уже видна, ничего не показывает и только второй раз затемняет
+  // экран. Удалить её можно в редакторе.
   const galleryImgs = reviewCoverGalleryImages(r);
-  const coverClickable = galleryImgs.length
+  const coverClickable = galleryImgs.length > 1
     ? ` class="review-modal-cover has-gallery" onclick="openReviewCoverGallery()" title="${i18n("Все обложки ({v0})", { v0: galleryImgs.length })}"`
     : ` class="review-modal-cover"`;
 

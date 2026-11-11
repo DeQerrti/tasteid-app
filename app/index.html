@@ -2389,6 +2389,19 @@ section.group { margin-bottom: 3.5rem; }
 }
 .fe-view input:focus, .fe-view select:focus { border-color: var(--red); background: var(--bg2); }
 .fe-view input::placeholder { color: var(--text-dim); }
+/* textarea здесь не было в списке выше – «Биография» и «Цитаты» в
+   анкете персонажа рисовались браузерным полем по умолчанию: узкое
+   окошко моноширинным шрифтом посреди формы с антиквой. Те же правила,
+   что у input, плюс высота под абзац и растягивание только по высоте. */
+.fe-view textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 2px; padding: .65rem .85rem; color: var(--text-hi);
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem; line-height: 1.6; outline: none;
+  transition: border-color .2s, background .2s; resize: vertical;
+}
+.fe-view #f-profile-bio { min-height: 8rem; }
+.fe-view textarea:focus { border-color: var(--red); background: var(--bg2); }
+.fe-view textarea::placeholder { color: var(--text-dim); font-family: inherit; }
 
 .field-subtype { display: none; }
 .field-subtype.visible { display: block; }
@@ -3446,8 +3459,8 @@ section.group { margin-bottom: 3.5rem; }
 <script src="/js/api.js?v=13"></script>
 <script src="/js/cards.js?v=19"></script>
 <script src="/js/now.js?v=16"></script>
-<script src="/js/favorites.js?v=14"></script>
-<script src="/js/reviews.js?v=22"></script>
+<script src="/js/favorites.js?v=15"></script>
+<script src="/js/reviews.js?v=23"></script>
 <script src="/js/stats.js?v=18"></script>
 <script src="/js/tierlist.js?v=14"></script>
 <script src="/js/backup-history.js?v=2"></script>

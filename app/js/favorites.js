@@ -463,8 +463,10 @@ function favPersonModalBodyHtml(r) {
     ? `<div class="fav-modal-facts">${factRows.map((f) => `<div class="fav-modal-fact"><span>${esc(f.label)}</span>${esc(f.value)}</div>`).join("")}</div>`
     : "";
 
+  // Галерея – только когда есть из чего выбирать (2+ картинки), см. тот
+  // же разбор у coverClickable в reviews.js.
   const galleryImgs = favPersonGalleryImages(r);
-  const imgClickable = galleryImgs.length
+  const imgClickable = galleryImgs.length > 1
     ? ` class="review-modal-cover has-gallery" onclick="openFavPersonGallery()" title="${i18n("Все картинки ({v0})", { v0: galleryImgs.length })}"`
     : ` class="review-modal-cover"`;
 
