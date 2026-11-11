@@ -108,7 +108,10 @@ function nowApplyFilter() {
     grid.classList.toggle("now-hidden", !inGrid);
     // Год архива без единой подходящей карточки – вместе с заголовком.
     const divider = grid.previousElementSibling;
-    if (divider?.classList.contains("year-divider")) divider.classList.toggle("now-hidden", !inGrid);
+    if (divider?.classList.contains("year-divider")) {
+      divider.classList.toggle("now-hidden", !inGrid);
+      divider.querySelector(".year-count").textContent = inGrid;
+    }
     visible += inGrid;
   });
   let empty = el.querySelector(".now-filter-empty");
@@ -120,6 +123,7 @@ function nowApplyFilter() {
     el.appendChild(empty);
   }
   empty?.classList.toggle("now-hidden", visible > 0);
+  nowSyncYearJump();
 }
 
 function bindNowTools() {
@@ -134,6 +138,12 @@ function bindNowTools() {
   document.getElementById("now-search")?.addEventListener("input", (e) => {
     nowFilter.q = e.target.value;
     nowApplyFilter();
+  });
+  // Выбор года прокручивает и тут же возвращается к «Перейти к году…» –
+  // иначе повторно выбрать тот же год было бы нельзя.
+  document.getElementById("now-year-jump")?.addEventListener("change", (e) => {
+    scrollToNowYear(e.target.value);
+    e.target.value = "";
   });
   // Сортировка меняет порядок, а не видимость, – уже нарисованные разделы
   // сбрасываем и строим заново (в «Архиве» другая сортировка ещё и
@@ -154,6 +164,7 @@ function nowToolsHtml() {
     <div class="now-chips" id="now-chips"></div>
     <div class="now-tools-right">
       <input type="search" id="now-search" class="now-search" value="${esc(nowFilter.q)}" placeholder="${esc(i18n("Поиск по названию"))}" aria-label="${esc(i18n("Поиск по названию"))}">
+      <select id="now-year-jump" class="now-sort" data-no-dirty aria-label="${esc(i18n("Перейти к году…"))}" hidden></select>
       <select id="now-sort" class="now-sort" aria-label="${esc(i18n("Сортировка"))}">
         ${opt("date", i18n("Сначала недавние"))}
         ${opt("title", i18n("По названию"))}
@@ -261,77 +272,96 @@ function bindNowModeToggle() {
   });
 }
 
-// Год, к которому подскочить, – см. её же комментарий у
-// scrollToArchiveYear() ниже. Список лет для выпадашки – по самим
-// записям архива, не выдуманный диапазон: если человек смотрел кино
-// только в 2019–2024, промежуточные пустые года туда не попадают.
-function makeArchiveYearJumpHtml(completed) {
-  const years = [
-    ...new Set(
-      completed
-        .map((r) => {
-          const raw = r.date_end || r.date_start || r.date;
-          return raw ? parseLocalDate(raw).getFullYear() : null;
-        })
-        .filter((y) => y !== null)
-    ),
-  ].sort((a, b) => b - a);
-  if (years.length < 2) return ""; // один год – прыгать некуда
-  return `<div class="now-archive-jump">
-    <select onchange="scrollToArchiveYear(this.value)">
-      <option value="" data-i18n>Перейти к году…</option>
-      ${years.map((y) => `<option value="${y}">${y}</option>`).join("")}
-    </select>
-  </div>`;
+// ── Разделы по годам ───────────────────────────
+// Список с заголовками-годами: «Архив» по дате – по году завершения,
+// любой статус при сортировке «По году выхода» – по году выхода. Один и
+// тот же вид в обоих случаях, поэтому и «Перейти к году» (см.
+// nowSyncYearJump) работает одинаково.
+//
+// Счётчик в заголовке (.year-count) пересчитывает nowApplyFilter() – он
+// показывает, сколько карточек года видно сейчас, с учётом фильтра.
+function yearGroupsHtml(items, yearOf) {
+  const byYear = new Map();
+  for (const r of items) {
+    const y = yearOf(r);
+    if (!byYear.has(y)) byYear.set(y, []);
+    byYear.get(y).push(r);
+  }
+  // Годы по убыванию; записи без года («–») – в самом конце, а не
+  // где придётся: раньше сравнение числа с тире давало NaN, и порядок
+  // зависел от того, в каком месте списка встретилась такая запись.
+  const years = [...byYear.keys()].sort((x, y) => (y === "–" ? -1 : x === "–" ? 1 : y - x));
+  return years
+    .map(
+      (year) => `<h3 class="year-divider" data-year="${esc(String(year))}">
+        <span class="year-label">${esc(year === "–" ? i18n("Без года") : String(year))}</span>
+        <span class="year-count"></span>
+      </h3>
+      <div class="grid-now">
+        ${byYear
+          .get(year)
+          .map((r, i) => manualCard(r, i))
+          .join("")}
+      </div>`
+    )
+    .join("");
 }
 
-// Прокручивает (не фильтрует – весь архив как был, просто быстрее
-// добраться до места) к первой карточке нужного года. Год не фильтр:
-// уводить одним выбором в СПИСКЕ год из выпадашки и обратно на "все
-// года" – лишний шаг там, где достаточно долистать глазами то, что и
-// так на экране, просто начиная с нужного места.
-function scrollToArchiveYear(year) {
-  if (!year) return;
-  const el = document.querySelector(`#tab-now .year-divider[data-year="${CSS.escape(year)}"]`);
-  el?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
+const releaseYearOf = (r) => parseInt(r.year, 10) || "–";
 
-// «Архив» – группируем по году. Не элемент activeStatusBuckets() (это
-// просто все завершённые, а не отдельный ручной статус), поэтому своя
-// функция, а не ещё одна запись в buckets.
+// «Архив» – не элемент activeStatusBuckets() (это просто все
+// завершённые, а не отдельный ручной статус), поэтому своя функция, а
+// не ещё одна запись в buckets.
 function archiveBodyHtml(completed) {
   if (!completed.length) {
     return `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
   }
-
-  // Не по дате – разбивка по годам завершения теряет смысл (внутри
-  // каждого года был бы свой алфавит), показываем одним списком.
-  if (nowFilter.sort !== "date") {
-    return `<div class="grid-now">${nowSorted(completed).map((r, i) => manualCard(r, i)).join("")}</div>`;
+  // По названию – одним списком: внутри каждого года был бы свой
+  // алфавит, и найти что-то по букве стало бы нельзя.
+  if (nowFilter.sort === "title") {
+    return `<div class="grid-now">${nowSorted(completed)
+      .map((r, i) => manualCard(r, i))
+      .join("")}</div>`;
   }
+  if (nowFilter.sort === "year") return yearGroupsHtml(nowSorted(completed), releaseYearOf);
 
   const sorted = [...completed].sort((a, b) => {
     const da = new Date(a.date_end || a.date_start || a.date || 0);
     const db = new Date(b.date_end || b.date_start || b.date || 0);
     return db - da;
   });
-  const byYear = {};
-  for (const r of sorted) {
+  return yearGroupsHtml(sorted, (r) => {
     const raw = r.date_end || r.date_start || r.date;
-    const y = raw ? parseLocalDate(raw).getFullYear() : "–";
-    if (!byYear[y]) byYear[y] = [];
-    byYear[y].push(r);
-  }
+    return raw ? parseLocalDate(raw).getFullYear() : "–";
+  });
+}
 
-  let inner = "";
-  for (const year of Object.keys(byYear).sort((a, b) => b - a)) {
-    inner += `<div class="year-divider" data-year="${esc(String(year))}">${esc(String(year))}</div>
-      <div class="grid-now">
-        ${byYear[year].map((r, i) => manualCard(r, i)).join("")}
-      </div>`;
-  }
+// «Перейти к году» – в ряду инструментов рядом с сортировкой, а не
+// отдельной строкой над списком. Годы берутся из самих заголовков
+// открытого раздела, причём только видимых: под фильтром «Фильм» в
+// списке нет годов, в которых фильмов не было. Нет заголовков (обычный
+// статус по дате, сортировка по названию) или год всего один – прыгать
+// некуда, и поля нет.
+//
+// Прокручивает, а не фильтрует: весь список остаётся как был, просто
+// быстрее добраться до места.
+function nowSyncYearJump() {
+  const select = document.getElementById("now-year-jump");
+  if (!select) return;
+  const el = nowModeBodies[nowState.mode];
+  const dividers = el ? [...el.querySelectorAll(".year-divider:not(.now-hidden)")] : [];
+  select.hidden = dividers.length < 2;
+  select.innerHTML =
+    `<option value="">${esc(i18n("Перейти к году…"))}</option>` +
+    dividers
+      .map((d) => `<option value="${esc(d.dataset.year)}">${esc(d.querySelector(".year-label").textContent)}</option>`)
+      .join("");
+}
 
-  return makeArchiveYearJumpHtml(completed) + inner;
+function scrollToNowYear(year) {
+  if (!year) return;
+  const el = nowModeBodies[nowState.mode]?.querySelector(`.year-divider[data-year="${CSS.escape(year)}"]`);
+  el?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function nowModeBodyHtml() {
@@ -341,6 +371,7 @@ function nowModeBodyHtml() {
   if (!b || !b.items.length) {
     return `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
   }
+  if (nowFilter.sort === "year") return yearGroupsHtml(nowSorted(b.items), releaseYearOf);
   return `<div class="grid-now">${nowSorted(b.items).map((r, i) => manualCard(r, i)).join("")}</div>`;
 }
 

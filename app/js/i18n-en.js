@@ -1151,6 +1151,7 @@ i18nRegister({
   "Ваш отзыв – откроется по клику на карточку.":
     "Your review – opens when the card is clicked.",
   "Не прочитались и пропущены: {list}.": "Couldn't be read and were skipped: {list}.",
+  "Без года": "No year",
   "Без категории": "No category",
   "В Любимом": "In Favorites",
   "выбрано: {n}": "selected: {n}",
