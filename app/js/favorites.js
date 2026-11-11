@@ -331,10 +331,12 @@ function favTitleCard(r, index, forExport) {
       <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
-        <div class="card-meta">
-          ${r.year ? `<span>${esc(String(r.year))}</span>` : "<span></span>"}
-          ${info ? gradeInlineHtml(info) : `<span class="card-nograde">${i18n("без оценки")}</span>`}
-        </div>
+        ${r.year || info
+          ? `<div class="card-meta">
+              ${r.year ? `<span>${esc(String(r.year))}</span>` : ""}
+              ${gradeInlineHtml(info)}
+            </div>`
+          : ""}
       </div>
     </div>
   </div>`;
