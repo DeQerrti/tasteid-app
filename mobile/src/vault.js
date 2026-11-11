@@ -23,7 +23,7 @@
 // ══════════════════════════════════════════════
 
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { isAllowedFile, historyDate } from "../../core/files.js";
+import { isAllowedFile, historyDate, isDotSegment } from "../../core/files.js";
 
 const DIR = Directory.Data;
 const HISTORY_LIMIT = 50;
@@ -306,9 +306,9 @@ export class MobileVault {
     if (
       typeof name !== "string" ||
       !name ||
-      name.length > 100 ||
+      name.length > 255 ||
       /[/\\]/.test(name) ||
-      name.includes("..")
+      isDotSegment(name)
     ) {
       throw new Error(`Недопустимое имя папки: ${name}`);
     }

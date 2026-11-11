@@ -1150,6 +1150,7 @@ i18nRegister({
   Сортировка: "Sort",
   "Ваш отзыв – откроется по клику на карточку.":
     "Your review – opens when the card is clicked.",
+  "Не прочитались и пропущены: {list}.": "Couldn't be read and were skipped: {list}.",
   "Без категории": "No category",
   "В Любимом": "In Favorites",
   "выбрано: {n}": "selected: {n}",

@@ -1490,3 +1490,35 @@ test("перенос превью: единственный текст пере�
     );
   });
 });
+
+test("картинка с двумя точками в имени читается, а выход наверх по-прежнему закрыт", async () => {
+  await withServer(async ({ api, root, vault }) => {
+    // Такой файл попадает в папку мимо приложения – скопирован проводником.
+    await fs.mkdir(path.join(root, "chars", "Silver and Blood"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "chars", "Silver and Blood", "Clive Jr..webp"),
+      "webp-bytes"
+    );
+
+    const { status, data } = await api(
+      "GET",
+      "/api/read-media?path=" + encodeURIComponent("chars/Silver and Blood/Clive Jr..webp")
+    );
+    assert.equal(status, 200, "имя с «..» внутри – обычное имя файла");
+    assert.equal(Buffer.from(data.base64, "base64").toString(), "webp-bytes");
+
+    const { data: backup } = await api("GET", "/api/export-backup");
+    assert.ok(
+      backup.images["chars/Silver and Blood/Clive Jr..webp"],
+      "и в резервную копию он попадает"
+    );
+    assert.equal(backup.skippedImages, undefined);
+
+    for (const bad of ["..", ".", ". .", "..  ", "..."]) {
+      await assert.rejects(
+        () => vault.readMedia(`chars/${bad}/x.webp`),
+        `сегмент «${bad}» отвергается`
+      );
+    }
+  });
+});

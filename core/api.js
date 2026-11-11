@@ -16,7 +16,7 @@
 //    один, и правит его один процесс.
 // ══════════════════════════════════════════════
 
-import { isAllowedFile } from "./files.js";
+import { isAllowedFile, isDotSegment } from "./files.js";
 
 // ── Общее ──────────────────────────────────────
 
@@ -54,7 +54,7 @@ function isSafeFileName(name) {
     name.length > 0 &&
     name.length < 200 &&
     !/[/\\]/.test(name) &&
-    !name.includes("..")
+    !isDotSegment(name)
   );
 }
 

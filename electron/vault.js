@@ -32,7 +32,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { isAllowedFile, historyDate } from "../core/files.js";
+import { isAllowedFile, historyDate, isDotSegment } from "../core/files.js";
 
 // Сколько версий держим на файл. Пятьдесят сохранений – это заведомо
 // больше, чем успеваешь наделать за один заход, а места они занимают
@@ -234,9 +234,9 @@ export class Vault {
     if (
       typeof name !== "string" ||
       !name ||
-      name.length > 100 ||
+      name.length > 255 ||
       /[/\\]/.test(name) ||
-      name.includes("..")
+      isDotSegment(name)
     ) {
       throw new Error(`Недопустимое имя папки: ${name}`);
     }

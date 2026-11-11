@@ -895,6 +895,8 @@ async function runSync(config, onProgress) {
     conflicts: [],
     pulledFiles: {},
     pulledImages: {},
+    // Картинки, которые не удалось прочитать с диска, – см. ниже.
+    unreadable: [],
   };
 
   const localImages = manifest.images || {};
@@ -991,7 +993,20 @@ async function runSync(config, onProgress) {
             result.skipped++;
             continue;
           }
-          base64 = await readLocalMedia(item.path);
+          // Одна картинка, которую не удалось прочитать (занята другой
+          // программой, исчезла между списком и чтением, странное имя),
+          // – не повод ронять всю синхронизацию: остальные сотни файлов
+          // и сами отзывы ни при чём. Пропускаем её, состояние не
+          // трогаем – в следующий раз попробуем снова. Именно так вела
+          // себя прежняя схема с полной копией (skippedImages в
+          // exportBackup); при переходе на чтение по одной это потерялось,
+          // и первый же такой файл останавливал синхронизацию целиком.
+          try {
+            base64 = await readLocalMedia(item.path);
+          } catch {
+            result.unreadable.push(item.path);
+            continue;
+          }
         }
         outcome = await syncOne(config, item.path, base64, entry, remoteTree);
       }

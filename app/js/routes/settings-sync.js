@@ -302,6 +302,15 @@ async function startSync() {
     if (result.deletedLocally) {
       doneMsg += " " + i18n("Убрано отсюда как удалённое на другом устройстве: {n}.", { n: result.deletedLocally });
     }
+    // Пропущенные картинки называем по именам: «не читается» без имени
+    // файла – ровно то, с чем нельзя ничего сделать.
+    if (result.unreadable?.length) {
+      doneMsg +=
+        " " +
+        i18n("Не прочитались и пропущены: {list}.", {
+          list: result.unreadable.slice(0, 3).join(", ") + (result.unreadable.length > 3 ? "…" : ""),
+        });
+    }
     flashStatus("status-sync", true, doneMsg);
 
     if (Object.keys(result.pulledFiles).length || Object.keys(result.pulledImages).length) {
