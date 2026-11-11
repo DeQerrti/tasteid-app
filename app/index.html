@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=10"></script>
+<script src="/js/i18n-en.js?v=11"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=29"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -179,7 +179,7 @@ nav#rail .logo {
    По просьбе из обратной связи: раздел можно свернуть целиком (место
    отдаётся контенту), а вернуть его – наведением у левого края, как
    автоскрытая панель задач Windows. Состояние живёт в localStorage –
-   см. скрипт в конце файла (initRailCollapse).
+   см. скрипт в конце файла (initRailMode, вид «прятать»).
 
    Приём: position: fixed снимает рельсу из flex-потока – main, будучи
    единственным оставшимся flex-элементом, сам растягивается на всю
@@ -194,8 +194,8 @@ nav#rail .logo {
   background: none; color: var(--text-dim);
   cursor: pointer;
 }
-.rail-collapse-btn:hover { color: var(--text); background: var(--tint-hi); }
-.rail-collapse-btn svg { transition: transform .18s ease; }
+.rail-collapse-btn:hover,
+.rail-collapse-btn[aria-expanded="true"] { color: var(--text); background: var(--tint-hi); }
 
 body.rail-collapsed nav#rail {
   position: fixed; top: 0; left: 0;
@@ -205,7 +205,66 @@ body.rail-collapsed nav#rail {
   transition: transform .16s ease;
 }
 body.rail-collapsed nav#rail.rail-peek { transform: translateX(0); }
-body.rail-collapsed .rail-collapse-btn svg { transform: rotate(180deg); }
+
+/* ── Вид панели: меню у кнопки (initRailMode) ──
+   Раньше кнопка-стрелка умела только «свернуть целиком / развернуть».
+   Теперь три вида: развёрнута, только иконки (узкая полоса), прятать
+   (выезжает при наведении на край – прежнее сворачивание). Меню
+   живёт вне nav#rail: у рельсы overflow скрыт, внутри его бы обрезало. */
+.rail-mode-menu {
+  position: fixed; z-index: 1000;
+  width: 260px; padding: .55rem;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 8px;
+  box-shadow: 0 14px 40px var(--shadow, rgba(0,0,0,.6));
+  font-family: 'DM Sans', sans-serif;
+}
+.rail-mode-menu.hidden { display: none; }
+.rail-mode-menu-title {
+  font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-dim); padding: .3rem .55rem .45rem;
+}
+.rail-mode-option {
+  display: grid; grid-template-columns: 18px 1fr; gap: .1rem .65rem; align-items: start;
+  width: 100%; text-align: left;
+  padding: .55rem; border: 0; border-radius: 6px; background: none;
+  color: var(--text-hi); cursor: pointer; font: inherit;
+}
+.rail-mode-option:hover, .rail-mode-option:focus-visible { background: var(--tint-hi); outline: none; }
+.rail-mode-radio {
+  grid-row: span 2; margin-top: .15rem;
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1.5px solid var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+}
+.rail-mode-option[aria-checked="true"] .rail-mode-radio { border-color: var(--red-hi); }
+.rail-mode-option[aria-checked="true"] .rail-mode-radio::after {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--red-hi);
+}
+.rail-mode-name { font-size: .92rem; font-weight: 500; }
+.rail-mode-desc { font-size: .76rem; color: var(--text-dim); line-height: 1.35; }
+
+/* Только иконки: узкая полоса, подпись – подсказкой при наведении
+   (title, ставит initRailMode). Ширина !important – перебить ширину,
+   которую рельсе ставит растягивание мышью (inline style). Только на
+   компьютере – на телефоне рельса и так нижняя панель. */
+@media (min-width: 701px) {
+  body.rail-icons nav#rail { width: 72px !important; padding: 14px 10px; align-items: stretch; }
+  body.rail-icons nav#rail .logo,
+  body.rail-icons .rail-sub,
+  body.rail-icons .rail-resize,
+  body.rail-icons nav#rail .tab-label,
+  body.rail-icons .admin-link-label { display: none; }
+  body.rail-icons .rail-collapse-btn { position: static; margin: 0 auto 14px; width: 30px; height: 30px; }
+  body.rail-icons .rail-tabs { padding-top: 12px; border-top: 1px solid var(--border); gap: 6px; }
+  body.rail-icons nav#rail .tab-btn,
+  body.rail-icons #admin-settings-link:not(.hidden) {
+    display: flex; align-items: center; justify-content: center;
+    padding: .7rem 0; gap: 0;
+  }
+  body.rail-icons nav#rail .tab-icon,
+  body.rail-icons .admin-link-icon { display: block; width: 22px; height: 22px; flex: none; }
+  body.rail-icons nav#rail .tab-btn.active::before { left: -10px; }
+}
 
 /* Полоска-ловушка у самого края экрана: рельса, когда свёрнута, уезжает
    за пределы окна transform'ом и наводить курсор больше не на что –
@@ -1926,21 +1985,37 @@ section.group { margin-bottom: 3.5rem; }
    заглавными: рамки были самым громким элементом экрана, громче самих
    обложек. */
 @media (min-width: 701px) {
+  /* Крупнее, чем было (1.1rem, иконка 17px): пункты рельсы терялись в
+     её пустоте. Активный – ещё и красная полоса у левого края рельсы. */
+  :is(html:not([data-skin]), html[data-skin^="classic"]) nav#rail { width: 236px; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) nav#rail .logo { font-size: 1.45rem; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .rail-tabs { gap: 4px; }
   :is(html:not([data-skin]), html[data-skin^="classic"]) .tab-btn {
-    display: flex; align-items: center; gap: .7rem;
+    display: flex; align-items: center; gap: .85rem;
     text-align: left;
-    padding: .55rem .7rem;
+    font-size: 1.32rem; letter-spacing: .01em;
+    padding: .7rem .85rem;
+    color: var(--text);
   }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .tab-btn.active { color: var(--text-hi); }
   :is(html:not([data-skin]), html[data-skin^="classic"]) .tab-icon {
     display: block; flex: none;
-    width: 17px; height: 17px;
+    width: 20px; height: 20px;
+    opacity: .8;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .tab-btn.active .tab-icon { opacity: 1; color: var(--red-hi); }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .tab-btn.active::before {
+    display: block; content: ''; position: absolute;
+    left: -14px; top: 22%; bottom: 22%; width: 3px; height: auto;
+    border-radius: 0 3px 3px 0; background: var(--red-hi); transform: none;
   }
   :is(html:not([data-skin]), html[data-skin^="classic"]) #admin-settings-link:not(.hidden) {
-    display: flex; align-items: center; gap: .7rem;
+    display: flex; align-items: center; gap: .85rem;
+    font-size: 1.05rem;
   }
   :is(html:not([data-skin]), html[data-skin^="classic"]) .admin-link-icon {
     display: block; flex: none;
-    width: 17px; height: 17px;
+    width: 18px; height: 18px;
   }
 
   :is(html:not([data-skin]), html[data-skin^="classic"]) .tl-mode-toggle {
@@ -3338,8 +3413,8 @@ section.group { margin-bottom: 3.5rem; }
      маршрут вроде #/reviews-order (#view-root ниже, после </main>). -->
 <div id="shell-root">
 <nav id="rail" aria-label="Боковая панель">
-  <button type="button" id="rail-collapse-btn" class="rail-collapse-btn" title="Свернуть панель" aria-label="Свернуть панель" aria-expanded="true">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+  <button type="button" id="rail-collapse-btn" class="rail-collapse-btn" title="Вид панели" aria-label="Вид панели" aria-haspopup="menu" aria-expanded="false">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16"></path></svg>
   </button>
   <a href="/" class="logo">TasteID</a>
   <div class="rail-sub" data-label="site.subtitle">Цифровой паспорт интересов</div>
@@ -3371,19 +3446,27 @@ section.group { margin-bottom: 3.5rem; }
     }
   });
 
-  // ── Сворачивание рельсы + автопоявление по наведению ──
-  // Кнопка сворачивает/разворачивает насовсем (запоминаем в
-  // localStorage). Пока свёрнута, рельса лежит за левым краем окна
-  // (transform в CSS) и выезжает как оверлей, стоит навести курсор на
+  // ── Вид панели: развёрнута / только иконки / прятать ──
+  // Кнопка в углу рельсы открывает меню из трёх видов (раньше она умела
+  // только «свернуть целиком / развернуть»). Вид запоминается в
+  // localStorage; прежний ключ tasteid-rail-collapsed ("1" = свёрнута)
+  // переносится как «прятать», чтобы у тех, кто панель уже прятал, она
+  // и после обновления осталась спрятанной.
+  //
+  // «Прятать» – прежнее поведение: рельса лежит за левым краем окна
+  // (transform в CSS) и выезжает поверх, стоит навести курсор на
   // полоску-ловушку или на саму рельсу; убираем курсор – прячется
   // обратно с небольшой задержкой, чтобы случайный перелёт мимо края
   // не дёргал её туда-сюда.
-  (function initRailCollapse() {
-    const STORAGE_KEY = "tasteid-rail-collapsed";
+  (function initRailMode() {
+    const STORAGE_KEY = "tasteid-rail-mode";
+    const OLD_KEY = "tasteid-rail-collapsed";
+    const MODES = ["full", "icons", "hidden"];
     const rail = document.getElementById("rail");
     const btn = document.getElementById("rail-collapse-btn");
     const edge = document.getElementById("rail-edge-trigger");
     if (!rail || !btn || !edge) return;
+    const t = (s) => (typeof i18n === "function" ? i18n(s) : s);
 
     let hideTimer = null;
     const peek = () => {
@@ -3395,33 +3478,98 @@ section.group { margin-bottom: 3.5rem; }
       hideTimer = setTimeout(() => rail.classList.remove("rail-peek"), 250);
     };
 
-    const setCollapsed = (collapsed) => {
-      document.body.classList.toggle("rail-collapsed", collapsed);
-      btn.setAttribute("aria-expanded", String(!collapsed));
-      btn.title = collapsed ? "Развернуть панель" : "Свернуть панель";
-      btn.setAttribute("aria-label", btn.title);
-      if (!collapsed) rail.classList.remove("rail-peek");
-      try { localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0"); } catch {}
+    const menu = document.createElement("div");
+    menu.className = "rail-mode-menu hidden";
+    menu.setAttribute("role", "menu");
+    menu.innerHTML =
+      `<div class="rail-mode-menu-title">${t("Вид панели")}</div>` +
+      [
+        ["full", t("Развёрнута"), t("Иконки и подписи разделов")],
+        ["icons", t("Только иконки"), t("Узкая полоса, подсказки при наведении")],
+        ["hidden", t("Прятать"), t("Выезжает при наведении на край, как панель задач")],
+      ]
+        .map(
+          ([mode, name, desc]) =>
+            `<button type="button" class="rail-mode-option" role="menuitemradio" data-mode="${mode}" aria-checked="false">` +
+            `<span class="rail-mode-radio"></span><span class="rail-mode-name">${name}</span><span class="rail-mode-desc">${desc}</span></button>`
+        )
+        .join("");
+    document.body.appendChild(menu);
+
+    // Подсказки к иконкам в узком виде – подпись раздела, которой там
+    // не видно. Ставим всегда: в развёрнутом виде title совпадает с
+    // подписью и ничему не мешает.
+    rail.querySelectorAll(".tab-btn, #admin-settings-link").forEach((el) => {
+      const label = el.querySelector(".tab-label, .admin-link-label");
+      if (label && !el.title) el.title = label.textContent.trim();
+    });
+
+    let mode = "full";
+    const setMode = (next) => {
+      mode = MODES.includes(next) ? next : "full";
+      document.body.classList.toggle("rail-collapsed", mode === "hidden");
+      document.body.classList.toggle("rail-icons", mode === "icons");
+      if (mode !== "hidden") rail.classList.remove("rail-peek");
+      menu.querySelectorAll(".rail-mode-option").forEach((o) => {
+        o.setAttribute("aria-checked", String(o.dataset.mode === mode));
+      });
+      try { localStorage.setItem(STORAGE_KEY, mode); } catch {}
     };
 
-    btn.addEventListener("click", () => {
-      setCollapsed(!document.body.classList.contains("rail-collapsed"));
+    const closeMenu = () => {
+      if (menu.classList.contains("hidden")) return;
+      menu.classList.add("hidden");
+      btn.setAttribute("aria-expanded", "false");
+      if (mode === "hidden") unpeek();
+    };
+    const openMenu = () => {
+      const r = btn.getBoundingClientRect();
+      menu.classList.remove("hidden");
+      const w = menu.offsetWidth;
+      const h = menu.offsetHeight;
+      menu.style.left = Math.max(8, Math.min(r.right + 8, innerWidth - w - 8)) + "px";
+      menu.style.top = Math.max(8, Math.min(r.top, innerHeight - h - 8)) + "px";
+      btn.setAttribute("aria-expanded", "true");
+      if (mode === "hidden") peek();
+      menu.querySelector('[aria-checked="true"]')?.focus();
+    };
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (menu.classList.contains("hidden")) openMenu();
+      else closeMenu();
     });
+    menu.addEventListener("click", (e) => {
+      const opt = e.target.closest(".rail-mode-option");
+      if (!opt) return;
+      setMode(opt.dataset.mode);
+      closeMenu();
+    });
+    menu.addEventListener("mouseenter", () => mode === "hidden" && peek());
+    document.addEventListener("click", (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) closeMenu();
+    });
+    window.addEventListener("resize", closeMenu);
 
     edge.addEventListener("mouseenter", peek);
     edge.addEventListener("mouseleave", unpeek);
     rail.addEventListener("mouseenter", peek);
-    rail.addEventListener("mouseleave", unpeek);
+    rail.addEventListener("mouseleave", () => {
+      if (menu.classList.contains("hidden")) unpeek();
+    });
 
-    // Escape – та же ловушка-полоска, только с клавиатуры: тот же
-    // Windows-приём с автоскрывающейся панелью задач (мышью в край или
-    // клавишей Win). У мыши есть mouseleave, чтобы спрятать рельсу
-    // обратно, у Escape такого события нет – если мышь так и не
-    // побывала над рельсой, прячем сами через unpeek() по таймеру,
-    // а не оставляем висеть навсегда. Повторный Escape, пока рельса
-    // уже выехала, прячет её сразу – не нужно ждать.
+    // Escape: открыто меню – закрывает его. Иначе в виде «прятать» – тот
+    // же Windows-приём, что и полоска-ловушка (мышью в край или клавишей):
+    // у Escape нет mouseleave, поэтому выехавшую так рельсу прячем сами по
+    // таймеру; повторный Escape прячет сразу.
     document.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape" || !document.body.classList.contains("rail-collapsed")) return;
+      if (e.key !== "Escape") return;
+      if (!menu.classList.contains("hidden")) {
+        closeMenu();
+        btn.focus();
+        return;
+      }
+      if (mode !== "hidden") return;
       if (rail.classList.contains("rail-peek")) {
         unpeek();
       } else {
@@ -3430,9 +3578,12 @@ section.group { margin-bottom: 3.5rem; }
       }
     });
 
-    let restored = false;
-    try { restored = localStorage.getItem(STORAGE_KEY) === "1"; } catch {}
-    if (restored) setCollapsed(true);
+    let saved = null;
+    try {
+      saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved && localStorage.getItem(OLD_KEY) === "1") saved = "hidden";
+    } catch {}
+    setMode(saved || "full");
   })();
 </script>
 
