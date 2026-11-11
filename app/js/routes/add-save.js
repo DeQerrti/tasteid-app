@@ -40,6 +40,15 @@ async function saveReview() {
 
   const dateStart = document.getElementById("f-date-start")?.value || null;
   const dateEnd = document.getElementById("f-date-end")?.value || null;
+  // Даты в формате ГГГГ-ММ-ДД сравниваются как строки. Начало позже
+  // конца – почти всегда опечатка или след старой автоподстановки
+  // «сегодня» (см. updateDateFields() в add.js); молча записать такое
+  // значит испортить статистику и карточку.
+  if (dateStart && dateEnd && dateStart > dateEnd) {
+    setStatus("err", i18n("Дата начала позже даты завершения"));
+    document.getElementById("f-date-start")?.focus();
+    return;
+  }
 
   const cover = document.getElementById("f-cover").value.trim() || null;
 

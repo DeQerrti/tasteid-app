@@ -42,14 +42,18 @@ function fillForm(r) {
   syncFavToggle();
 
   // Поля дат
+  // У уже сохранённого отзыва показываем ровно те даты, что лежат в
+  // файле, – пустое поле остаётся пустым. Раньше здесь пустота
+  // заменялась сегодняшней датой, и простое «открыл → сохранил»
+  // записывало в отзыв дату, которой человек никогда не вводил (см.
+  // тот же разбор у updateDateFields() в add.js).
   updateDateFields();
-  const today = todayLocalISO();
   const startEl = document.getElementById("f-date-start");
   const endEl = document.getElementById("f-date-end");
-  if (startEl) startEl.value = r.date_start || today;
+  if (startEl) startEl.value = r.date_start || "";
   const rewatchEl = document.getElementById("rewatch-count");
   if (rewatchEl) rewatchEl.value = r.rewatch_count || 0;
-  if (endEl) endEl.value = r.date_end || today;
+  if (endEl) endEl.value = r.date_end || "";
 
   // Внешняя ссылка (r.cover) обычно пуста у обложек, загруженных с
   // компьютера или сохранённых как резервная копия, – превью в этом

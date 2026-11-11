@@ -953,6 +953,7 @@ i18nRegister({
   "Загружено ✓ Обновляю список...": "Uploaded ✓ Refreshing the list…",
   "Заполните имя": "Fill in the name",
   "Заполните название": "Fill in the title",
+  "Дата начала позже даты завершения": "The start date is later than the end date",
   "Категория добавлена – можно выбрать её выше": "Category added – you can pick it above",
   "Категория обновлена": "Category updated",
   "Категория удалена": "Category deleted",
@@ -964,6 +965,10 @@ i18nRegister({
   "Не удалось сконвертировать": "Couldn’t convert",
   "Не удалось сохранить копию": "Couldn’t save the copy",
   "Не удалось удалить: ": "Couldn’t delete: ",
+  "Не удалось сохранить: ": "Couldn’t save: ",
+  "Сервер ответил {status}": "The server responded with {status}",
+  "Картинка убрана из записи, но файл удалить не удалось: ":
+    "The image was removed from the entry, but the file couldn’t be deleted: ",
   неизвестная: "unknown",
   "Новая категория": "New category",
   "Облако тегов": "Tag cloud",

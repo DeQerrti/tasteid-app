@@ -271,7 +271,8 @@ function bindFavModeToggle() {
 
 // Карточка тайтла (из reviews.json с favorite: true)
 function favTitleCard(r, index, forExport) {
-  const info     = findReviewForTitle(r.title, r.type);
+  // r – сам отзыв из reviews.json, оценка своя (reviewGradeInfo, cards.js).
+  const info     = reviewGradeInfo(r);
   const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
   const tagClass = ["anime","manga","novel","movie","show"].includes(r.type)
     ? `tag-${r.type}` : "tag-manual";
@@ -366,30 +367,17 @@ function openFavPersonGallery() {
     images,
     active: r.image_backup || r.image || null,
     canEdit: isAdmin(),
-    onSelect: async (url) => {
-      r.image = null;
-      r.image_backup = url;
-      await persistFavPersonChange(r);
-    },
-    onDelete: async (url) => {
-      await deleteMediaFile(url);
-      r.image_gallery = images.filter((u) => u !== url);
-      if ((r.image_backup || r.image) === url) {
-        r.image_backup = r.image_gallery[0] || null;
-        r.image = null;
-      }
-      await persistFavPersonChange(r);
-    },
+    onSelect: (url) => selectGalleryImage(r, url, FAV_GALLERY_FIELDS, persistFavPersonChange),
+    onDelete: (url) => removeGalleryImage(r, url, images, FAV_GALLERY_FIELDS, persistFavPersonChange),
   });
 }
 
+const FAV_GALLERY_FIELDS = { gallery: "image_gallery", active: "image_backup", external: "image" };
+
+// Бросает исключение, если сервер не записал – см. postRecordOrThrow()
+// в utils.js. Модалку перерисовываем только после успешной записи.
 async function persistFavPersonChange(r) {
-  await fetch("/api/save-favorite", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ ...r, _editId: r.id }),
-  });
+  await postRecordOrThrow("/api/save-favorite", { ...r, _editId: r.id });
   favLastSnapshot = null;
   document.getElementById("fav-modal-body").innerHTML = favPersonModalBodyHtml(r);
   refreshOpenReviewsTab();

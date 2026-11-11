@@ -819,8 +819,18 @@ function updateDateFields() {
   const wrap = document.getElementById("sec-dates");
   const today = todayLocalISO();
 
-  const prevStart = document.getElementById("f-date-start")?.value || today;
-  const prevEnd = document.getElementById("f-date-end")?.value || today;
+  // Сегодняшняя дата подставляется только в поле, которого ещё не было
+  // на экране (новый отзыв, переход из «Планирую»), и никогда – в «Начато»
+  // у «Завершено»: там оно необязательное. Раньше пустое поле всегда
+  // добивалось сегодняшней датой, и у отзыва, где была только дата
+  // завершения, при любом сохранении появлялось «Начато: сегодня» –
+  // позже самого «Завершено» (21 такая запись в реальном хранилище).
+  // Поле, которое человек сам очистил, при смене статуса тоже остаётся
+  // пустым.
+  const startEl = document.getElementById("f-date-start");
+  const endEl = document.getElementById("f-date-end");
+  const prevStart = startEl ? startEl.value : status === "completed" ? "" : today;
+  const prevEnd = endEl ? endEl.value : today;
 
   // «Планирую» – дат ещё нет, прячем раздел целиком, чтобы кнопка
   // «Добавить дату» не предлагала заполнить бессмысленное поле.

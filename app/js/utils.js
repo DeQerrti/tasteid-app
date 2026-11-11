@@ -140,6 +140,76 @@ async function deleteMediaFile(relPath) {
   await deleteRemoteMedia(relPath);
 }
 
+// POST записи на сервер с проверкой ответа: ошибка сервера или сети
+// становится исключением с понятным текстом, а не молчанием. Раньше
+// быстрые правки из галереи (смена/удаление картинки у отзыва и у
+// персонажа) не смотрели на ответ вовсе – при неудачной записи окно
+// показывало новую картинку как сохранённую, хотя в файле её не было.
+async function postRecordOrThrow(endpoint, body) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || i18n("Сервер ответил {status}", { status: res.status }));
+  }
+  return res.json().catch(() => ({}));
+}
+
+// Общий порядок для удаления картинки из галереи записи (отзыв,
+// «Любимое»): СНАЧАЛА сохраняем запись уже без этой картинки, и только
+// потом удаляем файл. Раньше было наоборот – файл стирался первым, и
+// если запись после этого не сохранялась, она оставалась со ссылкой на
+// несуществующую картинку. При новом порядке худший исход – файл,
+// на который больше никто не ссылается; его найдёт «Поиск осиротевших
+// обложек». Поля записи откатываются, если сохранить не вышло.
+//   fields – { gallery, active, external }: имена полей записи
+//   (cover_gallery/cover_backup/cover или image_gallery/image_backup/image)
+async function removeGalleryImage(record, url, images, fields, persist) {
+  const before = {
+    [fields.gallery]: record[fields.gallery],
+    [fields.active]: record[fields.active],
+    [fields.external]: record[fields.external],
+  };
+  const rest = images.filter((u) => u !== url);
+  record[fields.gallery] = rest;
+  if ((before[fields.active] || before[fields.external]) === url) {
+    record[fields.active] = rest[0] || null;
+    record[fields.external] = null;
+  }
+  try {
+    await persist(record);
+  } catch (e) {
+    Object.assign(record, before);
+    throw e;
+  }
+  // Запись уже сохранена без картинки – галерея должна это показать,
+  // поэтому неудачу удаления самого файла сообщаем, но не пробрасываем.
+  try {
+    await deleteMediaFile(url);
+  } catch (e) {
+    alert(i18n("Картинка убрана из записи, но файл удалить не удалось: ") + e.message);
+  }
+}
+
+// Смена активной картинки из галереи: галерея (js/gallery-modal.js)
+// зовёт onSelect без ожидания и без перехвата ошибок, поэтому неудачу
+// сохранения показываем здесь же и возвращаем запись как была.
+async function selectGalleryImage(record, url, fields, persist) {
+  const before = { [fields.active]: record[fields.active], [fields.external]: record[fields.external] };
+  record[fields.external] = null;
+  record[fields.active] = url;
+  try {
+    await persist(record);
+  } catch (e) {
+    Object.assign(record, before);
+    alert(i18n("Не удалось сохранить: ") + e.message);
+  }
+}
+
 // ── Загрузка картинки файлом: сжать в webp или оставить оригинал ──
 // Общая часть для трёх почти одинаковых мест (add-cover.js: обложка
 // отзыва, chars-edit.js: персонажи/темы, favorites-edit.js: «Любимое») –

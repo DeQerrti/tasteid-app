@@ -659,34 +659,20 @@ function openReviewCoverGallery() {
   openGalleryModal({
     images,
     active: r.cover_backup || r.cover || null,
-    onSelect: async (url) => {
-      r.cover = null;
-      r.cover_backup = url;
-      await persistReviewCoverChange(r);
-    },
-    onDelete: async (url) => {
-      await deleteMediaFile(url);
-      r.cover_gallery = images.filter((u) => u !== url);
-      if ((r.cover_backup || r.cover) === url) {
-        r.cover_backup = r.cover_gallery[0] || null;
-        r.cover = null;
-      }
-      await persistReviewCoverChange(r);
-    },
+    onSelect: (url) => selectGalleryImage(r, url, REVIEW_GALLERY_FIELDS, persistReviewCoverChange),
+    onDelete: (url) => removeGalleryImage(r, url, images, REVIEW_GALLERY_FIELDS, persistReviewCoverChange),
   });
 }
+
+const REVIEW_GALLERY_FIELDS = { gallery: "cover_gallery", active: "cover_backup", external: "cover" };
 
 // Пересохраняет весь отзыв целиком (тот же приём, что и полный редактор –
 // add-save.js: saveReview) сразу же, без захода в редактор – смена
 // картинки в галерее не должна требовать открыть форму ради одной этой
 // правки. r – сам объект из cache.reviews, уже с обновлёнными полями.
+// Бросает исключение, если сервер не записал (postRecordOrThrow в utils.js).
 async function persistReviewCoverChange(r) {
-  await fetch("/api/save-review", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ ...r, _editId: r.id }),
-  });
+  await postRecordOrThrow("/api/save-review", { ...r, _editId: r.id });
   cache.reviews = null;
   document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
   refreshOpenReviewsTab();

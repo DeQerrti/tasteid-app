@@ -17,18 +17,17 @@ function coverFallbackAttrs(cover, coverBackup) {
   return imgFallbackAttrs(cover, coverBackup, PH_TALL);
 }
 
-function findReviewForTitle(title, type) {
-  if (!cache.reviews?.length || !title) return null;
-  const norm = normTitle(title);
-  const found = type
-    ? cache.reviews.find(r => normTitle(r.title) === norm && r.type === type)
-      ?? cache.reviews.find(r => normTitle(r.title) === norm)
-    : cache.reviews.find(r => normTitle(r.title) === norm);
-  if (!found) return null;
-  const shelf = gradeToShelf(found.grade);
+// Оценка карточки – из собственного r.grade самого отзыва. Раньше
+// карточки «Любимого» брали её через findReviewForTitle(): поиск по
+// названию+типу по всему кэшу, первый попавшийся. Отзывы-дубли под
+// одним названием (разные сезоны – намеренно разрешены, см. reviews.js)
+// при этом показывали оценку ДРУГОГО отзыва, а модалка по клику – свою.
+// Тот же баг раньше уже чинили у manualCard() ниже; одна функция на обе
+// карточки, чтобы они больше не расходились.
+function reviewGradeInfo(r) {
+  const shelf = gradeToShelf(r?.grade);
   const grade = GRADES[shelf] || null;
-  const score = gradeScore(shelf);
-  return grade ? { grade, score, raw: found.grade } : null;
+  return grade ? { grade, score: gradeScore(shelf), raw: r.grade } : null;
 }
 
 // Цвет полки оценки для полосы на карточке (.card-body в index.html
@@ -94,17 +93,8 @@ function tagHtml(tag) {
 
 // Карточка из reviews.json (главная, архив)
 function manualCard(r, index) {
-  // Оценка – из собственного r.grade, а не через findReviewForTitle():
-  // та ищет по названию+типу заново по всему кэшу и предназначена для
-  // карточек избранного (favorites.js), у которых своей оценки вообще
-  // нет. Здесь r – уже сам отзыв; при поиске по названию два разных
-  // отзыва с одинаковым названием (например, обзор на 1-2 и отдельно на
-  // 3 сезон одного тайтла – намеренно разрешённый дубль, см. reviews.js)
-  // находили один и тот же первый попавшийся отзыв и показывали чужую
-  // оценку на обеих карточках.
-  const shelf    = gradeToShelf(r.grade);
-  const grade    = GRADES[shelf] || null;
-  const info     = grade ? { grade, score: gradeScore(shelf), raw: r.grade } : null;
+  // Оценка – из собственного r.grade (см. reviewGradeInfo выше).
+  const info     = reviewGradeInfo(r);
   const tagLabel = TYPE_LABELS[r.type] || r.type || "–";
 
   // Дата на карточке. У завершённого – когда закончено (или период), у
