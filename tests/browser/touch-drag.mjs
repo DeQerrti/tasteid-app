@@ -181,15 +181,18 @@ ok(
 );
 ok(after.includes(before[0]), "перетащенная карточка осталась в списке");
 
-console.log("Список избранного");
-await page.goto(`http://127.0.0.1:${port}/#/favorites-edit`, { waitUntil: "domcontentloaded" });
-await page.waitForSelector(".entry-row");
+// Порядок персонажей – теперь та же сетка, что у отзывов, на
+// #/favorites-order (раньше – список строк под формой #/favorites-edit).
+console.log("Порядок избранного (персонажи)");
+await page.goto(`http://127.0.0.1:${port}/#/favorites-order?section=favCharacters`, {
+  waitUntil: "domcontentloaded",
+});
+await page.waitForSelector(".dnd-item");
 await page.waitForTimeout(600);
-const favBefore = await idsOf(".entry-row", "data-id");
+const favBefore = await idsOf(".dnd-item", "data-id");
 if (favBefore.length > 2) {
-  // Строки избранного высокие: через одну вторая точка уже за краем.
-  await dragFinger(...(await pairOf(".entry-row", 0, 1)));
-  const favAfter = await idsOf(".entry-row", "data-id");
+  await dragFinger(...(await pairOf(".dnd-item", 0, 2)));
+  const favAfter = await idsOf(".dnd-item", "data-id");
   ok(favAfter[0] !== favBefore[0], "запись избранного переехала");
   ok(new Set(favAfter).size === favBefore.length, "список избранного цел");
 } else {

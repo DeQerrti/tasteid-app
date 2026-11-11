@@ -92,6 +92,8 @@ const sharedBrowserGlobals = [
   "clampNumericMax",
   "favCustomCollections",
   "favPersonCard",
+  "favRoleTitle",
+  "FAV_ROLE_ORDER",
   "favTitleCard",
   "fetchAnilistMeta",
   "fetchAnilistUserList",

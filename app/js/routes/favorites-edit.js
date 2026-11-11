@@ -1,9 +1,10 @@
 // ══════════════════════════════════════════════
-//  РОУТ #/favorites-edit – редактор «Любимого»
-//  (см. план перехода на SPA, фаза 3.2)
+//  РОУТ #/favorites-edit – редактор одной записи «Любимого» (персонаж,
+//  персона, запись своего раздела). Порядок записей – не здесь, а на
+//  #/favorites-order (js/routes/reviews-order.js).
 //
 //  Как и #/chars-edit (js/routes/chars-edit.js), НЕ завёрнут в IIFE –
-//  разметка и рендер списков (renderGroup/renderSubtypePickerDropdown)
+//  разметка и рендер выпадающих списков (renderSubtypePickerDropdown)
 //  вызывают друг друга через инлайновые onclick="funcName(...)", и
 //  превращать их в вызовы через объект-неймспейс ради самой процедуры
 //  переноса – риск опечатки на ровном месте. Верхнеуровневые имена уже
@@ -17,10 +18,10 @@
 // ══════════════════════════════════════════════
 
 let favEditingId = null;
+// Все записи favorites.json – для открытия записи по ?edit=ID, поиска
+// связей и удаления раздела. Списком на странице больше не рисуются
+// (порядок – #/favorites-order).
 let allEntries = [];
-let groupLists = { character: [], person: [] };
-let orderDirty = false;
-let favDragSrc = null;
 let subtypePickerOpen = false;
 let favTypePickerOpen = false;
 const FAV_TYPE_BUILTINS = ["character", "person"];
@@ -52,137 +53,138 @@ async function mount(container, params) {
   linkedReviewIds = [];
   linkedFavoriteIds = [];
   allEntries = [];
-  groupLists = { character: [], person: [] };
-  orderDirty = false;
-  favDragSrc = null;
   subtypePickerOpen = false;
   favTypePickerOpen = false;
 
+  // Две колонки, как у редактора отзыва (#/add): слева – карточка такой,
+  // какой она будет во вкладке «Любимое» (рисует та же favPersonCard(),
+  // см. renderFePreview), и всё про картинку; справа – поля, анкета,
+  // связи. «Сохранить» – в шапке, всегда под рукой. Списка всех записей
+  // с перетаскиванием здесь больше нет: порядок раздела меняется на
+  // отдельной странице сеткой (#/favorites-order), а сама запись
+  // удаляется кнопкой внизу формы (fe-danger).
   container.innerHTML = `
-    <header class="app-topbar">
+    <header class="app-topbar ed-bar">
       <a href="#" class="logo topbar-back" id="fe-back"><span class="arrow">&larr;</span>TasteID</a>
-      <h1 class="topbar-title" id="page-subtitle">${i18n("Персонажи и персоны")}</h1>
+      <div class="ed-bar-title">
+        <h1 class="topbar-title" id="page-subtitle">${i18n("Персонажи и персоны")}</h1>
+        <span class="ed-bar-name" id="edit-name-hint"></span>
+      </div>
+      <span class="ed-bar-new" id="edit-banner" style="display:none">
+        <button type="button" class="btn btn-ghost" onclick="resetFavToNew()">${i18n("Новая запись")}</button>
+      </span>
+      <button type="button" class="btn ed-save" id="btn-save" title="Ctrl+S" onclick="saveEntry()">${i18n("Сохранить")}</button>
     </header>
     <main class="fe-view">
-      <div class="edit-banner" id="edit-banner" style="display:none">
-        <div>Режим редактирования – <span class="edit-banner-title" id="edit-name-hint"></span></div>
-        <button class="btn-new" onclick="resetFavToNew()">${i18n("Новая запись")}</button>
-      </div>
-
-      <h2 class="section-title">${i18n("Основное")}</h2>
-      <div class="grid">
-        <div class="field">
-          <label>${i18n("Имя")}</label>
-          <input type="text" id="f-name" placeholder="${i18n("Имя")}">
-        </div>
-        <div class="field">
-          <label>${i18n("Тип")}</label>
-          <div class="src-type-wrap" style="width:100%;">
-            <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleFavTypePickerDropdown()">
-              <span id="fav-type-picker-label">${i18n("Персонаж")}</span><span class="src-caret"></span>
-            </button>
-            <div class="src-type-dropdown hidden" id="fav-type-picker-dropdown"></div>
-          </div>
-          <input type="hidden" id="f-type" value="character">
-        </div>
-        <div class="field full field-subtype" id="field-subtype">
-          <label>${i18n("Роль персоны")}</label>
-          <div class="src-type-wrap" style="width:100%;">
-            <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleSubtypePickerDropdown()">
-              <span id="subtype-picker-label">${i18n("Актёр")}</span><span class="src-caret"></span>
-            </button>
-            <div class="src-type-dropdown hidden" id="subtype-picker-dropdown"></div>
-          </div>
-          <input type="hidden" id="f-subtype" value="actor">
-        </div>
-        <div class="field full">
-          <label>${i18n("Ссылка на изображение")}</label>
-          <input type="text" id="f-image" placeholder="https://..." oninput="previewAvatar(this.value); scheduleBackupImage();">
-          <input type="hidden" id="f-image-backup">
-          <input type="hidden" id="f-image-focus" value="50% 50%">
-          <div class="avatar-preview-row">
-            <img id="avatar-img" class="avatar-preview" onclick="openFavImageGallery()" title="${i18n("Все картинки этой записи")}">
-            <button type="button" class="btn btn-ghost" onclick="openFocusPickerForAvatar()">${i18n("Область картинки")}</button>
-          </div>
-          <div id="image-backup-status" style="font-size:.8rem;margin-top:.4rem;"></div>
-        </div>
-        <div class="field full">
-          <label>${i18n("Или загрузить с компьютера")}</label>
-          <label class="btn btn-ghost file-btn">
-            <input type="file" id="f-image-upload" accept="image/*" onchange="updateFileBtnName(this); uploadFavImage()">
-            <span>${i18n("Выбрать файл")}</span>
-          </label>
-          <span class="file-btn-name" id="f-image-upload-name"></span>
-          <label class="original-quality-toggle"><input type="checkbox" id="f-image-original" onchange="onImageOriginalToggle()"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
-          <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
-        </div>
-        <div class="field full" id="field-from">
-          <label>${i18n("Откуда")}</label>
-          <input type="text" id="f-from" placeholder="${i18n("Из какого произведения")}">
-        </div>
-      </div>
-
-      <!-- Анкета – необязательная, для тех, кто хочет расписать запись
-           подробнее одной строчки «откуда». Поля не завязаны ни на что
-           в остальном приложении (только показываются в этой же форме
-           и в будущей модалке просмотра) – специально свободная форма,
-           а не набор проверок под конкретный тип данных. -->
-      <h2 class="section-title">${i18n("Анкета")}</h2>
-      <div class="grid">
-        <div class="field full">
-          <label>${i18n("Биография")}</label>
-          <textarea id="f-profile-bio" rows="4" placeholder="${i18n("Свободный текст – история персонажа, факты о персоне...")}"></textarea>
-        </div>
-        <div class="field full field-optional hidden" id="field-profile-quotes">
-          <label>${i18n("Цитаты")}<button type="button" class="field-remove-btn" title="${i18n("Убрать поле")}" onclick="removeOptionalProfileField('quotes')">✕</button></label>
-          <textarea id="f-profile-quotes" rows="1" placeholder="${i18n("По одной на строку")}"></textarea>
-        </div>
-        <!-- Не всем сущностям нужны запоминающиеся цитаты – в отличие от
-             Биографии/Своих полей, спрятаны по умолчанию, пока не
-             добавили явно. -->
-        <div class="field full">
-          <button type="button" class="btn btn-ghost" id="add-profile-quotes-btn" onclick="addOptionalProfileField('quotes')">${i18n("Добавить цитаты")}</button>
-        </div>
-        <div class="field full">
-          <label>${i18n("Свои поля")}</label>
-          <div id="profile-custom-list"></div>
-          <button type="button" class="btn btn-ghost" onclick="addProfileCustomField()">${i18n("Добавить поле")}</button>
-        </div>
-      </div>
-
-      <!-- Тайтлы – связь с отзывами (reviews.json), напр. у персонажа
-           показать все тайтлы, где он появлялся: у Джинкс это оба
-           отзыва на Аркейн, по сезону на каждый. Само связывание –
-           просто список id, никакой отдельной сущности под это не
-           заводим. -->
-      <h2 class="section-title">${i18n("Тайтлы")}</h2>
-      <div id="linked-titles-list" class="linked-titles-list"></div>
-      <button type="button" class="btn btn-ghost" onclick="openTitleLinkSearch()">${i18n("Добавить источник")}</button>
-
-      <!-- Связи с другими сущностями «Любимого» (не тайтлами) – сэйю к
-           персонажу, персонаж к автору и т.д., в любую сторону. Один
-           блок на раздел «Любимого» (Персонажи/Персоны/свои разделы),
-           собирается заново при каждом mount()/fillFavForm() –
-           появившийся в /settings-edit новый раздел получает свою
-           строку сам, без правки разметки здесь (см. favLinkGroups()). -->
-      <div id="linked-favorites-groups"></div>
-
-      <div class="divider"></div>
-      <button class="btn-save" id="btn-save" onclick="saveEntry()">${i18n("Сохранить")}</button>
       <div class="status-msg" id="status"></div>
+      <div class="fe-cols">
+        <aside class="fe-side">
+          <div class="fe-side-label">${i18n("Так выглядит карточка")}</div>
+          <div class="fe-preview" id="fe-preview"></div>
 
-      <div class="list-header" id="list-header" style="display:none">
-        <div class="divider-title">${i18n("Персонажи")}</div>
-        <button class="btn-save-order" id="btn-save-order" onclick="saveFavOrder()">${i18n("Сохранить порядок")}</button>
+          <div class="fe-imgbox">
+            <div class="fe-side-label">${i18n("Картинка")}</div>
+            <div class="field">
+              <label>${i18n("Ссылка на изображение")}</label>
+              <input type="text" id="f-image" placeholder="https://..." oninput="previewAvatar(this.value); scheduleBackupImage();">
+              <input type="hidden" id="f-image-backup">
+              <input type="hidden" id="f-image-focus" value="50% 50%">
+              <img id="avatar-img" class="avatar-preview" alt="" hidden>
+              <div id="image-backup-status" style="font-size:.8rem;margin-top:.4rem;"></div>
+            </div>
+            <div class="fe-img-actions">
+              <button type="button" class="btn btn-ghost" onclick="openFocusPickerForAvatar()">${i18n("Область картинки")}</button>
+              <button type="button" class="btn btn-ghost" onclick="openFavImageGallery()">${i18n("Все картинки")}</button>
+            </div>
+            <div class="field">
+              <label>${i18n("Или загрузить с компьютера")}</label>
+              <label class="btn btn-ghost file-btn">
+                <input type="file" id="f-image-upload" accept="image/*" onchange="updateFileBtnName(this); uploadFavImage()">
+                <span>${i18n("Выбрать файл")}</span>
+              </label>
+              <span class="file-btn-name" id="f-image-upload-name"></span>
+              <label class="original-quality-toggle"><input type="checkbox" id="f-image-original" onchange="onImageOriginalToggle()"><span>${i18n("Оригинальное качество (без сжатия)")}</span></label>
+              <div id="image-upload-status" style="font-size:.8rem;margin-top:.4rem;"></div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="fe-main">
+          <h2 class="section-title">${i18n("Основное")}</h2>
+          <div class="grid">
+            <div class="field">
+              <label>${i18n("Имя")}</label>
+              <input type="text" id="f-name" placeholder="${i18n("Имя")}">
+            </div>
+            <div class="field">
+              <label>${i18n("Тип")}</label>
+              <div class="src-type-wrap" style="width:100%;">
+                <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleFavTypePickerDropdown()">
+                  <span id="fav-type-picker-label">${i18n("Персонаж")}</span><span class="src-caret"></span>
+                </button>
+                <div class="src-type-dropdown hidden" id="fav-type-picker-dropdown"></div>
+              </div>
+              <input type="hidden" id="f-type" value="character">
+            </div>
+            <div class="field full field-subtype" id="field-subtype">
+              <label>${i18n("Роль персоны")}</label>
+              <div class="src-type-wrap" style="width:100%;">
+                <button type="button" class="src-type-btn" style="width:100%;" onclick="toggleSubtypePickerDropdown()">
+                  <span id="subtype-picker-label">${i18n("Актёр")}</span><span class="src-caret"></span>
+                </button>
+                <div class="src-type-dropdown hidden" id="subtype-picker-dropdown"></div>
+              </div>
+              <input type="hidden" id="f-subtype" value="actor">
+            </div>
+            <div class="field full" id="field-from">
+              <label>${i18n("Откуда")}</label>
+              <input type="text" id="f-from" placeholder="${i18n("Из какого произведения")}">
+            </div>
+          </div>
+
+          <!-- Анкета – необязательная, для тех, кто хочет расписать запись
+               подробнее одной строчки «откуда». Поля не завязаны ни на что
+               в остальном приложении (показываются в этой форме и в
+               модалке просмотра) – специально свободная форма. -->
+          <h2 class="section-title">${i18n("Анкета")}</h2>
+          <div class="grid">
+            <div class="field full">
+              <label>${i18n("Биография")}</label>
+              <textarea id="f-profile-bio" rows="4" placeholder="${i18n("Свободный текст – история персонажа, факты о персоне...")}"></textarea>
+            </div>
+            <div class="field full field-optional hidden" id="field-profile-quotes">
+              <label>${i18n("Цитаты")}<button type="button" class="field-remove-btn" title="${i18n("Убрать поле")}" onclick="removeOptionalProfileField('quotes')">✕</button></label>
+              <textarea id="f-profile-quotes" rows="1" placeholder="${i18n("По одной на строку")}"></textarea>
+            </div>
+            <!-- Не всем сущностям нужны цитаты – спрятаны по умолчанию,
+                 пока не добавили явно. -->
+            <div class="field full">
+              <button type="button" class="btn btn-ghost" id="add-profile-quotes-btn" onclick="addOptionalProfileField('quotes')">${i18n("Добавить цитаты")}</button>
+            </div>
+            <div class="field full">
+              <label>${i18n("Свои поля")}</label>
+              <div id="profile-custom-list"></div>
+              <button type="button" class="btn btn-ghost" onclick="addProfileCustomField()">${i18n("Добавить поле")}</button>
+            </div>
+          </div>
+
+          <!-- Тайтлы – связь с отзывами (reviews.json): у персонажа все
+               тайтлы, где он появлялся. Само связывание – список id. -->
+          <h2 class="section-title">${i18n("Тайтлы")}</h2>
+          <div id="linked-titles-list" class="linked-titles-list"></div>
+          <button type="button" class="btn btn-ghost" onclick="openTitleLinkSearch()">${i18n("Добавить источник")}</button>
+
+          <!-- Связи с другими записями «Любимого» – один блок на раздел,
+               собирается заново при каждом mount()/fillFavForm() (см.
+               favLinkGroups()). -->
+          <div id="linked-favorites-groups"></div>
+
+          <div class="fe-danger" id="fe-danger" hidden>
+            <button type="button" class="link-danger" onclick="deleteFavEntry(favEditingId)">${i18n("Удалить эту запись")}</button>
+            <span>${i18n("Запись пропадёт из «Любимого» вместе со своими картинками.")}</span>
+          </div>
+        </div>
       </div>
-      <div class="entries-list" id="entries-list-character"></div>
-
-      <div class="divider-title" id="persons-title" style="display:none">${i18n("Персоны")}</div>
-      <div class="entries-list" id="entries-list-person"></div>
-
-      <div id="entries-groups-custom"></div>
-
-      <div class="order-hint" id="order-hint">${i18n("Перетащите за ⠿, чтобы изменить порядок, затем нажмите «Сохранить порядок»")}</div>
     </main>`;
 
   renderLinkedFavoriteGroups();
@@ -218,6 +220,19 @@ async function mount(container, params) {
     if (document.querySelector(".src-type-dropdown:not(.hidden)")) return;
     leaveFavoritesEdit();
   });
+  // Ctrl+S – сохранить, как в редакторе отзыва (подсказка у кнопки).
+  feOn(document, "keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "s" || e.key === "ы" || e.code === "KeyS")) {
+      e.preventDefault();
+      if (!document.getElementById("btn-save")?.disabled) saveEntry();
+    }
+  });
+  // Превью карточки слева обновляется на любое изменение формы; поля,
+  // которые меняются программно (тип, роль, картинка), зовут
+  // renderFePreview() сами.
+  const feView = container.querySelector(".fe-view");
+  feOn(feView, "input", renderFePreview);
+  feOn(feView, "change", renderFePreview);
 
   document.title = `TasteID – ${i18n("Персонажи и персоны")}`;
 
@@ -245,15 +260,41 @@ async function mount(container, params) {
   if (editId) {
     const entry = allEntries.find((r) => String(r.id) === editId);
     if (entry) startEdit(entry.id);
+  } else {
+    // «Добавить» с вкладки «Любимое» передаёт раздел, открытый там
+    // (?type=person, ?type=<свой раздел>) – новая запись сразу этого типа.
+    const type = params && params.get("type");
+    const known = [...FAV_TYPE_BUILTINS, ...favCustomCollections().map((c) => c.id)];
+    if (type && known.includes(type)) selectFavTypePicker(type);
   }
+  renderFePreview();
 }
 
-async function leaveFavoritesEdit() {
-  const canLeave = await confirmLeaveIfDirty({
-    isDirty: () => orderDirty,
-    save: saveFavOrder,
-  });
-  if (canLeave) leaveRoute();
+// Превью – та же favPersonCard() (js/favorites.js), что рисует карточку
+// во вкладке «Любимое», а не своя копия разметки: разойтись с настоящей
+// карточкой она не может.
+function renderFePreview() {
+  const box = document.getElementById("fe-preview");
+  if (!box || typeof favPersonCard !== "function") return;
+  const val = (id) => document.getElementById(id)?.value.trim() || "";
+  const draft = {
+    id: favEditingId ?? "new",
+    type: val("f-type") || "character",
+    subtype: val("f-subtype") || null,
+    name: val("f-name") || i18n("Имя"),
+    from: val("f-from") || null,
+    image: val("f-image") || null,
+    image_backup: val("f-image-backup") || null,
+    image_focus: val("f-image-focus") || null,
+  };
+  const key = JSON.stringify(draft);
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  box.innerHTML = favPersonCard(draft, 0);
+}
+
+function leaveFavoritesEdit() {
+  leaveRoute();
 }
 
 function unmount() {
@@ -268,9 +309,6 @@ function unmount() {
   document.title = fePrevTitle || document.title;
   favEditingId = null;
   allEntries = [];
-  groupLists = { character: [], person: [] };
-  orderDirty = false;
-  favDragSrc = null;
   subtypePickerOpen = false;
   favTypePickerOpen = false;
 }
@@ -332,6 +370,7 @@ function selectSubtypePicker(key) {
   document.getElementById("f-subtype").value = key;
   syncSubtypePickerLabel();
   closeSubtypePickerDropdown();
+  renderFePreview();
 }
 
 function showAddSubtypeForm() {
@@ -608,10 +647,8 @@ async function confirmAddFavType() {
       settings.favCollections.push({ id, label: name });
     });
     window.SITE_FAV_COLLECTIONS = [...favCustomCollections(), { id, label: name }];
-    groupLists[id] = [];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     selectFavTypePicker(id);
-    renderList();
   } catch (err) {
     statusEl.textContent = err.message || i18n("Ошибка сохранения");
     statusEl.className = "status-msg src-type-status err";
@@ -660,7 +697,7 @@ async function removeFavTypePicker(id) {
   // насовсем, вернуть его как раньше было бы уже нечем, значит и
   // притворяться, что записи "просто перестанут показываться", не
   // стоит – удаляем по-настоящему, вместе с разделом.
-  const toDelete = groupLists[id] || [];
+  const toDelete = allEntries.filter((r) => r.type === id);
   if (
     !(await confirmDialog(
       i18n(
@@ -697,16 +734,13 @@ async function removeFavTypePicker(id) {
       settings.favCollections = (settings.favCollections || []).filter((c) => c.id !== id);
     });
     window.SITE_FAV_COLLECTIONS = favCustomCollections().filter((c) => c.id !== id);
-    delete groupLists[id];
     document.dispatchEvent(new CustomEvent("tags-map-updated"));
     if (favTypePickerOpen) renderFavTypePickerDropdown();
     if (document.getElementById("f-type").value === id) selectFavTypePicker("character");
-    // allEntries/groupLists у остальных разделов не менялись, но список
-    // мог показывать только что удалённые записи – проще перечитать
-    // с диска, чем вычищать их из локального состояния вручную.
+    // allEntries ещё держит только что удалённые записи (их предлагал бы
+    // поиск связей) – проще перечитать с диска.
     await loadList();
     refreshOpenReviewsTab();
-    renderList();
   } catch (err) {
     alert(err.message || i18n("Ошибка удаления"));
   }
@@ -1189,6 +1223,7 @@ function onTypeChange() {
   document.getElementById("field-subtype").classList.toggle("visible", isPerson);
   document.getElementById("field-from").classList.toggle("hidden-field", isPerson);
   if (isPerson) document.getElementById("f-from").value = "";
+  renderFePreview();
 }
 
 function previewAvatar(url) {
@@ -1202,6 +1237,9 @@ function previewAvatar(url) {
     img.style.objectPosition = document.getElementById("f-image-focus")?.value || "50% 50%";
     img.style.display = "block";
   } else img.style.display = "none";
+  // Сам #avatar-img на странице не виден (CSS .fe-imgbox): картинку
+  // показывает превью карточки слева.
+  renderFePreview();
 }
 
 function openFocusPickerForAvatar() {
@@ -1214,6 +1252,7 @@ function openFocusPickerForAvatar() {
     onChange: (pos) => {
       document.getElementById("f-image-focus").value = pos;
       document.getElementById("avatar-img").style.objectPosition = pos;
+      renderFePreview();
     },
   });
 }
@@ -1369,6 +1408,8 @@ function resetFavToNew() {
   renderLinkedTitles();
   renderLinkedFavoriteGroups();
   document.getElementById("edit-banner").style.display = "none";
+  document.getElementById("edit-name-hint").textContent = "";
+  document.getElementById("fe-danger").hidden = true;
   document.getElementById("page-subtitle").textContent = i18n("Персонажи и персоны");
   document.getElementById("btn-save").textContent = i18n("Сохранить");
   currentProfileGender = null;
@@ -1396,6 +1437,7 @@ function resetFavToNew() {
   document.getElementById("image-upload-status").textContent = "";
   document.getElementById("f-image-upload").value = "";
   setFavStatus("", "");
+  renderFePreview();
 }
 
 function fillFavForm(r) {
@@ -1440,136 +1482,17 @@ function fillFavForm(r) {
   onTypeChange();
 }
 
-function favTypeLabel(type, subtype) {
-  const overrides = window.SITE_LABEL_OVERRIDES?.favTypes || {};
-  if (type === "person") return SUBTYPE_LABELS[subtype] || overrides.person || i18n("Персона");
-  if (type === "character") return overrides.character || i18n("Персонаж");
-  return (favCustomCollections().find((c) => c.id === type) || {}).label || type;
-}
-
-function renderGroup(type, list) {
-  const container = document.getElementById(`entries-list-${type}`);
-  if (!container) return;
-  if (!list.length) {
-    container.innerHTML = `<div class="entries-empty">${i18n("Пока пусто")}</div>`;
-    return;
-  }
-  container.innerHTML = list
-    .map((r) => {
-      // Тип строкой у каждой записи имеет смысл только когда он и правда
-      // отличается от записи к записи – роль персоны (Автор/Режиссёр/…).
-      // У персонажей и у своих разделов favTypeLabel() всегда возвращает
-      // одно и то же для всей группы – ровно то же, что уже написано в
-      // заголовке divider-title над списком, повторять это на каждой
-      // строке было чистым шумом.
-      const typeLabel = r.type === "person" ? favTypeLabel(r.type, r.subtype) : null;
-      return `
-    <div class="entry-row" data-id="${r.id}" data-group="${type}" draggable="true">
-      <span class="entry-drag-handle" title="${i18n("Перетащить")}">⠿</span>
-      <img class="entry-avatar" src="${esc(r.image || r.image_backup || "")}" style="object-position:${esc(r.image_focus || "50% 50%")}" data-hide-on-error alt="">
-      <div class="entry-name">${esc(r.name)}</div>
-      <div class="entry-meta">
-        ${r.from ? `<div class="entry-type">${esc(r.from)}</div>` : ""}
-        ${typeLabel ? `<div class="entry-type">${esc(typeLabel)}</div>` : ""}
-      </div>
-      <button class="entry-edit" onclick="startEdit(${r.id})">${i18n("✎ Изменить")}</button>
-      <button class="entry-del" title="${i18n("Удалить")}" onclick="event.stopPropagation(); deleteFavEntry(${r.id})">✕</button>
-    </div>`;
-    })
-    .join("");
-  bindFavDnd(container);
-}
-
-function renderCustomGroupContainers() {
-  const wrap = document.getElementById("entries-groups-custom");
-  wrap.innerHTML = favCustomCollections()
-    .map(
-      (c) => `
-    <div class="divider-title">${esc(c.label)}</div>
-    <div class="entries-list" id="entries-list-${esc(c.id)}"></div>
-  `
-    )
-    .join("");
-}
-
-function renderList() {
-  renderCustomGroupContainers();
-  Object.keys(groupLists).forEach((type) => renderGroup(type, groupLists[type]));
-
-  document.getElementById("persons-title").style.display =
-    groupLists.person.length || groupLists.character.length ? "flex" : "none";
-
-  const totalCount = Object.values(groupLists).reduce((n, l) => n + l.length, 0);
-  const btn = document.getElementById("btn-save-order");
-  const hint = document.getElementById("order-hint");
-  btn.classList.toggle("visible", orderDirty);
-  hint.classList.toggle("visible", totalCount > 1);
-}
-
-function bindFavDnd(container) {
-  container.querySelectorAll(".entry-row").forEach((row) => {
-    row.addEventListener("dragstart", () => {
-      favDragSrc = row;
-      row.classList.add("dragging");
-    });
-    row.addEventListener("dragend", () => {
-      container.querySelectorAll(".entry-row").forEach((el) => el.classList.remove("dragging", "drag-over"));
-      favDragSrc = null;
-    });
-    row.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      if (!favDragSrc || row === favDragSrc || row.dataset.group !== favDragSrc.dataset.group) return;
-      container.querySelectorAll(".entry-row").forEach((el) => el.classList.remove("drag-over"));
-      row.classList.add("drag-over");
-    });
-    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
-    row.addEventListener("drop", (e) => {
-      e.preventDefault();
-      row.classList.remove("drag-over");
-      if (!favDragSrc || row === favDragSrc || row.dataset.group !== favDragSrc.dataset.group) return;
-
-      const group = row.dataset.group;
-      const list = groupLists[group];
-      if (!list) return;
-      const srcId = Number(favDragSrc.dataset.id);
-      const targetId = Number(row.dataset.id);
-      const srcIdx = list.findIndex((r) => r.id === srcId);
-      let targetIdx = list.findIndex((r) => r.id === targetId);
-      if (srcIdx === -1 || targetIdx === -1) return;
-
-      const rect = row.getBoundingClientRect();
-      const before = e.clientY < rect.top + rect.height / 2;
-
-      const [moved] = list.splice(srcIdx, 1);
-      targetIdx = list.findIndex((r) => r.id === targetId);
-      list.splice(before ? targetIdx : targetIdx + 1, 0, moved);
-
-      orderDirty = true;
-      renderList();
-    });
-  });
-}
-
+// Все записи – только в память (открыть по ?edit=ID, поиск связей,
+// удаление своего раздела). Раньше здесь же рисовался список всех
+// записей с перетаскиванием – теперь порядок живёт на #/favorites-order.
 async function loadList() {
   try {
     const res = await fetch("/favorites.json?_=" + Date.now());
     if (!res.ok) return;
     const data = await res.json();
-    if (!data.length) return;
-
-    allEntries = data;
-    groupLists = { character: [], person: [] };
-    favCustomCollections().forEach((c) => {
-      groupLists[c.id] = [];
-    });
-    Object.keys(groupLists).forEach((type) => {
-      groupLists[type] = data.filter((r) => r.type === type);
-    });
-    orderDirty = false;
-    document.getElementById("list-header").style.display = "flex";
-    renderList();
+    allEntries = Array.isArray(data) ? data : [];
   } catch {
-    // нет файла/сети – список просто останется пустым
+    // нет файла/сети – записей просто нет
   }
 }
 
@@ -1580,17 +1503,18 @@ async function startEdit(id) {
   fillFavForm(entry);
   document.getElementById("edit-banner").style.display = "flex";
   document.getElementById("edit-name-hint").textContent = entry.name;
+  document.getElementById("fe-danger").hidden = false;
   document.getElementById("page-subtitle").textContent = i18n("Редактировать запись");
   document.getElementById("btn-save").textContent = i18n("Сохранить изменения");
+  renderFePreview();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// Удаление самой записи (персонажа/персоны) – прямо из строки списка,
-// тем же приёмом, что у ✕ на карточках чар-листа (char-card-del) и
-// у тайтлов (title-item-del) в /chars-edit: без похода в форму
-// редактирования. Бэкенд уже это умел (saveFavorite → body._delete в
-// core/api.js) – не хватало только кнопки и обработчика здесь.
+// Удаление записи целиком – кнопкой «Удалить эту запись» внизу формы
+// (раньше – ✕ в строке списка под формой, список убран). Бэкенд:
+// saveFavorite → body._delete в core/api.js.
 async function deleteFavEntry(id) {
+  if (id === null || id === undefined) return;
   const entry = allEntries.find((r) => r.id === id);
   const name = entry?.name || i18n("эту запись");
   if (!(await confirmDialog(i18n("Удалить «{name}»?", { name })))) return;
@@ -1604,59 +1528,25 @@ async function deleteFavEntry(id) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || i18n("неизвестная"));
     // Запись удалена по подтверждённому ответу сервера – все картинки её
-    // галереи (не только текущую) теперь точно ничьи, раньше этого
+    // галереи (не только текущая) теперь точно ничьи, раньше этого
     // момента удалять было нельзя (см. её же логику в saveReview()/
-    // add-save.js). В отличие от смены картинки при редактировании,
-    // здесь удаляется вся запись целиком – оставлять её галерею
-    // сиротами на диске смысла нет.
+    // add-save.js). Здесь удаляется вся запись целиком – оставлять её
+    // галерею сиротами на диске смысла нет.
     const orphaned = new Set(entry?.image_gallery || []);
     if (entry?.image_backup) orphaned.add(entry.image_backup);
     orphaned.forEach((url) => deleteMediaFile(url));
-    // Если удалили ту самую запись, что сейчас открыта в форме –
-    // форма показывала бы то, чего уже нет.
-    if (favEditingId === id) resetFavToNew();
-    await loadList();
     // «Любимое» под этим маршрутом ещё показывала бы удалённую запись,
-    // пока по ней не щёлкнуть заново – вкладка сама не перечитается,
-    // пока открыт /favorites-edit поверх неё (см. js/api.js).
+    // пока по ней не щёлкнуть заново (см. js/api.js).
     refreshOpenReviewsTab();
+    // Форма показывает то, чего уже нет, – уходим, как редактор отзыва
+    // после удаления (deleteReview в add-form-state.js).
     setFavStatus("ok", i18n("«{name}» удалена.", { name }));
+    document.getElementById("btn-save").disabled = true;
+    document.getElementById("fe-danger").hidden = true;
+    setTimeout(() => leaveRoute(), 1200);
   } catch (err) {
     setFavStatus("err", i18n("Не удалось удалить: ") + err.message);
   }
-}
-
-async function saveFavOrder() {
-  const btn = document.getElementById("btn-save-order");
-  btn.disabled = true;
-  btn.textContent = i18n("Сохраняем…");
-
-  const favNewOrder = Object.values(groupLists).flat().map((r) => r.id);
-
-  try {
-    const res = await fetch("/api/save-favorite", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ _reorder: favNewOrder }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      orderDirty = false;
-      btn.classList.remove("visible");
-      document.getElementById("order-hint").classList.remove("visible");
-      setFavStatus("ok", i18n("Порядок сохранён."));
-      // Тот же сброс, что и при удалении выше.
-      refreshOpenReviewsTab();
-    } else {
-      setFavStatus("err", i18n("Ошибка: ") + (data.error || i18n("неизвестная")));
-    }
-  } catch (e) {
-    setFavStatus("err", i18n("Ошибка сети: ") + e.message);
-  }
-
-  btn.disabled = false;
-  btn.textContent = i18n("Сохранить порядок");
 }
 
 async function saveEntry() {

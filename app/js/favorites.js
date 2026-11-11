@@ -157,15 +157,19 @@ function renderFavorites({ titles, characters, persons, favData }) {
 function updateFavActionLink() {
   const el = document.getElementById("fav-action-link");
   if (!el) return;
+  // «Порядок» – у любого раздела, своих тоже: сетка с перетаскиванием
+  // (#/favorites-order). «Добавить» – у всех, кроме «Тайтлов» (тайтл
+  // попадает в любимое отметкой в редакторе отзыва) – и сразу с типом
+  // открытого раздела (?type=…), а не всегда «Персонаж».
   const admin = isAdmin();
-  const actionLink =
-    favState.mode === "favTitles"
-      ? admin
-        ? `<a href="#/reviews-order" class="admin-add-btn">${i18n("Порядок")}</a>`
-        : ""
-      : admin
-        ? `<a href="#/favorites-edit" class="admin-add-btn">${i18n("Добавить")}</a>`
-        : "";
+  const mode = favState.mode;
+  const favType = mode === "favCharacters" ? "character" : mode === "favPersons" ? "person" : mode;
+  const actionLink = !admin
+    ? ""
+    : (mode === "favTitles"
+        ? ""
+        : `<a href="#/favorites-edit?type=${encodeURIComponent(favType)}" class="admin-add-btn">${i18n("Добавить")}</a>`) +
+      `<a href="#/favorites-order?section=${encodeURIComponent(mode)}" class="admin-add-btn">${i18n("Порядок")}</a>`;
   el.innerHTML = cameraButton("openFavExportModal()", "fav-camera-btn") + actionLink;
 }
 

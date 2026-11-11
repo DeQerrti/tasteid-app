@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=11"></script>
+<script src="/js/i18n-en.js?v=12"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=29"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -2215,6 +2215,10 @@ section.group { margin-bottom: 3.5rem; }
   color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: .6rem;
   padding: .15rem .4rem; border-radius: 1px; pointer-events: none;
 }
+/* Персонажи, персоны и свои разделы «Любимого» – квадратные карточки,
+   как во вкладке (#/favorites-order). */
+.dnd-grid-square .dnd-item img { aspect-ratio: 1/1; }
+.ro-view .fav-role-head { margin: 1.6rem 0 .8rem; }
 .save-bar { display: flex; align-items: center; gap: 1.5rem; margin-top: 1rem; }
 .save-status { font-family: 'DM Sans', sans-serif; font-size: .78rem; }
 .save-status.ok  { color: var(--green-hi); }
@@ -2530,6 +2534,53 @@ section.group { margin-bottom: 3.5rem; }
 .field-subtype.visible { display: block; }
 #field-from.hidden-field { display: none; }
 
+/* Редактор записи «Любимого» в две колонки (favorites-edit.js, mount):
+   слева – превью карточки и всё про картинку (прилипает при прокрутке),
+   справа – поля. Шапка с «Сохранить» – общие .app-topbar.ed-bar из
+   admin.css, как у редактора отзыва. */
+main.fe-view { max-width: 1180px; margin: 0 auto; padding: 1.6rem 2rem 6rem; }
+main.fe-view > .status-msg { text-align: left; margin: 0 0 1rem; min-height: 0; }
+main.fe-view > .status-msg:empty { display: none; }
+.fe-cols { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 0 3rem; align-items: start; }
+.fe-side {
+  position: sticky; top: 1.2rem;
+  display: flex; flex-direction: column; gap: .9rem; min-width: 0;
+}
+.fe-side-label {
+  font-family: 'DM Sans', sans-serif; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-dim);
+}
+.fe-preview .card { max-width: 220px; animation: none; cursor: default; }
+.fe-imgbox {
+  display: flex; flex-direction: column; gap: .8rem;
+  padding: .95rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface);
+}
+.fe-imgbox .field { margin: 0; }
+.fe-imgbox #avatar-img { display: none !important; }
+.fe-img-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.fe-main { min-width: 0; }
+.fe-main > .section-title:first-child { margin-top: 0; }
+.fe-main #linked-titles-list:not(:empty) { margin-bottom: .8rem; }
+/* Кнопка «Добавить источник» стояла вплотную к следующему заголовку
+   («Персонажи», «Персоны» – группы связей ниже). */
+.fe-main #linked-favorites-groups { margin-top: 2.4rem; }
+.fe-danger {
+  margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--border);
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1rem;
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; color: var(--text-dim);
+}
+.fe-danger[hidden] { display: none; }
+.fe-danger .link-danger {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; font-size: .85rem; color: var(--err); text-decoration: underline; text-underline-offset: 3px;
+}
+@media (max-width: 900px) {
+  main.fe-view { padding: 1.2rem 1rem 6rem; }
+  .fe-cols { grid-template-columns: minmax(0, 1fr); gap: 1.6rem; }
+  .fe-side { position: static; }
+  .fe-preview .card { max-width: 160px; }
+}
+
 .avatar-preview-row { display: flex; align-items: center; gap: .8rem; margin-top: .6rem; }
 .avatar-preview {
   width: 80px; height: 80px; object-fit: cover; border-radius: 50%;
@@ -2539,77 +2590,6 @@ section.group { margin-bottom: 3.5rem; }
 
 .btn-save::before { content: ''; position: absolute; top: 0; left: 0; width: 10px; height: 10px; border-top: 1px solid var(--red-dim); border-left: 1px solid var(--red-dim); }
 .btn-save::after  { content: ''; position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-bottom: 1px solid var(--red-dim); border-right: 1px solid var(--red-dim); }
-
-.divider-title {
-  font-family: 'Playfair Display', serif; font-weight: 700; font-style: italic; font-size: 1.15rem;
-  color: var(--text-hi); margin: 3rem 0 1.25rem; display: flex; align-items: center; gap: .8rem;
-}
-.divider-title::before { content: ''; display: inline-block; width: 16px; height: 1px; background: var(--red); }
-.divider-title::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
-
-.list-header { display: flex; align-items: center; justify-content: space-between; margin: 3rem 0 1.25rem; gap: 1rem; }
-.list-header .divider-title { margin: 0; flex: 1; }
-
-.btn-save-order {
-  font-family: 'DM Sans', sans-serif; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
-  color: var(--green-hi); background: var(--ok-wash); border: 1px solid var(--ok-line); border-radius: 2px;
-  padding: .35rem .85rem; cursor: pointer; transition: all .15s; white-space: nowrap; display: none;
-}
-.btn-save-order:hover { background: var(--ok-fill); border-color: var(--green-hi); }
-.btn-save-order.visible { display: block; }
-.btn-save-order:disabled { opacity: .4; cursor: not-allowed; }
-
-.entries-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 2rem; }
-
-.entry-row {
-  display: flex; align-items: center; gap: .85rem; padding: .6rem .85rem;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
-  transition: border-color .15s, opacity .15s, box-shadow .15s;
-}
-.entry-row:hover { border-color: var(--border2); }
-.entry-row.dragging { opacity: .4; }
-.entry-row.drag-over { border-color: var(--red); box-shadow: 0 -1px 0 var(--red); }
-
-.entry-drag-handle { flex-shrink: 0; cursor: grab; color: var(--text-dim); font-size: 1rem; line-height: 1; padding: 0 2px; user-select: none; }
-.entry-drag-handle:active { cursor: grabbing; }
-
-.entry-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border2); flex-shrink: 0; background: var(--surface2); }
-.entry-name {
-  font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-weight: 600; color: var(--text-hi);
-  flex: 1; min-width: 0; overflow-wrap: anywhere;
-}
-/* «Откуда» и роль/тип складываются в столбик, а не в строку – раньше
-   лежали рядом двумя жёсткими (по умолчанию несжимаемыми) кусками
-   текста, и на узком экране им вдвоём не хватало места: .entry-name
-   (flex:1;min-width:0) отжимался почти в ноль и с overflow-wrap:anywhere
-   заворачивался по одной букве на строку. У персон такого не было –
-   там только один тег (роль), у персонажей – два («откуда» + тип),
-   ровно вдвое жёстче. В столбик они по ширине не шире одного тега. */
-.entry-meta { display: flex; flex-direction: column; align-items: flex-end; gap: .15rem; flex-shrink: 0; }
-.entry-type { font-family: 'DM Sans', sans-serif; font-size: .62rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .1em; }
-/* На телефоне (та же ширина, что и у модалок выше) в столбик не
-   спасает: тег + оба кнопки (у обеих принудительный тач-минимум 44px,
-   см. общее правило @media (pointer:coarse) в style.css) вдвоём с
-   именем всё равно не помещаются в строку. Переносим ряд на два: имя –
-   отдельной, во всю ширину, строкой, тег и кнопки – ниже. */
-@media (max-width: 480px) {
-  .entry-row { flex-wrap: wrap; row-gap: .5rem; }
-  .entry-name { order: 1; flex-basis: 100%; }
-  .entry-meta { order: 2; margin-right: auto; }
-  .entry-edit { order: 3; }
-  .entry-del { order: 4; }
-}
-.entry-edit {
-  font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); background: none;
-  border: 1px solid var(--border2); border-radius: 2px; padding: .25rem .6rem; cursor: pointer;
-  transition: all .15s; white-space: nowrap;
-}
-.entry-edit:hover { border-color: var(--red-dim); color: var(--red-hi); }
-
-.order-hint { font-family: 'DM Sans', sans-serif; font-size: .65rem; color: var(--text-dim); text-align: center; margin-top: .75rem; display: none; }
-.order-hint.visible { display: block; }
-
-.entries-empty { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim); padding: 1rem .85rem; border: 1px dashed var(--border); border-radius: 2px; }
 
 /* Маршрут #/backup-history (см. план перехода, фаза 3.5) – .bh-view
    вместо голого main, та же причина, что у .ro-view/.ce-view/.fe-view
@@ -3658,7 +3638,7 @@ section.group { margin-bottom: 3.5rem; }
 <script src="/js/api.js?v=13"></script>
 <script src="/js/cards.js?v=19"></script>
 <script src="/js/now.js?v=16"></script>
-<script src="/js/favorites.js?v=17"></script>
+<script src="/js/favorites.js?v=18"></script>
 <script src="/js/reviews.js?v=24"></script>
 <script src="/js/stats.js?v=18"></script>
 <script src="/js/tierlist.js?v=14"></script>
@@ -3689,9 +3669,9 @@ section.group { margin-bottom: 3.5rem; }
      IIFE, тоже только на сенсорном (см. её же комментарий в файле). -->
 <script src="/js/swipe-tabs.js?v=1" defer></script>
 <script src="/js/router.js?v=1"></script>
-<script src="/js/routes/reviews-order.js?v=2"></script>
+<script src="/js/routes/reviews-order.js?v=3"></script>
 <script src="/js/routes/chars-edit.js?v=2"></script>
-<script src="/js/routes/favorites-edit.js?v=2"></script>
+<script src="/js/routes/favorites-edit.js?v=3"></script>
 <script src="/js/routes/backup-history.js?v=1"></script>
 <script src="/js/routes/add.js?v=10"></script>
 <script src="/js/routes/add-tags-modal.js?v=2"></script>
