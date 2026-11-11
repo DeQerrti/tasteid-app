@@ -28,6 +28,15 @@ async function loadStats() {
 
   try {
     await fetchReviews();
+    // «Любимое» – для блоков «Твои люди» и «Твои персонажи»; без него
+    // статистика всё равно рисуется, просто без этих двух блоков.
+    try {
+      const res = await fetch("/favorites.json?_=" + Date.now());
+      const data = res.ok ? await res.json() : [];
+      statsFavData = Array.isArray(data) ? data : [];
+    } catch {
+      statsFavData = [];
+    }
     statsRender();
   } catch (err) {
     box.innerHTML = `<div class="state-box">${i18n("Ошибка:")} ${esc(err.message)}</div>`;
@@ -43,620 +52,619 @@ function statsCompletedYear(r) {
   return raw ? parseLocalDate(raw).getFullYear() : null;
 }
 
+// ══ Вкладка целиком ═════════════════════════════
+// Раньше: счётчики по типам + бублик с теми же числами + столбики по
+// годам выхода (60 штук, нечитаемо) + облако тегов с прокруткой –
+// всё про «сколько и чего». Теперь сверху – «вкус в трёх словах» (какие
+// теги поднимают твою оценку) и те же числа по типам, дальше – КАК ты
+// оцениваешь типы, шкала, что поднимает и что роняет оценку, годы,
+// десятилетия выхода, теги, лицо вкуса, люди, пересмотры, персонажи.
+// Каждый блок по-прежнему можно скрыть в настройках (data-stat-key –
+// тот же ключ, что в STAT_BLOCKS settings-stats.js) и выбрать для
+// снимка картинкой.
+//
+// Размеры – резиновые, от ширины вкладки (контейнер #tab-stats, единица
+// --sxu в index.html): на ноутбуке мельче, на большом мониторе крупнее,
+// пропорции одни и те же; на 2K/4K при масштабе 100% вкладка ещё и
+// увеличивается целиком (zoom), а не стоит узкой колонкой посередине.
+
+// Записи «Любимого» – для «Твоих людей» и «Твоих персонажей».
+let statsFavData = [];
+
 function statsRender() {
-  const box     = document.getElementById("tab-stats");
+  const box = document.getElementById("tab-stats");
   const reviews = cache.reviews || [];
+  const completed = reviews.filter(statsIsCompleted);
+  const years = [...new Set(completed.map(statsCompletedYear).filter(Boolean))].sort((a, b) => b - a);
+  const year = statsState.year;
 
-  const completed = reviews.filter(r =>
-    r.status === "completed" || (!r.status && (r.review_full || r.preview || r.grade))
-  );
-
-  const yearsSet = new Set();
-  for (const r of completed) {
-    const y = statsCompletedYear(r);
-    if (y) yearsSet.add(y);
-  }
-  const years = [...yearsSet].sort((a, b) => b - a);
-
-  const filtersHtml = `<div class="stat-toolbar">
+  const toolbar = `<div class="stat-toolbar">
     ${statsYearFiltersHtml(years)}
     ${cameraButton("openStatsExportModal()", "stats-export-btn")}
   </div>`;
-  const bodyHtml = statsState.year === "all"
-    ? renderAllTimeStats(reviews, completed)
-    : renderYearDigest(statsState.year, completed);
 
-  box.innerHTML = filtersHtml + bodyHtml;
-
-  fixLoneStatCard();
-  // matchTagsCardHeight() – раньше fitOversizedTags(). Порядок важен:
-  // до ограничения высоты у облака тегов ещё нет своей вертикальной
-  // прокрутки и scrollbar её не отъедает от ширины ряда; как только
-  // matchTagsCardHeight() выставляет max-height и прокрутка появляется,
-  // она забирает под себя ~15px ширины – тег, который влезал секунду
-  // назад, мог как раз в этот запас и не влезть. Меряем реальную ширину
-  // уже после того, как скроллбар (если он будет) точно на месте.
-  matchTagsCardHeight();
-  fitOversizedTags();
-  animateCounters();
-  animateStackedBars();
-  statsBindAll();
-}
-
-// Тегов может быть куда больше, чем влезает в высоту соседней карточки
-// в той же строке грида (например, "Пересмотры") – раньше облако тегов
-// просто росло сколько нужно, растягивая заодно и всю строку грида
-// (align-items: stretch), и соседка с коротким содержимым оставалась
-// растянутой заодно, с пустотой внутри. Нужно наоборот: высоту строки
-// должна задавать соседка, а лишние теги сверх этой высоты – прятаться
-// под свою прокрутку внутри карточки тегов, а не раздувать строку.
-//
-// Мерить "естественную" высоту соседки нельзя напрямую через
-// getBoundingClientRect() – та уже растянута тем же align-items:
-// stretch под текущую (раздутую тегами) высоту строки, а не под
-// собственное содержимое. На время замера снимаем растяжение у обеих
-// карточек (align-self: start) – тогда у каждой видна её настоящая
-// высота, meряем соседку, и сразу возвращаем как было; после этого
-// max-height у .stat-tag-cloud, а не у всей карточки – карточка
-// по-прежнему тянется вместе со строкой (визуально совпадает с
-// соседкой), просто её содержимому внутри этого предела уже некуда
-// расти дальше, кроме собственной прокрутки.
-function matchTagsCardHeight() {
-  const tagsCard = document.querySelector(".stat-card-tags");
-  if (!tagsCard) return;
-  const cloud = tagsCard.querySelector(".stat-tag-cloud");
-  const header = tagsCard.querySelector(".section-title");
-  if (!cloud || !header) return;
-  // Статистику иногда перерисовывают, пока сама вкладка ещё скрыта –
-  // например, refreshOpenReviewsTab() (js/api.js) дёргает loadStats()
-  // сразу после сохранения настроек в /settings-edit, а вкладка «Статусы»
-  // в этот момент всё ещё спрятана позади открытого маршрута настроек
-  // (#shell-root.hidden). offsetParent === null для display:none и
-  // любого его скрытого предка – верный признак "мерить сейчас нечего":
-  // getBoundingClientRect() вернула бы одни нули, "сосед" нашёлся бы по
-  // случайному совпадению (у всех top: 0), а max-height запомнил бы
-  // такой мусор в inline-style на будущее. Ничего не трогаем – когда
-  // вкладка станет видимой, тот же вызов из router.js (см. её же
-  // комментарий там) перемеряет всё заново правильно.
-  if (tagsCard.offsetParent === null) return;
-
-  cloud.style.maxHeight = "";
-
-  const grid = tagsCard.closest(".stat-grid");
-  if (!grid) return;
-  const myTop = tagsCard.getBoundingClientRect().top;
-  const sibling = [...grid.children].find(
-    (el) => el !== tagsCard && Math.abs(el.getBoundingClientRect().top - myTop) < 1
-  );
-  // Одна в своей строке (нечётное число блоков, см. fixLoneStatCard) –
-  // сравнивать не с кем. На ПК колонка и так не на всю ширину экрана –
-  // пусть занимает столько высоты, сколько нужно. На телефоне же
-  // одинокий блок растягивается на всю ширину экрана (.stat-card-solo,
-  // index.html) и с ней же – сколько бы ни было тегов, они укладывались
-  // в 1-2 строки почти во всю длину телефона, а не оставались тем же
-  // компактным блоком, каким были рядом с соседкой. Ограничиваем той же
-  // высотой в 4 строки, что и раньше была бы видна рядом с соседкой –
-  // остальное так же под прокрутку внутри.
-  if (!sibling) {
-    if (window.matchMedia("(max-width: 700px)").matches) capToRows(cloud, 4);
+  const d = statsData(reviews, completed, year);
+  if (!d.pool.length) {
+    const emptyText =
+      year === "all"
+        ? i18n("Пока нет оценённых тайтлов")
+        : siteLabel("stats", "emptyYear", i18n("За {year} год пока нет завершённых с оценкой")).replace("{year}", year);
+    box.innerHTML = toolbar + `<div class="state-box">${esc(emptyText)}</div>`;
+    statsBindAll();
     return;
   }
 
-  tagsCard.style.alignSelf = "start";
-  sibling.style.alignSelf = "start";
-  const siblingHeight = sibling.getBoundingClientRect().height;
-  const overhead = tagsCard.getBoundingClientRect().height - cloud.getBoundingClientRect().height;
-  tagsCard.style.alignSelf = "";
-  sibling.style.alignSelf = "";
+  const blocks =
+    year === "all"
+      ? [
+          statsHeroHtml(d, year),
+          statsTypesHtml(d),
+          statsGradesHtml(d),
+          statsLiftHtml(d, year),
+          statsWatchYearsHtml(d),
+          statsDecadesHtml(d),
+          statsTagsHtml(d),
+          statsFacesHtml(d, year),
+          statsPeopleHtml(d),
+          statsRewatchHtml(d),
+          statsCharsHtml(d),
+        ]
+      : [
+          statsHeroHtml(d, year),
+          statsTypesHtml(d),
+          statsGradesHtml(d),
+          statsFacesHtml(d, year),
+          statsLiftHtml(d, year),
+          statsTagsHtml(d),
+          statsRewatchHtml(d),
+        ];
 
-  cloud.style.maxHeight = `${Math.max(40, siblingHeight - overhead)}px`;
+  box.innerHTML = toolbar + `<div class="stat-grid sx">${blocks.join("")}</div>`;
+  statsFixLoneCards();
+  statsBindAll();
 }
 
-// Высота одной строки тегов не фиксированная константа – у каждого тега
-// свой размер шрифта (scale в renderTagCloud), поэтому меряем по факту:
-// берём реальные позиции уже отрисованных (не ограниченных по высоте)
-// тегов и находим, на какой высоте начинается пятая строка – именно
-// туда и обрезаем, а не гадаем "среднюю" высоту строки заранее.
-function capToRows(cloud, rows) {
-  const items = [...cloud.children];
-  if (!items.length) return;
-  const rowTops = [...new Set(items.map((el) => Math.round(el.getBoundingClientRect().top)))].sort(
-    (a, b) => a - b
-  );
-  // Строк и так меньше предела – обрезать нечего.
-  if (rowTops.length <= rows) return;
-  const firstHeight = items[0].getBoundingClientRect().height;
-  const rowStep = rowTops[1] - rowTops[0];
-  cloud.style.maxHeight = `${firstHeight + rowStep * (rows - 1)}px`;
+function statsIsCompleted(r) {
+  return r.status === "completed" || (!r.status && (r.review_full || r.preview || r.grade));
 }
 
-// Тег, который даже один в своей строке шире самой карточки (частый тег
-// с крупным авторским размером в узкой колонке телефона – см. scale в
-// renderTagCloud), раньше просто обрезался многоточием через CSS
-// (.stat-tag – index.html). Здесь – настоящее решение: подгоняем именно
-// этому тегу размер шрифта под реальную ширину ряда, а не прячем лишнее
-// под "…". Меряем после того, как разметка уже в DOM и .stat-tag-cloud
-// получила настоящую ширину (offsetWidth/clientWidth = 0 до этого).
-//
-// scrollWidth сравниваем с СОБСТВЕННЫМ clientWidth тега, а не с шириной
-// всего ряда: max-width:100% (index.html) уже сжимает clientWidth тега
-// до ширины ряда, но clientWidth border-box'а исключает border, а
-// scrollWidth его учитывает – при бордере в 1-2px (rtag-категории со
-// своим border) сравнение с шириной ряда напрямую было систематически
-// на пару пикселей строже, чем нужно, и CSS-эллипсис из index.html всё
-// равно подключался на паре пикселей текста, даже когда шрифт уже был
-// ужат «под ноль». Со сравнением тега с самим собой оба числа считаются
-// одной и той же коробкой – переполнение показывает по-настоящему то,
-// что не влезло, без систематической ошибки на толщину border.
-function fitOversizedTags() {
-  document.querySelectorAll(".stat-tag-cloud").forEach((cloud) => {
-    if (!cloud.clientWidth) return;
-    cloud.querySelectorAll(".stat-tag").forEach((tag) => {
-      const base = parseFloat(tag.dataset.baseSize);
-      if (!base) return;
-      let size = base;
-      tag.style.fontSize = `${size}rem`;
-      // Нижняя граница (.55rem) – защита от нечитаемо мелкого текста на
-      // экстремально длинном теге; ниже неё уже подключается ellipsis
-      // из CSS как последний рубеж, а не подгонка размера.
-      //
-      // ВАЖНО: сравнение именно "> ", без вычитаний-допусков – scrollWidth
-      // и clientWidth целые, и любое "- 1"/"+ 1" тут ломает всё: у
-      // равных чисел a > a-1 истинно ВСЕГДА, то есть цикл ужимал бы
-      // КАЖДЫЙ тег до нижней границы независимо от того, было ли
-      // переполнение вообще (было и попало в релиз – шрифт тегов на ПК
-      // ужимался в пол даже там, где места было в избытке). Простое
-      // строгое "больше" не идеальнее на границе в доли пикселя, но
-      // подгонка размера тут не обязана ловить каждую долю пикселя –
-      // CSS text-overflow: ellipsis (.stat-tag, index.html) остаётся
-      // подстраховкой на этот редкий случай.
-      let guard = 0;
-      while (tag.scrollWidth > tag.clientWidth && size > 0.55 && guard < 20) {
-        size -= 0.05;
-        tag.style.fontSize = `${size.toFixed(2)}rem`;
-        guard++;
-      }
-    });
-  });
+// gradeScore(): 1 – лучшая полка шкалы (config.js). «Качество» – наоборот:
+// у лучшей полки самое большое число, чтобы средние читались привычно.
+function statsQuality(r) {
+  const s = gradeScore(gradeToShelf(r.grade));
+  return s ? GRADE_ORDER.length + 1 - s : null;
+}
+// Среднее «качество» → ближайшая полка шкалы, словами («≈ Отлично»).
+function statsShelfFor(avg) {
+  const n = GRADE_ORDER.length;
+  return GRADES[GRADE_ORDER[Math.min(Math.max(n - Math.round(avg), 0), n - 1)]];
+}
+function statsAvg(xs) {
+  return xs.reduce((a, b) => a + b, 0) / xs.length;
+}
+function statsTypeName(key) {
+  return TYPE_LABELS[key] || key;
 }
 
-// Последняя не-.wide карточка иногда остаётся без пары в своей строке
-// (нечётное число включённых обычных блоков) – место под вторую половину
-// строки просто пустует до конца сетки, хотя сама карточка вполне могла
-// бы его занять. grid-auto-flow: dense (см. .stat-grid, index.html) не
-// помогает именно этому случаю – ему просто нечем заполнить дыру,
-// подходящих карточек ПОСЛЕ неё не осталось. Простой nth-child здесь не
-// годится: .wide-карточки сбивают чёт/нечет, они занимают всю строку
-// сами, а не через "второй столбец", – поэтому парность считаем в JS,
-// проходя по факту так же, как это делает сама раскладка грида.
-function fixLoneStatCard() {
-  const grid = document.querySelector("#tab-stats .stat-grid");
-  if (!grid) return;
-  let pairedSlotOpen = false;
-  let lastAlone = null;
-  for (const el of grid.children) {
-    el.classList.remove("stat-card-solo");
-    if (el.classList.contains("wide")) {
-      pairedSlotOpen = false;
-      lastAlone = null;
-      continue;
-    }
-    if (!pairedSlotOpen) {
-      lastAlone = el;
-      pairedSlotOpen = true;
-    } else {
-      lastAlone = null;
-      pairedSlotOpen = false;
+// Тег учитывается в «что поднимает / роняет», если стоит хотя бы у
+// стольких оценённых тайтлов (за год – меньше, тайтлов там в разы меньше).
+const STATS_MIN_TAG = 4;
+const STATS_MIN_TAG_YEAR = 2;
+// Тип – в «мягче/строже всего», если оценок у него хотя бы столько.
+const STATS_MIN_TYPE = 3;
+// «Сглаживание»: к оценкам тега добавляются столько воображаемых тайтлов
+// с твоей обычной оценкой. Тегу с 45 тайтлами это почти ничего не меняет,
+// а тег с 4 тайтлами уже не обгонит его только потому, что четыре оценки
+// случайно оказались высокими.
+const STATS_TAG_SMOOTHING = 5;
+
+function statsData(reviews, completed, year) {
+  const pool =
+    year === "all" ? reviews.filter((r) => r.grade) : completed.filter((r) => statsCompletedYear(r) === year && r.grade);
+  const prev = year === "all" ? null : completed.filter((r) => statsCompletedYear(r) === year - 1 && r.grade);
+  const graded = pool.filter((r) => statsQuality(r) !== null);
+  const allGraded = reviews.filter((r) => r.grade && statsQuality(r) !== null);
+  const overall = graded.length ? statsAvg(graded.map(statsQuality)) : 0;
+  // За год теги сравниваются с обычной оценкой ЗА ВСЁ ВРЕМЯ – видно,
+  // что в этом году «зашло» лучше привычного.
+  const base = year === "all" ? overall : allGraded.length ? statsAvg(allGraded.map(statsQuality)) : 0;
+
+  const byTag = new Map();
+  for (const r of graded) {
+    for (const t of r.tags || []) {
+      if (!byTag.has(t)) byTag.set(t, []);
+      byTag.get(t).push(statsQuality(r));
     }
   }
-  lastAlone?.classList.add("stat-card-solo");
+  const minTag = year === "all" ? STATS_MIN_TAG : STATS_MIN_TAG_YEAR;
+  const tags = [...byTag]
+    .filter(([, v]) => v.length >= minTag)
+    .map(([name, v]) => {
+      const smooth = (v.reduce((a, b) => a + b, 0) + base * STATS_TAG_SMOOTHING) / (v.length + STATS_TAG_SMOOTHING);
+      return { name, n: v.length, avg: statsAvg(v), lift: smooth - base };
+    })
+    .sort((a, b) => b.lift - a.lift);
+  const up = tags.filter((t) => t.lift > 0.15).slice(0, 6);
+  const down = tags
+    .filter((t) => t.lift < -0.15)
+    .slice(-6)
+    .reverse();
+
+  const byType = new Map();
+  for (const r of pool) {
+    const t = r.type || "anime";
+    if (!byType.has(t)) byType.set(t, []);
+    byType.get(t).push(r);
+  }
+  const types = [...byType].map(([type, list]) => {
+    const q = list.map(statsQuality).filter((x) => x !== null);
+    return { type, n: list.length, avg: q.length ? statsAvg(q) : null };
+  });
+  const rated = types.filter((t) => t.avg !== null && t.n >= STATS_MIN_TYPE).sort((a, b) => b.avg - a.avg);
+
+  const gradeCounts = GRADE_ORDER.map((k) => ({ g: GRADES[k], n: pool.filter((r) => gradeToShelf(r.grade) === k).length }));
+
+  const tagCount = new Map();
+  for (const r of pool) for (const t of r.tags || []) tagCount.set(t, (tagCount.get(t) || 0) + 1);
+  const topTags = [...tagCount].sort((a, b) => b[1] - a[1]).slice(0, 16);
+
+  const rewatched = pool.filter((r) => r.rewatch_count > 0).sort((a, b) => b.rewatch_count - a.rewatch_count);
+
+  const watch = new Map();
+  for (const r of completed) {
+    const y = statsCompletedYear(r);
+    if (!y) continue;
+    if (!watch.has(y)) watch.set(y, new Map());
+    const m = watch.get(y);
+    const t = r.type || "anime";
+    m.set(t, (m.get(t) || 0) + 1);
+  }
+  // Годы выхода – десятилетиями; всё до 1950 – одной строкой: пара
+  // книг XIV века иначе растягивала шкалу на семь веков.
+  const decades = new Map();
+  for (const r of pool) {
+    const y = parseInt(r.year);
+    if (!y) continue;
+    const key = y < 1950 ? 0 : Math.floor(y / 10) * 10;
+    if (!decades.has(key)) decades.set(key, new Map());
+    const m = decades.get(key);
+    const t = r.type || "anime";
+    m.set(t, (m.get(t) || 0) + 1);
+  }
+
+  const best = GRADE_ORDER[0];
+  const bestList = pool.filter((r) => gradeToShelf(r.grade) === best);
+  const faces =
+    year === "all"
+      ? bestList.filter((r) => r.favorite).sort((a, b) => (a.fav_order ?? 9999) - (b.fav_order ?? 9999))
+      : bestList;
+
+  const byId = new Map(reviews.map((r) => [r.id, r]));
+  const byTitle = new Map(reviews.map((r) => [normTitle(r.title), r]));
+  const linkedOf = (e) => (e.linked_review_ids || []).map((id) => byId.get(id)).filter((r) => r && statsQuality(r) !== null);
+  const people = statsFavData
+    .filter((e) => e.type === "person")
+    .map((e) => {
+      const linked = linkedOf(e);
+      return { e, linked, avg: linked.length ? statsAvg(linked.map(statsQuality)) : null };
+    })
+    .filter((p) => p.linked.length)
+    .sort((a, b) => b.avg - a.avg || b.linked.length - a.linked.length);
+  const peopleNoLinks = statsFavData.filter((e) => e.type === "person" && !(e.linked_review_ids || []).length).length;
+  const chars = statsFavData
+    .filter((e) => e.type === "character")
+    .map((e) => {
+      let linked = linkedOf(e);
+      if (!linked.length && e.from) {
+        const r = byTitle.get(normTitle(e.from));
+        if (r && statsQuality(r) !== null) linked = [r];
+      }
+      return { e, avg: linked.length ? statsAvg(linked.map(statsQuality)) : null };
+    });
+
+  return { pool, prev, graded, overall, up, down, types, rated, gradeCounts, topTags, rewatched, watch, decades, faces, people, peopleNoLinks, chars };
 }
 
-// ── Переключатель года ─────────────────────────
+const statsCover = (r) => esc(r.cover || r.cover_backup || PH_TALL);
+function statsGradeHtml(g, extra = "") {
+  return `<span class="sx-grade" style="--gc:${esc(g.color)}">${esc(g.name)}${extra}</span>`;
+}
+function statsCard(key, cls, title, explain, body) {
+  if (!isStatVisible(key)) return "";
+  return `<section class="stat-card sx-card ${cls}" data-stat-key="${key}">
+    <h2 class="section-title sx-h">${esc(title)}</h2>
+    ${explain ? `<p class="sx-explain">${esc(explain)}</p>` : ""}
+    ${body}
+  </section>`;
+}
+function statsLegendHtml(typeKeys) {
+  return `<div class="sx-legend">${typeKeys
+    .map((t) => `<span style="--tc:${esc(typeColor(t))}"><i></i>${esc(statsTypeName(t))}</span>`)
+    .join("")}</div>`;
+}
+
+// Шапка: «вкус в трёх словах» (ключ taste) + числа по типам (ключ
+// counters – те же, что раньше в блоке «Всего»). Обе части скрываются
+// в настройках по отдельности.
+function statsHeroHtml(d, year) {
+  const showTaste = isStatVisible("taste");
+  const showCounters = isStatVisible("counters");
+  if (!showTaste && !showCounters) return "";
+
+  let taste = "";
+  if (showTaste) {
+    const words = d.up
+      .slice(0, 3)
+      .map((t) => `<span>${esc(t.name)}</span>`)
+      .join("");
+    const overallG = d.graded.length ? statsShelfFor(d.overall) : null;
+    const soft = d.rated[0];
+    const strict = d.rated[d.rated.length - 1];
+    const line = [
+      overallG ? i18n("В среднем ты ставишь {grade}.", { grade: `<b>${esc(overallG.name)}</b>` }) : "",
+      soft && strict && soft !== strict
+        ? i18n("Мягче всего ты к типу «{soft}», строже всего – к «{strict}».", {
+            soft: esc(statsTypeName(soft.type)),
+            strict: esc(statsTypeName(strict.type)),
+          })
+        : "",
+      d.down[0] ? i18n("Главный повод разочароваться – «{tag}».", { tag: esc(d.down[0].name) }) : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    taste = `<div class="sx-taste">
+        <div class="sx-kicker">${esc(year === "all" ? i18n("Твой вкус в трёх словах") : i18n("{year} год в трёх словах", { year }))}</div>
+        <div class="sx-words">${words || esc(i18n("Пока мало оценок для выводов"))}</div>
+        ${line ? `<div class="sx-line">${line}</div>` : ""}
+      </div>
+      <div class="sx-covers">${d.faces
+        .slice(0, 3)
+        .map((r) => `<img src="${statsCover(r)}" alt="${esc(r.title)}" title="${esc(r.title)}">`)
+        .join("")}</div>`;
+  }
+
+  let counters = "";
+  if (showCounters) {
+    const order = Object.keys(TYPE_LABELS);
+    const cells = [...d.types]
+      .sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type))
+      .map((t) => {
+        const forms = TYPE_PLURAL[t.type] || (window.SITE_CUSTOM_TYPE_PLURAL || {})[t.type];
+        const label = Array.isArray(forms) ? plural(t.n, forms) : statsTypeName(t.type);
+        return `<div class="sx-tc stat-counter"><div class="sx-tc-val" style="color:${esc(typeColor(t.type))}">${t.n}</div><div class="sx-tc-lbl">${esc(label)}</div></div>`;
+      })
+      .join("");
+    const delta = d.prev && d.prev.length ? d.pool.length - d.prev.length : null;
+    const deltaHtml =
+      delta === null
+        ? ""
+        : `<small class="${delta < 0 ? "down" : ""}">${esc(i18n("{d} к {year}", { d: (delta > 0 ? "+" : "") + delta, year: year - 1 }))}</small>`;
+    const label =
+      year === "all"
+        ? plural(d.pool.length, [i18n("тайтл"), i18n("тайтла"), i18n("тайтлов")])
+        : siteLabel("stats", "completed", i18n("завершено"));
+    counters = `<div class="sx-total${showTaste ? "" : " solo"}">
+        <div class="sx-total-big">${d.pool.length}<span>${esc(label)}</span>${deltaHtml}</div>
+        <div class="sx-tcs stat-counters">${cells}</div>
+      </div>`;
+  }
+
+  return `<section class="stat-card sx-hero" data-stat-key="${showTaste ? "taste" : "counters"}">
+    <h2 class="section-title sx-hero-title">${esc(year === "all" ? siteLabel("stats", "total", i18n("Всего")) : i18n("Итоги {year}", { year }))}</h2>
+    ${taste}${counters}
+  </section>`;
+}
+
+function statsTypesHtml(d) {
+  const list = d.types.filter((t) => t.avg !== null).sort((a, b) => b.avg - a.avg);
+  const n = GRADE_ORDER.length;
+  const body = `<div class="sx-types">${list
+    .map((t) => {
+      const g = statsShelfFor(t.avg);
+      return `<div class="sx-type" style="--tc:${esc(typeColor(t.type))}">
+        <span class="sx-type-name"><i></i>${esc(statsTypeName(t.type))}</span>
+        <span class="sx-bar" style="--tc:${esc(g.color)}"><i style="width:${Math.round((t.avg / n) * 100)}%"></i></span>
+        <span class="sx-type-n">${t.n}<small>${esc(plural(t.n, [i18n("оценка"), i18n("оценки"), i18n("оценок")]))}</small></span>
+        ${statsGradeHtml(g)}
+      </div>`;
+    })
+    .join("")}</div>`;
+  return statsCard(
+    "donut",
+    "w7",
+    siteLabel("stats", "types", i18n("Как ты оцениваешь типы")),
+    i18n("Средняя оценка по каждому типу – от самого щедрого к самому строгому. Справа – ближайшая полка шкалы и сколько оценок."),
+    body
+  );
+}
+
+function statsGradesHtml(d) {
+  const max = Math.max(...d.gradeCounts.map((g) => g.n), 1);
+  const body = `<div class="sx-grades">${d.gradeCounts
+    .map(
+      (g) =>
+        `<div class="sx-grow">${statsGradeHtml(g.g)}<span class="sx-bar" style="--tc:${esc(g.g.color)}"><i style="width:${Math.round((g.n / max) * 100)}%"></i></span><span class="sx-grow-n">${g.n}</span></div>`
+    )
+    .join("")}</div>`;
+  return statsCard(
+    "grades",
+    "w5",
+    siteLabel("stats", "grades", i18n("Шкала послевкусия")),
+    i18n("Сколько тайтлов на каждой полке."),
+    body
+  );
+}
+
+function statsReasonRows(list) {
+  if (!list.length) return `<div class="sx-empty">${esc(i18n("Пока мало данных"))}</div>`;
+  const n = GRADE_ORDER.length;
+  return `<div class="sx-rows">${list
+    .map((t) => {
+      const g = statsShelfFor(t.avg);
+      return `<div class="sx-row" data-tip="${esc(TAGS_MAP[t.name]?.tip || t.name)}">
+        <span class="sx-row-name">${esc(t.name)}</span>
+        <span class="sx-bar" style="--tc:${esc(g.color)}"><i style="width:${Math.round((t.avg / n) * 100)}%"></i></span>
+        ${statsGradeHtml(g, ` <small>· ${t.n}</small>`)}
+      </div>`;
+    })
+    .join("")}</div>`;
+}
+
+// «Что поднимает» и «что роняет» – один ключ lift в настройках, две
+// карточки рядом.
+function statsLiftHtml(d, year) {
+  if (!isStatVisible("lift")) return "";
+  const vs = year === "all" ? i18n("обычной") : i18n("твоей обычной за всё время");
+  return (
+    statsCard(
+      "lift",
+      "",
+      i18n("Что поднимает оценку"),
+      i18n("Теги, с которыми средняя оценка выше {vs}. Справа – к какой полке она в среднем ближе и у скольких тайтлов тег стоит.", { vs }),
+      statsReasonRows(d.up)
+    ) +
+    statsCard(
+      "lift-down",
+      "",
+      i18n("Что гарантированно роняет"),
+      i18n("Теги, с которыми оценка заметно ниже {vs} – то, чего ты не прощаешь.", { vs }),
+      statsReasonRows(d.down)
+    )
+  );
+}
+
+function statsWatchYearsHtml(d) {
+  const years = [...d.watch.keys()].sort((a, b) => a - b);
+  if (!years.length) return "";
+  const totals = years.map((y) => [...d.watch.get(y).values()].reduce((a, b) => a + b, 0));
+  const max = Math.max(...totals, 1);
+  const typeKeys = [...new Set(years.flatMap((y) => [...d.watch.get(y).keys()]))];
+  const body = `${statsLegendHtml(typeKeys)}
+    <div class="sx-years">${years
+      .map((y, i) => {
+        const m = d.watch.get(y);
+        const h = Math.max(Math.round((totals[i] / max) * 100), 2);
+        return `<button type="button" class="sx-year" data-stat-year-bar="${y}" title="${y}: ${totals[i]}">
+          <span class="sx-year-stack" style="height:${h}%">${typeKeys
+            .filter((t) => m.get(t))
+            .map((t) => `<i style="--tc:${esc(typeColor(t))};flex:${m.get(t)}"></i>`)
+            .join("")}</span>
+          <span class="sx-year-lbl"><b>${totals[i]}</b>${y}</span>
+        </button>`;
+      })
+      .join("")}</div>`;
+  return statsCard(
+    "watch-bars",
+    "w12",
+    siteLabel("stats", "watchYears", i18n("По годам просмотра")),
+    i18n("Сколько завершено за год и чего именно. Клик по году – его итоги."),
+    body
+  );
+}
+
+function statsDecadesHtml(d) {
+  const keys = [...d.decades.keys()].sort((a, b) => b - a);
+  if (!keys.length) return "";
+  const totals = keys.map((k) => [...d.decades.get(k).values()].reduce((a, b) => a + b, 0));
+  const max = Math.max(...totals, 1);
+  const typeKeys = [...new Set(keys.flatMap((k) => [...d.decades.get(k).keys()]))];
+  const label = (k) => (k === 0 ? i18n("до 1950") : i18n("{d}-е", { d: k }));
+  const body = `${statsLegendHtml(typeKeys)}
+    <div class="sx-decades">${keys
+      .map((k, i) => {
+        const m = d.decades.get(k);
+        return `<div class="sx-decade">
+          <span class="sx-decade-lbl">${esc(label(k))}</span>
+          <span class="sx-bar-wrap"><span class="sx-bar sx-bar-stack" style="width:${Math.max(Math.round((totals[i] / max) * 100), 3)}%">${typeKeys
+            .filter((t) => m.get(t))
+            .map((t) => `<i style="--tc:${esc(typeColor(t))};flex:${m.get(t)}"></i>`)
+            .join("")}</span></span>
+          <span class="sx-grow-n">${totals[i]}</span>
+        </div>`;
+      })
+      .join("")}</div>`;
+  return statsCard(
+    "release-bars",
+    "",
+    siteLabel("stats", "releaseYears", i18n("По годам выхода")),
+    i18n("По десятилетиям: сколько оценённых тайтлов вышло в каждом и каких типов."),
+    body
+  );
+}
+
+function statsTagsHtml(d) {
+  if (!d.topTags.length) return "";
+  const body = `<div class="sx-tags">${d.topTags
+    .map(([t, n]) => {
+      // Цвет категории и подсказка (что значит тег) – как в старом облаке
+      // тегов и в карточках отзывов (tagHtml в cards.js): цвет – по
+      // категории тега, подсказка – из словаря тегов.
+      const info = TAGS_MAP[t];
+      const customColor = info && CAT_COLORS[info.cat];
+      const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
+      const style = customColor ? ` style="--tag-color:${customColor}"` : "";
+      return `<span class="rtag ${cls} sx-tag stat-tag"${style} data-tip="${esc(info?.tip || "")}">${esc(t)}<small>${n}</small></span>`;
+    })
+    .join("")}</div>`;
+  return statsCard(
+    "tags",
+    "",
+    siteLabel("stats", "tags", i18n("Частые теги в отзывах")),
+    i18n("16 самых частых тегов."),
+    body
+  );
+}
+
+function statsRewatchHtml(d) {
+  if (!d.rewatched.length) return "";
+  const total = d.rewatched.reduce((s, r) => s + r.rewatch_count, 0);
+  const n = d.rewatched.length;
+  const body = `<div class="sx-rewatch">${d.rewatched
+    .slice(0, 5)
+    .map(
+      (r) =>
+        `<button type="button" class="sx-rw" data-stat-review="${esc(String(r.id))}"><img src="${statsCover(r)}" alt=""><span class="sx-rw-title">${esc(r.title)}</span><span class="sx-rw-n">×${r.rewatch_count}</span></button>`
+    )
+    .join("")}</div>
+    <div class="sx-sum">${esc(
+      `${n} ${plural(n, [
+        siteLabel("stats", "rewatchOne", i18n("тайтл пересмотрен")),
+        siteLabel("stats", "rewatchFew", i18n("тайтла пересмотрено")),
+        siteLabel("stats", "rewatchMany", i18n("тайтлов пересмотрено")),
+      ])} · ${total} ${plural(total, [i18n("пересмотр всего"), i18n("пересмотра всего"), i18n("пересмотров всего")])}`
+    )}</div>`;
+  return statsCard(
+    "rewatch",
+    "w5",
+    siteLabel("stats", "rewatch", i18n("Пересмотры")),
+    i18n("К чему ты возвращаешься."),
+    body
+  );
+}
+
+function statsFacesHtml(d, year) {
+  const list = d.faces.slice(0, 14);
+  if (!list.length) return "";
+  const best = GRADES[GRADE_ORDER[0]].name;
+  const title =
+    year === "all"
+      ? i18n("Лицо вкуса")
+      : (list.length > 1
+          ? siteLabel("stats", "spotlightMany", i18n("Тайтлы {year} года"))
+          : siteLabel("stats", "spotlightOne", i18n("Тайтл {year} года"))
+        ).replace("{year}", year);
+  const explain =
+    year === "all"
+      ? i18n("Любимые тайтлы с высшей оценкой «{grade}» – то, что ты показал бы первым.", { grade: best })
+      : i18n("Всё, что получило «{grade}» в этом году.", { grade: best });
+  const body = `<div class="sx-faces">${list
+    .map(
+      (r) =>
+        `<button type="button" class="sx-face" data-stat-review="${esc(String(r.id))}"><img src="${statsCover(r)}" alt="" loading="lazy"><span>${esc(r.title)}</span></button>`
+    )
+    .join("")}</div>`;
+  return statsCard("spotlight", year === "all" ? "w7" : "w12", title, explain, body);
+}
+
+function statsPeopleHtml(d) {
+  const explain = d.peopleNoLinks
+    ? i18n("Персоны из «Любимого» и средняя оценка их тайтлов у тебя · у {n} тайтлы ещё не привязаны.", { n: d.peopleNoLinks })
+    : i18n("Персоны из «Любимого» и средняя оценка их тайтлов у тебя.");
+  const body = d.people.length
+    ? `<div class="sx-people">${d.people
+        .slice(0, 6)
+        .map(
+          (p) => `<button type="button" class="sx-person" data-stat-fav="${esc(String(p.e.id))}">
+          <img src="${esc(p.e.image || p.e.image_backup || PH_SQ)}" alt="" style="object-position:${esc(p.e.image_focus || "50% 50%")}">
+          <span class="sx-person-text"><span class="sx-person-name">${esc(p.e.name)}</span><span class="sx-person-sub">${esc(
+            [SUBTYPE_LABELS[p.e.subtype], p.linked.map((r) => r.title).join(", ")].filter(Boolean).join(" · ")
+          )}</span></span>
+          ${statsGradeHtml(statsShelfFor(p.avg))}
+        </button>`
+        )
+        .join("")}</div>`
+    : `<div class="sx-empty">${esc(i18n("Пока ни у кого не привязаны тайтлы"))}</div>`;
+  return statsCard("people", "w5", i18n("Твои люди"), explain, body);
+}
+
+function statsCharsHtml(d) {
+  if (!d.chars.length) return "";
+  const body = `<div class="sx-chars">${d.chars
+    .slice(0, 16)
+    .map(
+      (c) => `<button type="button" class="sx-char" data-stat-fav="${esc(String(c.e.id))}">
+        <img src="${esc(c.e.image || c.e.image_backup || PH_SQ)}" alt="" style="object-position:${esc(c.e.image_focus || "50% 50%")}" loading="lazy">
+        <span class="sx-char-name">${esc(c.e.name)}</span>
+        ${c.e.from ? `<span class="sx-char-from">${esc(c.e.from)}</span>` : ""}
+        ${c.avg !== null ? statsGradeHtml(statsShelfFor(c.avg)) : ""}
+      </button>`
+    )
+    .join("")}</div>`;
+  return statsCard(
+    "characters",
+    "w7",
+    i18n("Твои персонажи"),
+    i18n("Персонажи из «Любимого» в твоём порядке, под каждым – откуда он и как ты оценил этот тайтл."),
+    body
+  );
+}
+
+// Блоки можно скрывать в настройках – карточка, оставшаяся в своём ряду
+// без пары, растягивается на всю ширину вместо пустой половины рядом.
+function statsFixLoneCards() {
+  const cards = [...document.querySelectorAll("#tab-stats .sx > .sx-card")];
+  cards.forEach((c) => c.classList.remove("sx-solo"));
+  const rows = new Map();
+  for (const c of cards) {
+    const top = Math.round(c.getBoundingClientRect().top);
+    if (!rows.has(top)) rows.set(top, []);
+    rows.get(top).push(c);
+  }
+  for (const row of rows.values()) {
+    if (row.length === 1 && !row[0].classList.contains("w12")) row[0].classList.add("sx-solo");
+  }
+}
+
 function statsYearFiltersHtml(years) {
   const allBtn = `<button class="tl-filter${statsState.year === "all" ? " active" : ""}" data-stat-year="all">${i18n("Всё время")}</button>`;
-  const yearBtns = years.map(y =>
-    `<button class="tl-filter${String(statsState.year) === String(y) ? " active" : ""}" data-stat-year="${y}">${y}</button>`
-  ).join("");
+  const yearBtns = years
+    .map(
+      (y) =>
+        `<button class="tl-filter${String(statsState.year) === String(y) ? " active" : ""}" data-stat-year="${y}">${y}</button>`
+    )
+    .join("");
   return `<div class="stat-year-filters">${allBtn}${yearBtns}</div>`;
 }
 
 function statsBindAll() {
-  document.querySelectorAll(".tl-filter[data-stat-year]").forEach(btn => {
+  const box = document.getElementById("tab-stats");
+  box.querySelectorAll(".tl-filter[data-stat-year]").forEach((btn) => {
     btn.addEventListener("click", () => {
       statsState.year = btn.dataset.statYear === "all" ? "all" : parseInt(btn.dataset.statYear);
       statsRender();
     });
   });
+  box.querySelectorAll("[data-stat-year-bar]").forEach((el) =>
+    el.addEventListener("click", () => {
+      statsState.year = parseInt(el.dataset.statYearBar);
+      statsRender();
+      box.scrollIntoView({ block: "start" });
+    })
+  );
+  box.querySelectorAll("[data-stat-review]").forEach((el) =>
+    el.addEventListener("click", () => {
+      const r = (cache.reviews || []).find((x) => String(x.id) === el.dataset.statReview);
+      if (r) openReviewModal(r);
+    })
+  );
+  box.querySelectorAll("[data-stat-fav]").forEach((el) =>
+    el.addEventListener("click", () => {
+      const e = statsFavData.find((x) => String(x.id) === el.dataset.statFav);
+      if (e && typeof openFavPersonModal === "function") openFavPersonModal(e);
+    })
+  );
 }
 
-// ── Статистика за всё время (как было) ─────────
-function renderAllTimeStats(reviews, completed) {
-  const withGrade = reviews.filter(r => r.grade);
-
-  const typeCounts = {};
-  for (const r of withGrade) {
-    const t = r.type || "anime";
-    typeCounts[t] = (typeCounts[t] || 0) + 1;
-  }
-  const counts = Object.entries(TYPE_LABELS)
-    .map(([key, label]) => ({ key, label, val: typeCounts[key] || 0, color: typeColor(key) }))
-    .filter(c => c.val > 0);
-  const total = counts.reduce((s, c) => s + c.val, 0);
-
-  const watchYearsByType = {};
-  for (const r of completed) {
-    const y = statsCompletedYear(r);
-    if (!y) continue;
-    const t = r.type || "anime";
-    if (!watchYearsByType[y]) watchYearsByType[y] = {};
-    watchYearsByType[y][t] = (watchYearsByType[y][t] || 0) + 1;
-  }
-
-  const releaseYearsByType = {};
-  for (const r of withGrade) {
-    const y = parseInt(r.year);
-    if (!y) continue;
-    const t = r.type || "anime";
-    if (!releaseYearsByType[y]) releaseYearsByType[y] = {};
-    releaseYearsByType[y][t] = (releaseYearsByType[y][t] || 0) + 1;
-  }
-
-  const gradeCounts = {};
-  for (const r of withGrade) { const s = gradeToShelf(r.grade); if (s) gradeCounts[s] = (gradeCounts[s] || 0) + 1; }
-
-  const tagCounts = {};
-  for (const r of reviews) {
-    for (const tag of (r.tags || [])) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-  }
-  const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 20);
-
-  return `<div class="stat-grid">
-    ${isStatVisible("counters")   ? withStatKey(renderCounters(counts, total), "counters") : ""}
-    ${isStatVisible("donut")      ? withStatKey(renderDonut(counts, total), "donut") : ""}
-    ${isStatVisible("grades")     ? withStatKey(renderGradeChart(gradeCounts), "grades") : ""}
-    ${isStatVisible("watch-bars") ? withStatKey(renderStackedBarChart(siteLabel("stats", "watchYears", i18n("По годам просмотра")), "watch-bars", watchYearsByType), "watch-bars") : ""}
-    ${isStatVisible("release-bars") ? withStatKey(renderStackedBarChart(siteLabel("stats", "releaseYears", i18n("По годам выхода")), "release-bars", releaseYearsByType), "release-bars") : ""}
-    ${isStatVisible("rewatch")    ? withStatKey(renderRewatchStats(reviews), "rewatch") : ""}
-    ${isStatVisible("tags")       ? withStatKey(renderTagCloud(topTags), "tags") : ""}
-  </div>`;
-}
-
-// data-stat-key размечает готовую HTML-строку секции – по нему модалка
-// выбора блоков перед снимком (openStatsExportModal ниже) находит нужный
-// узел в живом .stat-grid и на время скрывает невыбранные, вместо того
-// чтобы городить отдельную офскрин-копию разметки (как у «Любимого»):
-// секции статистики и так уже готовы на странице, прятать проще, чем
-// пересобирать заново.
-function withStatKey(html, key) {
-  return html.replace("<section ", `<section data-stat-key="${key}" `);
-}
-
-// ── Годовой дайджест ────────────────────────────
-function renderYearDigest(year, completed) {
-  const yearReviews = completed.filter(r => statsCompletedYear(r) === year);
-  const withGrade   = yearReviews.filter(r => r.grade);
-
-  const typeCounts = {};
-  for (const r of withGrade) {
-    const t = r.type || "anime";
-    typeCounts[t] = (typeCounts[t] || 0) + 1;
-  }
-  const counts = Object.entries(TYPE_LABELS)
-    .map(([key, label]) => ({ key, label, val: typeCounts[key] || 0, color: typeColor(key) }))
-    .filter(c => c.val > 0);
-  const total = counts.reduce((s, c) => s + c.val, 0);
-
-  if (!total) {
-    const emptyText = siteLabel("stats", "emptyYear", i18n("За {year} год пока нет завершённых с оценкой"));
-    return `<div class="state-box">${esc(emptyText.replace("{year}", year))}</div>`;
-  }
-
-  const gradeCounts = {};
-  for (const r of withGrade) { const s = gradeToShelf(r.grade); if (s) gradeCounts[s] = (gradeCounts[s] || 0) + 1; }
-
-  const tagCounts = {};
-  for (const r of yearReviews) {
-    for (const tag of (r.tags || [])) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-  }
-  const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 15);
-
-  const spotlight = statsTopTitlesOfYear(withGrade);
-
-  return `
-    <div id="stats-digest" class="stat-grid">
-      ${isStatVisible("counters") ? withStatKey(renderCounters(counts, total, i18n("Итоги {year}", { year }), siteLabel("stats", "completed", i18n("завершено"))), "counters") : ""}
-      ${isStatVisible("donut")    ? withStatKey(renderDonut(counts, total), "donut") : ""}
-      ${isStatVisible("grades")   ? withStatKey(renderGradeChart(gradeCounts), "grades") : ""}
-      ${isStatVisible("spotlight") ? withStatKey(renderTitleOfYear(spotlight, year), "spotlight") : ""}
-      ${isStatVisible("rewatch")  ? withStatKey(renderRewatchStats(yearReviews), "rewatch") : ""}
-      ${isStatVisible("tags")     ? withStatKey(renderTagCloud(topTags), "tags") : ""}
-    </div>
-  `;
-}
-
-// Лучшая оценка года (минимальный gradeScore – в начале GRADE_ORDER лежат
-// лучшие оценки). При нескольких тайтлах с одинаковой лучшей оценкой
-// показываем все, но не больше 6, чтобы не раздувать дайджест.
-function statsTopTitlesOfYear(withGrade) {
-  if (!withGrade.length) return [];
-  let best = Infinity;
-  for (const r of withGrade) {
-    const s = gradeScore(gradeToShelf(r.grade));
-    if (s !== null && s < best) best = s;
-  }
-  if (best === Infinity) return [];
-  return withGrade.filter(r => gradeScore(gradeToShelf(r.grade)) === best).slice(0, 6);
-}
-
-function renderTitleOfYear(list, year) {
-  if (!list.length) return "";
-  const heading = (list.length > 1
-    ? siteLabel("stats", "spotlightMany", i18n("Тайтлы {year} года"))
-    : siteLabel("stats", "spotlightOne", i18n("Тайтл {year} года"))
-  ).replace("{year}", year);
-  const cards = list.map((r, i) => `<div class="year-spotlight-item">${manualCard(r, i)}</div>`).join("");
-  return `<section class="stat-section stat-card wide">
-    <h2 class="section-title">${esc(heading)}</h2>
-    <div class="year-spotlight-grid">${cards}</div>
-  </section>`;
-}
-
-// ── Счётчики ───────────────────────────────────
-// plural() живёт в js/utils.js: он понадобился и настройкам, и импорту,
-// а stats.js подключают не все страницы.
-
-function renderCounters(counts, total, sectionTitle = null, totalLabel = null) {
-  sectionTitle = sectionTitle ?? siteLabel("stats", "total", i18n("Всего"));
-  // По умолчанию – склоняемое "тайтл/тайтла/тайтлов".
-  // Если передана строка ("завершено") – используем её как есть без склонения.
-  const label = totalLabel !== null
-    ? totalLabel
-    : plural(total, unitForms());
-  const items = counts.map(c => {
-    const forms = TYPE_PLURAL[c.key];
-    const subLabel = forms ? plural(c.val, forms) : c.label;
-    const pluralAttr = forms ? `data-plural="${forms.join("|")}"` : "";
-    return `
-    <div class="stat-counter">
-      <div class="stat-counter-val" data-target="${c.val}" style="color:${c.color}">0</div>
-      <div class="stat-counter-label" ${pluralAttr}>${esc(subLabel)}</div>
-    </div>
-  `;
-  }).join("");
-
-  return `<section class="stat-section stat-card wide">
-    <h2 class="section-title">${esc(sectionTitle)}</h2>
-    <div class="stat-total">
-      <span class="stat-total-num" data-target="${total}">0</span>
-      <span class="stat-total-label" ${!totalLabel ? `data-plural="${esc(unitForms().join("|"))}"` : ""}>${esc(label)}</span>
-    </div>
-    <div class="stat-counters">${items}</div>
-  </section>`;
-}
-
-// ── Пончик ─────────────────────────────────────
-function renderDonut(counts, total) {
-  if (!total) return "";
-  const r = 80, cx = 100, cy = 100;
-  const circumference = 2 * Math.PI * r;
-
-  const legend = counts.map(c => `
-    <div class="donut-legend-item">
-      <span class="donut-dot" style="background:${c.color}"></span>
-      <span class="donut-legend-label">${esc(c.label)}</span>
-      <span class="donut-legend-val">${c.val}</span>
-      <span class="donut-legend-pct">${Math.round(c.val / total * 100)}%</span>
-    </div>
-  `).join("");
-
-  let accum = 0;
-  const segs = counts.map(c => {
-    const pct  = c.val / total;
-    const dash = pct * circumference;
-    const seg  = `<circle cx="${cx}" cy="${cy}" r="${r}"
-      fill="none" stroke="${c.color}" stroke-width="16"
-      stroke-dasharray="${dash.toFixed(2)} ${(circumference - dash).toFixed(2)}"
-      stroke-dashoffset="${(circumference - accum * circumference).toFixed(2)}"
-      style="transform:rotate(-90deg);transform-origin:${cx}px ${cy}px"/>`;
-    accum += pct;
-    return seg;
-  }).join("");
-
-  return `<section class="stat-section stat-card">
-    <h2 class="section-title">${esc(siteLabel("stats", "types", i18n("Разбивка по типам")))}</h2>
-    <div class="stat-donut-wrap">
-      <svg viewBox="0 0 200 200" class="stat-donut-svg">
-        ${segs}
-        <text x="${cx}" y="${cy - 6}" text-anchor="middle" class="donut-center-num">${total}</text>
-        <text x="${cx}" y="${cy + 14}" text-anchor="middle" class="donut-center-label">${i18n("всего")}</text>
-      </svg>
-      <div class="donut-legend">${legend}</div>
-    </div>
-  </section>`;
-}
-
-// ── Стековые барчарты по годам ─────────────────
-// yearsByType: { year: { type: count } }
-function renderStackedBarChart(title, id, yearsByType) {
-  const years = Object.keys(yearsByType).sort((a, b) => a - b);
-  if (!years.length) return "";
-
-  const totals = years.map(y => Object.values(yearsByType[y]).reduce((s, v) => s + v, 0));
-  const max = Math.max(...totals);
-
-  const bars = years.map((year, yi) => {
-    const yearTotal = totals[yi];
-    const pct = max ? (yearTotal / max * 100) : 0;
-
-    const segments = Object.entries(TYPE_LABELS)
-      .map(([key]) => ({ key, val: yearsByType[year][key] || 0, color: typeColor(key) }))
-      .filter(s => s.val > 0)
-      .map(s => {
-        const segPct = yearTotal ? (s.val / yearTotal * 100).toFixed(2) : 0;
-        return `<div class="year-bar-seg"
-          style="height:${segPct}%;background:${s.color}"
-          title="${TYPE_LABELS[s.key] || s.key}: ${s.val}"></div>`;
-      }).join("");
-
-    return `<div class="year-bar-wrap">
-      <div class="year-bar-track">
-        <div class="year-bar-stack" data-pct="${pct.toFixed(1)}" style="height:0%">
-          ${segments}
-        </div>
-      </div>
-      <div class="year-bar-val">${yearTotal}</div>
-      <div class="year-bar-label">${esc(String(year))}</div>
-    </div>`;
-  }).join("");
-
-  return `<section class="stat-section stat-card wide">
-    <h2 class="section-title">${esc(title)}</h2>
-    <div class="year-bars-wrap${years.length > 20 ? " dense" : ""}" id="${id}">${bars}</div>
-  </section>`;
-}
-
-// ── Оценки ─────────────────────────────────────
-function renderGradeChart(gradeCounts) {
-  const total = Object.values(gradeCounts).reduce((s, v) => s + v, 0);
-  if (!total) return "";
-  const max = Math.max(...Object.values(gradeCounts));
-
-  const bars = GRADE_ORDER.map(key => {
-    const g   = GRADES[key];
-    if (!g) return "";
-    const val = gradeCounts[key] || 0;
-    const pct = max ? (val / max * 100) : 0;
-    return `<div class="grade-row">
-      <div class="grade-row-label" style="color:${g.color}">${esc(g.name)}</div>
-      <div class="grade-row-track">
-        <div class="grade-row-bar" data-pct="${pct.toFixed(1)}" style="width:0%;background:${g.color}"></div>
-      </div>
-      <div class="grade-row-val">${val}</div>
-    </div>`;
-  }).join("");
-
-  return `<section class="stat-section stat-card">
-    <h2 class="section-title">${esc(siteLabel("stats", "grades", i18n("Шкала послевкусия")))}</h2>
-    <div class="grade-bars">${bars}</div>
-  </section>`;
-}
-
-// ── Облако тегов ───────────────────────────────
-function renderRewatchStats(reviews) {
-  const rewatched = reviews.filter(r => r.rewatch_count > 0);
-  if (!rewatched.length) return "";
-
-  const totalRewatches = rewatched.reduce((sum, r) => sum + r.rewatch_count, 0);
-  const top = [...rewatched].sort((a, b) => b.rewatch_count - a.rewatch_count)[0];
-
-  return `<section class="stat-section stat-card">
-    <h2 class="section-title">${esc(siteLabel("stats", "rewatch", i18n("Пересмотры")))}</h2>
-    <div class="stat-counters stat-counters-rewatch">
-      <div class="stat-counter">
-        <div class="stat-counter-val" data-target="${rewatched.length}" style="color:var(--red-hi)">0</div>
-        <div class="stat-counter-label">${esc(plural(rewatched.length, [
-          siteLabel("stats", "rewatchOne", i18n("тайтл пересмотрен")),
-          siteLabel("stats", "rewatchFew", i18n("тайтла пересмотрено")),
-          siteLabel("stats", "rewatchMany", i18n("тайтлов пересмотрено")),
-        ]))}</div>
-      </div>
-      <div class="stat-counter">
-        <div class="stat-counter-val" data-target="${totalRewatches}" style="color:var(--red-hi)">0</div>
-        <div class="stat-counter-label">${esc(plural(totalRewatches, [i18n("пересмотр всего"), i18n("пересмотра всего"), i18n("пересмотров всего")]))}</div>
-      </div>
-    </div>
-    <div class="stat-rewatch-top">${i18n("Больше всего пересмотрено:")} <b>${esc(top.title)}</b> (×${top.rewatch_count})</div>
-  </section>`;
-}
-
-function renderTagCloud(topTags) {
-  if (!topTags.length) return "";
-  const max = topTags[0][1];
-  const items = topTags.map(([tag, cnt]) => {
-    const info  = TAGS_MAP[tag];
-    const customColor = info && CAT_COLORS[info.cat];
-    const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
-    const styleAttr = customColor ? `--tag-color:${customColor};` : "";
-    const scale = 0.8 + (cnt / max) * 0.7;
-    // data-base-size хранит "авторский" размер отдельно от style –
-    // fitOversizedTags() ниже перезаписывает сам style, уменьшая шрифт
-    // тем тегам, что не влезают в свою строку; без отдельно сохранённого
-    // оригинала повторный проход (например, при следующей отрисовке уже
-    // с другим годом) ужимал бы уже однажды ужатый размер ещё раз.
-    return `<span class="rtag ${cls} stat-tag" style="${styleAttr}font-size:${scale.toFixed(2)}rem" data-base-size="${scale.toFixed(2)}"
-      data-tip="${esc(info?.tip || "")}">${esc(tag)} <span class="stat-tag-cnt">${cnt}</span></span>`;
-  }).join("");
-  // Без .wide – раньше эта карточка всегда занимала всю ширину грида,
-  // и если перед ней в своей строке оказывалась одна-единственная
-  // некрупная карточка (например, «Пересмотры»), вторая половина той
-  // же строки оставалась пустой: следующим шёл именно этот, уже
-  // растянутый на весь ряд блок, и заполнить собой дыру он не мог. Как
-  // обычная карточка сетки, он сам встаёт в свободную половину той же
-  // строки (см. её же max-height/overflow у .stat-tag-cloud в
-  // index.html – без ограничения высоты блок в половину ширины разросся
-  // бы вдвое выше, тегов там и так меньше в ряду, но выглядит это
-  // нормально, а не "сломанно"). stat-card-tags – растягивает саму
-  // карточку в колонку (index.html), чтобы .stat-tag-cloud могла занять
-  // остаток её высоты вместо жёсткого max-height: карточка и так тянется
-  // под соседку в гриде, а без flex:1 это пустое место под тегами
-  // никак не использовалось – переносить их в несколько строк было
-  // некуда, кроме как за счёт этого резерва.
-  return `<section class="stat-section stat-card stat-card-tags">
-    <h2 class="section-title">${esc(siteLabel("stats", "tags", i18n("Частые теги в отзывах")))}</h2>
-    <div class="stat-tag-cloud">${items}</div>
-  </section>`;
-}
-
-// ── Анимации ───────────────────────────────────
-function animateCounters() {
-  document.querySelectorAll("[data-target]").forEach(el => {
-    const target = parseInt(el.dataset.target);
-    // Лейбл рядом: у stat-total-num – следующий span, у stat-counter-val – следующий div
-    const labelEl = el.nextElementSibling;
-    const forms = labelEl?.dataset.plural?.split("|");
-
-    const dur = 800, start = performance.now();
-    function tick(now) {
-      const t = Math.min((now - start) / dur, 1);
-      const val = Math.round((1 - Math.pow(1 - t, 3)) * target);
-      el.textContent = val;
-      if (forms && labelEl) labelEl.textContent = pluralLabel(val, forms);
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  });
-}
-
-function pluralLabel(n, [one, few, many]) {
-  const abs = Math.abs(n) % 100;
-  const rem = abs % 10;
-  if (abs >= 11 && abs <= 19) return many;
-  if (rem === 1)               return one;
-  if (rem >= 2 && rem <= 4)   return few;
-  return many;
-}
-
-function animateStackedBars() {
-  setTimeout(() => {
-    document.querySelectorAll(".year-bar-stack").forEach(el => {
-      el.style.transition = "height .6s cubic-bezier(.4,0,.2,1)";
-      el.style.height = el.dataset.pct + "%";
-    });
-    document.querySelectorAll(".grade-row-bar").forEach(el => {
-      el.style.transition = "width .6s cubic-bezier(.4,0,.2,1)";
-      el.style.width = el.dataset.pct + "%";
-    });
-  }, 100);
-}
-
-// ══ ЭКСПОРТ СТАТИСТИКИ В КАРТИНКУ ═══════════════════════
-// Тот же приём, что у тир-листа персонажей и «Любимого»
-// (js/tierlist.js: tlExport, js/favorites.js: favExport) – html2canvas
-// поверх уже отрисованного .stat-grid, картинки сперва проксируются в
-// data:-URL (см. config.js). Экспортирует ровно то, что сейчас открыто:
-// «Всё время» или дайджест конкретного года – переключать это отдельно
-// незачем, для этого уже есть переключатель года над самой статистикой.
 // Выбор блоков перед снимком – тот же приём, что и у «Любимого»
 // (favExportSections/openFavExportModal в js/favorites.js): без него
 // снимок статистики со всеми включёнными блоками разом выходил очень

@@ -394,7 +394,9 @@ const DEFAULT_LABELS = {
   stats: {
     total: i18n("Всего"),
     completed: i18n("завершено"),
-    types: i18n("Разбивка по типам"),
+    // Блок теперь про то, КАК оцениваешь типы (средняя оценка), а не
+    // про количество – прежнее «Разбивка по типам» ушло в FROZEN ниже.
+    types: i18n("Как ты оцениваешь типы"),
     grades: i18n("Шкала послевкусия"),
     rewatch: i18n("Пересмотры"),
     tags: i18n("Частые теги в отзывах"),
@@ -448,6 +450,9 @@ const FROZEN_LABEL_DEFAULTS = {
   nav: { now: "Статусы", favorites: "Любимое", reviews: "Отзывы", stats: "Статистика", tierlist: "Тир-лист" },
   sections: { favTitles: "Тайтлы", favCharacters: "Персонажи", favPersons: "Персоны", tierTitles: "Тайтлы" },
   statuses: { archive: "Архив" },
+  // Прежний заголовок блока типов – если он сохранился в настройках как
+  // «переопределение», показываем новый заголовок по умолчанию.
+  stats: { types: "Разбивка по типам" },
 };
 
 function stripFrozenLabelDefaults(overrides) {

@@ -51,13 +51,13 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=13"></script>
+<script src="/js/i18n-en.js?v=14"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=29"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
 <script src="/js/focus-modal.js?v=1"></script>
 <script src="/js/image-lightbox.js?v=1"></script>
-<script src="/js/theme.js?v=16"></script>
+<script src="/js/theme.js?v=17"></script>
 <script src="/js/quick-appearance.js?v=1"></script>
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
@@ -1121,254 +1121,206 @@ section.group { margin-bottom: 3.5rem; }
 .review-edit-btn:hover { background: var(--red-dim); border-color: var(--red); color: var(--text-hi); }
 .review-card-wrap .card { height: 100%; }
 
-/* ══ STATS ═══════════════════════════════════════ */
-.stat-section { margin-bottom: 3.5rem; animation: fadeUp .4s ease both; }
+/* ══ STATS ═══════════════════════════════════════
+   Разметка – js/stats.js (statsRender). Всё резиновое:
+   – #tab-stats – контейнер (container queries), раскладка карточек
+     зависит от его ширины, а не от экрана;
+   – --sxu – общая для всей вкладки единица размера (0.55% её ширины),
+     зарегистрирована через @property, поэтому превращается в пиксели на
+     .sx и наследуется готовым числом: текст и графики во ВСЕХ карточках
+     одного размера, узкая карточка не мельчит свои строки;
+   – clamp() держит нижнюю и верхнюю границу, чтобы на телефоне не было
+     мелко, а на большом мониторе – гигантски;
+   – на 2K/4K при масштабе 100% вкладка увеличивается целиком (zoom) и
+     занимает ширину экрана, а не стоит узкой колонкой посередине.
+   Карточки одного ряда – одной высоты, строки внутри распределяются по
+   всей высоте: у соседки покороче не остаётся пустого низа.
+   Оформление карточек в темах – через общие .stat-card/.section-title
+   (themes.css), поэтому .sx-card – это ещё и .stat-card. */
+#tab-stats { container: sxroot / inline-size; }
+@property --sxu { syntax: "<length>"; inherits: true; initial-value: 8px; }
 
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.4rem;
-  /* dense – блоки можно включать/выключать по отдельности (настройки
-     статистики), и без dense короткая карточка, идущая сразу за
-     выключенной длинной, оставляла бы позади себя пустую клетку вместо
-     того, чтобы следующая (более узкая) карточка вставала в неё. */
-  grid-auto-flow: dense;
-}
-.stat-grid .stat-card {
-  margin-bottom: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1.6rem 1.8rem;
-  min-width: 0; /* allow children (year-bars-wrap etc.) to shrink inside grid cell */
-}
-.stat-grid .stat-card.wide { grid-column: 1 / -1; }
-/* Ставится в JS (fixLoneStatCard, js/stats.js) на карточку, которая по
-   факту осталась без пары в своей строке, – растягиваем её на всю
-   ширину вместо пустой половины строки рядом. */
-.stat-grid .stat-card.stat-card-solo { grid-column: 1 / -1; }
-/* Раньше на телефоне тут стояла одна колонка – каждый блок занимал
-   чуть ли не весь экран, и добраться до последнего было сплошной
-   прокруткой. Как на компьютере, две колонки – только .wide (заголовки
-   по годам, "Всего", тайтл года) всё равно растягиваются на всю
-   ширину через grid-column: 1 / -1 выше, им ширина колонки ни при чём.
-   Уменьшение самого доната (200px не влезли бы и в половину узкого
-   экрана) – отдельным правилом ниже по файлу, после его же безусловного
-   (см. её же историю в этой сессии про .tl-mode-btn/.watch-badge:
-   правило той же специфичности, что стоит РАНЬШЕ по источнику,
-   проигрывает более позднему безусловному, даже если само внутри
-   @media). */
-@media (max-width: 780px) {
-  .stat-grid { gap: .8rem; }
-  .stat-grid .stat-card { padding: 1rem 1.1rem; }
-  /* Настоящая причина, по которой заголовки карточек ("Шкала
-     послевкусия" и другие) вылезали за половину колонки, – не перенос
-     слов сам по себе (он и так работал), а то, что часть тем
-     (themes.css: [data-skin="soft"/"soft-dark"] – 2rem, "doodle" –
-     1.8rem, "brutal" – 1.4rem заглавными) поднимают .section-title
-     заметно крупнее базового 1.3rem. При таком кегле самое длинное
-     ОДНО слово ("послевкусия" и т.п.) уже само по себе шире половины
-     колонки телефона, а переносить середину слова браузер не станет –
-     сколько заголовок ни ужимай снаружи, воздуха внутри просто нет.
-     html впереди – та же специфичность (2 класса/атрибут), что у
-     правил в themes.css, побеждает не через порядок подключения (он и
-     так наш, index.html позже), а на будущее, если что-то из тем
-     когда-нибудь подключат ещё позже. */
-  html .stat-grid .section-title { font-size: 1.05rem; }
-}
-
-.stat-total { display: flex; align-items: baseline; gap: .75rem; margin-bottom: 2rem; }
-.stat-total-num {
-  font-family: 'Playfair Display', serif;
-  font-weight: 900; font-style: italic;
-  font-size: clamp(3.5rem, 8vw, 6rem);
-  color: var(--text-hi); line-height: 1;
-}
-.stat-total-label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: .85rem; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--text-dim);
-}
-
-.stat-counters { display: flex; flex-wrap: wrap; gap: 1px; border: 1px solid var(--border); }
-.stat-rewatch-top {
-  margin-top: 1.2rem;
-  padding: .9rem 1.1rem;
-  background: var(--tint);
-  border: 1px solid var(--tint-line);
-  border-radius: 4px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: .78rem;
-  color: var(--text-dim);
-}
-.stat-rewatch-top b {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 1.1rem;
-  font-style: italic;
-  font-weight: 600;
-  color: var(--text-hi);
-}
-.stat-counter {
-  flex: 1; min-width: 80px; padding: 1rem 1.2rem;
-  background: var(--surface); text-align: center;
-  border-right: 1px solid var(--border);
-}
-.stat-counter:last-child { border-right: none; }
-/* Пересмотры (.stat-counters-rewatch – единственная не-.wide карточка
-   со .stat-counters внутри стат-грида, не путать со счётчиками "Всего",
-   у той свой полноширинный .wide) – подписи длинные ("тайтл
-   пересмотрен", "пересмотра всего"), это цельные слова без переносов,
-   и в половину плитки при двух счётчиках рядом они просто не влезали
-   ни при каком запасе – тесно даже на весь стат-грид, не то что на
-   телефон в половину колонки. Друг под другом, во всю ширину карточки –
-   в отличие от бокового расположения, тут это не ломает "два в ряд" у
-   самой карточки в стат-гриде: колонки/строки внутри неё, ширина
-   карточки в гриде не при чём. */
-@media (max-width: 780px) {
-  .stat-counters-rewatch { flex-direction: column; }
-  .stat-counters-rewatch .stat-counter { border-right: none; border-bottom: 1px solid var(--border); }
-  .stat-counters-rewatch .stat-counter:last-child { border-bottom: none; }
-}
-.stat-counter-val {
-  font-family: 'Playfair Display', serif;
-  font-size: 2rem; font-weight: 900; color: var(--text-hi); line-height: 1;
-}
-.stat-counter-label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: .65rem; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--text-dim); margin-top: .35rem;
-}
-
-.stat-donut-wrap { display: flex; align-items: center; gap: 3rem; flex-wrap: wrap; }
-.stat-donut-svg { width: 200px; height: 200px; flex-shrink: 0; }
-.donut-center-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900; fill: var(--text-hi); }
-.donut-center-label { font-family: 'DM Sans', sans-serif; font-size: .6rem; letter-spacing: .15em; text-transform: uppercase; fill: var(--text-dim); }
-.donut-legend { display: flex; flex-direction: column; gap: .65rem; }
-.donut-legend-item { display: flex; align-items: center; gap: .6rem; font-family: 'DM Sans', sans-serif; font-size: .8rem; }
-.donut-dot { width: 8px; height: 8px; border-radius: 1px; transform: rotate(45deg); flex-shrink: 0; }
-.donut-legend-label { color: var(--text); flex: 1; }
-.donut-legend-val   { color: var(--text-hi); font-weight: 500; min-width: 24px; text-align: right; }
-.donut-legend-pct   { color: var(--text-dim); min-width: 36px; text-align: right; }
-/* После безусловных правил выше по той же причине, что и у .stat-grid
-   чуть раньше в этом файле, – иначе они, более поздние по источнику при
-   равной специфичности, просто победили бы. Раньше здесь донат просто
-   уменьшался (110px) и оставался РЯДОМ с легендой – 110px+отступ+легенда
-   всё равно не влезали и в половину колонки телефона, и всей карточке
-   приходилось отдавать строку целиком (.stat-card-solo-mobile), что и
-   не давало двум колонкам по всей статистике. Вместо этого – донат
-   сверху по центру, легенда под ним во всю ширину колонки: строкам
-   легенды (длинные названия вроде "Разочарование" + число + %) нужна
-   именно ширина, а не высота, и вертикальная раскладка её как раз даёт,
-   без урезания текста. */
-@media (max-width: 780px) {
-  .stat-donut-wrap { flex-direction: column; align-items: stretch; gap: .6rem; }
-  .stat-donut-svg { width: 130px; height: 130px; align-self: center; }
-  .donut-legend-item { font-size: .74rem; }
-}
-
-.year-bars-wrap {
-  display: flex; align-items: flex-end; gap: 6px;
-  overflow-x: auto; padding-bottom: .5rem;
-  scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
-  min-height: 180px;
-}
-/* Столбики тянутся на всю ширину блока, а не стоят фиксированными 32px:
-   раньше при десятке лет график занимал четверть карточки, а остальное
-   было пустым. Нижний предел ширины оставляет прокрутку для длинных
-   рядов (годы выхода), верхний – не даёт трём столбикам стать плитами. */
-.year-bar-wrap {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  flex: 1 1 0; min-width: 24px; max-width: 120px;
-}
-.year-bar-track {
-  width: 100%; height: 160px;
-  background: var(--surface2); border: 1px solid var(--border);
-  display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
-}
-.year-bar-stack {
-  width: 100%;
-  border-radius: 1px 1px 0 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column-reverse;
-  min-height: 2px;
-}
-.year-bar-seg { width: 100%; min-height: 1px; }
-.year-bar-val   { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text); line-height: 1; }
-/* Подпись года горизонтальная, пока столбики достаточно широкие;
-   вертикальной она остаётся только в плотном ряду (.dense – больше 20
-   лет, см. renderStackedBarChart в stats.js), где иначе не помещается. */
-.year-bar-label { font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); letter-spacing: .02em; white-space: nowrap; }
-.year-bars-wrap.dense .year-bar-label { writing-mode: vertical-rl; transform: rotate(180deg); font-size: .64rem; }
-
-.grade-bars { display: flex; flex-direction: column; gap: .75rem; }
-.grade-row  { display: flex; align-items: center; gap: 1rem; }
-.grade-row-label { font-family: 'Cormorant Garamond', serif; font-size: .95rem; font-weight: 600; font-style: italic; min-width: 140px; text-align: right; flex-shrink: 0; }
-.grade-row-track { flex: 1; height: 6px; background: var(--surface2); border: 1px solid var(--border); overflow: hidden; }
-.grade-row-bar   { height: 100%; width: 0%; }
-.grade-row-val   { font-family: 'DM Sans', sans-serif; font-size: .75rem; color: var(--text-dim); min-width: 20px; text-align: right; }
-/* Тот же приём, что и у доната чуть выше в этом файле: 140px на
-   название оценки ("Разочарование" и т.п.) не влезали в половину
-   колонки телефона – раньше поэтому у карточки тоже стоял
-   .stat-card-solo-mobile. Название теперь на своей строке (flex-basis
-   100% заставляет перенос в flex-wrap), а полоска с числом – под ним,
-   во всю ширину колонки вместо трети от неё. */
-@media (max-width: 780px) {
-  .grade-row { flex-wrap: wrap; gap: .25rem .75rem; }
-  .grade-row-label { flex: 1 1 100%; min-width: 0; text-align: left; }
-}
-
-/* stat-card-tags растягивает саму карточку в колонку (заголовок сверху,
-   облако тегов – остаток высоты), а не просто её содержимое: карточка в
-   гриде и так тянется под соседку в этой же строке, и flex:1 у
-   .stat-tag-cloud ниже даёт тегам воспользоваться этим резервом высоты
-   вместо того, чтобы он просто пустовал под жёстко ограниченным блоком.
-   Внутри – обычный перенос строк (flex-wrap), а не один прокручиваемый
-   ряд: несколько тегов в ряд используют освободившуюся высоту сами по
-   себе. overflow-y: auto – подстраховка на случай, если тегов всё равно
-   больше, чем влезает даже в такую высоту (короткая соседняя карточка,
-   много тегов) – тогда после заполнения всей доступной высоты
-   оставшиеся строки прокручиваются, а не растягивают карточку дальше
-   произвольно. */
-/* min-height: 0 на обоих уровнях – без него flex/grid-элементы по
-   умолчанию не сжимаются меньше высоты своего содержимого (min-height:
-   auto), и оба flex:1/растягивание выше попросту ничего не делали бы:
-   карточка и облако продолжили бы расти вместе с тегами вместо того,
-   чтобы карточка остановилась на высоте соседки, а лишние теги ушли под
-   прокрутку внутри неё. */
-.stat-card-tags { display: flex; flex-direction: column; min-height: 0; }
-.stat-card-tags .stat-tag-cloud { flex: 1; overflow-y: auto; min-height: 0; }
-.stat-tag-cloud {
-  display: flex; flex-wrap: wrap; align-content: flex-start;
-  gap: .5rem; align-items: center;
-  scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
-}
-/* max-width/overflow – самый частый тег рисуется САМЫМ крупным шрифтом
-   (scale в renderTagCloud, js/stats.js) и в узкой колонке на телефоне
-   иногда всё равно оказывается шире самой колонки даже один, без
-   соседей в ряду – перенести середину слова на новую строку браузер не
-   умеет. Раньше именно это ломало вид (обрыв текста наружу карточки);
-   теперь такой тег просто обрезается собственным многоточием, не
-   утаскивая за собой всю раскладку – редкий случай, но безопасный. */
-.stat-tag {
-  transition: opacity .2s, transform .2s; cursor: default;
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
-}
-.stat-tag:hover { opacity: .8; transform: translateY(-1px); }
-.stat-tag-cnt { font-size: .65em; opacity: .6; margin-left: .2em; }
-
-/* ── Дайджест года ── */
-.stat-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 2.5rem; }
+.stat-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: clamp(1.4rem, 2cqi, 2.6rem); }
 .stat-year-filters { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 0; }
 
-.year-spotlight-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: flex-start; }
-.year-spotlight-item { width: 160px; }
-.year-spotlight-item .card {
-  box-shadow: 0 0 0 1px var(--red-dim), 0 0 28px var(--accent-fill-hi);
+.stat-grid.sx {
+  --sxu: .55cqi;
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(.9rem, 1.3cqi, 2.2rem);
+}
+.sx .sx-card {
+  grid-column: span 6; min-width: 0; margin: 0;
+  display: flex; flex-direction: column;
+  padding: clamp(1rem, 1.5cqi, 2.6rem) clamp(1.1rem, 1.7cqi, 2.8rem);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--card-radius, 6px);
+  animation: fadeUp .4s ease both;
+}
+.sx .sx-card.w12, .sx .sx-card.sx-solo { grid-column: 1 / -1; }
+.sx .sx-card.w7 { grid-column: span 7; }
+.sx .sx-card.w5 { grid-column: span 5; }
+.sx .sx-card .section-title.sx-h {
+  margin: 0 0 .3rem; font-size: clamp(1.1rem, calc(3.4 * var(--sxu)), 2rem);
+}
+.sx-explain {
+  margin: 0 0 clamp(.9rem, calc(2.4 * var(--sxu)), 1.8rem); max-width: 90ch;
+  font-family: 'DM Sans', sans-serif; font-size: clamp(.74rem, calc(1.9 * var(--sxu)), 1rem);
+  line-height: 1.5; color: var(--text-dim);
+}
+.sx-empty { font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text-dim); }
+
+/* общие кусочки: полоса, подпись полки, легенда */
+.sx-bar { display: block; height: clamp(8px, calc(1.5 * var(--sxu)), 16px); border-radius: 99px; background: var(--surface2); overflow: hidden; }
+.sx-bar i { display: block; height: 100%; border-radius: 99px; background: var(--tc, var(--red-hi)); }
+.sx-bar-wrap { display: block; min-width: 0; }
+.sx-bar-stack { display: flex; height: clamp(10px, calc(1.7 * var(--sxu)), 18px); }
+.sx-bar-stack i { border-radius: 0; }
+.sx-grade {
+  display: flex; align-items: center; gap: .45rem; white-space: nowrap; min-width: 0;
+  font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 600;
+  font-size: clamp(.9rem, calc(2.4 * var(--sxu)), 1.45rem); color: var(--text-hi);
+}
+.sx-grade::before {
+  content: ''; flex: none; transform: rotate(45deg); background: var(--gc);
+  width: clamp(6px, calc(1 * var(--sxu)), 10px); height: clamp(6px, calc(1 * var(--sxu)), 10px);
+}
+.sx-grade small { font-family: 'DM Sans', sans-serif; font-style: normal; font-weight: 400; font-size: clamp(.62rem, calc(1.5 * var(--sxu)), .85rem); color: var(--text-dim); }
+.sx-legend { display: flex; flex-wrap: wrap; gap: .4rem clamp(.8rem, calc(2 * var(--sxu)), 1.6rem); margin-bottom: 1rem; font-family: 'DM Sans', sans-serif; font-size: clamp(.7rem, calc(1.3 * var(--sxu)), 1rem); color: var(--text); }
+.sx-legend span { display: inline-flex; align-items: center; gap: .4rem; }
+.sx-legend i, .sx-type-name i { flex: none; width: clamp(8px, calc(1.3 * var(--sxu)), 13px); height: clamp(8px, calc(1.3 * var(--sxu)), 13px); border-radius: 2px; background: var(--tc); }
+.sx-type-name, .sx-row-name, .sx-decade-lbl, .sx-grow-n, .sx-type-n {
+  font-family: 'DM Sans', sans-serif; font-size: clamp(.8rem, calc(2.3 * var(--sxu)), 1.25rem); color: var(--text-hi);
+}
+.sx-grow-n, .sx-type-n { text-align: right; font-variant-numeric: tabular-nums; }
+.sx-type-n small { display: block; font-size: clamp(.62rem, calc(1.5 * var(--sxu)), .85rem); color: var(--text-dim); }
+.sx-row-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* строки растягиваются на всю высоту карточки */
+.sx-types, .sx-grades, .sx-rows, .sx-decades, .sx-people, .sx-rewatch {
+  flex: 1; display: flex; flex-direction: column; justify-content: space-between;
+  gap: clamp(.45rem, calc(1.6 * var(--sxu)), 1.1rem);
+}
+/* Люди и пересмотры – списки переменной длины: при двух записях
+   растягивание разнесло бы их к верху и низу карточки. */
+.sx-people, .sx-rewatch { flex: 0 0 auto; justify-content: flex-start; gap: clamp(.6rem, calc(1.8 * var(--sxu)), 1.2rem); }
+.sx-type { display: grid; align-items: center; grid-template-columns: minmax(5.5rem, 17%) minmax(0, 1fr) minmax(2.6rem, 8%) minmax(7rem, 21%); gap: clamp(.6rem, calc(2 * var(--sxu)), 1.6rem); }
+.sx-type-name { display: flex; align-items: center; gap: .5rem; }
+.sx-grow { display: grid; align-items: center; grid-template-columns: minmax(7rem, 26%) minmax(0, 1fr) minmax(2rem, 7%); gap: clamp(.6rem, calc(2 * var(--sxu)), 1.6rem); }
+.sx-row { display: grid; align-items: center; grid-template-columns: minmax(7rem, 30%) minmax(0, 1fr) minmax(7rem, 28%); gap: clamp(.6rem, calc(2 * var(--sxu)), 1.6rem); }
+.sx-decade { display: grid; align-items: center; grid-template-columns: minmax(4rem, 12%) minmax(0, 1fr) minmax(2rem, 6%); gap: clamp(.6rem, calc(2 * var(--sxu)), 1.6rem); }
+
+/* шапка: вкус в трёх словах + числа по типам (от ширины вкладки) */
+.sx .sx-hero {
+  grid-column: 1 / -1; margin: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: clamp(1rem, 2cqi, 3rem); align-items: center;
+  padding: clamp(1.3rem, 2.4cqi, 3.6rem) clamp(1.3rem, 2.6cqi, 4rem);
+  border: 1px solid var(--border); border-radius: var(--card-radius, 6px);
+  background: radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--red) 22%, transparent), transparent 55%), var(--surface);
+  animation: fadeUp .4s ease both;
+}
+/* Заголовок шапки не виден – по нему подписан пункт в окне выбора
+   блоков для снимка («Всего» / «Итоги 2026»). */
+.sx-hero .sx-hero-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
+.sx-kicker { font-family: 'DM Sans', sans-serif; font-size: clamp(.64rem, .75cqi, .95rem); letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); }
+.sx-words { margin-top: .55rem; font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700; font-size: clamp(1.6rem, 3.5cqi, 4.6rem); line-height: 1.15; color: var(--text-hi); }
+.sx-words span + span::before { content: ' · '; color: var(--red-hi); font-style: normal; }
+.sx-line { margin-top: .8rem; max-width: 70ch; font-family: 'DM Sans', sans-serif; font-size: clamp(.85rem, 1cqi, 1.3rem); line-height: 1.55; color: var(--text); }
+.sx-line b { color: var(--text-hi); font-weight: 500; }
+.sx-covers { display: flex; padding-right: .5rem; }
+.sx-covers img { width: clamp(70px, 7.5cqi, 210px); aspect-ratio: 2/3; object-fit: cover; border-radius: 3px; border: 1px solid var(--border2); box-shadow: 0 10px 30px var(--shadow, rgba(0,0,0,.5)); }
+.sx-covers img + img { margin-left: calc(clamp(70px, 7.5cqi, 210px) * -0.42); }
+.sx-covers img:nth-child(2) { transform: translateY(-10px); }
+.sx-covers img:nth-child(3) { transform: translateY(-20px); }
+.sx-total { grid-column: 1 / -1; padding-top: clamp(1rem, 1.6cqi, 2.2rem); border-top: 1px solid var(--border); }
+.sx-total.solo { padding-top: 0; border-top: 0; }
+.sx-total-big { display: flex; align-items: baseline; flex-wrap: wrap; gap: .8rem; font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700; font-size: clamp(2.6rem, 5cqi, 6.5rem); line-height: 1; color: var(--text-hi); }
+.sx-total-big span { font-family: 'DM Sans', sans-serif; font-style: normal; font-weight: 500; font-size: clamp(.7rem, .9cqi, 1.15rem); letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); }
+.sx-total-big small { font-family: 'DM Sans', sans-serif; font-style: normal; font-size: clamp(.7rem, .9cqi, 1.15rem); color: var(--ok); }
+.sx-total-big small.down { color: var(--err); }
+.sx-tcs { display: grid; grid-template-columns: repeat(auto-fit, minmax(clamp(78px, 9cqi, 220px), 1fr)); margin-top: clamp(.9rem, 1.4cqi, 2rem); border: 1px solid var(--border); border-radius: 3px; }
+.sx-tc { padding: clamp(.7rem, 1.2cqi, 1.8rem) .4rem; text-align: center; border-right: 1px solid var(--border); }
+.sx-tc:last-child { border-right: 0; }
+.sx-tc-val { font-family: 'Playfair Display', serif; font-weight: 700; font-size: clamp(1.35rem, 2.5cqi, 3.4rem); line-height: 1; }
+.sx-tc-lbl { margin-top: .35rem; font-family: 'DM Sans', sans-serif; font-size: clamp(.58rem, .75cqi, .95rem); letter-spacing: .1em; text-transform: uppercase; color: var(--text-dim); }
+
+/* по годам просмотра */
+.sx-years { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: end; height: clamp(160px, calc(30 * var(--sxu)), 440px); gap: clamp(.3rem, calc(1 * var(--sxu)), 1.2rem); }
+.sx-year { display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: .35rem; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: inherit; }
+.sx-year-stack { display: flex; flex-direction: column-reverse; min-height: 2px; border-radius: 3px 3px 0 0; overflow: hidden; }
+.sx-year-stack i { display: block; background: var(--tc); }
+.sx-year:hover .sx-year-stack, .sx-year:focus-visible .sx-year-stack { filter: brightness(1.15); }
+.sx-year-lbl { display: block; text-align: center; font-family: 'DM Sans', sans-serif; font-size: clamp(.62rem, calc(1.1 * var(--sxu)), 1rem); line-height: 1.25; color: var(--text-dim); }
+.sx-year-lbl b { display: block; font-weight: 500; font-size: clamp(.72rem, calc(1.3 * var(--sxu)), 1.2rem); color: var(--text-hi); }
+
+/* теги, пересмотры, лицо вкуса, люди, персонажи */
+.sx-tags { display: flex; flex-wrap: wrap; align-content: flex-start; gap: clamp(.35rem, calc(1.2 * var(--sxu)), .8rem); }
+/* Цвет и рамку тегу даёт его категория (.rtag-* – как в отзывах),
+   здесь – только размер под резиновую сетку. */
+.sx-tags .sx-tag { display: inline-flex; align-items: baseline; gap: .4rem; padding: clamp(.25rem, calc(.8 * var(--sxu)), .55rem) clamp(.5rem, calc(1.6 * var(--sxu)), 1rem); border-radius: 3px; font-size: clamp(.76rem, calc(2.1 * var(--sxu)), 1.15rem); letter-spacing: 0; cursor: default; }
+.sx-tags .sx-tag small { font-size: clamp(.62rem, calc(1.5 * var(--sxu)), .85rem); opacity: .65; }
+.sx-rw, .sx-face, .sx-person, .sx-char { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+.sx-rw { display: grid; grid-template-columns: clamp(32px, calc(6 * var(--sxu)), 60px) minmax(0, 1fr) auto; gap: .7rem; align-items: center; }
+.sx-rw img { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 2px; border: 1px solid var(--border); }
+.sx-rw-title { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: clamp(.92rem, calc(2.6 * var(--sxu)), 1.35rem); color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sx-rw-n { font-family: 'DM Sans', sans-serif; font-size: clamp(.8rem, calc(2.3 * var(--sxu)), 1.25rem); color: var(--text); }
+.sx-sum { margin-top: .9rem; font-family: 'DM Sans', sans-serif; font-size: clamp(.74rem, calc(1.9 * var(--sxu)), 1rem); color: var(--text-dim); }
+.sx-faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(84px, calc(12 * var(--sxu)), 190px), 1fr)); gap: clamp(.5rem, calc(1.4 * var(--sxu)), 1.1rem); }
+.sx-face img, .sx-char img { display: block; width: 100%; object-fit: cover; border-radius: 3px; border: 1px solid var(--border); transition: border-color .2s; }
+.sx-face img { aspect-ratio: 2/3; }
+.sx-char img { aspect-ratio: 1/1; }
+.sx-face:hover img, .sx-char:hover img { border-color: var(--border2); }
+.sx-face span { display: block; margin-top: .3rem; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: clamp(.78rem, calc(1.7 * var(--sxu)), 1.1rem); line-height: 1.2; color: var(--text-hi); }
+.sx-person { display: grid; grid-template-columns: clamp(38px, calc(8 * var(--sxu)), 72px) minmax(0, 1fr) auto; gap: .8rem; align-items: center; }
+.sx-person img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 50%; border: 1px solid var(--border2); }
+.sx-person-text { display: flex; flex-direction: column; min-width: 0; }
+.sx-person-name { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: clamp(.95rem, calc(2.8 * var(--sxu)), 1.45rem); color: var(--text-hi); }
+.sx-person-sub { font-family: 'DM Sans', sans-serif; font-size: clamp(.68rem, calc(1.7 * var(--sxu)), .95rem); color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sx-chars { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(96px, calc(10 * var(--sxu)), 210px), 1fr)); gap: clamp(.6rem, calc(1.4 * var(--sxu)), 1.2rem); }
+.sx-char { display: flex; flex-direction: column; gap: .1rem; }
+.sx-char img { margin-bottom: .25rem; }
+.sx-char-name { font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: clamp(.85rem, calc(1.3 * var(--sxu)), 1.2rem); line-height: 1.2; color: var(--text-hi); }
+.sx-char-from { font-family: 'DM Sans', sans-serif; font-size: clamp(.64rem, calc(1 * var(--sxu)), .9rem); color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sx-char .sx-grade { font-size: clamp(.8rem, calc(1.8 * var(--sxu)), 1.15rem); }
+
+/* раскладка карточек – от ширины вкладки */
+@container sxroot (max-width: 1000px) {
+  .sx .sx-card, .sx .sx-card.w7, .sx .sx-card.w5 { grid-column: 1 / -1; }
+}
+@container sxroot (max-width: 640px) {
+  .sx .sx-hero { grid-template-columns: minmax(0, 1fr); }
+  .sx-covers { display: none; }
+  .sx-tcs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sx-tc { border-bottom: 1px solid var(--border); }
+  .sx-type { grid-template-columns: minmax(0, 1fr) auto; row-gap: .35rem; }
+  .sx-type .sx-bar { grid-column: 1 / -1; grid-row: 2; }
+  .sx-type .sx-type-n { display: none; }
+  .sx-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .sx-row .sx-bar { display: none; }
+  .sx-grow { grid-template-columns: minmax(6rem, 34%) minmax(0, 1fr) 2rem; }
 }
 
-.stat-export-row { margin-top: -1.5rem; margin-bottom: 3.5rem; }
+/* Телефон: годы – одной строкой с прокруткой пальцем, камера – справа
+   в той же строке, а не тремя строками кнопок над статистикой. */
+@media (max-width: 700px) {
+  #tab-stats .stat-toolbar { flex-wrap: nowrap; gap: .5rem; }
+  #tab-stats .stat-year-filters {
+    flex: 1; min-width: 0; flex-wrap: nowrap; overflow-x: auto;
+    scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
+  }
+  #tab-stats .stat-year-filters::-webkit-scrollbar { display: none; }
+  #tab-stats .stat-year-filters .tl-filter { flex: none; }
+}
 
+/* Очень широкие экраны (2K при масштабе 100%, 4K): вкладка
+   увеличивается целиком, в пропорциях Full HD, и потолок ширины
+   <main> (1800px) для статистики поднят соответственно. */
+@media (min-width: 2300px) {
+  main:has(> #tab-stats:not(.hidden)) { max-width: 2500px; }
+  #tab-stats { zoom: 1.3; }
+}
+@media (min-width: 3200px) {
+  main:has(> #tab-stats:not(.hidden)) { max-width: 3500px; }
+  #tab-stats { zoom: 1.8; }
+}
 
 /* ══ TIERLIST ════════════════════════════════════ */
 .tl-filters {
@@ -3662,7 +3614,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/now.js?v=16"></script>
 <script src="/js/favorites.js?v=18"></script>
 <script src="/js/reviews.js?v=25"></script>
-<script src="/js/stats.js?v=18"></script>
+<script src="/js/stats.js?v=19"></script>
 <script src="/js/tierlist.js?v=14"></script>
 <script src="/js/backup-history.js?v=2"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и
@@ -3704,13 +3656,13 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/add-cover.js?v=2"></script>
 <script src="/js/routes/add-save.js?v=7"></script>
 <script src="/js/routes/settings-appearance.js?v=1"></script>
-<script src="/js/routes/settings-stats.js?v=1"></script>
+<script src="/js/routes/settings-stats.js?v=2"></script>
 <script src="/js/routes/settings-grades.js?v=1"></script>
 <script src="/js/routes/settings-tabs.js?v=1"></script>
 <script src="/js/routes/settings-app.js?v=1"></script>
 <script src="/js/routes/settings-sync.js?v=3"></script>
 <script src="/js/routes/settings-shortcuts.js?v=1"></script>
-<script src="/js/routes/settings-labels.js?v=1"></script>
+<script src="/js/routes/settings-labels.js?v=2"></script>
 <script src="/js/routes/settings-edit.js?v=4"></script>
 
 <script>

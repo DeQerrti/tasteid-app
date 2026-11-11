@@ -7,15 +7,22 @@
 // ══════════════════════════════════════════════
 
 // ── Блоки статистики ──
+// Ключи – те же, что data-stat-key у блоков в js/stats.js. Старые ключи
+// не переименованы (counters/donut/spotlight…), хотя блоки под ними
+// поменялись, – иначе у тех, кто уже скрыл блок, он бы снова появился.
 const STAT_BLOCKS = [
-  { key: "counters", label: i18n("По типам (цифры)") },
-  { key: "donut", label: i18n("По типам (диаграмма)") },
+  { key: "taste", label: i18n("Вкус в трёх словах") },
+  { key: "counters", label: i18n("Числа по типам") },
+  { key: "donut", label: i18n("Как ты оцениваешь типы") },
+  { key: "grades", label: i18n("Распределение оценок") },
+  { key: "lift", label: i18n("Что поднимает и что роняет оценку") },
   { key: "watch-bars", label: i18n("По годам просмотра") },
   { key: "release-bars", label: i18n("По годам выхода") },
-  { key: "grades", label: i18n("Распределение оценок") },
+  { key: "tags", label: i18n("Частые теги") },
+  { key: "spotlight", label: i18n("Лицо вкуса / тайтлы года") },
+  { key: "people", label: i18n("Твои люди") },
   { key: "rewatch", label: i18n("Пересмотры") },
-  { key: "tags", label: i18n("Облако тегов") },
-  { key: "spotlight", label: i18n("Топ тайтлы года") },
+  { key: "characters", label: i18n("Твои персонажи") },
 ];
 let hiddenStatsState = new Set();
 
