@@ -33,7 +33,17 @@
 // экранированные кавычки и переводы строк прямо посреди поля – у
 // Goodreads так лежат тексты рецензий. Наивный split разваливает файл
 // молча, и человек об этом узнаёт уже по кривым данным в паспорте.
-function parseCsv(text) {
+// Разделитель – не всегда запятая: русский Excel сохраняет CSV через
+// точку с запятой, а копия из таблицы в буфер – через табуляцию. Берём
+// тот из трёх, которого больше в первых строках (кавычки не считаем –
+// для заголовков и первых записей этого хватает).
+function detectCsvDelimiter(text) {
+  const head = text.split(/\r?\n/, 5).join("\n");
+  const count = (ch) => head.split(ch).length - 1;
+  return [",", ";", "\t"].reduce((best, ch) => (count(ch) > count(best) ? ch : best), ",");
+}
+
+function parseCsv(text, delimiter = detectCsvDelimiter(text)) {
   const rows = [];
   let row = [];
   let field = "";
@@ -57,7 +67,7 @@ function parseCsv(text) {
     }
 
     if (ch === '"') { inQuotes = true; continue; }
-    if (ch === ",") { row.push(field); field = ""; continue; }
+    if (ch === delimiter) { row.push(field); field = ""; continue; }
     if (ch === "\r") continue;
     if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; continue; }
     field += ch;
@@ -520,6 +530,199 @@ function parseSteamLibrary(games) {
   };
 }
 
+// ── Любой файл: таблица и выбор столбцов ───────
+// Файл, формат которого не узнан (своя таблица, трекер, заметки), не
+// отбрасывается ошибкой: он читается как таблица (CSV с любым из трёх
+// разделителей или JSON – массив объектов), а что в каком столбце, на
+// экране «Что в каких столбцах» (js/import.js) показывает человек. Здесь
+// – чтение таблицы, угадывание по заголовкам и сборка записей.
+
+// { name, kind, headers[], rows[][] } или исключение, если это не таблица.
+function readImportTable(text, name = "") {
+  const src = String(text || "").replace(/^﻿/, "");
+  const trimmed = src.trim();
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    let data;
+    try {
+      data = JSON.parse(trimmed);
+    } catch {
+      throw new Error(i18n("Файл похож на JSON, но не читается – возможно, он обрезан."));
+    }
+    // Массив записей – либо сам файл, либо первое поле-массив внутри
+    // ({ "items": [...] }, { "books": [...] }).
+    if (!Array.isArray(data)) data = Object.values(data || {}).find(Array.isArray) || [];
+    const rows = data.filter((x) => x && typeof x === "object" && !Array.isArray(x));
+    // Столбцы – только простые значения: вложенные объекты в таблицу не
+    // ложатся, а показывать «[object Object]» хуже, чем не показывать.
+    const headers = [...new Set(rows.flatMap((r) => Object.keys(r)))].filter((h) =>
+      rows.some((r) => ["string", "number"].includes(typeof r[h]))
+    );
+    if (!rows.length || !headers.length) throw new Error(i18n("В JSON-файле не нашлось списка записей."));
+    return {
+      name,
+      kind: "JSON",
+      headers,
+      rows: rows.map((r) =>
+        headers.map((h) => (["string", "number"].includes(typeof r[h]) ? String(r[h]).trim() : ""))
+      ),
+    };
+  }
+  const delimiter = detectCsvDelimiter(src);
+  const all = parseCsv(src, delimiter);
+  if (all.length < 2) throw new Error(i18n("Файл пустой или это не таблица. Нужна выгрузка списка: CSV или JSON."));
+  const width = Math.max(...all.map((r) => r.length));
+  return {
+    name,
+    kind: delimiter === "," ? "CSV" : delimiter === ";" ? i18n("CSV через точку с запятой") : i18n("CSV через табуляцию"),
+    headers: Array.from({ length: width }, (_, i) => (all[0][i] || "").trim()),
+    rows: all.slice(1).map((r) => Array.from({ length: width }, (_, i) => (r[i] || "").trim())),
+  };
+}
+
+// Что может значить столбец. Порядок – порядок в выпадающем списке.
+const IMPORT_COLUMN_ROLES = ["title", "type", "status", "score", "year", "dateStart", "dateEnd", "cover"];
+
+// Угадывание по заголовку – русские и английские названия, которые
+// встречаются в выгрузках и самодельных таблицах. Одна роль – один
+// столбец: первый подходящий забирает её.
+const IMPORT_ROLE_GUESS = [
+  ["title", /^(title|name|название|наименование|имя|тайтл|произведение)/i],
+  ["type", /^(type|kind|category|media|категория|тип|вид|что это|формат)/i],
+  ["status", /^(status|state|shelf|exclusive shelf|статус|полка|состояние)/i],
+  ["score", /(rating|score|stars|оценка|балл|рейтинг|звёзд|звезд)/i],
+  ["year", /^(year|release|год|выход)/i],
+  ["dateStart", /(start|began|начал)/i],
+  ["dateEnd", /(finish|end|completed|watched|date read|когда|законч|прочит|просмотр|дата)/i],
+  ["cover", /(cover|poster|image|thumbnail|обложк|постер|картинк)/i],
+];
+
+function guessImportColumns(headers) {
+  const used = new Set();
+  return headers.map((h) => {
+    const hit = IMPORT_ROLE_GUESS.find(([role, re]) => !used.has(role) && re.test(h));
+    if (hit) used.add(hit[0]);
+    return hit ? hit[0] : "";
+  });
+}
+
+// Значение из столбца «тип» → ключ типа в паспорте (свои типы человек
+// выбирает руками – угадать их нечем).
+const IMPORT_TYPE_GUESS = [
+  ["manhwa", /манхв|manhwa/i],
+  ["manhua", /маньхуа|manhua/i],
+  ["novel", /ранобэ|light ?novel|ln\b/i],
+  ["anime", /аниме|anime/i],
+  ["manga", /манга|manga/i],
+  ["dorama", /дорам|k-?drama|drama/i],
+  ["show", /сериал|show|series|tv/i],
+  ["movie", /фильм|кино|movie|film/i],
+  ["book", /книг|book|роман|novel/i],
+  ["gacha", /гача|gacha/i],
+  ["game", /игр|game/i],
+];
+
+function guessImportType(value) {
+  return IMPORT_TYPE_GUESS.find(([, re]) => re.test(value || ""))?.[0] || "";
+}
+
+// Значение статуса из файла → один из общих ключей (IMPORT_STATUS_KEYS);
+// дальше его, как у любого сервиса, переводит в ВАШ статус экран
+// соответствий. Не узнали – «не импортировать», человек выберет сам.
+//
+// Порядок важен: проверяется сверху вниз. «Пройдено» раньше «смотрю»:
+// иначе «Посмотрено» и «Прочитано» ловились бы корнями «смотр»/«чита»
+// как «смотрю / читаю» (так и было в первой версии – поймал тест).
+const IMPORT_STATUS_GUESS = [
+  ["plantowatch", /(план|хочу|буду|want|plan|backlog|wishlist|to.?read|to.?watch|to.?play)/i],
+  ["dropped", /(брош|бросил|dropped|abandon|dnf|did not finish)/i],
+  ["onhold", /(отлож|пауз|hold|paused)/i],
+  ["completed", /(заверш|законч|пройд|просмотрен|посмотрен|прочитан|прочтен|done|complete|finish|watched|read\b|beaten)/i],
+  ["watching", /(смотр|чита|игра|прохож|current|watching|reading|playing|in progress)/i],
+];
+
+function guessImportStatus(value) {
+  return IMPORT_STATUS_GUESS.find(([, re]) => re.test(value || ""))?.[0] || "";
+}
+
+// Число из «8», «8/10», «4,5», «★★★★» (звёзды считаем).
+function importScoreValue(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return 0;
+  const stars = (s.match(/★/g) || []).length;
+  if (stars) return stars + (s.includes("½") ? 0.5 : 0);
+  const m = /\d+(?:[.,]\d+)?/.exec(s);
+  const n = m ? Number(m[0].replace(",", ".")) : 0;
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// Дата: 2024-05-01, 01.05.2024, 01/05/2024 (день первым, как пишут у нас).
+function importDateValue(raw) {
+  const s = String(raw || "").trim();
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  m = /^(\d{1,2})[./](\d{1,2})[./](\d{4})/.exec(s);
+  if (m && Number(m[2]) <= 12) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return null;
+}
+
+// Таблица + решения человека → тот же вид, что у остальных адаптеров.
+// Статусы – не пять общих слов, а значения из файла как есть: каждое
+// значение становится своей строкой на экране соответствий (statusKeys +
+// statusLabels), а угаданный общий смысл – statusGuess.
+function buildImportFromTable(table, roles, { typeMap = {}, typeAll = "" } = {}) {
+  const col = (role) => roles.indexOf(role);
+  const at = (row, role) => (col(role) >= 0 ? row[col(role)] || "" : "");
+  const statusKeys = [];
+  const statusLabels = {};
+  const statusGuess = {};
+  const keyOf = new Map();
+  if (col("status") >= 0) {
+    for (const value of new Set(table.rows.map((r) => r[col("status")]).filter(Boolean))) {
+      const key = `file${keyOf.size}`; // без «:» – ключ идёт в id элементов
+      keyOf.set(value, key);
+      statusKeys.push(key);
+      statusLabels[key] = value;
+      statusGuess[key] = guessImportStatus(value);
+    }
+  }
+  const scores = col("score") >= 0 ? table.rows.map((r) => importScoreValue(r[col("score")])).filter(Boolean) : [];
+  const max = scores.length ? Math.max(...scores) : 10;
+  const scaleMax = max <= 5 ? 5 : max <= 10 ? 10 : 100;
+
+  let skipped = 0;
+  const items = [];
+  for (const row of table.rows) {
+    const title = at(row, "title");
+    const type = col("type") >= 0 ? typeMap[at(row, "type")] || typeAll : typeAll;
+    if (!title || !type) {
+      skipped++;
+      continue;
+    }
+    const cover = at(row, "cover");
+    items.push({
+      title,
+      type,
+      // Без столбца статуса всё – «пройдено»: таблица того, что посмотрел,
+      // – самый частый случай; на экране соответствий это можно сменить.
+      status: col("status") >= 0 ? keyOf.get(at(row, "status")) || null : "completed",
+      score: importScoreValue(at(row, "score")),
+      rewatch: 0,
+      dateStart: importDateValue(at(row, "dateStart")),
+      dateEnd: importDateValue(at(row, "dateEnd")),
+      year: (/\b(1[89]|20)\d{2}\b/.exec(at(row, "year")) || [null])[0],
+      cover: /^https?:\/\//.test(cover) ? cover : null,
+    });
+  }
+  return {
+    source: table.name || i18n("Файл"),
+    scaleMin: scaleMax === 5 ? 0.5 : 1,
+    scaleMax,
+    items,
+    skipped,
+    ...(statusKeys.length ? { statusKeys, statusLabels, statusGuess } : {}),
+  };
+}
+
 // ── Определение формата ────────────────────────
 // По набору заголовков: они у сервисов достаточно своеобразные, чтобы
 // не спутать. Если не узнали – честно говорим об этом, а не пытаемся
@@ -546,6 +749,9 @@ function parseImportFile(text, filename = "") {
     throw new Error(i18n("Это XML, но списка аниме или манги внутри нет."));
   }
 
+  // Знакомых JSON-выгрузок нет – любой JSON идёт на выбор столбцов.
+  if (/^\s*[[{]/.test(text.replace(/^﻿/, ""))) throw importUnknownFormat();
+
   const rows = csvToObjects(text);
   if (!rows.length) {
     throw new Error(i18n("Файл пустой или это не CSV и не XML. Нужна выгрузка списка из сервиса."));
@@ -561,9 +767,13 @@ function parseImportFile(text, filename = "") {
     if (parsed.items.length) return parsed;
   }
 
-  throw new Error(
-    i18n("Не удалось узнать формат файла. Понимаем выгрузки: MyAnimeList и Шикимори (XML), ") +
-    i18n("Goodreads и Letterboxd (CSV). Колонки в файле: ") +
-    Object.keys(rows[0]).slice(0, 6).join(", ") + "…"
-  );
+  // Не узнали – не ошибка, а шаг «Что в каких столбцах» (js/import.js
+  // ловит unknownFormat и читает файл как таблицу).
+  throw importUnknownFormat();
+}
+
+function importUnknownFormat() {
+  const err = new Error(i18n("Формат файла незнакомый – покажите, что в каких столбцах."));
+  err.unknownFormat = true;
+  return err;
 }

@@ -36,7 +36,12 @@ const TMDB_KEY_STORAGE = "tasteid_tmdb_key";
 const NEW_STATUS_VALUE = "__new__";
 
 let importData = null; // разобранная выгрузка
-let importStep = "file"; // file | map | done
+let importStep = "file"; // file | columns | map | done
+// Шаг «Что в каких столбцах» (незнакомый файл): таблица и решения по ней.
+let importTable = null; // { name, kind, headers, rows } – readImportTable
+let importRoles = []; // роль каждого столбца (IMPORT_COLUMN_ROLES или "")
+let importTypeMap = {}; // значение из столбца типа → тип в паспорте
+let importTypeAll = ""; // тип для всех записей, если столбца типа нет
 let importBusy = false;
 let importStatusMap = {};
 let importScoreMap = {};
@@ -111,6 +116,7 @@ function renderImport() {
   if (!box) return;
   box.innerHTML = importStyles() + (
     importStep === "map" ? importMapHtml() :
+    importStep === "columns" && importTable ? importColumnsHtml() :
     importStep === "done" ? importDoneHtml() :
     importFileHtml()
   );
@@ -292,8 +298,17 @@ function importGroups() {
           id: "anyfile",
           name: i18n("Файл из любого приложения"),
           kind: "file",
-          planned: true,
-          what: i18n("CSV, JSON или XML. Знакомые столбцы узнаются сами, остальные покажете вы – где название, где оценка."),
+          what: i18n("CSV или JSON из любого приложения – таблицы, заметок, трекера. Знакомые столбцы узнаются сами, остальные покажете вы."),
+          groups: [
+            {
+              steps: [
+                i18n("Найдите в своём приложении выгрузку: обычно Настройки → Экспорт, «Резервная копия» или «Скачать данные»."),
+                i18n("Если можно выбрать формат – берите CSV (таблица). Excel и Google Таблицы: Файл → Скачать → CSV."),
+                i18n("Выберите файл кнопкой ниже."),
+                i18n("На следующем шаге покажите, в каком столбце название, в каком оценка и статус – остальное можно не трогать."),
+              ],
+            },
+          ],
         },
       ],
     },
@@ -330,7 +345,7 @@ function importCardBodyHtml(card) {
       .join("")}
     <div class="imp-actions">
       <label class="btn btn-ghost file-btn">
-        <input type="file" id="imp-file" accept=".xml,.csv,application/xml,text/xml,text/csv">
+        <input type="file" id="imp-file" accept=".xml,.csv,.tsv,.txt,.json,application/xml,text/xml,text/csv,application/json">
         <span>${i18n("Выбрать файл")}</span>
       </label>
     </div>
@@ -566,7 +581,9 @@ function importMapHtml() {
   }
   const scored = importData.items.filter((i) => i.score > 0).length;
 
-  const statusRows = Object.keys(IMPORT_STATUS_KEYS)
+  // У «любого файла» статусы – значения из самого файла (statusKeys),
+  // у остальных источников – общие пять.
+  const statusRows = (importData.statusKeys || Object.keys(IMPORT_STATUS_KEYS))
     .filter((key) => byStatus[key])
     .map((key) => `
       <div class="imp-row" id="imp-statusrow-${key}">
@@ -616,7 +633,15 @@ function importMapHtml() {
       ${impStat(existing.length, i18n("уже есть"))}
       ${impStat(scored, i18n("с оценкой"))}
     </div>
-    ${importData.skipped ? `<p class="imp-note">${i18n("{v0} записей пропущено – у них нет названия.", { v0: importData.skipped })}</p>` : ""}
+    ${
+      importData.skipped
+        ? `<p class="imp-note">${
+            importData.statusKeys || importTable
+              ? i18n("{v0} записей пропущено – у них нет названия или не выбран тип.", { v0: importData.skipped })
+              : i18n("{v0} записей пропущено – у них нет названия.", { v0: importData.skipped })
+          }</p>`
+        : ""
+    }
     ${importData.truncatedNote ? `<p class="imp-note">${esc(importData.truncatedNote)}</p>` : ""}
     ${hasMovies && hasKey ? `<p class="imp-note">${i18n("Постеры к фильмам возьмём у TMDB по названию и году – ключ подключён.")}</p>` : ""}
     ${hasMovies && !hasKey ? `
@@ -1598,6 +1623,7 @@ function bindImport() {
   bindShikimoriUser();
   bindMalUser();
   bindSteamUser();
+  bindImportColumns();
   bindImportFav();
 
   // Карточка источника: открыть (закрыв прежнюю) или свернуть. Поле ника
@@ -1620,9 +1646,20 @@ function bindImport() {
     const status = document.getElementById("imp-status");
     status.className = "status-msg";
     status.textContent = i18n("Читаем файл…");
+    const text = await file.text();
     try {
-      await startMapping(parseImportFile(await file.text(), file.name));
+      await startMapping(parseImportFile(text, file.name));
     } catch (err) {
+      // Незнакомый формат – не тупик: читаем как таблицу и спрашиваем,
+      // что в каких столбцах. Не читается и так – показываем почему.
+      if (err.unknownFormat) {
+        try {
+          openImportTable(readImportTable(text, file.name));
+          return;
+        } catch (tableErr) {
+          err = tableErr;
+        }
+      }
       status.className = "status-msg err";
       status.textContent = err.message;
     }
@@ -1682,6 +1719,144 @@ function bindImport() {
   });
 }
 
+// ── Шаг «Что в каких столбцах» ─────────────────
+// Для файла незнакомого формата (см. readImportTable / buildImportFromTable
+// в js/import-formats.js). Столбцы – карточками (на телефоне в одну
+// колонку): заголовок, три первых значения и выбор роли. Роли угаданы по
+// заголовкам; обязательно только название. Дальше – обычный экран
+// соответствий, где статусы из файла показаны как есть.
+
+const IMPORT_ROLE_LABELS = () => ({
+  title: i18n("Название"),
+  type: i18n("Тип (аниме, книга…)"),
+  status: i18n("Статус"),
+  score: i18n("Оценка"),
+  year: i18n("Год выхода"),
+  dateStart: i18n("Дата начала"),
+  dateEnd: i18n("Дата окончания"),
+  cover: i18n("Обложка (ссылка)"),
+});
+
+function openImportTable(table) {
+  importTable = table;
+  importRoles = guessImportColumns(table.headers);
+  importTypeMap = {};
+  importTypeAll = "";
+  importGuessTypeValues();
+  importStep = "columns";
+  renderImport();
+}
+
+function importColumnValues(index) {
+  return [...new Set(importTable.rows.map((r) => r[index]).filter(Boolean))];
+}
+
+// Значения столбца типа, для которых ещё не выбрано, – угадываем.
+function importGuessTypeValues() {
+  const tc = importRoles.indexOf("type");
+  if (tc < 0) return;
+  for (const value of importColumnValues(tc)) {
+    if (importTypeMap[value] === undefined) {
+      const guess = guessImportType(value);
+      importTypeMap[value] = TYPE_LABELS[guess] !== undefined ? guess : "";
+    }
+  }
+}
+
+function importTypeOptions(selected) {
+  return (
+    `<option value="">${i18n("— выберите —")}</option>` +
+    Object.entries(TYPE_LABELS)
+      .map(([key, label]) => `<option value="${esc(key)}"${selected === key ? " selected" : ""}>${esc(label)}</option>`)
+      .join("")
+  );
+}
+
+function importColumnsHtml() {
+  const t = importTable;
+  const labels = IMPORT_ROLE_LABELS();
+  const tc = importRoles.indexOf("type");
+  const noTitle = importRoles.indexOf("title") < 0;
+  const typeBlock =
+    tc >= 0
+      ? `<p class="panel-intro">${i18n("В столбце «{name}» нашлись такие значения – чем каждое будет в паспорте:", { name: t.headers[tc] })}</p>
+         ${importColumnValues(tc)
+           .slice(0, 40)
+           .map(
+             (v) => `<div class="imp-row"><div class="imp-from">${esc(v)}</div><div class="imp-arrow">→</div>
+               <select class="imp-select" data-imp-typeval="${esc(v)}">${importTypeOptions(importTypeMap[v])}</select></div>`
+           )
+           .join("")}`
+      : `<div class="imp-row"><div class="imp-from">${i18n("Все записи из файла – это")}</div><div class="imp-arrow">→</div>
+           <select class="imp-select" id="imp-typeall">${importTypeOptions(importTypeAll)}</select></div>
+         <p class="imp-note">${i18n("Столбца с типом нет. Если в файле вперемешку фильмы и книги – укажите выше, в каком столбце тип.")}</p>`;
+  return `
+    <p class="imp-source-line">${i18n("Файл")}: <strong>${esc(t.name)}</strong> · ${esc(t.kind)} · ${t.rows.length} ${plural(t.rows.length, [i18n("запись"), i18n("записи"), i18n("записей")])}</p>
+    <h2 class="section-h">${i18n("Что в каких столбцах")}</h2>
+    <p class="panel-intro">${i18n("Формат этого файла нам незнаком, поэтому покажите, где что лежит. Мы уже угадали по заголовкам – проверьте. Обязательно только название; ненужные столбцы оставьте «не брать».")}</p>
+    <div class="imp-cards"><div class="imp-cards-grid imp-cols">
+      ${t.headers
+        .map(
+          (h, i) => `<div class="imp-card${importRoles[i] ? " is-picked" : ""}">
+            <div class="imp-card-head"><span class="imp-card-name">${esc(h || i18n("Столбец {n}", { n: i + 1 }))}</span></div>
+            <div class="imp-col-samples">${t.rows
+              .slice(0, 3)
+              .map((r) => `<span>${esc(r[i] || "—")}</span>`)
+              .join("")}</div>
+            <select class="imp-select" data-imp-col="${i}" aria-label="${esc(h)}">
+              <option value="">${i18n("не брать")}</option>
+              ${IMPORT_COLUMN_ROLES.map((role) => `<option value="${role}"${importRoles[i] === role ? " selected" : ""}>${esc(labels[role])}</option>`).join("")}
+            </select>
+          </div>`
+        )
+        .join("")}
+    </div></div>
+    ${noTitle ? `<p class="status-msg err">${i18n("Отметьте столбец с названием – без него записи не завести.")}</p>` : ""}
+    <h2 class="section-h">${i18n("Тип записей")}</h2>
+    ${typeBlock}
+    <div class="imp-actions">
+      <button class="btn-save" id="imp-columns-next" type="button"${noTitle ? " disabled" : ""}>${i18n("Дальше – статусы и оценки")}</button>
+      <button class="btn btn-ghost" id="imp-cancel" type="button">${i18n("Отмена")}</button>
+    </div>
+    <div class="status-msg" id="imp-status"></div>`;
+}
+
+function bindImportColumns() {
+  document.querySelectorAll("[data-imp-col]").forEach((sel) => {
+    sel.addEventListener("change", () => {
+      const i = Number(sel.dataset.impCol);
+      // Одна роль – один столбец: у прежнего столбца она снимается.
+      if (sel.value) importRoles = importRoles.map((r, j) => (j !== i && r === sel.value ? "" : r));
+      importRoles[i] = sel.value;
+      importGuessTypeValues();
+      renderImport();
+    });
+  });
+  document.querySelectorAll("[data-imp-typeval]").forEach((sel) => {
+    sel.addEventListener("change", () => (importTypeMap[sel.dataset.impTypeval] = sel.value));
+  });
+  document.getElementById("imp-typeall")?.addEventListener("change", (e) => (importTypeAll = e.target.value));
+  document.getElementById("imp-columns-next")?.addEventListener("click", async () => {
+    const status = document.getElementById("imp-status");
+    const tc = importRoles.indexOf("type");
+    if (tc < 0 && !importTypeAll) {
+      status.className = "status-msg err";
+      status.textContent = i18n("Выберите, что это за записи – фильмы, книги…");
+      return;
+    }
+    const parsed = buildImportFromTable(importTable, importRoles, { typeMap: importTypeMap, typeAll: importTypeAll });
+    if (!parsed.items.length) {
+      status.className = "status-msg err";
+      status.textContent =
+        tc >= 0
+          ? i18n("Ни одной записи: у всех значений типа стоит «— выберите —» или пустое название.")
+          : i18n("Ни одной записи: в столбце названия пусто.");
+      return;
+    }
+    await startMapping(parsed);
+  });
+}
+
 // Разобранный список – из файла ли, из сети ли – дальше идёт одним путём.
 async function startMapping(parsed) {
   // Перечитываем свои отзывы перед разбором: fetchReviews() не кэширует,
@@ -1690,6 +1865,11 @@ async function startMapping(parsed) {
   await fetchReviews();
   importData = parsed;
   importStatusMap = defaultStatusMap();
+  // Статусы из файла («Пройдено», «Хочу»): угаданный общий смысл → ваш
+  // статус тем же путём, что у любого сервиса.
+  for (const [key, generic] of Object.entries(parsed.statusGuess || {})) {
+    importStatusMap[key] = generic ? importStatusMap[generic] || "" : "";
+  }
   importScoreMap = defaultScoreMap();
   importStep = "map";
   renderImport();
@@ -2031,6 +2211,20 @@ function importStyles() {
     .imp-steps li { margin-bottom: .2rem; }
     .imp-steps strong { color: var(--text-hi); font-weight: 500; }
     .imp-steam-row { margin-top: .8rem; }
+    /* Шаг «Что в каких столбцах»: столбец – карточка. Выбранная роль
+       делает карточку заметнее, «не брать» – приглушает. */
+    .imp-cols { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+    .imp-cols .imp-card { gap: .55rem; }
+    .imp-cols .imp-select { width: 100%; min-width: 0; }
+    .imp-col-samples { display: flex; flex-direction: column; gap: .15rem; min-width: 0; flex: 1; }
+    .imp-col-samples span {
+      font-family: 'DM Sans', sans-serif;
+      font-size: .74rem; color: var(--text-dim);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .imp-cols .imp-card:not(.is-picked) .imp-card-name,
+    .imp-cols .imp-card:not(.is-picked) .imp-col-samples { opacity: .6; }
+    .imp-cols .imp-card.is-picked { background: var(--surface2); }
     .imp-map-key { border: 1px solid var(--border); border-radius: 2px; padding: .2rem .95rem .95rem; margin-bottom: 1.2rem; }
     .imp-key-row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
     .imp-key-row input { width: auto; flex: 1; min-width: 12rem; }

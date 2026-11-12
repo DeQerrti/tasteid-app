@@ -877,6 +877,48 @@ i18nRegister({
     "Games aren’t accepted yet: the services that track them have no common export format. Send a sample file and it will be supported.",
   "Или по нику с AniList": "Or by AniList username",
   "Или по нику с MyAnimeList": "Or by MyAnimeList username",
+  // ── Импорт «любого файла»: выбор столбцов ──
+  "CSV или JSON из любого приложения – таблицы, заметок, трекера. Знакомые столбцы узнаются сами, остальные покажете вы.":
+    "CSV or JSON from any app – a spreadsheet, notes, a tracker. Familiar columns are recognised automatically; you point out the rest.",
+  "Найдите в своём приложении выгрузку: обычно Настройки → Экспорт, «Резервная копия» или «Скачать данные».":
+    "Find the export in your app: usually Settings → Export, “Backup” or “Download data”.",
+  "Если можно выбрать формат – берите CSV (таблица). Excel и Google Таблицы: Файл → Скачать → CSV.":
+    "If you can choose a format, pick CSV (a table). Excel and Google Sheets: File → Download → CSV.",
+  "Выберите файл кнопкой ниже.": "Pick the file with the button below.",
+  "На следующем шаге покажите, в каком столбце название, в каком оценка и статус – остальное можно не трогать.":
+    "On the next step, show which column holds the title, the rating and the status – you can leave the rest alone.",
+  "Формат файла незнакомый – покажите, что в каких столбцах.": "Unfamiliar file format – show what’s in which column.",
+  "Файл похож на JSON, но не читается – возможно, он обрезан.": "The file looks like JSON but can’t be read – it may be truncated.",
+  "В JSON-файле не нашлось списка записей.": "No list of entries found in the JSON file.",
+  "Файл пустой или это не таблица. Нужна выгрузка списка: CSV или JSON.":
+    "The file is empty or not a table. You need a list export: CSV or JSON.",
+  "CSV через точку с запятой": "CSV, semicolon-separated",
+  "CSV через табуляцию": "CSV, tab-separated",
+  Файл: "File",
+  "Что в каких столбцах": "What’s in which column",
+  "Формат этого файла нам незнаком, поэтому покажите, где что лежит. Мы уже угадали по заголовкам – проверьте. Обязательно только название; ненужные столбцы оставьте «не брать».":
+    "We don’t know this file’s format, so show us where things are. We’ve guessed from the headers – please check. Only the title is required; leave unneeded columns on “skip”.",
+  "Столбец {n}": "Column {n}",
+  "не брать": "skip",
+  "Тип (аниме, книга…)": "Type (anime, book…)",
+  "Дата начала": "Start date",
+  "Дата окончания": "End date",
+  "Обложка (ссылка)": "Cover (link)",
+  "Отметьте столбец с названием – без него записи не завести.": "Mark the title column – entries can’t be created without it.",
+  "Тип записей": "Entry type",
+  "В столбце «{name}» нашлись такие значения – чем каждое будет в паспорте:":
+    "The “{name}” column has these values – what each becomes in your passport:",
+  "Все записи из файла – это": "Every entry in the file is",
+  "Столбца с типом нет. Если в файле вперемешку фильмы и книги – укажите выше, в каком столбце тип.":
+    "There’s no type column. If the file mixes films and books, mark the type column above.",
+  "— выберите —": "— choose —",
+  "Дальше – статусы и оценки": "Next – statuses and ratings",
+  "Выберите, что это за записи – фильмы, книги…": "Choose what these entries are – films, books…",
+  "Ни одной записи: у всех значений типа стоит «— выберите —» или пустое название.":
+    "No entries: every type value is set to “— choose —”, or the titles are empty.",
+  "Ни одной записи: в столбце названия пусто.": "No entries: the title column is empty.",
+  "{v0} записей пропущено – у них нет названия или не выбран тип.":
+    "{v0} entries skipped – they have no title or no type selected.",
   // ── Steam, поиск в редакторе, копии обложек при импорте ──
   "Игры из библиотеки, с обложками. Оценок и статусов у Steam нет – на шаге проверки решите, куда лягут запущенные и нетронутые.":
     "Games from your library, with covers. Steam has no ratings or statuses – on the review step you decide where played and untouched games go.",
