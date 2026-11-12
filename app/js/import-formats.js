@@ -415,6 +415,75 @@ function parseAnilistLists(collections) {
   return { source: "AniList", scaleMin: 1, scaleMax: 10, items, skipped };
 }
 
+// ── Шикимори (ответ API по нику, а не файл) ────
+// Открытый список Шикимори отдаёт без ключа (/api/users/<id>/anime_rates
+// и manga_rates, см. fetchShikimoriUserList в js/import.js). Номера
+// тайтлов у Шикимори – те же, что у MyAnimeList (база оттуда), поэтому
+// они идут в ids.mal: так совпадения с уже заведёнными отзывами и
+// обложки ищутся тем же путём, что и у XML-выгрузки.
+//
+// Чего в ответе НЕТ: личных дат начала и конца – Шикимори хранит их
+// только в своей выгрузке файлом. Кому важны даты, тому файл.
+
+const SHIKIMORI_ORIGIN = "https://shikimori.io";
+
+const SHIKIMORI_STATUS_MAP = {
+  watching: "watching",
+  rewatching: "watching", // пересмотр – это всё-таки «смотрю», как у AniList
+  completed: "completed",
+  on_hold: "onhold",
+  dropped: "dropped",
+  planned: "plantowatch",
+};
+
+// Виды тайтлов у Шикимори те же, что у MAL, плюс несколько своих.
+const SHIKIMORI_KIND_MAP = { ...MAL_TYPE_MAP, tvspecial: "anime", pv: "anime", cm: "anime" };
+
+// Картинки Шикимори отдаёт путём от своего корня («/system/animes/…»), а
+// когда картинки нет – заглушкой «missing_…». Заглушка хуже пустоты:
+// с ней обложка не будет искаться дальше.
+function shikimoriImage(path) {
+  if (!path || /missing_/.test(path)) return null;
+  return /^https?:\/\//.test(path) ? path : SHIKIMORI_ORIGIN + path;
+}
+
+function parseShikimoriRates({ anime, manga }) {
+  const items = [];
+  const seen = new Set();
+  let skipped = 0;
+
+  const push = (rate, isManga) => {
+    const media = isManga ? rate?.manga : rate?.anime;
+    // String(...): у тайтлов, чьё название – одни цифры («86»), имя может
+    // приехать числом (та же история, что в parseMalJsonLists).
+    const rawTitle = media?.name ?? media?.russian;
+    const title = rawTitle === null || rawTitle === undefined ? "" : String(rawTitle);
+    if (!media?.id || !title) { skipped++; return; }
+    const key = `${isManga ? "m" : "a"}:${media.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    const kind = (media.kind || "").toLowerCase().replace(/[\s_-]/g, "");
+    items.push({
+      title,
+      type: SHIKIMORI_KIND_MAP[kind] || (isManga ? "manga" : "anime"),
+      status: SHIKIMORI_STATUS_MAP[rate.status] || null,
+      score: Number(rate.score) || 0, // 0 – не оценено
+      rewatch: Number(rate.rewatches) || (rate.status === "rewatching" ? 1 : 0),
+      dateStart: null,
+      dateEnd: null,
+      year: media.aired_on ? String(media.aired_on).slice(0, 4) : null,
+      cover: shikimoriImage(media.image?.original),
+      ids: { mal: media.id },
+    });
+  };
+
+  for (const rate of anime || []) push(rate, false);
+  for (const rate of manga || []) push(rate, true);
+
+  return { source: i18n("Шикимори"), scaleMin: 1, scaleMax: 10, items, skipped };
+}
+
 // ── Определение формата ────────────────────────
 // По набору заголовков: они у сервисов достаточно своеобразные, чтобы
 // не спутать. Если не узнали – честно говорим об этом, а не пытаемся

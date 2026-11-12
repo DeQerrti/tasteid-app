@@ -135,7 +135,7 @@ const IMPORT_SOURCES = [
     what: i18n("Аниме и манга"),
     who: i18n("Шикимори"),
     file: "XML",
-    how: i18n("shikimori.one → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами – загрузите их по очереди."),
+    how: i18n("shikimori.io → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами – загрузите их по очереди."),
   },
   {
     what: i18n("Книги"),
@@ -194,6 +194,18 @@ function importFileHtml() {
       <button class="btn btn-ghost" id="imp-anilist-go" type="button">${i18n("Забрать список")}</button>
     </div>
     <div class="status-msg" id="imp-anilist-status"></div>
+
+    <h2 class="section-h">${i18n("Или по нику с Шикимори")}</h2>
+    <p class="imp-note">
+      ${i18n("Ник тот же, что в адресе профиля: shikimori.io/")}<strong>${i18n("ник")}</strong>${i18n(". Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.")}
+      ${i18n("Личных дат начала и конца Шикимори по нику не отдаёт – если они нужны, загрузите файл выгрузки.")}
+    </p>
+    <div class="imp-actions">
+      <input type="text" id="imp-shiki-user" placeholder="${i18n("ник на Шикимори")}"
+             autocomplete="off" spellcheck="false">
+      <button class="btn btn-ghost" id="imp-shiki-go" type="button">${i18n("Забрать список")}</button>
+    </div>
+    <div class="status-msg" id="imp-shiki-status"></div>
 
     <h2 class="section-h">${i18n("Или по нику с MyAnimeList")}</h2>
     <p class="imp-note">
@@ -675,6 +687,183 @@ async function fetchAnilistUserList(userName, onProgress) {
   return collections;
 }
 
+// ── Список и избранное с Шикимори по нику ──────
+// Ключа не нужно, CORS открыт – спрашиваем прямо отсюда, как AniList.
+// Разбор списка – parseShikimoriRates в js/import-formats.js.
+//
+// У Шикимори жёсткий предел: 5 запросов в секунду и 90 в минуту. Список
+// – это два-три запроса, а вот избранное – по запросу на каждого
+// персонажа и человека (в общем ответе нет ни тайтлов, ни сэйю, а без
+// них не к чему привязывать). Поэтому между запросами пауза, а на 429
+// – подождать и повторить, а не сдаться.
+
+const SHIKIMORI_API = `${SHIKIMORI_ORIGIN}/api`;
+const SHIKIMORI_PAGE = 5000; // больше за страницу Шикимори не отдаёт
+const SHIKIMORI_MAX_PAGES = 10; // 50 тысяч записей – живому человеку хватит
+const SHIKIMORI_GAP_MS = 700; // ≈85 запросов в минуту – под пределом в 90
+
+const shikimoriPause = (ms = SHIKIMORI_GAP_MS) => new Promise((r) => setTimeout(r, ms));
+
+async function shikimoriGet(path) {
+  for (let attempt = 0; ; attempt++) {
+    let res;
+    try {
+      res = await fetch(`${SHIKIMORI_API}${path}`, { headers: { Accept: "application/json" } });
+    } catch {
+      // Как и у AniList: обрыв сети и сбой на их стороне (ответ без
+      // заголовков CORS) отсюда неразличимы – говорим честно про оба.
+      throw new Error(
+        i18n(
+          "Не получилось достучаться до Шикимори. Проверьте интернет и попробуйте ещё раз – или дело в самом Шикимори: у них тоже случаются перебои."
+        )
+      );
+    }
+    if (res.status === 429 && attempt < 3) {
+      await shikimoriPause(2000 * (attempt + 1));
+      continue;
+    }
+    if (res.status === 429) {
+      throw new Error(i18n("Шикимори просит подождать – слишком много запросов подряд. Попробуйте через минуту."));
+    }
+    return res;
+  }
+}
+
+// Ник → номер профиля: список и избранное спрашиваются по номеру.
+async function fetchShikimoriUser(userName) {
+  const res = await shikimoriGet(`/users/${encodeURIComponent(userName)}?is_nickname=1`);
+  if (res.status === 404) {
+    throw new Error(
+      i18n("Шикимори не знает пользователя «{name}». Ник нужен тот, что в адресе профиля.", { name: userName })
+    );
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body?.id) {
+    throw new Error(i18n("Шикимори ответил {status}. Попробуйте ещё раз через минуту.", { status: res.status }));
+  }
+  return body;
+}
+
+async function fetchShikimoriUserList(user, onProgress) {
+  const out = { anime: [], manga: [], truncated: false };
+  for (const kind of ["anime", "manga"]) {
+    onProgress?.(kind);
+    for (let page = 1; ; page++) {
+      if (page > SHIKIMORI_MAX_PAGES) {
+        out.truncated = true;
+        break;
+      }
+      const res = await shikimoriGet(`/users/${user.id}/${kind}_rates?limit=${SHIKIMORI_PAGE}&page=${page}`);
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          i18n("Список у «{name}» закрыт настройками профиля – снаружи его не видно.", { name: user.nickname })
+        );
+      }
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(body)) {
+        throw new Error(i18n("Шикимори ответил {status}. Попробуйте ещё раз через минуту.", { status: res.status }));
+      }
+      out[kind].push(...body);
+      if (body.length < SHIKIMORI_PAGE) break;
+      await shikimoriPause();
+    }
+    await shikimoriPause();
+  }
+  return out;
+}
+
+// Тайтл из ответа Шикимори → вид, понятный importFavReviewsFor. Номер
+// Шикимори – это номер MAL; в id (номер AniList) его класть нельзя, иначе
+// он совпал бы с чужим тайтлом по номеру AniList. Русское название тоже
+// в счёт: в паспорте отзывы бывают и под ним.
+function shikimoriFavMedia(m) {
+  return { id: null, idMal: m.id || null, titles: [m.name, m.russian].filter(Boolean) };
+}
+
+// Избранное профиля – в том же виде, что у fetchAnilistFavourites, чтобы
+// экран проверки и перенос (importFavHtml, runImportFavourites) были
+// общими. Люди у Шикимори лежат по корзинам – из корзины и берём роль.
+async function fetchShikimoriFavourites(user, onProgress) {
+  const res = await shikimoriGet(`/users/${user.id}/favourites`);
+  const f = res.ok ? await res.json().catch(() => null) : null;
+  if (!f) return null;
+
+  const PEOPLE_BUCKETS = [
+    ["seyu", "seiyuu"],
+    ["mangakas", "author"],
+    ["producers", "director"],
+    ["people", null],
+  ];
+  const people = [];
+  const seenPeople = new Set();
+  for (const [bucket, role] of PEOPLE_BUCKETS) {
+    for (const p of f[bucket] || []) {
+      if (seenPeople.has(p.id)) continue;
+      seenPeople.add(p.id);
+      people.push({ ...p, role });
+    }
+  }
+  const chars = f.characters || [];
+
+  // Подробности – по одному запросу на запись. Не ответил один – карточка
+  // всё равно будет, просто без привязки к тайтлам.
+  const total = chars.length + people.length;
+  let done = 0;
+  const details = async (path) => {
+    onProgress?.(++done, total);
+    await shikimoriPause();
+    try {
+      const r = await shikimoriGet(path);
+      return r.ok ? await r.json() : null;
+    } catch {
+      return null;
+    }
+  };
+  // Картинка в общем ответе – крошечная (x64); полноразмерная лежит
+  // рядом под /original/.
+  const bigImage = (d, x) => shikimoriImage(d?.image?.original) || shikimoriImage((x.image || "").replace("/x64/", "/original/"));
+
+  const outChars = [];
+  for (const c of chars) {
+    const d = await details(`/characters/${c.id}`);
+    const media = [...(d?.animes || []), ...(d?.mangas || [])];
+    outChars.push({
+      key: `c:${c.id}`,
+      name: c.name || c.russian || "",
+      alt: c.russian || "",
+      image: bigImage(d, c),
+      from: media[0]?.name || media[0]?.russian || null,
+      media: media.map(shikimoriFavMedia),
+      voices: (d?.seyu || []).map((s) => s.name).filter(Boolean),
+    });
+  }
+
+  const outPeople = [];
+  for (const p of people) {
+    const d = await details(`/people/${p.id}`);
+    const media = [
+      ...(d?.works || []).map((w) => w.anime || w.manga).filter(Boolean),
+      ...(d?.roles || []).flatMap((r) => [...(r.animes || []), ...(r.mangas || [])]),
+    ];
+    // Из общей корзины «люди» роль не видна – тогда по флагам профиля.
+    const role = p.role || (d?.seyu ? "seiyuu" : d?.mangaka ? "author" : d?.producer ? "director" : null);
+    outPeople.push({
+      key: `p:${p.id}`,
+      name: p.name || p.russian || "",
+      alt: p.russian || "",
+      image: bigImage(d, p),
+      role,
+      media: media.map(shikimoriFavMedia),
+    });
+  }
+
+  return {
+    chars: outChars,
+    people: outPeople,
+    titles: [...(f.animes || []), ...(f.mangas || []), ...(f.ranobe || [])].map(shikimoriFavMedia),
+  };
+}
+
 // ── Перенос ────────────────────────────────────
 
 async function runImport() {
@@ -1089,6 +1278,7 @@ async function runImportFavourites(status) {
 function bindImport() {
   bindImportKeys();
   bindAnilistUser();
+  bindShikimoriUser();
   bindMalUser();
   bindImportFav();
 
@@ -1170,6 +1360,88 @@ async function startMapping(parsed) {
   renderImport();
 }
 
+// Избранное профиля (AniList или Шикимори) – к разобранному списку: что
+// уже заведено в «Любимом» и какие карточки отмечены по умолчанию (все
+// новые). Возвращает, сколько в избранном персонажей и людей.
+async function attachImportFavourites(parsed, favourites) {
+  parsed.favourites = favourites;
+  try {
+    const res = await fetch("/favorites.json?_=" + Date.now());
+    parsed.favExisting = res.ok ? await res.json() : [];
+  } catch {
+    parsed.favExisting = [];
+  }
+  importFavHearts = true;
+  importFavPicked = new Set(
+    [...(favourites?.chars || []), ...(favourites?.people || [])]
+      .filter((x) => !importFavExists(x, parsed.favExisting))
+      .map((x) => x.key)
+  );
+  return (favourites?.chars.length || 0) + (favourites?.people.length || 0);
+}
+
+function bindShikimoriUser() {
+  const input = document.getElementById("imp-shiki-user");
+  const btn = document.getElementById("imp-shiki-go");
+  const status = document.getElementById("imp-shiki-status");
+  if (!input || !btn) return;
+
+  const go = async () => {
+    // Вставили ссылку на профиль целиком – берём из неё ник.
+    const userName = input.value
+      .trim()
+      .replace(/^https?:\/\/(www\.)?shikimori\.[a-z]+\//i, "")
+      .replace(/^@/, "")
+      .replace(/\/.*$/, "");
+    if (!userName) { input.focus(); return; }
+    if (importBusy) return;
+    importBusy = true;
+    btn.disabled = true;
+    status.className = "status-msg";
+    status.textContent = i18n("Спрашиваем Шикимори…");
+    try {
+      const user = await fetchShikimoriUser(userName);
+      const lists = await fetchShikimoriUserList(user, (kind) => {
+        status.textContent = kind === "anime" ? i18n("Забираем аниме…") : i18n("Забираем мангу…");
+      });
+      const parsed = parseShikimoriRates(lists);
+      parsed.source = `${i18n("Шикимори")} – ${user.nickname || userName}`;
+      parsed.byName = true; // не файл: экран соответствий говорит об этом иначе
+      if (lists.truncated) {
+        parsed.truncatedNote = i18n("Список мог получиться неполным – в нём больше записей, чем импорт забирает за раз.");
+      }
+      // Избранное не обязательно: не ответил Шикимори – импорт списка
+      // идёт как раньше, без раздела «Любимое из профиля».
+      status.textContent = i18n("Забираем избранное профиля…");
+      const favourites = await fetchShikimoriFavourites(user, (done, total) => {
+        status.textContent = i18n("Забираем избранное профиля… {done} из {total}", { done, total });
+      }).catch(() => null);
+      const favCount = await attachImportFavourites(parsed, favourites);
+      if (!parsed.items.length && !favCount) {
+        throw new Error(
+          i18n("У «{name}» в списке ничего нет – ни аниме, ни манги. Или список закрыт настройками профиля.", {
+            name: user.nickname || userName,
+          })
+        );
+      }
+      await startMapping(parsed);
+    } catch (err) {
+      status.className = "status-msg err";
+      status.textContent = err.message;
+    } finally {
+      importBusy = false;
+      btn.disabled = false;
+    }
+  };
+
+  btn.addEventListener("click", go);
+  input.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    go();
+  });
+}
+
 function bindAnilistUser() {
   const input = document.getElementById("imp-anilist-user");
   const btn = document.getElementById("imp-anilist-go");
@@ -1194,20 +1466,7 @@ function bindAnilistUser() {
       // Избранное профиля – не обязательно: не ответил AniList – импорт
       // списка идёт как раньше, просто без раздела «Любимое из профиля».
       status.textContent = i18n("Забираем избранное профиля…");
-      parsed.favourites = await fetchAnilistFavourites(userName).catch(() => null);
-      try {
-        const res = await fetch("/favorites.json?_=" + Date.now());
-        parsed.favExisting = res.ok ? await res.json() : [];
-      } catch {
-        parsed.favExisting = [];
-      }
-      importFavHearts = true;
-      importFavPicked = new Set(
-        [...(parsed.favourites?.chars || []), ...(parsed.favourites?.people || [])]
-          .filter((x) => !importFavExists(x, parsed.favExisting))
-          .map((x) => x.key)
-      );
-      const favCount = (parsed.favourites?.chars.length || 0) + (parsed.favourites?.people.length || 0);
+      const favCount = await attachImportFavourites(parsed, await fetchAnilistFavourites(userName).catch(() => null));
       if (!parsed.items.length && !favCount) {
         throw new Error(`У «${userName}» в списке ничего нет – ни аниме, ни манги.`);
       }

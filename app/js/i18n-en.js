@@ -877,6 +877,27 @@ i18nRegister({
     "Games aren’t accepted yet: the services that track them have no common export format. Send a sample file and it will be supported.",
   "Или по нику с AniList": "Or by AniList username",
   "Или по нику с MyAnimeList": "Or by MyAnimeList username",
+  // ── Импорт по нику с Шикимори ──
+  "Или по нику с Шикимори": "Or by Shikimori username",
+  "ник на Шикимори": "Shikimori username",
+  "Ник тот же, что в адресе профиля: shikimori.io/": "The username from your profile address: shikimori.io/",
+  "Личных дат начала и конца Шикимори по нику не отдаёт – если они нужны, загрузите файл выгрузки.":
+    "Shikimori doesn’t share your personal start and finish dates by username – if you need them, upload the export file.",
+  "Спрашиваем Шикимори…": "Asking Shikimori…",
+  "Забираем избранное профиля… {done} из {total}": "Fetching profile favourites… {done} of {total}",
+  "Не получилось достучаться до Шикимори. Проверьте интернет и попробуйте ещё раз – или дело в самом Шикимори: у них тоже случаются перебои.":
+    "Couldn’t reach Shikimori. Check your connection and try again – or Shikimori itself may be having an outage.",
+  "Шикимори просит подождать – слишком много запросов подряд. Попробуйте через минуту.":
+    "Shikimori asks to slow down – too many requests in a row. Try again in a minute.",
+  "Шикимори не знает пользователя «{name}». Ник нужен тот, что в адресе профиля.":
+    "Shikimori doesn’t know the user “{name}”. Use the username from the profile address.",
+  "Шикимори ответил {status}. Попробуйте ещё раз через минуту.": "Shikimori replied {status}. Try again in a minute.",
+  "Список у «{name}» закрыт настройками профиля – снаружи его не видно.":
+    "“{name}” has made their list private in profile settings – it can’t be seen from outside.",
+  "Список мог получиться неполным – в нём больше записей, чем импорт забирает за раз.":
+    "The list may be incomplete – it has more entries than the import fetches at once.",
+  "У «{name}» в списке ничего нет – ни аниме, ни манги. Или список закрыт настройками профиля.":
+    "“{name}” has nothing in their list – no anime, no manga. Or the list is private in profile settings.",
   "Импортировать ещё файл": "Import another file",
   История: "History",
   "Ключ появится тут же, в строке API Key (v3 auth) – скопируйте его сюда целиком.":
@@ -1014,8 +1035,8 @@ i18nRegister({
   "myanimelist.net → значок профиля → Export → Anime List или Manga List → Export My List. Скачается архив .xml.gz – распакуй его, нужен файл .xml изнутри.":
     "myanimelist.net → profile icon → Export → Anime List or Manga List → Export My List. You get an .xml.gz archive – unpack it, the .xml inside is what’s needed.",
   "reviews.json не найден": "reviews.json not found",
-  "shikimori.one → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами – загрузите их по очереди.":
-    "shikimori.one → Settings → Lists → Export → MyAnimeList format. Anime and manga come as two separate files – load them one after another.",
+  "shikimori.io → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами – загрузите их по очереди.":
+    "shikimori.io → Settings → Lists → Export → MyAnimeList format. Anime and manga come as two separate files – load them one after another.",
   "TMDB не узнал этот ключ. Проверьте, что скопирован он целиком.":
     "TMDB doesn’t recognise this key. Check that you copied all of it.",
 });
