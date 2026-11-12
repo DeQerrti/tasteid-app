@@ -404,6 +404,8 @@ function importMapHtml() {
       ${i18n("Снятая галочка перезапишет у них статус и оценку значениями из выгрузки. Тексты отзывов не пострадают в любом случае.")}
     </p>
 
+    ${importFavHtml()}
+
     <div class="imp-actions">
       <button class="btn-save" id="imp-run" type="button">${i18n("Перенести в паспорт")}</button>
       <button class="btn btn-ghost" id="imp-cancel" type="button">${i18n("Отмена")}</button>
@@ -419,6 +421,15 @@ function importDoneHtml() {
       ${impStat(importData.updated, i18n("обновлено"))}
       ${impStat(importData.untouched, i18n("не тронуто"))}
     </div>
+    ${
+      importData.favResult
+        ? `<div class="imp-summary">
+        ${impStat(importData.favResult.added, i18n("в «Любимое»"))}
+        ${impStat(importData.favResult.hearts, i18n("отмечено ♥"))}
+        ${importData.favResult.failed ? impStat(importData.favResult.failed, i18n("не получилось")) : ""}
+      </div>`
+        : ""
+    }
     <div class="imp-actions">
       <button class="btn btn-ghost" id="imp-again" type="button">${i18n("Импортировать ещё файл")}</button>
     </div>`;
@@ -676,6 +687,22 @@ async function runImport() {
 
   // Не импортируем то, чей статус человек оставил пустым.
   const selected = toWrite.filter((i) => i.status && importStatusMap[i.status]);
+  // Можно перенести и одно «Любимое» без тайтлов (все статусы –
+  // «не импортировать»): тогда ошибка «нечего переносить» не к месту.
+  const favWanted = importData.favourites && (importFavPicked.size || importFavHearts);
+  if (!selected.length && favWanted) {
+    btn.disabled = true;
+    status.className = "status-msg";
+    const fav = await runImportFavourites(status);
+    importData.added = 0;
+    importData.updated = 0;
+    importData.untouched = importData.items.length;
+    importData.favResult = fav;
+    importStep = "done";
+    refreshOpenReviewsTab();
+    renderImport();
+    return;
+  }
   if (!selected.length) {
     status.className = "status-msg err";
     status.textContent = i18n("Нечего переносить: у всех записей статус помечен как «не импортировать».");
@@ -750,6 +777,7 @@ async function runImport() {
     importData.added = data.added ?? 0;
     importData.updated = data.updated ?? 0;
     importData.untouched = importData.items.length - (data.added ?? 0) - (data.updated ?? 0);
+    if (favWanted) importData.favResult = await runImportFavourites(status);
     importStep = "done";
     refreshOpenReviewsTab(); // /settings-edit «Импорт» – та же спрятанная-не-разобранная вкладка, что и в js/api.js
     renderImport();
@@ -760,10 +788,309 @@ async function runImport() {
   }
 }
 
+// ── Любимое из профиля AniList ─────────────────
+// Вместе со списком по нику забираем и «избранное» профиля: персонажей,
+// людей (сэйю, режиссёры, авторы…) и любимые тайтлы. На экране проверки –
+// отдельный раздел с галочкой у каждой карточки; уже заведённые в
+// «Любимом» (по имени) приглушены и не отмечены. При переносе сначала
+// пишутся тайтлы, потом записи «Любимого» – так они привязываются и к
+// только что импортированным отзывам; в конце ставится ♥ тем отзывам,
+// которые в профиле лежат в избранном. Избранное не обязательно: если
+// AniList его не отдал, импорт списка идёт как раньше.
+
+const IMPORT_ANILIST_FAV_QUERY = `
+  query ($userName: String) {
+    User(name: $userName) {
+      favourites {
+        characters(perPage: 50) {
+          nodes {
+            id
+            name { full native }
+            image { large }
+            media(perPage: 5, sort: POPULARITY_DESC) {
+              nodes { id idMal title { romaji english } }
+              edges { voiceActors(language: JAPANESE) { name { full } } }
+            }
+          }
+        }
+        staff(perPage: 50) {
+          nodes {
+            id
+            name { full native }
+            image { large }
+            primaryOccupations
+            staffMedia(perPage: 15, sort: POPULARITY_DESC) { nodes { id idMal title { romaji english } } }
+            characterMedia(perPage: 15, sort: POPULARITY_DESC) { nodes { id idMal title { romaji english } } }
+          }
+        }
+        anime(perPage: 50) { nodes { id idMal title { romaji english } } }
+        manga(perPage: 50) { nodes { id idMal title { romaji english } } }
+      }
+    }
+  }`;
+
+// Отмеченные карточки: «c:<id AniList>» – персонаж, «p:<id>» – человек.
+let importFavPicked = new Set();
+// Ставить ли ♥ отзывам на тайтлы из избранного профиля.
+let importFavHearts = true;
+
+// Занятия на AniList → роль персоны (та же логика, что у поиска в
+// редакторе записи, feLookupSubtype в favorites-edit.js).
+function importFavRole(occupations) {
+  const occ = (occupations || []).map((o) => o.toLowerCase());
+  const has = (...words) => occ.some((o) => words.some((w) => o.includes(w)));
+  if (has("voice")) return "seiyuu";
+  if (has("director")) return "director";
+  if (has("composer", "music")) return "composer";
+  if (has("mangaka", "author", "writer", "novelist", "original creator", "story")) return "author";
+  if (has("illustrator", "artist", "character design", "animator")) return "artist";
+  if (has("actor", "actress")) return "actor";
+  return null;
+}
+
+// Имя без учёта порядка слов и знаков: «Koyama Rikiya» = «Rikiya Koyama».
+function importFavNameKey(name) {
+  return (name || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
+async function fetchAnilistFavourites(userName) {
+  const res = await fetch(IMPORT_ANILIST_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query: IMPORT_ANILIST_FAV_QUERY, variables: { userName } }),
+  });
+  const data = await res.json().catch(() => ({}));
+  const f = data.data?.User?.favourites;
+  if (!res.ok || !f) return null;
+  const media = (n) => ({ id: n.id, idMal: n.idMal, titles: [n.title?.romaji, n.title?.english].filter(Boolean) });
+  return {
+    chars: (f.characters?.nodes || []).map((c) => ({
+      key: `c:${c.id}`,
+      name: c.name?.full || c.name?.native || "",
+      alt: c.name?.native || "",
+      image: c.image?.large || null,
+      from: c.media?.nodes?.[0]?.title?.romaji || c.media?.nodes?.[0]?.title?.english || null,
+      media: (c.media?.nodes || []).map(media),
+      voices: (c.media?.edges || []).flatMap((e) => (e.voiceActors || []).map((v) => v.name?.full)).filter(Boolean),
+    })),
+    people: (f.staff?.nodes || []).map((s) => ({
+      key: `p:${s.id}`,
+      name: s.name?.full || s.name?.native || "",
+      alt: s.name?.native || "",
+      image: s.image?.large || null,
+      role: importFavRole(s.primaryOccupations),
+      media: [...(s.staffMedia?.nodes || []), ...(s.characterMedia?.nodes || [])].map(media),
+    })),
+    titles: [...(f.anime?.nodes || []), ...(f.manga?.nodes || [])].map(media),
+  };
+}
+
+// Свои отзывы на эти тайтлы – по номеру AniList/MAL, иначе по названию.
+function importFavReviewsFor(mediaList, reviews) {
+  const out = new Set();
+  for (const m of mediaList) {
+    const names = m.titles.map(normTitle);
+    for (const r of reviews) {
+      if (
+        (m.id && r.ids?.anilist === m.id) ||
+        (m.idMal && r.ids?.mal === m.idMal) ||
+        names.includes(normTitle(r.title))
+      ) {
+        out.add(r);
+      }
+    }
+  }
+  return [...out];
+}
+
+function importFavExists(item, favData) {
+  const keys = new Set(favData.map((e) => importFavNameKey(e.name)));
+  return keys.has(importFavNameKey(item.name)) || (item.alt && keys.has(importFavNameKey(item.alt)));
+}
+
+function importFavCardHtml(item, kind) {
+  const exists = importFavExists(item, importData.favExisting || []);
+  const linked = importFavReviewsFor(item.media, cache.reviews || []);
+  const sub =
+    kind === "person"
+      ? [SUBTYPE_LABELS[item.role] || i18n("Персона"), item.alt && item.alt !== item.name ? item.alt : ""]
+      : [item.from, item.alt && item.alt !== item.name ? item.alt : ""];
+  const subText = sub.filter(Boolean).join(" · ");
+  return `<label class="imp-fav-card${exists ? " is-dup" : ""}">
+    <input type="checkbox" data-fav-key="${esc(item.key)}" ${importFavPicked.has(item.key) ? "checked" : ""} ${exists ? "disabled" : ""}>
+    <img src="${esc(item.image || PH_SQ)}" alt="" loading="lazy">
+    <span class="imp-fav-name">${esc(item.name)}</span>
+    ${subText ? `<span class="imp-fav-sub">${esc(subText)}</span>` : ""}
+    ${exists ? `<span class="imp-fav-badge">${i18n("уже в «Любимом»")}</span>` : ""}
+    ${linked.length ? `<span class="imp-fav-link">↳ ${esc(linked.slice(0, 2).map((r) => r.title).join(", "))}${linked.length > 2 ? ` +${linked.length - 2}` : ""}</span>` : ""}
+  </label>`;
+}
+
+function importFavHtml() {
+  const fav = importData.favourites;
+  if (!fav || (!fav.chars.length && !fav.people.length && !fav.titles.length)) return "";
+  const reviews = cache.reviews || [];
+  const hearts = importFavReviewsFor(fav.titles, reviews);
+  const notYet = hearts.filter((r) => !r.favorite);
+  const group = (title, list, kind) => {
+    if (!list.length) return "";
+    const fresh = list.filter((x) => !importFavExists(x, importData.favExisting || [])).length;
+    return `<div class="imp-fav-sec">${esc(title)} <small>${i18n("новых {n} из {total}", { n: fresh, total: list.length })}</small></div>
+      <div class="imp-fav-grid">${list.map((x) => importFavCardHtml(x, kind)).join("")}</div>`;
+  };
+  return `
+    <h2 class="section-h">${i18n("Любимое из профиля")}</h2>
+    <p class="panel-intro">${i18n("Персонажи и люди из избранного профиля – снимите галочку у тех, кто не нужен. Уже заведённые в «Любимом» пропускаются. «↳» – к каким вашим отзывам запись привяжется; привязка к тайтлам из этого же импорта появится сама.")}</p>
+    <div class="imp-actions imp-fav-tools">
+      <button class="btn btn-ghost" type="button" id="imp-fav-all">${i18n("Выбрать всех")}</button>
+      <button class="btn btn-ghost" type="button" id="imp-fav-none">${i18n("Снять всех")}</button>
+    </div>
+    ${
+      hearts.length
+        ? `<div class="imp-row imp-row-plain"><label><input type="checkbox" id="imp-fav-hearts" ${importFavHearts && notYet.length ? "checked" : ""} ${notYet.length ? "" : "disabled"}> ${
+            notYet.length
+              ? i18n("Отметить ♥ «Любимое» у {n} тайтлов из избранного профиля, которые уже есть в паспорте", { n: notYet.length })
+              : i18n("Тайтлы из избранного профиля, которые есть в паспорте, уже отмечены ♥")
+          }</label></div>`
+        : ""
+    }
+    ${group(i18n("Персонажи"), fav.chars, "character")}
+    ${group(i18n("Люди"), fav.people, "person")}`;
+}
+
+function bindImportFav() {
+  document.querySelectorAll("[data-fav-key]").forEach((box) => {
+    box.addEventListener("change", () => {
+      if (box.checked) importFavPicked.add(box.dataset.favKey);
+      else importFavPicked.delete(box.dataset.favKey);
+    });
+  });
+  const setAll = (on) => {
+    document.querySelectorAll("[data-fav-key]:not(:disabled)").forEach((box) => {
+      box.checked = on;
+      if (on) importFavPicked.add(box.dataset.favKey);
+      else importFavPicked.delete(box.dataset.favKey);
+    });
+  };
+  document.getElementById("imp-fav-all")?.addEventListener("click", () => setAll(true));
+  document.getElementById("imp-fav-none")?.addEventListener("click", () => setAll(false));
+  document.getElementById("imp-fav-hearts")?.addEventListener("change", (e) => {
+    importFavHearts = e.target.checked;
+  });
+}
+
+// После того как тайтлы записаны: заводим отмеченных в «Любимом» и
+// ставим ♥ тайтлам. Ошибка одной записи не останавливает остальные –
+// счётчик ошибок попадает в итог.
+async function runImportFavourites(status) {
+  const fav = importData?.favourites;
+  const result = { added: 0, failed: 0, hearts: 0 };
+  if (!fav) return result;
+
+  await fetchReviews();
+  const reviews = cache.reviews || [];
+  let favData = [];
+  try {
+    const res = await fetch("/favorites.json?_=" + Date.now());
+    favData = res.ok ? await res.json() : [];
+  } catch {
+    favData = [];
+  }
+
+  const picked = [
+    ...fav.chars.filter((c) => importFavPicked.has(c.key)).map((c) => ({ ...c, type: "character" })),
+    ...fav.people.filter((p) => importFavPicked.has(p.key)).map((p) => ({ ...p, type: "person" })),
+  ].filter((x) => !importFavExists(x, favData));
+
+  const created = [];
+  for (let i = 0; i < picked.length; i++) {
+    const x = picked[i];
+    status.textContent = i18n("Заводим «Любимое»… {done} из {total}", { done: i + 1, total: picked.length });
+    // Резервная копия картинки – как в редакторе записи (/api/backup-cover):
+    // без неё запись осталась бы без фото, если AniList однажды сменит адрес.
+    let backup = null;
+    if (x.image) {
+      try {
+        const slug =
+          x.name
+            .toLowerCase()
+            .replace(/[^a-zа-я0-9]+/gi, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 60) +
+          "-" +
+          Date.now().toString(36).slice(-5);
+        const res = await fetch("/api/backup-cover", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: x.image, filename: slug }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.ok) backup = data.url;
+      } catch {
+        // без копии – остаётся ссылка, как при ручном добавлении без сети
+      }
+    }
+    const linked = importFavReviewsFor(x.media, reviews)
+      .map((r) => r.id)
+      .filter((id) => typeof id === "number");
+    const entry = {
+      name: x.name,
+      type: x.type,
+      image: x.image || null,
+      image_backup: backup,
+      image_gallery: backup ? [backup] : null,
+      from: x.type === "character" ? x.from || null : null,
+      linked_review_ids: linked.length ? linked : null,
+    };
+    if (x.type === "person") entry.subtype = x.role || "actor";
+    try {
+      const data = await postRecordOrThrow("/api/save-favorite", entry);
+      created.push({ ...x, id: data.id, entry });
+      favData.push({ ...entry, id: data.id });
+      result.added++;
+    } catch {
+      result.failed++;
+    }
+  }
+
+  // Персонаж ↔ его сэйю, если оба теперь в «Любимом» (по имени).
+  for (const c of created.filter((x) => x.type === "character" && x.voices?.length)) {
+    const keys = new Set(c.voices.map(importFavNameKey));
+    const vaIds = favData.filter((e) => e.type === "person" && keys.has(importFavNameKey(e.name))).map((e) => e.id);
+    if (!vaIds.length) continue;
+    try {
+      await postRecordOrThrow("/api/save-favorite", { ...c.entry, linked_favorite_ids: vaIds, _editId: c.id });
+    } catch {
+      // связь не обязательна – запись уже заведена
+    }
+  }
+
+  if (importFavHearts) {
+    const toHeart = importFavReviewsFor(fav.titles, reviews).filter((r) => !r.favorite && r.id !== undefined);
+    for (const r of toHeart) {
+      try {
+        await postRecordOrThrow("/api/save-review", { ...r, favorite: true, _editId: r.id });
+        result.hearts++;
+      } catch {
+        result.failed++;
+      }
+    }
+  }
+  return result;
+}
+
 function bindImport() {
   bindImportKeys();
   bindAnilistUser();
   bindMalUser();
+  bindImportFav();
 
   document.getElementById("imp-file")?.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
@@ -864,7 +1191,24 @@ function bindAnilistUser() {
       const parsed = parseAnilistLists(collections);
       parsed.source = `AniList – ${userName}`;
       parsed.byName = true; // не файл: экран соответствий говорит об этом иначе
-      if (!parsed.items.length) {
+      // Избранное профиля – не обязательно: не ответил AniList – импорт
+      // списка идёт как раньше, просто без раздела «Любимое из профиля».
+      status.textContent = i18n("Забираем избранное профиля…");
+      parsed.favourites = await fetchAnilistFavourites(userName).catch(() => null);
+      try {
+        const res = await fetch("/favorites.json?_=" + Date.now());
+        parsed.favExisting = res.ok ? await res.json() : [];
+      } catch {
+        parsed.favExisting = [];
+      }
+      importFavHearts = true;
+      importFavPicked = new Set(
+        [...(parsed.favourites?.chars || []), ...(parsed.favourites?.people || [])]
+          .filter((x) => !importFavExists(x, parsed.favExisting))
+          .map((x) => x.key)
+      );
+      const favCount = (parsed.favourites?.chars.length || 0) + (parsed.favourites?.people.length || 0);
+      if (!parsed.items.length && !favCount) {
         throw new Error(`У «${userName}» в списке ничего нет – ни аниме, ни манги.`);
       }
       await startMapping(parsed);
@@ -1139,5 +1483,19 @@ function importStyles() {
       .imp-arrow { display: none; }
       .imp-select { width: 100%; min-width: 0; }
     }
+    /* Любимое из профиля AniList (importFavHtml) */
+    .imp-fav-tools { margin-top: .4rem; }
+    .imp-fav-sec { margin: 1.3rem 0 .7rem; font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.1rem; color: var(--text-hi); }
+    .imp-fav-sec small { margin-left: .5rem; font-family: 'DM Sans', sans-serif; font-style: normal; font-size: .75rem; color: var(--text-dim); }
+    .imp-fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .7rem; }
+    .imp-fav-card { position: relative; display: flex; flex-direction: column; gap: .2rem; padding: 0 0 .55rem; overflow: hidden; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; transition: border-color .15s; text-transform: none; letter-spacing: 0; }
+    .imp-fav-card:has(input:checked) { border-color: var(--red-hi); }
+    .imp-fav-card.is-dup { opacity: .55; cursor: default; }
+    .imp-fav-card input { position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; accent-color: var(--red-hi); z-index: 1; }
+    .imp-fav-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; object-position: 50% 20%; display: block; background: var(--surface2); }
+    .imp-fav-name { padding: 0 .5rem; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: .9rem; line-height: 1.2; color: var(--text-hi); }
+    .imp-fav-sub { padding: 0 .5rem; font-family: 'DM Sans', sans-serif; font-size: .66rem; line-height: 1.3; color: var(--text-dim); }
+    .imp-fav-badge { margin: .15rem .5rem 0; align-self: flex-start; padding: .1rem .4rem; border: 1px dashed var(--border2); border-radius: 99px; font-family: 'DM Sans', sans-serif; font-size: .6rem; color: var(--text-dim); }
+    .imp-fav-link { padding: 0 .5rem; font-family: 'DM Sans', sans-serif; font-size: .64rem; line-height: 1.3; color: var(--ok); }
   </style>`;
 }
