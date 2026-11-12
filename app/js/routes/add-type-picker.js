@@ -18,6 +18,8 @@ function typeLabel(key) {
 function syncTypePickerLabel() {
   const key = document.getElementById("f-type").value || "anime";
   document.getElementById("type-picker-label").textContent = typeLabel(key);
+  // Источник поиска тайтла зависит от типа (add-lookup.js).
+  if (typeof edLookupSync === "function") edLookupSync();
 }
 
 // Ключ типа, у которого сейчас открыт инлайн-рендейм (см.

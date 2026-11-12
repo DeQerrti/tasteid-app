@@ -238,6 +238,17 @@ async function mount(container, params) {
              источник. Раньше всё после «Основного» было свёрнуто за
              кнопками «Добавить…», а оценка лежала в самом низу. -->
         <div class="ed-form">
+          <!-- Поиск тайтла в открытых базах (add-lookup.js): источник – по
+               типу ниже, выбранный результат заполняет форму. -->
+          <section class="ed-sec ed-lookup" id="ed-lookup">
+            <div class="ed-lookup-row">
+              <input type="search" id="ed-lookup-q" data-no-dirty onkeydown="if (event.key === 'Enter') { event.preventDefault(); edLookupSearch(); }" placeholder="${i18n("Найти тайтл по названию")}" aria-label="${i18n("Найти тайтл по названию")}">
+              <button type="button" class="btn btn-ghost" id="ed-lookup-btn" onclick="edLookupSearch()">${i18n("Найти")}</button>
+            </div>
+            <div class="ed-lookup-hint" id="ed-lookup-hint"></div>
+            <div class="ed-lookup-results" id="ed-lookup-results"></div>
+          </section>
+
           <section class="ed-sec">
             <h2 class="ed-h">${i18n("Основное")}</h2>
             <div class="grid ed-grid">

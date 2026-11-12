@@ -365,3 +365,24 @@ main.add-view.ed .danger-zone { margin-top: 0; }
     padding-inline: .9rem;
   }
 }
+
+/* ── Поиск тайтла над формой (add-lookup.js) ── */
+.ed-lookup { padding: .9rem 1rem; border: 1px dashed var(--border2); border-radius: 4px; }
+.ed-lookup-row { display: flex; gap: .6rem; }
+.ed-lookup-row input { flex: 1; min-width: 0; }
+.ed-lookup-hint { margin-top: .5rem; font-family: "DM Sans", sans-serif; font-size: .76rem; line-height: 1.45; color: var(--text-dim); }
+.ed-lookup-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: .6rem; margin-top: .8rem; }
+.ed-lookup-results:empty { display: none; }
+.ed-lookup-item {
+  display: flex; flex-direction: column; gap: .2rem; padding: 0 0 .5rem; overflow: hidden;
+  text-align: left; cursor: pointer; color: inherit; font: inherit;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 3px;
+  transition: border-color .15s;
+}
+.ed-lookup-item:hover, .ed-lookup-item:focus-visible { border-color: var(--red-hi); outline: none; }
+.ed-lookup-item img, .ed-lookup-nocover { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; background: var(--surface2); }
+.ed-lookup-nocover { display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 1.4rem; }
+.ed-lookup-title { padding: 0 .5rem; font-family: "Cormorant Garamond", serif; font-weight: 600; font-size: .9rem; line-height: 1.2; color: var(--text-hi); }
+.ed-lookup-sub { padding: 0 .5rem; font-family: "DM Sans", sans-serif; font-size: .66rem; line-height: 1.3; color: var(--text-dim); }
+.ed-lookup-msg { grid-column: 1 / -1; font-family: "DM Sans", sans-serif; font-size: .8rem; color: var(--text-dim); }
+.ed-lookup-msg.err { color: var(--err); }
