@@ -41,7 +41,6 @@ let importBusy = false;
 let importStatusMap = {};
 let importScoreMap = {};
 let importSkipExisting = true;
-let importKeysOpen = false; // не схлопывать блок с ключами при перерисовке
 
 // ── Умолчания для соответствий ─────────────────
 // Расставляются сами, но человек их правит: смысл шага именно в этом.
@@ -119,104 +118,256 @@ function renderImport() {
 
 // Что именно сайт принимает и откуда это берётся.
 //
-// Названия здесь нарочно полные, вплоть до пункта меню и имени файла:
-// «выгрузи список» – совет, по которому человек, ни разу этого не делавший,
-// не сдвинется с места. Сервисы прячут экспорт в настройках по-разному, и
-// половина отдаёт архив вместо файла, о чём тоже надо предупредить заранее,
-// а не ошибкой разбора.
-const IMPORT_SOURCES = [
-  {
-    what: i18n("Аниме и манга"),
-    who: "MyAnimeList",
-    file: "XML",
-    how: i18n("myanimelist.net → значок профиля → Export → Anime List или Manga List → Export My List. Скачается архив .xml.gz – распакуй его, нужен файл .xml изнутри."),
-  },
-  {
-    what: i18n("Аниме и манга"),
-    who: i18n("Шикимори"),
-    file: "XML",
-    how: i18n("shikimori.io → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами – загрузите их по очереди."),
-  },
-  {
-    what: i18n("Книги"),
-    who: "Goodreads",
-    file: "CSV",
-    how: i18n("goodreads.com/review/import → кнопка Export Library, через минуту там же появится ссылка на goodreads_library_export.csv."),
-  },
-  {
-    what: i18n("Фильмы"),
-    who: "Letterboxd",
-    file: "CSV",
-    how: i18n("letterboxd.com/settings/data → Export Your Data. Скачается архив; внутри нужны ratings.csv (что оценено), watched.csv (что просмотрено) и watchlist.csv (что в планах) – по одному за раз."),
-  },
-];
+// Экран собран по видам (аниме, фильмы, книги, игры, любой файл), у
+// каждого источника – карточка с одной строкой «что придёт» и кнопкой;
+// по кнопке карточка раскрывается на всю ширину. Открыта одна за раз
+// (importOpenCard), иначе с десятком источников экран снова стал бы
+// простынёй – ровно от неё и уходили.
+//
+// Инструкции внутри – нарочно по шагам, вплоть до пункта меню и имени
+// файла: «выгрузи список» – совет, по которому человек, ни разу этого не
+// делавший, не сдвинется с места. Сервисы прячут экспорт по-разному, и
+// половина отдаёт архив вместо файла – об этом надо сказать заранее, а не
+// ошибкой разбора.
+//
+// planned – источник ещё не сделан: карточка видна приглушённой, без
+// кнопки, чтобы было понятно, что будет дальше.
 
-function importSourcesHtml() {
-  return `<div class="imp-sources">
-    ${IMPORT_SOURCES.map((src) => `
-      <div class="imp-source">
-        <div class="imp-source-head">
-          <span class="imp-source-who">${esc(src.who)}</span>
-          <span class="imp-source-file">${esc(src.file)}</span>
-        </div>
-        <div class="imp-source-what">${esc(src.what)}</div>
-        <div class="imp-source-how">${esc(src.how)}</div>
-      </div>`).join("")}
-  </div>`;
+let importOpenCard = null;
+
+function importGroups() {
+  const nickSteps = (site, address) => [
+    i18n("Откройте свой профиль на {site}.", { site }),
+    `${i18n("Ник – последнее слово в адресе страницы:")} ${esc(address)}<strong>${i18n("ник")}</strong>`,
+    i18n("Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно."),
+  ];
+  return [
+    {
+      title: i18n("Аниме и манга"),
+      cards: [
+        {
+          id: "anilist",
+          name: "AniList",
+          kind: "nick",
+          what: i18n("Список со статусами, оценками и датами. И «Любимое» профиля – персонажи и люди с галочками."),
+          steps: nickSteps("anilist.co", "anilist.co/user/"),
+          placeholder: i18n("ник на AniList"),
+        },
+        {
+          id: "shiki",
+          name: i18n("Шикимори"),
+          kind: "nick",
+          what: i18n("Список со статусами и оценками. И «Любимое» профиля – персонажи и люди с галочками."),
+          steps: [
+            ...nickSteps("shikimori.io", "shikimori.io/"),
+            i18n("Можно вставить и ссылку на профиль целиком – ник из неё возьмётся сам."),
+          ],
+          note: i18n("Личных дат начала и конца Шикимори по нику не отдаёт – если они нужны, загрузите файл выгрузки."),
+          placeholder: i18n("ник на Шикимори"),
+        },
+        {
+          id: "mal",
+          name: "MyAnimeList",
+          kind: "nick",
+          what: i18n("Список со статусами, оценками и датами."),
+          steps: nickSteps("myanimelist.net", "myanimelist.net/profile/"),
+          placeholder: i18n("ник на MyAnimeList"),
+        },
+        {
+          id: "malfile",
+          name: `MyAnimeList · ${i18n("Шикимори")}`,
+          kind: "file",
+          what: i18n("Файлом выгрузки – если профиль закрыт или нужны личные даты с Шикимори."),
+          groups: [
+            {
+              label: "MyAnimeList",
+              steps: [
+                i18n("Войдите на myanimelist.net."),
+                i18n("Значок профиля вверху справа → Export."),
+                i18n("Выберите Anime List или Manga List и нажмите Export My List."),
+                i18n("Скачается архив .xml.gz – распакуйте его: нужен файл .xml изнутри."),
+                i18n("Выберите этот .xml кнопкой ниже. Для второго списка – повторите."),
+              ],
+            },
+            {
+              label: i18n("Шикимори"),
+              steps: [
+                i18n("Войдите на shikimori.io."),
+                i18n("Настройки → Списки → Экспорт."),
+                i18n("Выберите формат MyAnimeList – аниме и манга скачаются двумя отдельными файлами."),
+                i18n("Загрузите их кнопкой ниже по очереди."),
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      title: i18n("Фильмы и сериалы"),
+      note: i18n("Постеры к фильмам приходят только с ключом TMDB – он бесплатный."),
+      cards: [
+        {
+          id: "letterboxd",
+          name: "Letterboxd",
+          kind: "file",
+          what: i18n("Оценки, просмотренное и список «посмотреть»."),
+          groups: [
+            {
+              steps: [
+                i18n("Войдите на letterboxd.com и откройте letterboxd.com/settings/data."),
+                i18n("Нажмите Export Your Data – скачается архив .zip."),
+                i18n("Распакуйте его. Внутри нужны три файла: ratings.csv (что оценено), watched.csv (что просмотрено) и watchlist.csv (что в планах)."),
+                i18n("Выберите их кнопкой ниже – по одному за раз."),
+              ],
+            },
+          ],
+        },
+        {
+          id: "imdb",
+          name: "IMDb",
+          kind: "file",
+          planned: true,
+          what: i18n("Оценки и список «посмотреть». Постер находится точно – по номеру фильма, а не по названию."),
+        },
+        {
+          id: "tmdb",
+          name: "TMDB",
+          kind: "key",
+          what: i18n("Не список, а постеры, год и номер фильма – для любого источника выше."),
+        },
+      ],
+    },
+    {
+      title: i18n("Книги"),
+      cards: [
+        {
+          id: "goodreads",
+          name: "Goodreads",
+          kind: "file",
+          what: i18n("Полки «прочитано», «читаю», «хочу прочитать», оценки и даты прочтения."),
+          groups: [
+            {
+              steps: [
+                i18n("Войдите на goodreads.com и откройте goodreads.com/review/import."),
+                i18n("Нажмите кнопку Export Library."),
+                i18n("Через минуту там же появится ссылка на goodreads_library_export.csv – скачайте файл."),
+                i18n("Выберите его кнопкой ниже."),
+              ],
+            },
+          ],
+        },
+        {
+          id: "storygraph",
+          name: "StoryGraph",
+          kind: "file",
+          planned: true,
+          what: i18n("Прочитанное, читаю, хочу прочитать и брошенное – с оценками, отзывами и датами."),
+        },
+      ],
+    },
+    {
+      title: i18n("Игры"),
+      note: i18n("Backloggd, PlayStation и Xbox снаружи закрыты – ни по нику, ни файлом их не прочитать."),
+      cards: [
+        {
+          id: "steam",
+          name: "Steam",
+          kind: "key",
+          planned: true,
+          what: i18n("Библиотека и часы в игре. Оценок и статусов у Steam нет – их можно будет расставить на шаге проверки."),
+        },
+      ],
+    },
+    {
+      title: i18n("Любое другое приложение"),
+      cards: [
+        {
+          id: "anyfile",
+          name: i18n("Файл из любого приложения"),
+          kind: "file",
+          planned: true,
+          what: i18n("CSV, JSON или XML. Знакомые столбцы узнаются сами, остальные покажете вы – где название, где оценка."),
+        },
+      ],
+    },
+  ];
+}
+
+const IMPORT_KIND_LABELS = () => ({ nick: i18n("по нику"), file: i18n("файл"), key: i18n("ключ") });
+
+// steps – строки; в nickSteps одна из них уже размечена (<strong>), поэтому
+// остальные экранируются здесь, а размеченная собирается с esc() внутри.
+function importStepsHtml(steps) {
+  return `<ol class="imp-steps">${steps.map((s) => `<li>${/<strong>/.test(s) ? s : esc(s)}</li>`).join("")}</ol>`;
+}
+
+function importCardBodyHtml(card) {
+  if (card.kind === "key") return importKeysHtml();
+  if (card.kind === "nick") {
+    return `
+      ${importStepsHtml(card.steps)}
+      ${card.note ? `<p class="imp-note imp-card-note">${esc(card.note)}</p>` : ""}
+      <div class="imp-actions">
+        <input type="text" id="imp-${card.id}-user" placeholder="${esc(card.placeholder)}"
+               autocomplete="off" spellcheck="false">
+        <button class="btn btn-ghost" id="imp-${card.id}-go" type="button">${i18n("Забрать список")}</button>
+      </div>
+      <div class="status-msg" id="imp-${card.id}-status"></div>`;
+  }
+  // Файл: формат узнаётся сам, поэтому поле выбора одно и то же у всех
+  // файловых карточек – а открыта всегда одна, так что id не повторяется.
+  return `
+    ${(card.groups || [])
+      .map((g) => `${g.label ? `<div class="imp-steps-label">${esc(g.label)}</div>` : ""}${importStepsHtml(g.steps)}`)
+      .join("")}
+    <div class="imp-actions">
+      <label class="btn btn-ghost file-btn">
+        <input type="file" id="imp-file" accept=".xml,.csv,application/xml,text/xml,text/csv">
+        <span>${i18n("Выбрать файл")}</span>
+      </label>
+    </div>
+    <div class="status-msg" id="imp-status"></div>`;
+}
+
+function importCardHtml(card) {
+  const open = importOpenCard === card.id && !card.planned;
+  const keyOn = card.id === "tmdb" && tmdbKey();
+  const kinds = IMPORT_KIND_LABELS();
+  return `<article class="imp-card${open ? " is-open" : ""}${card.planned ? " is-planned" : ""}" data-imp-card="${card.id}">
+    <div class="imp-card-head">
+      <span class="imp-card-name">${esc(card.name)}</span>
+      <span class="imp-card-kind">${esc(kinds[card.kind] || "")}</span>
+      ${card.planned ? `<span class="imp-card-badge">${i18n("в планах")}</span>` : ""}
+      ${keyOn ? `<span class="imp-card-badge is-on">${i18n("подключён")}</span>` : ""}
+    </div>
+    <p class="imp-card-what">${esc(card.what)}</p>
+    ${
+      card.planned
+        ? ""
+        : `<button class="btn btn-ghost imp-card-open" type="button" data-imp-open="${card.id}" aria-expanded="${open}">${
+            open ? i18n("Свернуть") : card.kind === "key" ? i18n("Ключ") : i18n("Импорт")
+          }</button>`
+    }
+    ${open ? `<div class="imp-card-body">${importCardBodyHtml(card)}</div>` : ""}
+  </article>`;
 }
 
 function importFileHtml() {
   return `
     <p class="panel-intro">
-      ${i18n("Перенос списка из другого сервиса. Формат узнаётся сам, выбирать его не нужно. Файл разбирается прямо здесь, на вашем компьютере, и никуда не отправляется, а в паспорт попадает только после того, как вы подтвердите.")}
+      ${i18n("Перенесите в паспорт то, что уже ведёте где-то ещё. Откройте нужный сервис – внутри по шагам написано, куда нажать и что выбрать.")}
     </p>
-    <h2 class="section-h">${i18n("Что и откуда принимаем")}</h2>
-    ${importSourcesHtml()}
-    <p class="imp-note">
-      ${i18n("Игры пока не принимаем: у сервисов, где их ведут, нет общего формата выгрузки. Появится образец файла – разберём и его.")}
-    </p>
-    ${importKeysHtml()}
-    <div class="imp-actions">
-      <label class="btn btn-ghost file-btn">
-        <input type="file" id="imp-file" accept=".xml,.csv,application/xml,text/xml,text/csv">
-        <span>${i18n("Выбрать файл выгрузки")}</span>
-      </label>
-    </div>
-    <div class="status-msg" id="imp-status"></div>
-
-    <h2 class="section-h">${i18n("Или по нику с AniList")}</h2>
-    <p class="imp-note">
-      ${i18n("Ник тот же, что в адресе профиля: anilist.co/user/")}<strong>${i18n("ник")}</strong>${i18n(". Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.")}
-    </p>
-    <div class="imp-actions">
-      <input type="text" id="imp-anilist-user" placeholder="${i18n("ник на AniList")}"
-             autocomplete="off" spellcheck="false">
-      <button class="btn btn-ghost" id="imp-anilist-go" type="button">${i18n("Забрать список")}</button>
-    </div>
-    <div class="status-msg" id="imp-anilist-status"></div>
-
-    <h2 class="section-h">${i18n("Или по нику с Шикимори")}</h2>
-    <p class="imp-note">
-      ${i18n("Ник тот же, что в адресе профиля: shikimori.io/")}<strong>${i18n("ник")}</strong>${i18n(". Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.")}
-      ${i18n("Личных дат начала и конца Шикимори по нику не отдаёт – если они нужны, загрузите файл выгрузки.")}
-    </p>
-    <div class="imp-actions">
-      <input type="text" id="imp-shiki-user" placeholder="${i18n("ник на Шикимори")}"
-             autocomplete="off" spellcheck="false">
-      <button class="btn btn-ghost" id="imp-shiki-go" type="button">${i18n("Забрать список")}</button>
-    </div>
-    <div class="status-msg" id="imp-shiki-status"></div>
-
-    <h2 class="section-h">${i18n("Или по нику с MyAnimeList")}</h2>
-    <p class="imp-note">
-      ${i18n("Ник тот же, что в адресе профиля: myanimelist.net/profile/")}<strong>${i18n("ник")}</strong>${i18n(". Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.")}
-    </p>
-    <div class="imp-actions">
-      <input type="text" id="imp-mal-user" placeholder="${i18n("ник на MyAnimeList")}"
-             autocomplete="off" spellcheck="false">
-      <button class="btn btn-ghost" id="imp-mal-go" type="button">${i18n("Забрать список")}</button>
-    </div>
-    <div class="status-msg" id="imp-mal-status"></div>`;
+    ${importGroups()
+      .map(
+        (group) => `
+      <h2 class="section-h imp-group">${esc(group.title)}</h2>
+      <div class="imp-cards"><div class="imp-cards-grid">${group.cards.map(importCardHtml).join("")}</div></div>
+      ${group.note ? `<p class="imp-note imp-group-note">${esc(group.note)}</p>` : ""}`
+      )
+      .join("")}
+    <p class="imp-note imp-foot">
+      ${i18n("Ничего не сохранится, пока вы не подтвердите: сначала покажем, что нашлось, и как чужие оценки и статусы лягут на ваши. Что уже есть в паспорте, по умолчанию пропускается – без дублей и перезаписи. Файл разбирается прямо здесь, на этом устройстве, и никуда не отправляется.")}
+    </p>`;
 }
 
 // ── Ключи сервисов ─────────────────────────────
@@ -251,44 +402,29 @@ async function checkTmdbKey(key) {
   return true;
 }
 
+// Тело карточки TMDB (раньше – раскрывашка «Ключи сервисов»).
 function importKeysHtml() {
   const key = tmdbKey();
   return `
-    <details class="imp-keys"${importKeysOpen ? " open" : ""}>
-      <summary>
-        ${i18n("Ключи сервисов – по желанию")}
-        ${key ? `<span class="imp-key-on">${i18n("TMDB подключён")}</span>` : ""}
-      </summary>
-      <div class="imp-keys-body">
-        <p class="imp-note">
-          ${i18n("Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) – там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.")}
-        </p>
-
-        <div class="imp-key">
-          <div class="imp-key-head">
-            <span class="imp-key-name">TMDB</span>
-            <span class="imp-key-what">${i18n("постеры, год выхода и номер фильма")}</span>
-          </div>
-          <ol class="imp-key-steps">
-            <li>${i18n("Заведите аккаунт на themoviedb.org и подтвердите почту.")}</li>
-            <li>${i18n("Настройки профиля → раздел API → Request an API Key.")}</li>
-            <li>${i18n("Выберите тип Developer, примите условия и заполните короткую анкету (в поле о цели использования достаточно написать, что ведёшь личный список просмотренного).")}</li>
-            <li>${i18n("Ключ появится тут же, в строке API Key (v3 auth) – скопируйте его сюда целиком.")}</li>
-          </ol>
-          <div class="imp-key-row">
-            <input type="password" id="imp-tmdb-key" value="${esc(key)}"
-                   placeholder="${i18n("ключ v3, 32 знака")}" autocomplete="off" spellcheck="false">
-            <button class="btn btn-ghost" id="imp-tmdb-save" type="button">${i18n("Проверить и сохранить")}</button>
-            ${key ? `<button class="btn btn-ghost" id="imp-tmdb-clear" type="button">${i18n("Убрать")}</button>` : ""}
-          </div>
-          <div class="status-msg" id="imp-key-status"></div>
-        </div>
-
-        <p class="imp-note imp-key-warn">
-          ${i18n("Ключ хранится только на этом устройстве и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая – репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.")}
-        </p>
-      </div>
-    </details>`;
+    <p class="imp-note">
+      ${i18n("Без всяких ключей сайт уже достаёт обложки аниме и манги (у AniList) и обложки книг (у Open Library) – там их отдают всем. Ключ нужен только для фильмов: единственная открытая база с постерами, TMDB, пускает по ключу. Ключ бесплатный и выдаётся сразу.")}
+    </p>
+    <ol class="imp-steps">
+      <li>${i18n("Заведите аккаунт на themoviedb.org и подтвердите почту.")}</li>
+      <li>${i18n("Настройки профиля → раздел API → Request an API Key.")}</li>
+      <li>${i18n("Выберите тип Developer, примите условия и заполните короткую анкету (в поле о цели использования достаточно написать, что ведёшь личный список просмотренного).")}</li>
+      <li>${i18n("Ключ появится тут же, в строке API Key (v3 auth) – скопируйте его сюда целиком.")}</li>
+    </ol>
+    <div class="imp-key-row">
+      <input type="password" id="imp-tmdb-key" value="${esc(key)}"
+             placeholder="${i18n("ключ v3, 32 знака")}" autocomplete="off" spellcheck="false">
+      <button class="btn btn-ghost" id="imp-tmdb-save" type="button">${i18n("Проверить и сохранить")}</button>
+      ${key ? `<button class="btn btn-ghost" id="imp-tmdb-clear" type="button">${i18n("Убрать")}</button>` : ""}
+    </div>
+    <div class="status-msg" id="imp-key-status"></div>
+    <p class="imp-note imp-key-warn">
+      ${i18n("Ключ хранится только на этом устройстве и никуда не уходит: ни на сервер сайта, ни в его файлы. Причина простая – репозиторий сайта открытый, и всё, что сохраняется в настройках, видно любому. Обратная сторона: на другом устройстве ключ придётся ввести заново.")}
+    </p>`;
 }
 
 // Что из выгрузки уже есть в паспорте.
@@ -1282,6 +1418,20 @@ function bindImport() {
   bindMalUser();
   bindImportFav();
 
+  // Карточка источника: открыть (закрыв прежнюю) или свернуть. Поле ника
+  // сразу в фокусе – следующее действие и так понятно.
+  document.querySelectorAll("[data-imp-open]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (importBusy) return;
+      importOpenCard = importOpenCard === btn.dataset.impOpen ? null : btn.dataset.impOpen;
+      renderImport();
+      const card = importOpenCard && document.querySelector(`[data-imp-card="${importOpenCard}"]`);
+      if (!card) return;
+      card.querySelector('input[type="text"]')?.focus({ preventScroll: true });
+      card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  });
+
   document.getElementById("imp-file")?.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1555,13 +1705,6 @@ function bindMalUser() {
 }
 
 function bindImportKeys() {
-  // Раскрытый блок должен пережить перерисовку: её вызывает и сохранение
-  // ключа, и появление статуса, а схлопывающийся на глазах блок читается
-  // как сбой.
-  document.querySelector(".imp-keys")?.addEventListener("toggle", (e) => {
-    importKeysOpen = e.target.open;
-  });
-
   const input = document.getElementById("imp-tmdb-key");
   const status = document.getElementById("imp-key-status");
 
@@ -1573,8 +1716,7 @@ function bindImportKeys() {
     try {
       await checkTmdbKey(key);
       saveTmdbKey(key);
-      importKeysOpen = true;
-      renderImport();
+      renderImport(); // карточка TMDB остаётся открытой (importOpenCard)
       const fresh = document.getElementById("imp-key-status");
       if (fresh) fresh.textContent = i18n("Ключ принят. Постеры к фильмам теперь приедут вместе со списком.");
     } catch (err) {
@@ -1592,7 +1734,6 @@ function bindImportKeys() {
 
   document.getElementById("imp-tmdb-clear")?.addEventListener("click", () => {
     saveTmdbKey("");
-    importKeysOpen = true;
     renderImport();
   });
 }
@@ -1641,86 +1782,69 @@ function importStyles() {
     .imp-arrow { color: var(--text-dim); flex-shrink: 0; }
     .imp-select { width: auto; min-width: 11rem; flex-shrink: 0; }
 
-    .imp-sources {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-      gap: 1px; background: var(--border);
+    /* Карточки источников. Линии между ними – их собственные правая и
+       нижняя рамки, а крайние прячутся под overflow (сетка сдвинута на
+       1px). Линии фоном-через-gap оставляли бы серый блок в пустой ячейке
+       последней строки – та же грабля, что была у старого .imp-sources. */
+    .imp-group { margin-top: 2.2rem; }
+    .imp-cards {
       border: 1px solid var(--border); border-radius: 2px;
-      overflow: hidden; margin: 1rem 0 1.2rem;
+      overflow: hidden; background: var(--surface);
     }
-    /* Нечётное число источников в двухколоночной сетке оставляет пустую
-       ячейку последней строки – фон .imp-sources (он и рисует тонкие линии
-       между карточками) в ней ничем не перекрыт и виден как лишний серый
-       блок. Последняя карточка при нечётном счёте растягивается на всю
-       строку и ячейке взяться неоткуда. */
-    .imp-source:last-child:nth-child(odd) { grid-column: 1 / -1; }
-    .imp-source { background: var(--surface); padding: .85rem .95rem; min-width: 0; }
-    .imp-source-head {
-      display: flex; align-items: baseline; gap: .5rem;
-      justify-content: space-between;
+    .imp-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+      margin: 0 -1px -1px 0;
     }
-    .imp-source-who {
+    .imp-card {
+      background: var(--surface);
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 1rem 1.05rem 1.05rem;
+      display: flex; flex-direction: column; gap: .45rem; min-width: 0;
+    }
+    /* Открытая – на всю строку: поле ника и шаги не жмутся в колонку. */
+    .imp-card.is-open { grid-column: 1 / -1; background: var(--surface2); }
+    .imp-card.is-planned .imp-card-name,
+    .imp-card.is-planned .imp-card-what { opacity: .55; }
+    .imp-card-head { display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; }
+    .imp-card-name {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 1.08rem; font-weight: 600; color: var(--text-hi);
+      font-size: 1.15rem; font-weight: 600; color: var(--text-hi);
     }
-    .imp-source-file {
+    .imp-card-kind, .imp-card-badge {
       font-family: 'DM Sans', sans-serif;
       font-size: .55rem; letter-spacing: .12em; text-transform: uppercase;
-      color: var(--text-dim); border: 1px solid var(--border2);
-      border-radius: 2px; padding: .12rem .35rem; flex-shrink: 0;
-    }
-    .imp-source-what {
-      font-family: 'DM Sans', sans-serif;
-      font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
-      color: var(--text-dim); margin-top: .3rem;
-    }
-    .imp-source-how {
-      font-family: 'DM Sans', sans-serif;
-      font-size: .74rem; line-height: 1.5;
-      color: var(--text-dim); margin-top: .5rem;
-    }
-
-    .imp-keys {
-      border: 1px solid var(--border); border-radius: 2px;
-      background: var(--surface); margin: 1.2rem 0;
-    }
-    .imp-keys > summary {
-      cursor: pointer; list-style: none;
-      display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
-      padding: .7rem .95rem;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
       color: var(--text-dim);
     }
-    .imp-keys > summary::-webkit-details-marker { display: none; }
-    .imp-keys > summary::before {
-      content: "+"; color: var(--text-dim); font-size: .9rem; line-height: 1;
+    .imp-card-badge {
+      border: 1px solid var(--border2); border-radius: 2px;
+      padding: .1rem .35rem; margin-left: auto;
     }
-    .imp-keys[open] > summary::before { content: "–"; }
-    .imp-keys > summary:hover { color: var(--text-hi); }
-    .imp-key-on {
-      font-size: .55rem; letter-spacing: .1em;
-      color: var(--text-hi); border: 1px solid var(--border2);
-      border-radius: 2px; padding: .12rem .4rem; text-transform: none;
+    .imp-card-badge.is-on { color: var(--text-hi); }
+    .imp-card-what {
+      font-family: 'DM Sans', sans-serif;
+      font-size: .78rem; line-height: 1.5; color: var(--text-dim);
+      margin: 0; flex: 1;
     }
-    .imp-keys-body { padding: 0 .95rem .95rem; border-top: 1px solid var(--border); padding-top: .9rem; }
-    .imp-keys-body .imp-note { margin-bottom: 1rem; }
-    .imp-key-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
-    .imp-key-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.08rem; font-weight: 600; color: var(--text-hi);
-    }
-    .imp-key-what {
+    .imp-card-open { align-self: flex-start; margin-top: .35rem; }
+    .imp-card-body { border-top: 1px solid var(--border); margin-top: .6rem; padding-top: .3rem; }
+    .imp-card-body .imp-actions { margin: .8rem 0 .4rem; }
+    .imp-card-body .imp-note { margin: .8rem 0 0; }
+    .imp-card-note { margin-top: .2rem !important; }
+    .imp-group-note { margin: .6rem 0 0; }
+    .imp-foot { margin: 2.4rem 0 1rem; }
+    .imp-steps-label {
       font-family: 'DM Sans', sans-serif;
       font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
-      color: var(--text-dim);
+      color: var(--text-hi); margin-top: .9rem;
     }
-    .imp-key-steps {
+    .imp-steps {
       font-family: 'DM Sans', sans-serif;
-      font-size: .74rem; line-height: 1.6; color: var(--text-dim);
-      margin: .6rem 0 .9rem; padding-left: 1.1rem;
+      font-size: .76rem; line-height: 1.6; color: var(--text-dim);
+      margin: .6rem 0 0; padding-left: 1.2rem;
     }
-    .imp-key-steps li { margin-bottom: .25rem; }
+    .imp-steps li { margin-bottom: .2rem; }
+    .imp-steps strong { color: var(--text-hi); font-weight: 500; }
     .imp-key-row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
     .imp-key-row input { width: auto; flex: 1; min-width: 12rem; }
     .imp-key-warn { margin: 1.1rem 0 0; }

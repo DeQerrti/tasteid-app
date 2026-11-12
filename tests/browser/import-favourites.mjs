@@ -162,6 +162,7 @@ await page.route("https://graphql.anilist.co/**", (route) => {
 
 await page.goto(`${base}/#/settings-edit`, { waitUntil: "domcontentloaded" });
 await page.click('[data-panel="import"]');
+await page.click('[data-imp-open="anilist"]');
 await page.waitForSelector("#imp-anilist-user");
 await page.fill("#imp-anilist-user", "someone");
 await page.click("#imp-anilist-go");

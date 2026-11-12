@@ -170,6 +170,7 @@ await page.route("https://shikimori.io/api/**", (route) => {
 
 await page.goto(`${base}/#/settings-edit`, { waitUntil: "domcontentloaded" });
 await page.click('[data-panel="import"]');
+await page.click('[data-imp-open="shiki"]');
 await page.waitForSelector("#imp-shiki-user");
 
 console.log("Неизвестный ник");

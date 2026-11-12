@@ -877,6 +877,76 @@ i18nRegister({
     "Games aren’t accepted yet: the services that track them have no common export format. Send a sample file and it will be supported.",
   "Или по нику с AniList": "Or by AniList username",
   "Или по нику с MyAnimeList": "Or by MyAnimeList username",
+  // ── Экран импорта: карточки по видам ──
+  "Перенесите в паспорт то, что уже ведёте где-то ещё. Откройте нужный сервис – внутри по шагам написано, куда нажать и что выбрать.":
+    "Bring over what you already track elsewhere. Open a service – inside are step-by-step instructions on where to click and what to pick.",
+  "Фильмы и сериалы": "Movies and TV",
+  Игры: "Games",
+  "Любое другое приложение": "Any other app",
+  файл: "file",
+  ключ: "key",
+  Ключ: "Key",
+  "в планах": "planned",
+  подключён: "connected",
+  Свернуть: "Collapse",
+  "Список со статусами, оценками и датами. И «Любимое» профиля – персонажи и люди с галочками.":
+    "Your list with statuses, scores and dates. Plus profile favourites – characters and people, with checkboxes.",
+  "Список со статусами и оценками. И «Любимое» профиля – персонажи и люди с галочками.":
+    "Your list with statuses and scores. Plus profile favourites – characters and people, with checkboxes.",
+  "Список со статусами, оценками и датами.": "Your list with statuses, scores and dates.",
+  "Файлом выгрузки – если профиль закрыт или нужны личные даты с Шикимори.":
+    "From an export file – if your profile is private or you need your personal dates from Shikimori.",
+  "Оценки, просмотренное и список «посмотреть».": "Ratings, watched films and your watchlist.",
+  "Оценки и список «посмотреть». Постер находится точно – по номеру фильма, а не по названию.":
+    "Ratings and watchlist. Posters are matched exactly – by the film’s ID, not its title.",
+  "Не список, а постеры, год и номер фильма – для любого источника выше.":
+    "Not a list – posters, year and film ID for any source above.",
+  "Постеры к фильмам приходят только с ключом TMDB – он бесплатный.":
+    "Film posters only come with a TMDB key – it’s free.",
+  "Полки «прочитано», «читаю», «хочу прочитать», оценки и даты прочтения.":
+    "Your read, currently-reading and want-to-read shelves, ratings and read dates.",
+  "Прочитанное, читаю, хочу прочитать и брошенное – с оценками, отзывами и датами.":
+    "Read, reading, want to read and did-not-finish – with ratings, reviews and dates.",
+  "Библиотека и часы в игре. Оценок и статусов у Steam нет – их можно будет расставить на шаге проверки.":
+    "Your library and playtime. Steam has no ratings or statuses – you’ll be able to set them on the review step.",
+  "Backloggd, PlayStation и Xbox снаружи закрыты – ни по нику, ни файлом их не прочитать.":
+    "Backloggd, PlayStation and Xbox are closed to outside apps – they can’t be read by username or file.",
+  "Файл из любого приложения": "A file from any app",
+  "CSV, JSON или XML. Знакомые столбцы узнаются сами, остальные покажете вы – где название, где оценка.":
+    "CSV, JSON or XML. Familiar columns are recognised automatically; for the rest you point out which is the title and which is the rating.",
+  "Ничего не сохранится, пока вы не подтвердите: сначала покажем, что нашлось, и как чужие оценки и статусы лягут на ваши. Что уже есть в паспорте, по умолчанию пропускается – без дублей и перезаписи. Файл разбирается прямо здесь, на этом устройстве, и никуда не отправляется.":
+    "Nothing is saved until you confirm: first you’ll see what was found and how the other service’s scores and statuses map onto yours. Anything already in your passport is skipped by default – no duplicates, no overwrites. Files are read right here on this device and never uploaded.",
+  "Откройте свой профиль на {site}.": "Open your profile on {site}.",
+  "Ник – последнее слово в адресе страницы:": "Your username is the last part of the page address:",
+  "Список должен быть открыт – если в настройках профиля он закрыт, снаружи его не видно.":
+    "The list must be public – if it’s private in your profile settings, it can’t be seen from outside.",
+  "Можно вставить и ссылку на профиль целиком – ник из неё возьмётся сам.":
+    "You can also paste the whole profile link – the username will be taken from it.",
+  "Войдите на myanimelist.net.": "Sign in to myanimelist.net.",
+  "Значок профиля вверху справа → Export.": "Profile icon in the top right → Export.",
+  "Выберите Anime List или Manga List и нажмите Export My List.":
+    "Choose Anime List or Manga List and click Export My List.",
+  "Скачается архив .xml.gz – распакуйте его: нужен файл .xml изнутри.":
+    "An .xml.gz archive will download – unpack it: you need the .xml file inside.",
+  "Выберите этот .xml кнопкой ниже. Для второго списка – повторите.":
+    "Pick that .xml with the button below. Repeat for the other list.",
+  "Войдите на shikimori.io.": "Sign in to shikimori.io.",
+  "Настройки → Списки → Экспорт.": "Settings → Lists → Export.",
+  "Выберите формат MyAnimeList – аниме и манга скачаются двумя отдельными файлами.":
+    "Choose the MyAnimeList format – anime and manga download as two separate files.",
+  "Загрузите их кнопкой ниже по очереди.": "Upload them one after another with the button below.",
+  "Войдите на letterboxd.com и откройте letterboxd.com/settings/data.":
+    "Sign in to letterboxd.com and open letterboxd.com/settings/data.",
+  "Нажмите Export Your Data – скачается архив .zip.": "Click Export Your Data – a .zip archive will download.",
+  "Распакуйте его. Внутри нужны три файла: ratings.csv (что оценено), watched.csv (что просмотрено) и watchlist.csv (что в планах).":
+    "Unpack it. You need three files inside: ratings.csv (what you rated), watched.csv (what you watched) and watchlist.csv (what you plan to watch).",
+  "Выберите их кнопкой ниже – по одному за раз.": "Pick them with the button below – one at a time.",
+  "Войдите на goodreads.com и откройте goodreads.com/review/import.":
+    "Sign in to goodreads.com and open goodreads.com/review/import.",
+  "Нажмите кнопку Export Library.": "Click the Export Library button.",
+  "Через минуту там же появится ссылка на goodreads_library_export.csv – скачайте файл.":
+    "After a minute a link to goodreads_library_export.csv appears on the same page – download the file.",
+  "Выберите его кнопкой ниже.": "Pick it with the button below.",
   // ── Импорт по нику с Шикимори ──
   "Или по нику с Шикимори": "Or by Shikimori username",
   "ник на Шикимори": "Shikimori username",
