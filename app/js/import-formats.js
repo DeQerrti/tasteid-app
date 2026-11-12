@@ -484,6 +484,42 @@ function parseShikimoriRates({ anime, manga }) {
   return { source: i18n("Шикимори"), scaleMin: 1, scaleMax: 10, items, skipped };
 }
 
+// ── Steam (библиотека по ключу, а не файл) ─────
+// Запрос – steamLibrary в core/api.js (у Steam нет CORS). У Steam нет ни
+// оценок, ни статусов – есть только «сколько минут наиграно». По нему
+// библиотека делится на две кучки: запускали и ни разу не запускали;
+// на экране соответствий человек сам решает, куда каждая ляжет (или не
+// импортировать нетронутое вовсе) – подписи к ним свои (statusLabels).
+
+const STEAM_ASSETS = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
+
+function parseSteamLibrary(games) {
+  const items = (games || [])
+    .filter((g) => g && g.appid && g.name)
+    .map((g) => ({
+      title: String(g.name),
+      type: "game",
+      status: g.minutes > 0 ? "watching" : "plantowatch",
+      score: 0,
+      rewatch: 0,
+      dateStart: null,
+      dateEnd: null,
+      year: null,
+      // Вертикальная обложка (600×900) есть почти у всех игр; резервная
+      // копия при переносе снимет её на диск.
+      cover: `${STEAM_ASSETS}/${g.appid}/library_600x900.jpg`,
+      ids: { steam: g.appid },
+    }));
+  return {
+    source: "Steam",
+    scaleMin: 1,
+    scaleMax: 10,
+    items,
+    skipped: 0,
+    statusLabels: { watching: i18n("Запускали"), plantowatch: i18n("Ни разу не запускали") },
+  };
+}
+
 // ── Определение формата ────────────────────────
 // По набору заголовков: они у сервисов достаточно своеобразные, чтобы
 // не спутать. Если не узнали – честно говорим об этом, а не пытаемся

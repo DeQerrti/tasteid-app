@@ -877,6 +877,40 @@ i18nRegister({
     "Games aren’t accepted yet: the services that track them have no common export format. Send a sample file and it will be supported.",
   "Или по нику с AniList": "Or by AniList username",
   "Или по нику с MyAnimeList": "Or by MyAnimeList username",
+  // ── Steam, поиск в редакторе, копии обложек при импорте ──
+  "Игры из библиотеки, с обложками. Оценок и статусов у Steam нет – на шаге проверки решите, куда лягут запущенные и нетронутые.":
+    "Games from your library, with covers. Steam has no ratings or statuses – on the review step you decide where played and untouched games go.",
+  "Войдите в Steam в браузере и откройте steamcommunity.com/dev/apikey.":
+    "Sign in to Steam in your browser and open steamcommunity.com/dev/apikey.",
+  "В поле Domain Name впишите что угодно, например tasteid.local, отметьте согласие с условиями и нажмите Register.":
+    "Enter anything in Domain Name, e.g. tasteid.local, tick the terms checkbox and click Register.",
+  "Скопируйте ключ из строки Key (32 знака) в поле ниже.": "Copy the key from the Key line (32 characters) into the field below.",
+  "Профиль → Редактировать профиль → Приватность: у «Игровой информации» должно стоять «Открытая».":
+    "Profile → Edit Profile → Privacy Settings: “Game details” must be set to “Public”.",
+  "Вставьте ссылку на свой профиль – steamcommunity.com/id/… или steamcommunity.com/profiles/…":
+    "Paste your profile link – steamcommunity.com/id/… or steamcommunity.com/profiles/…",
+  "ключ Steam, 32 знака": "Steam key, 32 characters",
+  "ссылка на профиль Steam": "Steam profile link",
+  "Забрать библиотеку": "Fetch the library",
+  "Ключ хранится только на этом устройстве и уходит только в Steam – как ключ TMDB.":
+    "The key is stored only on this device and sent only to Steam – just like the TMDB key.",
+  "Спрашиваем Steam…": "Asking Steam…",
+  "Steam ответил {status}": "Steam replied {status}",
+  "В библиотеке этого профиля нет ни одной игры.": "This profile’s library has no games.",
+  Запускали: "Played",
+  "Ни разу не запускали": "Never launched",
+  "Ключ TMDB": "TMDB key",
+  Обложки: "Covers",
+  "Сохранить копии обложек на этом устройстве": "Save copies of covers on this device",
+  "Без копий у новых записей останутся только ссылки на чужой сайт – сменит он адреса картинок, обложки пропадут. Копии скачиваются после переноса, по несколько за раз; на сотни записей это займёт несколько минут.":
+    "Without copies, new entries keep only links to another site – if it changes its image addresses, the covers disappear. Copies download after the transfer, a few at a time; for hundreds of entries this takes a few minutes.",
+  "Сохраняем копии обложек… {done} из {total}": "Saving cover copies… {done} of {total}",
+  "копий обложек": "cover copies",
+  "обложек не скачалось": "covers failed",
+  "Тип «{type}» – ищем в AniList, а набранное по-русски – в Шикимори. Подставятся название, год, формат, обложка и номер в базе; тип можно сменить ниже.":
+    "Type “{type}” – searching AniList, and Shikimori for titles typed in Russian. Title, year, format, cover and database ID will be filled in; you can change the type below.",
+  "Тип «{type}» – ищем в Steam, надёжнее по английскому названию. Подставятся название, год, обложка и номер игры; игр не из Steam там не будет.":
+    "Type “{type}” – searching Steam, best by the English title. Title, year, cover and game ID will be filled in; games not on Steam won’t be found.",
   // ── Экран импорта: карточки по видам ──
   "Перенесите в паспорт то, что уже ведёте где-то ещё. Откройте нужный сервис – внутри по шагам написано, куда нажать и что выбрать.":
     "Bring over what you already track elsewhere. Open a service – inside are step-by-step instructions on where to click and what to pick.",

@@ -153,6 +153,11 @@ const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
 const jsErrors = [];
 page.on("pageerror", (e) => jsErrors.push(e.message));
 const asked = [];
+// Записи без обложки импорт дозапрашивает у AniList по номеру MAL – в
+// тесте AniList «ничего не знает», чтобы не ходить в настоящую сеть.
+await page.route("https://graphql.anilist.co/**", (route) =>
+  route.fulfill({ contentType: "application/json", body: '{"data":{"Page":{"media":[]}}}' })
+);
 await page.route("https://shikimori.io/api/**", (route) => {
   const url = new URL(route.request().url());
   asked.push(url.pathname + url.search);
@@ -219,6 +224,12 @@ ok(
   !!noCover && !/missing_/.test(noCover.cover || ""),
   "заглушка Шикимори вместо обложки не сохранена"
 );
+ok(
+  (show?.cover_backup || "").startsWith("/covers-backup/"),
+  "у новой записи – копия обложки на диске"
+);
+ok((manhwa?.cover_backup || "").startsWith("/covers-backup/"), "и у манхвы тоже");
+ok(!noCover?.cover_backup, "без обложки – без копии");
 ok(by("Kiritsugu Emiya")?.from === "Fate/Zero", "у персонажа «откуда»");
 ok(
   by("Kiritsugu Emiya")?.linked_review_ids?.includes(1),

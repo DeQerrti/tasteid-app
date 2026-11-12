@@ -41,6 +41,7 @@ let importBusy = false;
 let importStatusMap = {};
 let importScoreMap = {};
 let importSkipExisting = true;
+let importBackupCovers = true; // сохранить копии обложек новых записей на диск
 
 // ── Умолчания для соответствий ─────────────────
 // Расставляются сами, но человек их правит: смысл шага именно в этом.
@@ -273,8 +274,14 @@ function importGroups() {
           id: "steam",
           name: "Steam",
           kind: "key",
-          planned: true,
-          what: i18n("Библиотека и часы в игре. Оценок и статусов у Steam нет – их можно будет расставить на шаге проверки."),
+          what: i18n("Игры из библиотеки, с обложками. Оценок и статусов у Steam нет – на шаге проверки решите, куда лягут запущенные и нетронутые."),
+          steps: [
+            i18n("Войдите в Steam в браузере и откройте steamcommunity.com/dev/apikey."),
+            i18n("В поле Domain Name впишите что угодно, например tasteid.local, отметьте согласие с условиями и нажмите Register."),
+            i18n("Скопируйте ключ из строки Key (32 знака) в поле ниже."),
+            i18n("Профиль → Редактировать профиль → Приватность: у «Игровой информации» должно стоять «Открытая»."),
+            i18n("Вставьте ссылку на свой профиль – steamcommunity.com/id/… или steamcommunity.com/profiles/…"),
+          ],
         },
       ],
     },
@@ -302,6 +309,7 @@ function importStepsHtml(steps) {
 }
 
 function importCardBodyHtml(card) {
+  if (card.id === "steam") return importSteamHtml(card);
   if (card.kind === "key") return importKeysHtml();
   if (card.kind === "nick") {
     return `
@@ -329,6 +337,89 @@ function importCardBodyHtml(card) {
     <div class="status-msg" id="imp-status"></div>`;
 }
 
+// Steam: ключ Web API и ссылка на профиль. Ключ живёт в localStorage
+// этого устройства (как ключ TMDB) – запоминается после первой удачной
+// загрузки, чтобы не вставлять его каждый раз.
+const STEAM_KEY_STORAGE = "tasteid_steam_key";
+
+function steamKey() {
+  try {
+    return localStorage.getItem(STEAM_KEY_STORAGE) || "";
+  } catch {
+    return "";
+  }
+}
+
+function importSteamHtml(card) {
+  return `
+    ${importStepsHtml(card.steps)}
+    <div class="imp-key-row imp-steam-row">
+      <input type="password" id="imp-steam-key" value="${esc(steamKey())}"
+             placeholder="${i18n("ключ Steam, 32 знака")}" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="imp-actions">
+      <input type="text" id="imp-steam-user" placeholder="${i18n("ссылка на профиль Steam")}"
+             autocomplete="off" spellcheck="false">
+      <button class="btn btn-ghost" id="imp-steam-go" type="button">${i18n("Забрать библиотеку")}</button>
+    </div>
+    <div class="status-msg" id="imp-steam-status"></div>
+    <p class="imp-note">${i18n("Ключ хранится только на этом устройстве и уходит только в Steam – как ключ TMDB.")}</p>`;
+}
+
+function bindSteamUser() {
+  const keyInput = document.getElementById("imp-steam-key");
+  const input = document.getElementById("imp-steam-user");
+  const btn = document.getElementById("imp-steam-go");
+  const status = document.getElementById("imp-steam-status");
+  if (!input || !btn || !keyInput) return;
+
+  const go = async () => {
+    const key = keyInput.value.trim();
+    const profile = input.value.trim();
+    if (!key) { keyInput.focus(); return; }
+    if (!profile) { input.focus(); return; }
+    if (importBusy) return;
+    importBusy = true;
+    btn.disabled = true;
+    status.className = "status-msg";
+    status.textContent = i18n("Спрашиваем Steam…");
+    try {
+      const res = await fetch("/api/steam-library", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, profile }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || data?.error) throw new Error(data?.error || i18n("Steam ответил {status}", { status: res.status }));
+      try {
+        localStorage.setItem(STEAM_KEY_STORAGE, key);
+      } catch {
+        // приватный режим – ключ придётся вставить ещё раз
+      }
+      const parsed = parseSteamLibrary(data.games);
+      parsed.byName = true; // не файл: экран соответствий говорит об этом иначе
+      if (!parsed.items.length) throw new Error(i18n("В библиотеке этого профиля нет ни одной игры."));
+      await startMapping(parsed);
+    } catch (err) {
+      status.className = "status-msg err";
+      status.textContent = err.message;
+    } finally {
+      importBusy = false;
+      btn.disabled = false;
+    }
+  };
+
+  btn.addEventListener("click", go);
+  for (const el of [keyInput, input]) {
+    el.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      go();
+    });
+  }
+}
+
 function importCardHtml(card) {
   const open = importOpenCard === card.id && !card.planned;
   const keyOn = card.id === "tmdb" && tmdbKey();
@@ -345,7 +436,7 @@ function importCardHtml(card) {
       card.planned
         ? ""
         : `<button class="btn btn-ghost imp-card-open" type="button" data-imp-open="${card.id}" aria-expanded="${open}">${
-            open ? i18n("Свернуть") : card.kind === "key" ? i18n("Ключ") : i18n("Импорт")
+            open ? i18n("Свернуть") : card.id === "tmdb" ? i18n("Ключ") : i18n("Импорт")
           }</button>`
     }
     ${open ? `<div class="imp-card-body">${importCardBodyHtml(card)}</div>` : ""}
@@ -479,7 +570,7 @@ function importMapHtml() {
     .filter((key) => byStatus[key])
     .map((key) => `
       <div class="imp-row" id="imp-statusrow-${key}">
-        <div class="imp-from">${esc(IMPORT_STATUS_KEYS[key])} <span class="imp-count">${byStatus[key]}</span></div>
+        <div class="imp-from">${esc(importData.statusLabels?.[key] || IMPORT_STATUS_KEYS[key])} <span class="imp-count">${byStatus[key]}</span></div>
         <div class="imp-arrow">→</div>
         <select class="imp-select" data-status="${key}">
           <option value="">${i18n("не импортировать")}</option>
@@ -532,7 +623,7 @@ function importMapHtml() {
       <p class="imp-note">
         ${i18n("Обложек у фильмов в выгрузке нет. Без ключа TMDB они приедут без картинок – это не страшно, ключ можно добавить и потом, а обложки подтянуть повторным импортом того же файла. Аниме, манга и книги обложки получат в любом случае.")}
       </p>
-      ${importKeysHtml()}` : ""}
+      <div class="imp-map-key"><div class="imp-steps-label">${i18n("Ключ TMDB")}</div>${importKeysHtml()}</div>` : ""}
 
     <h2 class="section-h">${i18n("Статусы")}</h2>
     <p class="panel-intro">${i18n("Слева то, что стоит {v0}, справа – куда это ляжет у вас.", { v0: itemsKindLabel })}</p>
@@ -552,6 +643,16 @@ function importMapHtml() {
       ${i18n("Снятая галочка перезапишет у них статус и оценку значениями из выгрузки. Тексты отзывов не пострадают в любом случае.")}
     </p>
 
+    ${
+      fresh.length
+        ? `<h2 class="section-h">${i18n("Обложки")}</h2>
+    <div class="imp-row imp-row-plain">
+      <label><input type="checkbox" id="imp-backup-covers" ${importBackupCovers ? "checked" : ""}> ${i18n("Сохранить копии обложек на этом устройстве")}</label>
+    </div>
+    <p class="panel-intro">${i18n("Без копий у новых записей останутся только ссылки на чужой сайт – сменит он адреса картинок, обложки пропадут. Копии скачиваются после переноса, по несколько за раз; на сотни записей это займёт несколько минут.")}</p>`
+        : ""
+    }
+
     ${importFavHtml()}
 
     <div class="imp-actions">
@@ -569,6 +670,14 @@ function importDoneHtml() {
       ${impStat(importData.updated, i18n("обновлено"))}
       ${impStat(importData.untouched, i18n("не тронуто"))}
     </div>
+    ${
+      importData.coverResult && (importData.coverResult.saved || importData.coverResult.failed)
+        ? `<div class="imp-summary">
+        ${impStat(importData.coverResult.saved, i18n("копий обложек"))}
+        ${importData.coverResult.failed ? impStat(importData.coverResult.failed, i18n("обложек не скачалось")) : ""}
+      </div>`
+        : ""
+    }
     ${
       importData.favResult
         ? `<div class="imp-summary">
@@ -1102,6 +1211,9 @@ async function runImport() {
     importData.added = data.added ?? 0;
     importData.updated = data.updated ?? 0;
     importData.untouched = importData.items.length - (data.added ?? 0) - (data.updated ?? 0);
+    if (importBackupCovers && data.added_ids?.length) {
+      importData.coverResult = await runImportCoverBackups(status, data.added_ids);
+    }
     if (favWanted) importData.favResult = await runImportFavourites(status);
     importStep = "done";
     refreshOpenReviewsTab(); // /settings-edit «Импорт» – та же спрятанная-не-разобранная вкладка, что и в js/api.js
@@ -1310,6 +1422,83 @@ function bindImportFav() {
   });
 }
 
+// Имя файла резервной копии – как у редактора (backupCoverNow в
+// routes/add-cover.js): название латиницей/кириллицей через дефис и
+// короткий хвост, чтобы одинаковые названия не затёрли друг друга.
+let importSlugSeq = 0;
+function importSlug(name) {
+  const base = String(name || "cover")
+    .toLowerCase()
+    .replace(/[^a-zа-я0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  // Date.now() в одну миллисекунду совпадает у соседних копий –
+  // при пачке параллельных запросов нужен ещё и счётчик.
+  return `${base || "cover"}-${Date.now().toString(36).slice(-5)}${(importSlugSeq++).toString(36)}`;
+}
+
+// Резервные копии обложек только что добавленных отзывов. Картинки –
+// по одной через /api/backup-cover (то же, что делает редактор), по
+// IMPORT_COVER_WORKERS за раз: на телефоне сотни одновременных запросов
+// вешают мост (см. CLAUDE.md про мобильный мост). Ссылки на готовые
+// копии записываются пачками через /api/set-cover-backups – одна запись
+// файла на IMPORT_COVER_FLUSH отзывов, а не на каждый. Прервётся посреди
+// – уже записанные пачки останутся, остальные просто без копии, как было.
+const IMPORT_COVER_WORKERS = 4;
+const IMPORT_COVER_FLUSH = 50;
+
+async function runImportCoverBackups(status, addedIds) {
+  await fetchReviews();
+  const want = new Set(addedIds.map(String));
+  const todo = (cache.reviews || []).filter(
+    (r) => want.has(String(r.id)) && /^https?:\/\//.test(r.cover || "") && !r.cover_backup
+  );
+  const result = { saved: 0, failed: 0 };
+  let pending = [];
+  const flush = async () => {
+    if (!pending.length) return;
+    const items = pending;
+    pending = [];
+    try {
+      await postRecordOrThrow("/api/set-cover-backups", { items });
+    } catch {
+      result.saved -= items.length;
+      result.failed += items.length;
+    }
+  };
+  let next = 0;
+  let done = 0;
+  const worker = async () => {
+    while (next < todo.length) {
+      const r = todo[next++];
+      try {
+        const res = await fetch("/api/backup-cover", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: r.cover, filename: importSlug(r.title) }),
+        });
+        const data = await res.json().catch(() => ({}));
+        const url = data.ok ? data.url || (data.path ? "/" + data.path : null) : null;
+        if (url) {
+          pending.push({ id: r.id, cover: r.cover, cover_backup: url });
+          result.saved++;
+        } else {
+          result.failed++;
+        }
+      } catch {
+        result.failed++;
+      }
+      done++;
+      status.textContent = i18n("Сохраняем копии обложек… {done} из {total}", { done, total: todo.length });
+      if (pending.length >= IMPORT_COVER_FLUSH) await flush();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(IMPORT_COVER_WORKERS, todo.length) }, worker));
+  await flush();
+  return result;
+}
+
 // После того как тайтлы записаны: заводим отмеченных в «Любимом» и
 // ставим ♥ тайтлам. Ошибка одной записи не останавливает остальные –
 // счётчик ошибок попадает в итог.
@@ -1342,19 +1531,11 @@ async function runImportFavourites(status) {
     let backup = null;
     if (x.image) {
       try {
-        const slug =
-          x.name
-            .toLowerCase()
-            .replace(/[^a-zа-я0-9]+/gi, "-")
-            .replace(/^-+|-+$/g, "")
-            .slice(0, 60) +
-          "-" +
-          Date.now().toString(36).slice(-5);
         const res = await fetch("/api/backup-cover", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: x.image, filename: slug }),
+          body: JSON.stringify({ url: x.image, filename: importSlug(x.name) }),
         });
         const data = await res.json().catch(() => ({}));
         if (data.ok) backup = data.url;
@@ -1416,6 +1597,7 @@ function bindImport() {
   bindAnilistUser();
   bindShikimoriUser();
   bindMalUser();
+  bindSteamUser();
   bindImportFav();
 
   // Карточка источника: открыть (закрыв прежнюю) или свернуть. Поле ника
@@ -1427,7 +1609,7 @@ function bindImport() {
       renderImport();
       const card = importOpenCard && document.querySelector(`[data-imp-card="${importOpenCard}"]`);
       if (!card) return;
-      card.querySelector('input[type="text"]')?.focus({ preventScroll: true });
+      card.querySelector('input[type="text"], input[type="password"]:placeholder-shown')?.focus({ preventScroll: true });
       card.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
   });
@@ -1482,6 +1664,9 @@ function bindImport() {
   });
   document.getElementById("imp-skip")?.addEventListener("change", (e) => {
     importSkipExisting = e.target.checked;
+  });
+  document.getElementById("imp-backup-covers")?.addEventListener("change", (e) => {
+    importBackupCovers = e.target.checked;
   });
 
   document.getElementById("imp-run")?.addEventListener("click", runImport);
@@ -1845,6 +2030,8 @@ function importStyles() {
     }
     .imp-steps li { margin-bottom: .2rem; }
     .imp-steps strong { color: var(--text-hi); font-weight: 500; }
+    .imp-steam-row { margin-top: .8rem; }
+    .imp-map-key { border: 1px solid var(--border); border-radius: 2px; padding: .2rem .95rem .95rem; margin-bottom: 1.2rem; }
     .imp-key-row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
     .imp-key-row input { width: auto; flex: 1; min-width: 12rem; }
     .imp-key-warn { margin: 1.1rem 0 0; }

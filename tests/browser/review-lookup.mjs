@@ -169,9 +169,105 @@ ok(
   "обложка из Open Library"
 );
 
-console.log("Игры – без источника");
+console.log("Шикимори: аниме, набранное по-русски");
+let anilistAskedRu = false;
+await page.route("https://graphql.anilist.co/**", (route) => {
+  anilistAskedRu = true;
+  route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ data: { Page: { media: [] } } }),
+  });
+});
+await page.route("https://shikimori.io/api/**", (route) =>
+  route.fulfill({
+    contentType: "application/json",
+    headers: { "access-control-allow-origin": "*" },
+    body: JSON.stringify(
+      new URL(route.request().url()).pathname === "/api/animes"
+        ? [
+            {
+              id: 33,
+              name: "Kenpuu Denki Berserk",
+              russian: "Берсерк",
+              kind: "tv",
+              episodes: 25,
+              aired_on: "1997-10-08",
+              image: { original: "/system/animes/original/33.jpg" },
+            },
+          ]
+        : []
+    ),
+  })
+);
+await page.route("https://shikimori.io/system/**", (r) => r.fulfill({ status: 404, body: "" }));
+await pick("anime");
+await search("берсерк");
+ok(!anilistAskedRu, "русский запрос не ушёл в AniList");
+ok(
+  (await page.textContent(".ed-lookup-item")).includes("Берсерк"),
+  "в результате видно русское название"
+);
+await page.click(".ed-lookup-item");
+ok(
+  (await page.inputValue("#f-title")) === "Kenpuu Denki Berserk",
+  "название – как у остальных, латиницей"
+);
+ok((await page.inputValue("#f-year")) === "1997", "год из Шикимори");
+ok(
+  (await page.inputValue("#f-cover")) === "https://shikimori.io/system/animes/original/33.jpg",
+  "обложка Шикимори полной ссылкой"
+);
+
+console.log("Steam: игра");
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEElEQVR42mNg+G+DHQ0tCQC2ik7BakjxzwAAAABJRU5ErkJggg==",
+  "base64"
+);
+let steamTerm = null;
+await page.route(`${base}/api/steam-search`, (route) => {
+  steamTerm = route.request().postDataJSON().term;
+  route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ ok: true, items: [{ id: 367520, name: "Hollow Knight", year: 2017 }] }),
+  });
+});
+// Вертикальной обложки «нет» – должна подставиться горизонтальная шапка.
+await page.route("https://shared.akamai.steamstatic.com/**", (r) =>
+  r.request().url().includes("library_600x900")
+    ? r.fulfill({ status: 404, body: "" })
+    : r.fulfill({ contentType: "image/png", body: PNG })
+);
 await pick("game");
-ok(await page.isDisabled("#ed-lookup-btn"), "у игр поиск выключен с подсказкой");
+ok(!(await page.isDisabled("#ed-lookup-btn")), "у игр поиск включён");
+ok((await page.textContent("#ed-lookup-hint")).includes("Steam"), "подсказка – ищем в Steam");
+await search("hollow knight");
+ok(steamTerm === "hollow knight", "запрос ушёл через свой сервер (/api/steam-search)");
+await page.click(".ed-lookup-item");
+await page.waitForFunction(() => document.getElementById("f-cover").value.includes("367520"));
+ok((await page.inputValue("#f-title")) === "Hollow Knight", "игра заполнена");
+ok((await page.inputValue("#f-year")) === "2017", "год игры");
+ok(
+  (await page.inputValue("#f-cover")).endsWith("/367520/header.jpg"),
+  "нет вертикальной обложки – взята шапка"
+);
+ok((await page.inputValue("#f-type")) === "game", "тип остался «игра»");
+const gameSave = page.waitForResponse((r) => r.url().includes("/api/save-review"), {
+  timeout: 30000,
+});
+await page.click("#btn-save");
+await gameSave;
+const game = await page.evaluate(async () =>
+  (await (await fetch("/reviews.json?_=" + Date.now())).json()).find(
+    (r) => r.title === "Hollow Knight"
+  )
+);
+ok(game?.ids?.steam === 367520, `номер Steam в отзыве (${JSON.stringify(game?.ids)})`);
+// Регрессия: номера от прошлых выборов в этой же форме (фильм, книга,
+// аниме выше) не должны прилипать к игре.
+ok(
+  JSON.stringify(Object.keys(game?.ids || {}).sort()) === JSON.stringify(["steam"]),
+  "у игры только номер Steam – номера прежних выборов из поиска убраны"
+);
 
 ok(jsErrors.length === 0, `нет ошибок JS на странице (${jsErrors.join("; ")})`);
 

@@ -220,6 +220,7 @@ const sharedBrowserGlobals = [
   "parseMalXml",
   "parsePassport",
   "parseShikimoriRates",
+  "parseSteamLibrary",
   "SHIKIMORI_ORIGIN",
   "shikimoriImage",
   "PASSPORT_FORMAT",

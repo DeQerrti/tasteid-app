@@ -46,7 +46,15 @@ const ok = (cond, msg) => {
 };
 
 const vaultDir = mkdtempSync(join(tmpdir(), "tasteid-charsfavcleanup-"));
-const port = 8971;
+// Свободный порт у системы, а не зашитый: 8971 однажды оказался занят
+// посторонней программой (игровым клиентом), и тест падал на «сервер не
+// поднялся», хотя код был ни при чём.
+const port = await new Promise((resolve) => {
+  const probe = http.createServer().listen(0, "127.0.0.1", () => {
+    const { port: free } = probe.address();
+    probe.close(() => resolve(free));
+  });
+});
 const server = spawn("node", ["scripts/serve.js", vaultDir, String(port)], {
   stdio: ["ignore", "pipe", "inherit"],
 });

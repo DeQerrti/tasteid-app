@@ -12,8 +12,12 @@
 //   фильм                       → TMDB (фильмы)
 //   сериал, дорама              → TMDB (сериалы)
 //   книга                       → Open Library
-//   игры, гача, свои типы       → источника нет
-// AniList и Open Library – открытые, без ключа. TMDB – по ключу, который
+//   игра, гача                  → Steam (через свой сервер: у Steam
+//                                 нет CORS, см. steamSearch в core/api.js)
+//   свои типы                   → источника нет
+// Аниме и манга, набранные по-русски, ищутся у Шикимори: AniList русских
+// названий не знает. Номер Шикимори = номер MAL, идёт в ids.mal.
+// AniList, Шикимори и Open Library – открытые, без ключа. TMDB – по ключу, который
 // вводится в Настройки → Импорт и хранится только на этом устройстве
 // (localStorage, см. TMDB_KEY_STORAGE в js/import.js; сам import.js в
 // одиночный add.html не подключён, поэтому ключ читается здесь напрямую).
@@ -23,7 +27,14 @@ const ED_LOOKUP_TMDB_KEY = "tasteid_tmdb_key";
 const ED_LOOKUP_TMDB = "https://api.themoviedb.org/3";
 const ED_LOOKUP_TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 const ED_LOOKUP_ANILIST = "https://graphql.anilist.co";
+const ED_LOOKUP_SHIKI = "https://shikimori.io";
+// Вертикальная обложка Steam (600×900) – такая есть почти у всех игр;
+// где её нет, берём горизонтальную шапку (см. edLookupSteamCover).
+const ED_LOOKUP_STEAM_ASSETS = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
+const ED_LOOKUP_CYRILLIC = /[а-яё]/i;
 let edLookupItems = [];
+let edLookupLastIds = {}; // номера, подставленные последним выбором из поиска
+let edLookupLastFor = null; // editingIds, к которому они относятся
 
 function edLookupTmdbKey() {
   try {
@@ -40,6 +51,7 @@ function edLookupSource(type) {
   if (type === "movie") return { id: "tmdb-movie", label: "TMDB" };
   if (type === "show" || type === "dorama") return { id: "tmdb-tv", label: "TMDB" };
   if (type === "book") return { id: "openlibrary", label: "Open Library" };
+  if (type === "game" || type === "gacha") return { id: "steam", label: "Steam" };
   return null;
 }
 
@@ -60,6 +72,14 @@ function edLookupSync() {
   } else if (src.id.startsWith("tmdb") && !edLookupTmdbKey()) {
     hint.textContent = i18n("Для фильмов и сериалов нужен ключ TMDB – его вводят один раз в Настройки → Импорт.");
     disabled = true;
+  } else if (src.id === "steam") {
+    hint.textContent = i18n("Тип «{type}» – ищем в Steam, надёжнее по английскому названию. Подставятся название, год, обложка и номер игры; игр не из Steam там не будет.", {
+      type: typeof typeLabel === "function" ? typeLabel(type) : type,
+    });
+  } else if (src.id.startsWith("anilist")) {
+    hint.textContent = i18n("Тип «{type}» – ищем в AniList, а набранное по-русски – в Шикимори. Подставятся название, год, формат, обложка и номер в базе; тип можно сменить ниже.", {
+      type: typeof typeLabel === "function" ? typeLabel(type) : type,
+    });
   } else {
     hint.textContent = i18n("Тип «{type}» – ищем в {source}. Подставятся название, год, формат, обложка и номер в базе; тип можно сменить ниже.", {
       type: typeof typeLabel === "function" ? typeLabel(type) : type,
@@ -92,7 +112,74 @@ const ED_ANILIST_QUERY = `
     }
   }`;
 
+// Шикимори: тот же вид результата, что у AniList. Ранобэ у них –
+// отдельный раздел (/api/ranobe), манга без ранобэ – /api/mangas.
+const ED_SHIKI_KIND = { manhwa: "manhwa", manhua: "manhua", light_novel: "novel", novel: "novel" };
+
+async function edLookupShikimori(src, q, type) {
+  const section = src.id === "anilist-anime" ? "animes" : type === "novel" ? "ranobe" : "mangas";
+  const params = new URLSearchParams({ search: q, limit: "10" });
+  const res = await fetch(`${ED_LOOKUP_SHIKI}/api/${section}?${params}`, { headers: { Accept: "application/json" } });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !Array.isArray(data)) throw new Error(i18n("Сервер ответил {status}", { status: res.status }));
+  return data.map((m) => {
+    const isAnime = section === "animes";
+    const n = isAnime ? m.episodes || m.episodes_aired : m.chapters;
+    const unit = isAnime
+      ? [i18n("серия"), i18n("серии"), i18n("серий")]
+      : [i18n("глава"), i18n("главы"), i18n("глав")];
+    const year = m.aired_on ? Number(String(m.aired_on).slice(0, 4)) : null;
+    const img = m.image?.original && !/missing_/.test(m.image.original) ? m.image.original : "";
+    return {
+      title: String(m.name ?? m.russian ?? ""),
+      sub: [m.russian && m.russian !== m.name ? m.russian : "", year].filter(Boolean).join(" · "),
+      year,
+      type: isAnime ? "anime" : ED_SHIKI_KIND[m.kind] || "manga",
+      format: n ? `${n} ${plural(n, unit)}` : "",
+      cover: img ? (/^https?:/.test(img) ? img : ED_LOOKUP_SHIKI + img) : "",
+      ids: { mal: m.id },
+    };
+  });
+}
+
+async function edLookupSteam(q) {
+  const res = await fetch("/api/steam-search", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ term: q }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(data.error || i18n("Сервер ответил {status}", { status: res.status }));
+  return (data.items || []).map((g) => ({
+    title: g.name,
+    sub: g.year ? String(g.year) : "",
+    year: g.year || null,
+    type: null, // игра или гача – как выбрано
+    format: "",
+    cover: `${ED_LOOKUP_STEAM_ASSETS}/${g.id}/library_600x900.jpg`,
+    coverFallback: `${ED_LOOKUP_STEAM_ASSETS}/${g.id}/header.jpg`,
+    ids: { steam: g.id },
+  }));
+}
+
+// Вертикальной обложки у старых игр Steam может не быть – проверяем
+// загрузкой картинки (как <img>, без CORS) и берём шапку, если её нет.
+function edLookupSteamCover(it) {
+  if (!it.coverFallback) return Promise.resolve(it.cover);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(it.cover);
+    img.onerror = () => resolve(it.coverFallback);
+    img.src = it.cover;
+  });
+}
+
 async function edLookupFetch(src, q) {
+  if (src.id === "steam") return edLookupSteam(q);
+  if (src.id.startsWith("anilist") && ED_LOOKUP_CYRILLIC.test(q)) {
+    return edLookupShikimori(src, q, document.getElementById("f-type")?.value);
+  }
   if (src.id.startsWith("anilist")) {
     const res = await fetch(ED_LOOKUP_ANILIST, {
       method: "POST",
@@ -182,7 +269,8 @@ async function edLookupSearch() {
     edLookupItems = await edLookupFetch(src, q);
     edLookupRender();
   } catch (err) {
-    box.innerHTML = `<div class="ed-lookup-msg err">${esc(i18n("{source} не ответил: ", { source: src.label }) + err.message)}</div>`;
+    const label = src.id.startsWith("anilist") && ED_LOOKUP_CYRILLIC.test(q) ? i18n("Шикимори") : src.label;
+    box.innerHTML = `<div class="ed-lookup-msg err">${esc(i18n("{source} не ответил: ", { source: label }) + err.message)}</div>`;
   } finally {
     btn.disabled = false;
   }
@@ -197,7 +285,7 @@ function edLookupRender() {
   box.innerHTML = edLookupItems
     .map(
       (it, i) => `<button type="button" class="ed-lookup-item" onclick="edLookupApply(${i})">
-        ${it.cover ? `<img src="${esc(it.cover)}" alt="" loading="lazy">` : `<span class="ed-lookup-nocover">?</span>`}
+        ${it.cover ? `<img src="${esc(it.cover)}" alt="" loading="lazy"${it.coverFallback ? ` onerror="this.onerror=null;this.src='${esc(it.coverFallback)}'"` : ""}>` : `<span class="ed-lookup-nocover">?</span>`}
         <span class="ed-lookup-title">${esc(it.title)}</span>
         ${it.sub ? `<span class="ed-lookup-sub">${esc(it.sub)}</span>` : ""}
       </button>`
@@ -205,26 +293,44 @@ function edLookupRender() {
     .join("");
 }
 
-function edLookupApply(index) {
+async function edLookupApply(index) {
   const it = edLookupItems[index];
   if (!it) return;
+  const cover = await edLookupSteamCover(it);
   if (it.title) document.getElementById("f-title").value = it.title;
   if (it.year) document.getElementById("f-year").value = String(it.year);
   if (it.format && !document.getElementById("f-format").value.trim()) {
     document.getElementById("f-format").value = it.format;
   }
   if (it.type && it.type !== document.getElementById("f-type").value) selectTypePicker(it.type);
-  if (it.cover) {
+  if (cover) {
     openCoverPanel();
-    const cover = document.getElementById("f-cover");
-    cover.value = it.cover;
+    document.getElementById("f-cover").value = cover;
     document.getElementById("f-cover-backup").value = "";
-    previewCover(it.cover);
+    previewCover(cover);
     scheduleBackupCover();
   }
   // Номера в базах – к уже сохранённым, ничего не затирая (mergeIds,
   // js/external-ids.js); при сохранении их подхватит saveReview().
-  editingIds = mergeIds(editingIds, it.ids);
+  //
+  // Но номера, которые подставил ПРЕДЫДУЩИЙ выбор из поиска в этой же
+  // форме, сначала убираем: выбрал не тот тайтл, потом нужный – раньше
+  // у отзыва оставались номера обоих (у игры – номер фильма и книги), и
+  // импорт со сравнением паспортов сходились бы с чужой записью.
+  // edLookupLastFor – тот самый объект editingIds после прошлого выбора:
+  // форма открыла другую запись (editingIds заменён) – чистить нечего.
+  let base = editingIds;
+  if (edLookupLastFor && edLookupLastFor === editingIds) {
+    base = { ...editingIds };
+    for (const [key, value] of Object.entries(edLookupLastIds)) {
+      if (base[key] === value) delete base[key];
+    }
+  }
+  editingIds = mergeIds(base, it.ids);
+  edLookupLastIds = Object.fromEntries(
+    Object.entries(it.ids || {}).filter(([key, value]) => base[key] === undefined && editingIds[key] === value)
+  );
+  edLookupLastFor = editingIds;
   document.getElementById("ed-lookup-results").innerHTML = "";
   markAddDirty();
   renderEdPreview();

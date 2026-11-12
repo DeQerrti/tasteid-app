@@ -225,6 +225,7 @@ async function importReviews({ vault, body }) {
 
   let maxId = list.reduce((m, r) => Math.max(m, r.id ?? 0), 0);
   let added = 0;
+  const addedIds = []; // для резервных копий обложек после переноса (setCoverBackups)
   let updated = 0;
 
   for (const raw of incoming) {
@@ -238,6 +239,7 @@ async function importReviews({ vault, body }) {
         "hardcover_edition",
         "goodreads",
         "isbn13",
+        "steam",
       ]) {
         const value = num(raw.ids[key]);
         if (value) ids[key] = value;
@@ -307,10 +309,42 @@ async function importReviews({ vault, body }) {
     const fresh = list[list.length - 1];
     for (const key of keysOf(fresh)) if (!index.has(key)) index.set(key, fresh);
     added++;
+    addedIds.push(maxId);
   }
 
   if (added || updated) await vault.writeJson("reviews.json", sortReviews(list));
-  return { ok: true, added, updated };
+  return { ok: true, added, updated, added_ids: addedIds };
+}
+
+// Резервные копии обложек после импорта – пачкой, одной записью файла.
+// Сами картинки скачивает /api/backup-cover (по одной, как редактор);
+// сюда приходит только «у отзыва id копия такая-то». Сохранять каждый
+// отзыв отдельно через /api/save-review нельзя: импорт – это сотни
+// записей, и каждая переписала бы reviews.json и оставила свою версию
+// в истории.
+//
+// Ставим копию, только если обложка за это время не сменилась и копии
+// ещё нет: человек мог открыть отзыв и поставить свою, пока шёл импорт.
+async function setCoverBackups({ vault, body }) {
+  const items = Array.isArray(body?.items) ? body.items : [];
+  const byId = new Map();
+  for (const it of items) {
+    if (it && it.id !== undefined && typeof it.cover === "string" && str(it.cover_backup)) {
+      // Только свои же копии – путь в covers-backup, без выхода из папки.
+      if (/^\/covers-backup\/[^/]+$/.test(it.cover_backup)) byId.set(String(it.id), it);
+    }
+  }
+  if (!byId.size) return { ok: true, updated: 0 };
+  const list = await vault.readJson("reviews.json", []);
+  let updated = 0;
+  for (const r of list) {
+    const it = byId.get(String(r.id));
+    if (!it || r.cover !== it.cover || r.cover_backup) continue;
+    r.cover_backup = it.cover_backup;
+    updated++;
+  }
+  if (updated) await vault.writeJson("reviews.json", list);
+  return { ok: true, updated };
 }
 
 // ── Любимое ────────────────────────────────────
@@ -829,6 +863,174 @@ async function fetchMalUserList({ body, malHttpGet }) {
     );
   }
   return { ok: true, ...result, truncated };
+}
+
+// ── Steam: поиск игры по названию и библиотека профиля ──
+// У Steam нет заголовков CORS ни у магазина, ни у Web API – со страницы
+// их не спросить, поэтому запросы идут отсюда, тем же путём, что список
+// MyAnimeList выше: на компьютере обычный fetch в Node, на телефоне –
+// malHttpGet из mobile/src/main.js (нативный CapacitorHttp). Имя
+// параметра историческое: это просто «GET мимо CORS», не только для MAL.
+//
+// Поиск – открытый (магазин, без ключа). Библиотека – только по ключу
+// Steam Web API: ключ вводит человек, он хранится в localStorage его
+// устройства (как ключ TMDB, см. js/import.js) и приходит сюда в теле
+// запроса. Ни в файлы хранилища, ни в журнал он не пишется.
+const STEAM_STORE_API = "https://store.steampowered.com/api";
+const STEAM_WEB_API = "https://api.steampowered.com";
+const STEAM_SEARCH_LIMIT = 10;
+
+async function steamGetJson(httpGet, url) {
+  let status, text;
+  try {
+    ({ status, text } = await httpGet(url));
+  } catch {
+    throw new ApiError(
+      "Не получилось достучаться до Steam. Проверьте интернет и попробуйте ещё раз.",
+      502
+    );
+  }
+  let data = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    // не JSON – ниже решаем по статусу
+  }
+  return { status, data };
+}
+
+// Год выхода – из карточки игры в магазине («24 Apr, 2025»; у будущих
+// бывает «Coming soon» или «Q3 2026» – тогда год, если он там есть).
+function steamYear(details) {
+  const m = /\b(19|20)\d{2}\b/.exec(details?.release_date?.date || "");
+  return m ? Number(m[0]) : null;
+}
+
+// «Stellar Blade™» → «Stellar Blade»: знаки марки в названии отзыва ни к чему.
+const steamName = (name) =>
+  String(name || "")
+    .replace(/[™®©]/g, "")
+    .trim();
+
+async function steamSearch({ body, malHttpGet }) {
+  const term = typeof body?.term === "string" ? body.term.trim().slice(0, 200) : "";
+  if (!term) throw new ApiError("Нужно название");
+  const httpGet = malHttpGet || defaultMalHttpGet;
+
+  // l=english – названия как у остальных игр в паспорте (латиницей).
+  // По-русски Steam ищет через раз (проверено: один и тот же запрос
+  // «ведьмак» то находит The Witcher 3, то ничего) – подсказка в
+  // редакторе советует английское название.
+  const search = await steamGetJson(
+    httpGet,
+    `${STEAM_STORE_API}/storesearch/?term=${encodeURIComponent(term)}&l=english&cc=US`
+  );
+  if (search.status < 200 || search.status >= 300 || !search.data) {
+    throw new ApiError(`Steam ответил ${search.status}. Попробуйте ещё раз через минуту.`, 502);
+  }
+  const apps = (search.data.items || [])
+    .filter((it) => it && it.type === "app" && Number(it.id))
+    .slice(0, STEAM_SEARCH_LIMIT);
+
+  // В поиске вперемешку игры, саундтреки и дополнения, а года нет вовсе –
+  // спрашиваем карточку каждой (параллельно). Оставляем только игры;
+  // карточка не ответила – оставляем как есть, без года.
+  const details = await Promise.all(
+    apps.map(async (it) => {
+      try {
+        const r = await steamGetJson(
+          httpGet,
+          `${STEAM_STORE_API}/appdetails?appids=${Number(it.id)}&filters=basic,release_date&l=english`
+        );
+        return r.data?.[it.id]?.success ? r.data[it.id].data : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return {
+    ok: true,
+    items: apps
+      .map((it, i) => ({ it, d: details[i] }))
+      .filter(({ d }) => !d || d.type === "game")
+      .map(({ it, d }) => ({
+        id: Number(it.id),
+        name: steamName(d?.name || it.name),
+        year: steamYear(d),
+      })),
+  };
+}
+
+// Ссылка на профиль, «короткое имя» из неё или 17-значный номер.
+function parseSteamProfile(input) {
+  const s = String(input || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const byId = /(?:^|\/profiles\/)(7656\d{13})$/.exec(s);
+  if (byId) return { steamid: byId[1] };
+  const vanity = /(?:steamcommunity\.com\/id\/)?([A-Za-z0-9_-]{2,64})$/.exec(s);
+  return vanity ? { vanity: vanity[1] } : null;
+}
+
+async function steamLibrary({ body, malHttpGet }) {
+  const key = typeof body?.key === "string" ? body.key.trim() : "";
+  if (!/^[0-9A-Fa-f]{32}$/.test(key)) {
+    throw new ApiError(
+      "Ключ Steam – 32 знака из цифр и букв A–F. Проверьте, что он скопирован целиком."
+    );
+  }
+  const profile = parseSteamProfile(body?.profile);
+  if (!profile) throw new ApiError("Нужна ссылка на профиль Steam или его номер");
+  const httpGet = malHttpGet || defaultMalHttpGet;
+  const keyError = (status) =>
+    status === 401 || status === 403
+      ? new ApiError("Steam не принял ключ. Проверьте, что он скопирован целиком.", 400)
+      : null;
+
+  let steamid = profile.steamid;
+  if (!steamid) {
+    const r = await steamGetJson(
+      httpGet,
+      `${STEAM_WEB_API}/ISteamUser/ResolveVanityURL/v1/?key=${key}&vanityurl=${encodeURIComponent(profile.vanity)}`
+    );
+    const bad = keyError(r.status);
+    if (bad) throw bad;
+    steamid = r.data?.response?.success === 1 ? r.data.response.steamid : null;
+    if (!steamid) {
+      throw new ApiError(
+        `Steam не знает профиль «${profile.vanity}». Вставьте ссылку на профиль целиком.`
+      );
+    }
+  }
+
+  const r = await steamGetJson(
+    httpGet,
+    `${STEAM_WEB_API}/IPlayerService/GetOwnedGames/v1/?key=${key}&steamid=${steamid}&include_appinfo=1&include_played_free_games=1`
+  );
+  const bad = keyError(r.status);
+  if (bad) throw bad;
+  if (r.status < 200 || r.status >= 300 || !r.data) {
+    throw new ApiError(`Steam ответил ${r.status}. Попробуйте ещё раз через минуту.`, 502);
+  }
+  // Закрытая «Игровая информация» – Steam отвечает 200 с пустым
+  // response, без списка игр и без объяснения.
+  const games = r.data.response?.games;
+  if (!Array.isArray(games)) {
+    throw new ApiError(
+      "Steam не показывает игры этого профиля – откройте «Игровую информацию» в настройках приватности профиля."
+    );
+  }
+  return {
+    ok: true,
+    games: games
+      .filter((g) => Number(g.appid) && g.name)
+      .map((g) => ({
+        appid: Number(g.appid),
+        name: steamName(g.name),
+        minutes: Number(g.playtime_forever) || 0,
+        lastPlayed: Number(g.rtime_last_played) || 0,
+      })),
+  };
 }
 
 // Удаление файла обложки – резервной копии, которую заменила новая
@@ -1390,6 +1592,7 @@ export const ROUTES = {
   "POST /api/save-review": saveReview,
   "POST /api/delete-review": deleteReview,
   "POST /api/import-reviews": importReviews,
+  "POST /api/set-cover-backups": setCoverBackups,
   "POST /api/save-favorite": saveFavorite,
   "POST /api/save-chars-tier": saveCharsTier,
   "POST /api/delete-tier-collection": deleteTierCollection,
@@ -1403,6 +1606,8 @@ export const ROUTES = {
   "POST /api/compress-folder": compressFolder,
   "POST /api/backup-cover": backupCover,
   "POST /api/fetch-mal-list": fetchMalUserList,
+  "POST /api/steam-search": steamSearch,
+  "POST /api/steam-library": steamLibrary,
   "POST /api/delete-media": deleteMedia,
   "POST /api/repair-cover-references": repairCoverReferences,
   "POST /api/migrate-preview": migratePreview,

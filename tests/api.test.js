@@ -1522,3 +1522,155 @@ test("картинка с двумя точками в имени читаетс
     }
   });
 });
+
+// ── Steam (core/api.js, steamSearch / steamLibrary) ──
+// В настоящий Steam тест не ходит: malHttpGet – «GET мимо CORS» –
+// подменяется заглушкой, как у списка MyAnimeList выше.
+
+test("поиск игры в Steam: только игры, год из карточки, без знаков марки", async () => {
+  const steamSearch = ROUTES["POST /api/steam-search"];
+  const malHttpGet = async (url) => {
+    if (url.includes("/storesearch/")) {
+      return {
+        status: 200,
+        text: JSON.stringify({
+          items: [
+            { type: "app", id: 1, name: "Stellar Blade™" },
+            { type: "app", id: 2, name: "Stellar Blade OST" },
+            { type: "sub", id: 3, name: "Bundle" },
+          ],
+        }),
+      };
+    }
+    const id = new URL(url).searchParams.get("appids");
+    const data =
+      id === "1"
+        ? { type: "game", name: "Stellar Blade™", release_date: { date: "25 Apr, 2024" } }
+        : { type: "music", name: "Stellar Blade OST", release_date: { date: "Coming soon" } };
+    return { status: 200, text: JSON.stringify({ [id]: { success: true, data } }) };
+  };
+  const result = await steamSearch({ body: { term: "stellar" }, malHttpGet });
+  assert.deepEqual(result.items, [{ id: 1, name: "Stellar Blade", year: 2024 }]);
+});
+
+test("библиотека Steam: ник из ссылки, понятные ошибки на ключ и закрытый профиль", async () => {
+  const steamLibrary = ROUTES["POST /api/steam-library"];
+  const key = "a".repeat(32);
+  const asked = [];
+  const ok = async (url) => {
+    asked.push(url);
+    if (url.includes("ResolveVanityURL")) {
+      return {
+        status: 200,
+        text: JSON.stringify({ response: { success: 1, steamid: "76561197960287930" } }),
+      };
+    }
+    return {
+      status: 200,
+      text: JSON.stringify({
+        response: {
+          games: [{ appid: 10, name: "Half-Life™", playtime_forever: 90, rtime_last_played: 5 }],
+        },
+      }),
+    };
+  };
+  const res = await steamLibrary({
+    body: { key, profile: "https://steamcommunity.com/id/gaben/" },
+    malHttpGet: ok,
+  });
+  assert.deepEqual(res.games, [{ appid: 10, name: "Half-Life", minutes: 90, lastPlayed: 5 }]);
+  assert.ok(asked[0].includes("vanityurl=gaben"), "короткое имя взято из ссылки");
+  assert.ok(asked[1].includes("steamid=76561197960287930"));
+
+  // Номер профиля в ссылке – без лишнего запроса на «короткое имя».
+  asked.length = 0;
+  await steamLibrary({
+    body: { key, profile: "steamcommunity.com/profiles/76561197960287930" },
+    malHttpGet: ok,
+  });
+  assert.equal(asked.length, 1);
+
+  await assert.rejects(
+    () => steamLibrary({ body: { key: "short", profile: "x1" }, malHttpGet: ok }),
+    /32 знака/
+  );
+  await assert.rejects(
+    () =>
+      steamLibrary({
+        body: { key, profile: "76561197960287930" },
+        malHttpGet: async () => ({ status: 403, text: "Forbidden" }),
+      }),
+    /не принял ключ/
+  );
+  // Закрытая «Игровая информация»: 200 и пустой response.
+  await assert.rejects(
+    () =>
+      steamLibrary({
+        body: { key, profile: "76561197960287930" },
+        malHttpGet: async () => ({ status: 200, text: '{"response":{}}' }),
+      }),
+    /Игровую информацию/
+  );
+});
+
+// ── Копии обложек после импорта (set-cover-backups) ──
+
+test("импорт возвращает номера новых записей и сохраняет номер Steam", async () => {
+  await withServer(async ({ api }) => {
+    await api("POST", "/api/save-review", { title: "Old", type: "game", status: "completed" });
+    const { data } = await api("POST", "/api/import-reviews", {
+      items: [
+        { title: "Old", type: "game", status: "completed" },
+        {
+          title: "Half-Life",
+          type: "game",
+          status: "completed",
+          cover: "https://x.invalid/a.jpg",
+          ids: { steam: 70 },
+        },
+      ],
+    });
+    assert.equal(data.added, 1);
+    assert.equal(data.added_ids.length, 1);
+    const list = await (await api("GET", "/reviews.json")).data;
+    const hl = list.find((r) => r.title === "Half-Life");
+    assert.equal(hl.id, data.added_ids[0]);
+    assert.deepEqual(hl.ids, { steam: 70 });
+  });
+});
+
+test("копии обложек пачкой: только к своей же обложке, не поверх уже сделанной копии и только из covers-backup", async () => {
+  await withServer(async ({ api }) => {
+    const { data } = await api("POST", "/api/import-reviews", {
+      items: [
+        { title: "A", type: "anime", status: "completed", cover: "https://x.invalid/a.jpg" },
+        { title: "B", type: "anime", status: "completed", cover: "https://x.invalid/b.jpg" },
+        { title: "C", type: "anime", status: "completed", cover: "https://x.invalid/c.jpg" },
+      ],
+    });
+    const list0 = (await api("GET", "/reviews.json")).data;
+    const id = (t) => list0.find((r) => r.title === t).id;
+    // Пока шёл импорт, человек сменил обложку у B – копию старой не ставим.
+    const b = list0.find((r) => r.title === "B");
+    await api("POST", "/api/save-review", {
+      ...b,
+      cover: "https://x.invalid/mine.jpg",
+      _editId: b.id,
+    });
+
+    const res = await api("POST", "/api/set-cover-backups", {
+      items: [
+        { id: id("A"), cover: "https://x.invalid/a.jpg", cover_backup: "/covers-backup/a-1.webp" },
+        { id: id("B"), cover: "https://x.invalid/b.jpg", cover_backup: "/covers-backup/b-1.webp" },
+        { id: id("C"), cover: "https://x.invalid/c.jpg", cover_backup: "/../reviews.json" },
+      ],
+    });
+    assert.equal(res.data.updated, 1);
+    const list = (await api("GET", "/reviews.json")).data;
+    const by = (t) => list.find((r) => r.title === t);
+    assert.equal(by("A").cover_backup, "/covers-backup/a-1.webp");
+    assert.equal(by("B").cover_backup, null, "обложку сменили – копия старой не ставится");
+    assert.equal(by("C").cover_backup, null, "путь не из covers-backup отвергнут");
+    assert.equal(data.added, 3);
+  });
+});

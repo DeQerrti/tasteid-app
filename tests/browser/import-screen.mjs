@@ -106,6 +106,54 @@ ok(
 await page.click("#imp-cancel");
 await page.waitForSelector(".imp-card");
 
+console.log("Steam: библиотека по ключу");
+let steamBody = null;
+await page.route(`${base}/api/steam-library`, (route) => {
+  steamBody = route.request().postDataJSON();
+  route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({
+      ok: true,
+      games: [
+        { appid: 10, name: "Half-Life", minutes: 600, lastPlayed: 1 },
+        { appid: 20, name: "Portal", minutes: 0, lastPlayed: 0 },
+      ],
+    }),
+  });
+});
+await page.click('[data-imp-open="steam"]');
+await page.fill("#imp-steam-key", "a".repeat(32));
+await page.fill("#imp-steam-user", "https://steamcommunity.com/id/someone/");
+await page.click("#imp-steam-go");
+await page.waitForSelector("#imp-run", { timeout: 15000 });
+ok(
+  steamBody?.profile === "https://steamcommunity.com/id/someone/",
+  "ключ и ссылка ушли своему серверу"
+);
+const statusText = await page.locator(".imp-from").allTextContents();
+ok(
+  statusText.some((t) => t.includes("Запускали")) &&
+    statusText.some((t) => t.includes("Ни разу не запускали")),
+  "у Steam свои подписи статусов: запускали / ни разу не запускали"
+);
+// Копии обложек тянули бы настоящий Steam с сервера – в тесте выключаем.
+await page.uncheck("#imp-backup-covers");
+await page.selectOption('[data-status="plantowatch"]', "");
+await page.click("#imp-run");
+await page.waitForSelector("#imp-again", { timeout: 15000 });
+const games = await page.evaluate(async () =>
+  (await fetch("/reviews.json?_=" + Date.now())).json()
+);
+const hl = games.find((r) => r.title === "Half-Life");
+ok(hl?.type === "game" && hl?.ids?.steam === 10, "игра заведена с номером Steam");
+ok((hl?.cover || "").includes("/10/library_600x900.jpg"), "обложка – вертикальная из Steam");
+ok(!games.some((r) => r.title === "Portal"), "нетронутые не импортированы, раз так выбрано");
+ok(
+  await page.evaluate(() => localStorage.getItem("tasteid_steam_key") === "a".repeat(32)),
+  "ключ запомнен на этом устройстве"
+);
+await page.click("#imp-again");
+
 console.log("Телефон");
 // На телефоне настройки начинаются со списка разделов – открываем заново.
 const phone = await browser.newPage({ viewport: { width: 375, height: 812 } });
