@@ -1425,6 +1425,19 @@ section.group { margin-bottom: 3.5rem; }
 .tl-row-empty .tl-label-name { font-size: .85rem; opacity: .75; }
 .tl-row-empty .tl-cards { min-height: 0; padding-top: .3rem; padding-bottom: .3rem; }
 .tl-row-empty .tl-empty { padding: 0; font-size: .8rem; }
+
+/* Классическая тема угловатая (вкладки, фильтры, метки тиров – 1–2px):
+   круглые «таблетки» чипов и скруглённые кнопки в ней выбивались.
+   Чипы те же, что в «Статусах» (.now-chip), – там они становятся
+   угловатыми тоже, чтобы оба раздела выглядели одинаково. Другие темы
+   оставляют своё скругление. */
+:is(html:not([data-skin]), html[data-skin^="classic"]) .now-chip,
+:is(html:not([data-skin]), html[data-skin^="classic"]) .tl-tool-btn,
+:is(html:not([data-skin]), html[data-skin^="classic"]) #tab-tierlist .tl-head-tools .admin-add-btn,
+:is(html:not([data-skin]), html[data-skin^="classic"]) .tl-head-tools #tl-export-btn,
+:is(html:not([data-skin]), html[data-skin^="classic"]) .tl-size-pop,
+:is(html:not([data-skin]), html[data-skin^="classic"]) .now-search,
+:is(html:not([data-skin]), html[data-skin^="classic"]) .now-sort { border-radius: 2px; }
 .tl-filter {
   font-family: 'DM Sans', sans-serif;
   font-size: .62rem;
@@ -2115,7 +2128,7 @@ section.group { margin-bottom: 3.5rem; }
      а не засечным текстом в рамке – так это читается кнопкой. */
   :is(html:not([data-skin]), html[data-skin^="classic"]) #tl-add-collection-btn {
     display: inline-flex; align-items: center; height: 32px; box-sizing: border-box;
-    padding: 0 .8rem; border-radius: 4px; border-color: var(--border2);
+    padding: 0 .8rem; border-radius: 2px; border-color: var(--border2);
     font-family: 'DM Sans', sans-serif; font-size: .8rem; font-weight: 400; color: var(--text);
   }
   :is(html:not([data-skin]), html[data-skin^="classic"]) #tl-add-collection-btn:hover {
