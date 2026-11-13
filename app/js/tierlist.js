@@ -22,6 +22,24 @@ function tlTypeLabel(type) { return TYPE_LABELS[type] || type || "–"; }
 // Высота постеров персонажей – сохраняется между переключениями
 let tlCharHeight = parseInt(localStorage.getItem("tl-char-height") || "200");
 
+// «Подписи» – названия под обложками тайтлов и имена поверх низа
+// картинок персонажей. Без них имя было видно только в подсказке при
+// наведении (на телефоне – по тапу), а у обложек-артов без надписи
+// тайтл не узнать вовсе. По умолчанию выключено: стена обложек без
+// текста – привычный вид тир-листа. Класс вешается на сам #tab-tierlist
+// (tlRender его не пересоздаёт), так что переключение не перерисовывает
+// разметку.
+let tlCaptions = false;
+try {
+  tlCaptions = localStorage.getItem("tl-captions") === "1";
+} catch {
+  // Приватный режим – просто не запомнится.
+}
+
+function tlCaptionsBtnHtml() {
+  return `<button type="button" class="tl-tool-btn tl-captions-btn${tlCaptions ? " active" : ""}" aria-pressed="${tlCaptions}">${i18n("Подписи")}</button>`;
+}
+
 const tlState = {
   mode:        "titles",
   filter:      "all",
@@ -226,6 +244,7 @@ async function loadCharGames(collectionId) {
 
 function tlRender() {
   const box = document.getElementById("tab-tierlist");
+  box.classList.toggle("tl-captions", tlCaptions);
   box.innerHTML = tlModeToggleHtml()
     + (tlState.mode === "titles" ? tlTitlesHtml() : tlCharsHtml(tlState.mode));
   tlBindAll();
@@ -268,7 +287,7 @@ function tlModeToggleHtml() {
     })
     .join("");
   const addBtn = isAdmin()
-    ? `<button class="tl-mode-add-btn" id="tl-add-collection-btn" type="button" title="${i18n("Новый тир-лист")}">${i18n("Создать")}</button>`
+    ? `<button class="tl-mode-add-btn" id="tl-add-collection-btn" type="button">${i18n("Новый тир-лист")}</button>`
     : "";
   // "Персонажи" встроены изначально, но не запись в tierCollections –
   // как только конфиг существует и её там нет, это значит её удалили
@@ -331,30 +350,43 @@ function tlTitlesHtml() {
     byGrade[g].push(item);
   }
 
+  // Счётчики у чипов типов – по тому, что осталось после фильтра года
+  // (тип при этом не учитывается: иначе у всех чипов, кроме выбранного,
+  // стояло бы 0).
+  const byYear = tlState.yearFilter === "all"
+    ? tlState.items
+    : tlState.items.filter(item => String(statsCompletedYear(item.review) || "") === String(tlState.yearFilter));
+
   const hasAny = TIER_ROWS.some(t => byGrade[t.key]?.length);
   const exportBtn = cameraButton(`tlExport('tl-titles-rows', '${esc(siteLabel("sections", "tierTitles", i18n("Тайтлы")))}')`, "tl-export-btn");
   // flex-wrap только на внутреннем ряду с фильтрами, а не на всём
-  // верхнем ряду разом: иначе на узком экране кнопка целиком уезжала
-  // на отдельную строку под фильтрами. align-items: flex-start вместо
-  // center – когда сами фильтры переносятся на два ряда (обычное дело
-  // на телефоне с несколькими типами), кнопка не должна центрироваться
-  // по высоте всего блока фильтров и съезжать вниз – она должна
-  // остаться на одном уровне с первой строкой, как остальные элементы.
-  let html = `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.5rem">
-    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">${tlFiltersHtml()}${tlYearFiltersHtml(byType)}</div>
-    <div style="flex-shrink:0">${exportBtn}</div>
-  </div>`;
+  // верхнем ряду разом: иначе на узком экране кнопки справа целиком
+  // уезжали на отдельную строку под фильтрами. align-items: flex-start
+  // вместо center – когда сами фильтры переносятся на два ряда (обычное
+  // дело на телефоне с несколькими типами), кнопки не должны
+  // центрироваться по высоте всего блока фильтров и съезжать вниз.
+  // Годы – отдельной тихой строкой под типами (tlYearFiltersHtml).
+  let html = `<div class="tl-head-row">
+    ${tlFiltersHtml(byYear)}
+    <div class="tl-head-tools">${tlCaptionsBtnHtml()}${exportBtn}</div>
+  </div>
+  ${tlYearFiltersHtml(byType)}`;
 
   if (!hasAny) {
     return html + `<div class="state-box" style="padding-top:2rem">${i18n("Ничего не найдено")}</div>`;
   }
+
+  // Номер записи в tlState.items – по нему клик по обложке находит
+  // отзыв. Не название: у owner'а бывают отзывы с одинаковым названием
+  // (сезоны одного тайтла).
+  const itemIdx = new Map(tlState.items.map((item, i) => [item, i]));
 
   html += `<div class="tl-rows" id="tl-titles-rows">`;
   for (let ti = 0; ti < TIER_ROWS.length; ti++) {
     const tier  = TIER_ROWS[ti];
     const items = byGrade[tier.key] || [];
 
-    html += `<div class="tl-row" style="--tl-color:${tier.color};animation-delay:${ti * 50}ms">
+    html += `<div class="tl-row${items.length ? "" : " tl-row-empty"}" style="--tl-color:${tier.color};animation-delay:${ti * 50}ms">
       <div class="tl-label">
         <div class="tl-label-dot"></div>
         <div class="tl-label-name">${esc(tier.label)}</div>
@@ -370,6 +402,7 @@ function tlTitlesHtml() {
         const placeholder = imagePlaceholder(72, 108, r.title.slice(0, 2));
         const src = poster || posterBackup || placeholder;
         html += `<div class="tl-poster"
+            data-tl-idx="${itemIdx.get(items[i])}"
             data-tl-title="${esc(r.title)}"
             data-tl-grade="${esc(tier.label)}"
             data-tl-color="${esc(tier.color)}"
@@ -401,22 +434,33 @@ function tlPresentTypes() {
   return [...known, ...rest];
 }
 
-function tlFiltersHtml() {
+// Чипы – те же .now-chip, что у типов в «Статусах» (js/now.js): одни и
+// те же данные не должны выглядеть в двух разделах по-разному, и в
+// каждой теме чипы уже настроены там.
+function tlFiltersHtml(itemsForCounts) {
   const types = tlPresentTypes();
 
   // Один-единственный тип – выбирать не из чего, панель только мешает
   if (types.length < 2) return "";
 
+  const counts = {};
+  for (const item of itemsForCounts) {
+    const t = tlInferType(item.review);
+    counts[t] = (counts[t] || 0) + 1;
+  }
   const all = siteLabel("filters", "all", i18n("Всё"));
   const btns = [["all", all], ...types.map((t) => [t, tlTypeLabel(t)])]
-    .map(
-      ([val, label]) =>
-        `<button class="tl-filter${tlState.filter === val ? " active" : ""}" data-tl-type="${esc(val)}">${esc(label)}</button>`
-    )
+    .map(([val, label]) => {
+      const n = val === "all" ? itemsForCounts.length : counts[val] || 0;
+      return `<button type="button" class="now-chip${tlState.filter === val ? " active" : ""}" data-tl-type="${esc(val)}">${esc(label)} <span class="section-count">${n}</span></button>`;
+    })
     .join("");
   return `<div class="tl-filters">${btns}</div>`;
 }
 
+// Годы – строкой текста под типами, а не выпадающим списком: год
+// выбирают часто («итоги года»), и через список это был лишний клик
+// плюс не было видно, какие годы вообще есть.
 function tlYearFiltersHtml(itemsForYearScope) {
   const years = [...new Set(
     itemsForYearScope.map(item => statsCompletedYear(item.review)).filter(Boolean)
@@ -424,14 +468,10 @@ function tlYearFiltersHtml(itemsForYearScope) {
 
   if (!years.length) return "";
 
-  const options = [`<option value="all">${i18n("Все года")}</option>`]
-    .concat(years.map(y =>
-      `<option value="${y}"${String(tlState.yearFilter) === String(y) ? " selected" : ""}>${y}</option>`
-    )).join("");
-
-  return `<div class="tl-year-select-wrap">
-    <select class="tl-year-select" id="tl-year-select">${options}</select>
-  </div>`;
+  const cur = String(tlState.yearFilter);
+  const btn = (value, label) =>
+    `<button type="button" class="tl-year${cur === String(value) ? " active" : ""}" data-tl-year-btn="${value}">${label}</button>`;
+  return `<div class="tl-years">${btn("all", i18n("Все годы"))}${years.map(y => btn(y, y)).join("")}</div>`;
 }
 
 // ══ РЕЖИМ ПЕРСОНАЖЕЙ ══════════════════════════
@@ -461,7 +501,7 @@ function tlCharsHtml(collectionId) {
   const list = lists.find(l => l.id === tlState.listId) || lists[0];
 
   const gameButtons = games.map(g =>
-    `<button class="tl-filter${g.id === game.id ? " active" : ""}" data-char-game="${esc(g.id)}">${esc(g.title)}</button>`
+    `<button type="button" class="now-chip${g.id === game.id ? " active" : ""}" data-char-game="${esc(g.id)}">${esc(g.title)}</button>`
   ).join("");
 
   const listButtons = lists.length > 1
@@ -479,7 +519,7 @@ function tlCharsHtml(collectionId) {
     const tier  = tiers[ti];
     const chars = tier.chars || [];
 
-    tiersHtml += `<div class="tl-row" style="--tl-color:${esc(tier.color)};animation-delay:${ti * 50}ms">
+    tiersHtml += `<div class="tl-row${chars.length ? "" : " tl-row-empty"}" style="--tl-color:${esc(tier.color)};animation-delay:${ti * 50}ms">
       <div class="tl-label">
         <div class="tl-label-dot"></div>
         <div class="tl-label-name">${esc(tier.name)}</div>
@@ -515,21 +555,24 @@ function tlCharsHtml(collectionId) {
 
   const exportBtn = cameraButton(`tlExport('tl-chars-rows', '${esc(game.title)}')`, "tl-export-btn");
 
-  // Ползунок размера – теперь до 1000px
-  const slider = `<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem">
-    <span style="font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">${i18n("Размер")}</span>
-    <input type="range" min="80" max="1000" value="${tlCharHeight}" step="10"
-      id="tl-char-size-slider"
-      style="flex:1;max-width:200px;accent-color:var(--red);cursor:pointer">
-    <span id="tl-char-size-val" style="font-family:'DM Sans',sans-serif;font-size:.65rem;color:var(--text-dim);min-width:42px">${tlCharHeight}px</span>
+  // Ползунок размера (до 1000px) – настройка, а не частое действие:
+  // раньше он занимал свою строку над тирами, теперь спрятан за кнопку
+  // «⇕ 200px» и открывается всплывающим окном (tlBindAll).
+  const size = `<div class="tl-size">
+    <button type="button" class="tl-tool-btn" id="tl-size-btn" aria-expanded="false" title="${i18n("Размер")}">⇕ <span id="tl-char-size-val">${tlCharHeight}px</span></button>
+    <div class="tl-size-pop" id="tl-size-pop" hidden>
+      <span class="tl-size-lbl">${i18n("Размер")}</span>
+      <input type="range" min="80" max="1000" value="${tlCharHeight}" step="10" id="tl-char-size-slider" aria-label="${i18n("Размер")}">
+    </div>
   </div>`;
 
-  return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.5rem">
-    <div class="tl-filters">${gameButtons}</div>
-    <div style="display:flex;gap:.5rem;flex-shrink:0">${adminBtn}${exportBtn}</div>
+  // Игры – одной строкой с прокруткой (у owner'а их десяток, переносом
+  // они съедали два-три ряда); списки игры и размер – второй строкой.
+  return `<div class="tl-head-row">
+    <div class="tl-filters tl-games">${gameButtons}</div>
+    <div class="tl-head-tools">${adminBtn}${tlCaptionsBtnHtml()}${exportBtn}</div>
   </div>
-  ${listButtons}
-  ${slider}
+  <div class="tl-char-sub">${listButtons}${size}</div>
   ${tiersHtml}
   ${tlTooltipHtml()}`;
 }
@@ -549,7 +592,13 @@ function tlBindAll() {
   const addBtn = document.getElementById("tl-add-collection-btn");
   if (addBtn) addBtn.addEventListener("click", openCollectionModal);
 
-  document.querySelectorAll(".tl-mode-btn").forEach(btn => {
+  const box = document.getElementById("tab-tierlist");
+
+  // Только свои кнопки: .tl-mode-btn – общий класс вкладок «Статусов» и
+  // «Любимого» тоже, и без #tab-tierlist этот обработчик садился и на
+  // них – клик по «Архиву» в «Статусах» переключал тир-лист в режим
+  // «archive» и шёл читать несуществующий tier-archive.json.
+  box.querySelectorAll(".tl-mode-btn").forEach(btn => {
     btn.addEventListener("click", async () => {
       const newMode = btn.dataset.mode;
       if (newMode !== "titles" && !tlState.collections[newMode]?.loaded) {
@@ -557,7 +606,6 @@ function tlBindAll() {
         tlState.mode = newMode;
         tlState.gameId = null;
         tlState.listId = null;
-        const box = document.getElementById("tab-tierlist");
         box.innerHTML = tlModeToggleHtml()
           + `<div class="state-box"><div class="spinner"></div>Загружаем «${esc(label)}»…</div>`;
         await loadCharGames(newMode);
@@ -568,7 +616,10 @@ function tlBindAll() {
     });
   });
 
-  document.querySelectorAll(".tl-filter[data-tl-type]").forEach(btn => {
+  // .tl-filters, а не просто [data-tl-type]: у обложек (.tl-poster) тот
+  // же атрибут – тип для подсказки, и клик по обложке ещё и сбрасывал
+  // бы фильтр типа в её подпись.
+  box.querySelectorAll(".tl-filters [data-tl-type]").forEach(btn => {
     btn.addEventListener("click", () => {
       tlState.filter = btn.dataset.tlType;
       tlState.yearFilter = "all"; // при смене типа список годов меняется – сбрасываем
@@ -576,15 +627,26 @@ function tlBindAll() {
     });
   });
 
-  const yearSelect = document.getElementById("tl-year-select");
-  if (yearSelect) {
-    yearSelect.addEventListener("change", () => {
-      tlState.yearFilter = yearSelect.value;
+  box.querySelectorAll("[data-tl-year-btn]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      tlState.yearFilter = btn.dataset.tlYearBtn;
       tlRender();
     });
-  }
+  });
 
-  document.querySelectorAll("[data-char-game]").forEach(btn => {
+  box.querySelector(".tl-captions-btn")?.addEventListener("click", (e) => {
+    tlCaptions = !tlCaptions;
+    try {
+      localStorage.setItem("tl-captions", tlCaptions ? "1" : "0");
+    } catch {
+      // Приватный режим – просто не запомнится.
+    }
+    box.classList.toggle("tl-captions", tlCaptions);
+    e.currentTarget.classList.toggle("active", tlCaptions);
+    e.currentTarget.setAttribute("aria-pressed", String(tlCaptions));
+  });
+
+  box.querySelectorAll("[data-char-game]").forEach(btn => {
     btn.addEventListener("click", () => {
       tlState.gameId = btn.dataset.charGame;
       const games = tlState.collections[tlState.mode]?.games || [];
@@ -594,12 +656,38 @@ function tlBindAll() {
     });
   });
 
-  document.querySelectorAll("[data-char-list]").forEach(btn => {
+  box.querySelectorAll("[data-char-list]").forEach(btn => {
     btn.addEventListener("click", () => {
       tlState.listId = btn.dataset.charList;
       tlRender();
     });
   });
+
+  // Всплывающий ползунок размера: кнопка открывает/закрывает, клик мимо
+  // и Escape закрывают. Слушатели документа снимаются, как только окно
+  // закрылось, – иначе каждая перерисовка добавляла бы ещё по одному.
+  const sizeBtn = document.getElementById("tl-size-btn");
+  const sizePop = document.getElementById("tl-size-pop");
+  if (sizeBtn && sizePop) {
+    const close = () => {
+      sizePop.hidden = true;
+      sizeBtn.setAttribute("aria-expanded", "false");
+      sizeBtn.classList.remove("active");
+      document.removeEventListener("click", onDoc, true);
+      document.removeEventListener("keydown", onKey);
+    };
+    const onDoc = (e) => { if (!sizePop.parentElement.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    sizeBtn.addEventListener("click", () => {
+      if (!sizePop.hidden) return close();
+      sizePop.hidden = false;
+      sizeBtn.setAttribute("aria-expanded", "true");
+      sizeBtn.classList.add("active");
+      document.addEventListener("click", onDoc, true);
+      document.addEventListener("keydown", onKey);
+      sizePop.querySelector("input")?.focus();
+    });
+  }
 
   // Ползунок размера
   const slider = document.getElementById("tl-char-size-slider");
@@ -617,6 +705,22 @@ function tlBindAll() {
   tlBindTooltip();
 }
 
+// Клик (на телефоне – долгое нажатие, короткий тап занят подсказкой –
+// см. ниже) по обложке тайтла открывает его отзыв: тир-лист смотрят,
+// чтобы вспомнить, почему это «Эталон», а не чтобы увеличить постер.
+// Увеличить обложку можно и из окна отзыва. У персонажей отзыва нет –
+// там по-прежнему открывается сама картинка.
+function tlOpenCard(card, tip) {
+  tip?.classList.remove("visible");
+  const item = card.dataset.tlIdx != null ? tlState.items[Number(card.dataset.tlIdx)] : null;
+  if (item) {
+    openReviewModal(item.review);
+    return;
+  }
+  const img = card.querySelector("img");
+  if (img?.src) openImageLightbox(img.src, card.dataset.tlTitle);
+}
+
 function tlBindTooltip() {
   const tip = document.getElementById("tl-tooltip");
   if (!tip) return;
@@ -632,16 +736,13 @@ function tlBindTooltip() {
   // телефона вовсе. Долгое нажатие свободно: у этих карточек, в отличие
   // от .char-card в редакторе, нет draggable="true" и touch-drag.js их
   // не трогает.
-  const LONG_PRESS = 500; // мс удержания – открыть картинку целиком
+  const LONG_PRESS = 500; // мс удержания – открыть отзыв (у персонажа – картинку), см. tlOpenCard
 
   document.querySelectorAll(".tl-poster, .tl-char-poster").forEach(card => {
     card.addEventListener("mouseenter", e => { tlShowTip(card, tip); tlMoveTip(e, tip); });
     card.addEventListener("mousemove",  e => tlMoveTip(e, tip));
     card.addEventListener("mouseleave", () => tip.classList.remove("visible"));
-    card.addEventListener("click", () => {
-      const img = card.querySelector("img");
-      if (img?.src) openImageLightbox(img.src, card.dataset.tlTitle);
-    });
+    card.addEventListener("click", () => tlOpenCard(card, tip));
 
     let touchStart = null;
     let longPressTimer = null;
@@ -653,8 +754,7 @@ function tlBindTooltip() {
       longPressFired = false;
       longPressTimer = setTimeout(() => {
         longPressFired = true;
-        const img = card.querySelector("img");
-        if (img?.src) openImageLightbox(img.src, card.dataset.tlTitle);
+        tlOpenCard(card, tip);
       }, LONG_PRESS);
     }, { passive: true });
 

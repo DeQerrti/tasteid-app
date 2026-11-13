@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=21"></script>
+<script src="/js/i18n-en.js?v=22"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=29"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -1328,19 +1328,103 @@ section.group { margin-bottom: 3.5rem; }
   flex-wrap: wrap;
   gap: .4rem;
 }
-.tl-year-select-wrap { margin: 0; }
-.tl-year-select {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  font-family: 'DM Sans', sans-serif;
-  font-size: .78rem;
-  letter-spacing: .03em;
-  padding: .4rem .7rem;
-  border-radius: 4px;
-  cursor: pointer;
+/* Шапка режима тир-листа (js/tierlist.js: tlTitlesHtml, tlCharsHtml):
+   слева чипы типов/игр, справа «Редактор», «Подписи» и камера – одной
+   высоты (32px) и одним шрифтом. flex-wrap только у чипов: иначе на
+   узком экране кнопки справа целиком уезжали на отдельную строку. */
+.tl-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .5rem; }
+.tl-head-row > .tl-filters { min-width: 0; }
+.tl-head-tools { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+.tl-head-tools #tl-export-btn { width: 32px; height: 32px; box-sizing: border-box; }
+.tl-tool-btn,
+#tab-tierlist .tl-head-tools .admin-add-btn {
+  display: inline-flex; align-items: center; gap: .3rem;
+  height: 32px; box-sizing: border-box; padding: 0 .7rem;
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; font-weight: 400;
+  letter-spacing: 0; text-transform: none; white-space: nowrap;
+  color: var(--text-dim); background: none;
+  border: 1px solid var(--border); border-radius: 4px;
+  cursor: pointer; text-decoration: none;
+  transition: color .15s, border-color .15s, background .15s;
 }
-.tl-year-select:hover { border-color: var(--red); }
+@media (hover: hover) {
+  .tl-tool-btn:hover,
+  #tab-tierlist .tl-head-tools .admin-add-btn:hover { color: var(--text-hi); border-color: var(--border2); }
+}
+.tl-tool-btn.active { color: var(--text-hi); background: var(--accent-fill); border-color: var(--accent-line); }
+
+/* Игры коллекции – одной строкой с прокруткой (их бывает десяток). */
+.tl-filters.tl-games { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.tl-filters .now-chip { flex-shrink: 0; white-space: nowrap; }
+
+/* Годы – тихой строкой текста под чипами типов. */
+.tl-years { display: flex; flex-wrap: wrap; gap: .15rem .9rem; margin: .45rem 0 1rem; }
+/* На телефоне чипы типов и годы – тоже одной строкой с прокруткой:
+   рядом с «Подписи» и камерой чипам остаётся полэкрана, и переносом
+   они вставали в пять строк над первым же тиром. */
+@media (max-width: 700px) {
+  /* Кнопки («Редактор», «Подписи», камера) – своей строкой сверху
+     справа, чипы – во всю ширину под ними: рядом с тремя кнопками
+     играм персонажей оставалось место на один чип. */
+  .tl-head-row { flex-wrap: wrap; gap: .5rem; }
+  .tl-head-tools { order: -1; margin-left: auto; }
+  .tl-head-row > .tl-filters { flex: 1 1 100%; }
+  .tl-head-row > .tl-filters,
+  .tl-years { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .tl-head-row > .tl-filters::-webkit-scrollbar,
+  .tl-years::-webkit-scrollbar { display: none; }
+  .tl-year { flex-shrink: 0; }
+}
+.tl-year {
+  font-family: 'DM Sans', sans-serif; font-size: .8rem;
+  color: var(--text-dim); background: none; border: 0;
+  border-bottom: 1px solid transparent; padding: .15rem 0; cursor: pointer;
+}
+@media (hover: hover) { .tl-year:hover { color: var(--text); } }
+.tl-year.active { color: var(--text-hi); border-bottom-color: var(--red); }
+
+/* Персонажи: списки игры слева, размер справа – одна строка вместо двух. */
+.tl-char-sub { display: flex; align-items: center; gap: .6rem; margin: .4rem 0 1rem; }
+.tl-char-sub .tl-char-lists { margin: 0; }
+.tl-size { position: relative; margin-left: auto; }
+.tl-size-pop {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30;
+  display: flex; align-items: center; gap: .7rem; width: 260px;
+  background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+  padding: .6rem .8rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+}
+.tl-size-pop[hidden] { display: none; }
+.tl-size-lbl { font-family: 'DM Sans', sans-serif; font-size: .75rem; color: var(--text-dim); }
+.tl-size-pop input { flex: 1; accent-color: var(--red); cursor: pointer; }
+
+/* «Подписи»: название под обложкой тайтла (до двух строк) и имя поверх
+   низа картинки персонажа – у них картинка во всю высоту, места под
+   ней нет. Текст берётся из того же data-tl-title, что у подсказки. */
+#tab-tierlist.tl-captions .tl-poster { overflow: visible; border-color: transparent; }
+#tab-tierlist.tl-captions .tl-poster img { border: 1px solid var(--border); }
+#tab-tierlist.tl-captions .tl-poster::after {
+  content: attr(data-tl-title);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-family: 'DM Sans', sans-serif; font-size: .68rem; line-height: 1.25;
+  color: var(--text-dim); margin-top: .3rem; min-height: 2.5em;
+}
+#tab-tierlist.tl-captions .tl-poster:hover { transform: none; }
+#tab-tierlist.tl-captions .tl-poster:hover::after { color: var(--text-hi); }
+#tab-tierlist.tl-captions .tl-char-poster::after {
+  content: attr(data-tl-title);
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  padding: 1.2rem .35rem .3rem; text-align: center;
+  font-family: 'DM Sans', sans-serif; font-size: .68rem; color: var(--text-hi);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--surface) 92%, transparent));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Пустой тир – тонкая полоса, а не полная строка с «–»: при фильтре по
+   году пустых бывает половина, и заполненные уезжали за экран. */
+.tl-row-empty .tl-label { flex-direction: row; justify-content: flex-start; gap: .45rem; padding-top: .3rem; padding-bottom: .3rem; }
+.tl-row-empty .tl-label-name { font-size: .85rem; opacity: .75; }
+.tl-row-empty .tl-cards { min-height: 0; padding-top: .3rem; padding-bottom: .3rem; }
+.tl-row-empty .tl-empty { padding: 0; font-size: .8rem; }
 .tl-filter {
   font-family: 'DM Sans', sans-serif;
   font-size: .62rem;
@@ -1378,8 +1462,12 @@ section.group { margin-bottom: 3.5rem; }
   opacity: .6;
 }
 
+/* 150px, а не 120: в 120 «Аттракцион» и «Разочарование» не помещались
+   и рвались посреди слова («Аттракци‑он»). Перенос внутри слова
+   (overflow-wrap ниже) остался только страховкой для своих длинных
+   названий тиров персонажей, которые не влезут и в 150. */
 .tl-label {
-  width: 120px;
+  width: 150px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -1398,12 +1486,12 @@ section.group { margin-bottom: 3.5rem; }
   font-family: 'Playfair Display', serif;
   font-weight: 700;
   font-style: italic;
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: var(--tl-color, var(--text-hi));
   text-align: center;
   line-height: 1.2;
   overflow-wrap: break-word;
-  word-break: break-word;
+  word-break: normal;
   white-space: normal;
 }
 .tl-label-count {
@@ -1839,6 +1927,9 @@ section.group { margin-bottom: 3.5rem; }
   transition: color .2s, border-color .2s, background .2s;
 }
 .tl-mode-add-btn:hover { color: var(--red-hi); border-color: var(--red-dim); }
+/* «Новый тир-лист» – в конце строки, а не вплотную к вкладкам: рядом
+   с ними «Создать» читалось третьей вкладкой. */
+#tl-add-collection-btn { margin-left: auto; }
 
 /* Счётчик записей на кнопке переключателя (js/now.js, js/favorites.js
    – та же .tl-mode-btn, что и у тир-листа) – раньше жил инлайновым
@@ -2019,6 +2110,16 @@ section.group { margin-bottom: 3.5rem; }
     align-self: center;
     padding: .2rem .8rem;
     margin-bottom: .45rem;
+  }
+  /* Одного вида с «Подписи»/«Редактор» в шапке режима (.tl-tool-btn),
+     а не засечным текстом в рамке – так это читается кнопкой. */
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tl-add-collection-btn {
+    display: inline-flex; align-items: center; height: 32px; box-sizing: border-box;
+    padding: 0 .8rem; border-radius: 4px; border-color: var(--border2);
+    font-family: 'DM Sans', sans-serif; font-size: .8rem; font-weight: 400; color: var(--text);
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tl-add-collection-btn:hover {
+    color: var(--text-hi); border-color: var(--accent-line);
   }
 }
 
@@ -2476,6 +2577,9 @@ section.group { margin-bottom: 3.5rem; }
   flex: 1; min-width: 120px; background: var(--surface2); border: 1px solid var(--border2);
   border-radius: 2px; padding: .5rem .7rem; color: var(--text-hi); font-family: 'Cormorant Garamond', serif; font-size: .95rem; outline: none;
 }
+/* Правило выше (flex: 1; min-width: 120px) задевало и поле цвета –
+   вместо квадратика с цветом выходила серая полоса на всю ширину. */
+.add-tier-row input[type="color"] { flex: none; min-width: 0; width: 34px; height: 34px; padding: 2px; }
 
 @keyframes ceFadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 .editor-empty { text-align: center; padding: 4rem 2rem; color: var(--text-dim); font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; font-style: italic; border: 1px dashed var(--border); border-radius: 2px; }
@@ -3568,7 +3672,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/favorites.js?v=19"></script>
 <script src="/js/reviews.js?v=25"></script>
 <script src="/js/stats.js?v=20"></script>
-<script src="/js/tierlist.js?v=14"></script>
+<script src="/js/tierlist.js?v=15"></script>
 <script src="/js/backup-history.js?v=2"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и
      «Импорт» маршрута #/settings-edit (js/routes/settings-edit.js).
@@ -3597,7 +3701,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/swipe-tabs.js?v=1" defer></script>
 <script src="/js/router.js?v=1"></script>
 <script src="/js/routes/reviews-order.js?v=3"></script>
-<script src="/js/routes/chars-edit.js?v=2"></script>
+<script src="/js/routes/chars-edit.js?v=3"></script>
 <script src="/js/routes/favorites-edit.js?v=4"></script>
 <script src="/js/routes/backup-history.js?v=1"></script>
 <script src="/js/routes/add.js?v=12"></script>

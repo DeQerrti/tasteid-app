@@ -159,7 +159,9 @@ async function mount(container, params) {
     <header class="app-topbar">
       <a href="#" class="logo topbar-back" id="ce-back"><span class="arrow">&larr;</span>TasteID</a>
       <h1 class="topbar-title" id="header-sub">${esc(COLLECTION_LABEL ? `${i18n("Редактор")}: ${COLLECTION_LABEL}` : "")}</h1>
-      <div style="display:flex;gap:.5rem;margin-left:auto;flex-wrap:wrap;min-width:0">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-left:auto;flex-wrap:wrap;min-width:0">
+        <span class="status-msg" id="status-msg"></span>
+        <button class="btn btn-green" id="btn-save" onclick="saveAll()">${i18n("Сохранить всё")}</button>
         <button class="btn btn-ghost" onclick="renameCurrentCollection()" data-i18n>Переименовать тир-лист</button>
         <button class="btn btn-ghost" onclick="deleteCurrentCollection()" data-i18n>Удалить тир-лист</button>
       </div>
@@ -891,11 +893,11 @@ function renderEditor() {
       <input type="text" id="new-tier-name" placeholder="${i18n("Название нового тира")}" data-i18n-placeholder="${i18n("Название нового тира")}" onkeydown="if(event.key==='Enter'){event.preventDefault();addTier();}">
       <input type="color" id="new-tier-color" value="#888888" style="width:32px;height:32px;border:1px solid var(--border2);border-radius:2px;padding:2px;cursor:pointer;background:none;">
       <button class="btn btn-dashed" onclick="addTier()">${i18n("Добавить тир")}</button>
-    </div>
-    <div class="save-bar">
-      <button class="btn btn-green" id="btn-save" onclick="saveAll()">${i18n("Сохранить всё")}</button>
-      <span class="status-msg" id="status-msg"></span>
     </div>`;
+  // «Сохранить всё» – в верхней панели (mount), а не здесь под всеми
+  // тирами: на длинном списке до неё приходилось листать. Там же она
+  // не пропадает, когда тема не выбрана, и не пересоздаётся при каждой
+  // перерисовке редактора – saveAll() находит её по тому же id.
 
   bindDragDrop();
   bindTierRowDrag();
