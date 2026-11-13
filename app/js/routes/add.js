@@ -139,11 +139,7 @@ async function mount(container, params) {
   coverGallery = [];
   featuredCardTags = new Set();
   noTagsOnCard = false;
-  tmTagEdit = null;
-  tmCatEdit = null;
-  tmCatColorSet = true;
-  tmBulkMode = false;
-  tmBulkSelected = new Set();
+  tmResetState();
   openSourceDropdown = null;
   typePickerOpen = false;
   typeRenamePending = null;
@@ -322,16 +318,15 @@ async function mount(container, params) {
                сплошной стеной без групп, хотя категория есть у каждого. -->
           <section class="ed-sec">
             <h2 class="ed-h">${i18n("Теги")} <span class="ed-h-note" id="tags-count"></span></h2>
+            <!-- Новый тег – прямо из поиска: такого нет – под полем чипы
+                 категорий (#tag-create, add-tags-modal.js). Раньше здесь
+                 были две кнопки, «Новый тег» и «Все теги», и обе открывали
+                 одно и то же окно; теперь одна – управление тегами. -->
             <div class="ed-tag-tools">
-              <input type="search" id="tag-q" data-no-dirty placeholder="${i18n("Найти тег")}" aria-label="${i18n("Найти тег")}">
-              <button type="button" class="btn-new" onclick="openTagModal()">${i18n("Новый тег")}</button>
-              <!-- Раньше здесь стояла красная «Удалить» – массовое удаление
-                   тегов из словаря и из ВСЕХ отзывов разом, прямо рядом с
-                   поиском в форме одного отзыва. Теперь отсюда открывается
-                   только список тегов, а массовое удаление – внутри него,
-                   ссылкой «Удалить несколько» (tm-bulk-start-btn). -->
-              <button type="button" class="btn-new" onclick="openTagModal()">${i18n("Все теги")}</button>
+              <input type="search" id="tag-q" data-no-dirty placeholder="${i18n("Найти или создать тег")}" aria-label="${i18n("Найти или создать тег")}">
+              <button type="button" class="btn-new" onclick="openTagModal()">${i18n("Управлять тегами")}</button>
             </div>
+            <div class="ed-tag-create" id="tag-create" aria-live="polite"></div>
             <div class="ed-picked" id="tags-picked"></div>
             <div class="ed-cats" id="tags-grid"></div>
 
@@ -407,95 +402,27 @@ async function mount(container, params) {
 
     </main>
 
-    <!-- Модалка: новый тег / новая категория. Класс add-view на ней самой –
-         чтобы правила вида «.add-view input» (см. index.html) доставали и до
-         полей внутри модалки: на исходной странице это были голые
-         input/textarea/select на весь документ. -->
-    <div class="modal-overlay add-view hidden" id="tag-modal-overlay" onclick="closeTagModalOnOverlay(event)">
-      <div class="modal">
-        <button class="modal-close" onclick="closeTagModal()">✕</button>
-        <div class="modal-title" id="tag-modal-title">${i18n("Новый тег")}</div>
-
-        <div class="tag-modal-tabs">
-          <button type="button" class="tag-modal-tab active" data-tab="tag" onclick="switchTagModalTab('tag')">${i18n("Тег")}</button>
-          <button type="button" class="tag-modal-tab" data-tab="cat" onclick="switchTagModalTab('cat')">${i18n("Категория")}</button>
+    <!-- Окно «Теги и категории» (add-tags-modal.js). Класс add-view – на
+         самой панели, а не на оверлее: ради правил вида «.add-view input»
+         (поля внутри выглядят как в редакторе). На оверлее он тянул за
+         собой ширину страницы (max-width 860px) – затемнение было
+         колонкой посреди экрана. Содержимое рисует renderTagModal(). -->
+    <div class="modal-overlay tm-overlay hidden" id="tag-modal-overlay" onclick="closeTagModalOnOverlay(event)">
+      <div class="tm-panel add-view" role="dialog" aria-modal="true" aria-labelledby="tm-title">
+        <div class="tm-head">
+          <h2 class="tm-title" id="tm-title">${i18n("Теги и категории")}</h2>
+          <span class="tm-dim" id="tm-meta"></span>
+          <button type="button" class="tm-x" id="tm-close" aria-label="${i18n("Закрыть")}">✕</button>
         </div>
-
-        <div class="tag-modal-tab-panel" id="tag-modal-tag-panel">
-          <div class="field">
-            <label>${i18n("Название тега")}</label>
-            <input type="text" id="tm-tag-name" placeholder="${i18n("Например: Крутой саундтрек")}">
-          </div>
-          <div class="field">
-            <label>${i18n("Категория")}</label>
-            <div class="select-wrap"><select id="tm-tag-cat"></select></div>
-          </div>
-          <div class="field">
-            <label>${i18n("Подсказка (необязательно)")}</label>
-            <input type="text" id="tm-tag-tip" placeholder="${i18n("Короткое пояснение, что значит тег")}">
-          </div>
-          <div class="tm-actions">
-            <button class="btn-save" id="tm-tag-save" onclick="submitTag()">${i18n("Добавить тег")}</button>
-            <button type="button" class="tm-link" id="tm-tag-cancel" onclick="resetTagForm()" hidden>${i18n("Отмена")}</button>
-            <button type="button" class="tm-link tm-danger" id="tm-tag-del" onclick="deleteTag()" hidden>${i18n("Удалить")}</button>
-          </div>
-
-          <div class="tm-bulk-bar hidden" id="tm-bulk-bar">
-            <span id="tm-bulk-count">${i18n("Ничего не выбрано")}</span>
-            <div class="tm-bulk-actions">
-              <button type="button" class="tm-link" onclick="tmBulkCancel()">${i18n("Отмена")}</button>
-              <button type="button" class="tm-link tm-danger" id="tm-bulk-delete-btn" onclick="tmBulkDeleteConfirm()" disabled>${i18n("Удалить выбранное")}</button>
-            </div>
-          </div>
-          <div class="tm-list-head">
-            <span>${i18n("Существующие теги")}</span>
-            <button type="button" class="tm-link tm-danger" id="tm-bulk-start-btn" style="margin-left:auto" onclick="tmBulkStart()">${i18n("Удалить несколько")}</button>
-            <input type="search" id="tm-tag-search" placeholder="${i18n("Поиск")}" oninput="renderTmTagList()">
-          </div>
-          <div class="tm-list" id="tm-tag-list"></div>
+        <div class="tm-tools">
+          <input type="search" id="tm-q" placeholder="${i18n("Найти тег")}" aria-label="${i18n("Найти тег")}" autocomplete="off">
+          <button type="button" class="btn-new" id="tm-newcat">${i18n("+ Категория")}</button>
+          <button type="button" class="btn-new" id="tm-bulk" aria-pressed="false">${i18n("Выбрать несколько")}</button>
         </div>
-
-        <div class="tag-modal-tab-panel" id="tag-modal-cat-panel" style="display:none;">
-          <div class="field">
-            <label>${i18n("Название категории")}</label>
-            <input type="text" id="tm-cat-name" placeholder="${i18n("Например: Технические детали")}">
-          </div>
-          <div class="field">
-            <label>${i18n("Цвет")}</label>
-            <div class="tm-color-row">
-              <input type="color" id="tm-cat-color" value="#8b1a1a" oninput="markCatColorSet()">
-              <button type="button" class="tm-link" id="tm-cat-nocolor" onclick="clearCatColor()" hidden>${i18n("Без цвета")}</button>
-              <span class="tm-note" id="tm-cat-colornote" hidden>${i18n("Цвет не задан – теги будут нейтральными")}</span>
-            </div>
-          </div>
-          <div class="tm-actions">
-            <button class="btn-save" id="tm-cat-save" onclick="submitCategory()">${i18n("Добавить категорию")}</button>
-            <button type="button" class="tm-link" id="tm-cat-cancel" onclick="resetCatForm()" hidden>${i18n("Отмена")}</button>
-            <button type="button" class="tm-link tm-danger" id="tm-cat-del" onclick="deleteCategory()" hidden>${i18n("Удалить")}</button>
-          </div>
-
-          <!-- Показывается вместо тихой ошибки, когда в категории ещё есть
-               теги: раньше deleteCategory() просто отказывала и просила
-               перенести теги руками – здесь и перенос, и удаление вместе с
-               категорией доступны в один клик. -->
-          <div class="tm-cat-delete-choice hidden" id="tm-cat-delete-choice">
-            <p class="tm-note" id="tm-cat-delete-note"></p>
-            <div class="field">
-              <label>${i18n("Перенести теги в категорию")}</label>
-              <div class="select-wrap"><select id="tm-cat-move-target"></select></div>
-            </div>
-            <div class="tm-actions">
-              <button type="button" class="btn-new" onclick="tmCatDeleteMove()">${i18n("Перенести и удалить категорию")}</button>
-              <button type="button" class="tm-link tm-danger" onclick="tmCatDeleteAll()">${i18n("Удалить категорию вместе с тегами")}</button>
-              <button type="button" class="tm-link" onclick="tmCatDeleteCancel()">${i18n("Отмена")}</button>
-            </div>
-          </div>
-
-          <div class="tm-list-head"><span>${i18n("Категории")}</span></div>
-          <div class="tm-list" id="tm-cat-list"></div>
-        </div>
-
-        <div class="status-msg" id="tag-modal-status"></div>
+        <div id="tm-newcat-box"></div>
+        <div class="tm-body" id="tm-body"></div>
+        <div class="tm-bulkbar hidden" id="tm-bulkbar"></div>
+        <div class="status-msg" id="tag-modal-status" role="status"></div>
       </div>
     </div>`;
 
@@ -510,18 +437,16 @@ async function mount(container, params) {
     leaveAddView();
   });
 
-  // Клик по строке в списках модалки – делегирован на контейнер: имена
-  // тегов приходят от пользователя и в inline-onclick их пришлось бы
-  // экранировать дважды.
-  document.getElementById("tm-tag-list").addEventListener("click", (e) => {
-    const row = e.target.closest(".tm-row");
-    if (!row) return;
-    if (tmBulkMode) tmBulkToggle(row.dataset.name);
-    else editTag(row.dataset.name);
-  });
-  document.getElementById("tm-cat-list").addEventListener("click", (e) => {
-    const row = e.target.closest(".tm-row");
-    if (row) editCategory(row.dataset.key);
+  // Окно «Теги и категории» и создание тега из поиска – обработчики
+  // делегированно на свои контейнеры (add-tags-modal.js).
+  tmBindPanel();
+  tmBindTagCreate();
+  addOn(document, "keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const modal = document.getElementById("tag-modal-overlay");
+    // Поверх может быть подтверждение (confirmDialog) – его Escape свой.
+    if (!modal || modal.classList.contains("hidden") || document.querySelector("#confirm-dialog-overlay:not(.hidden)")) return;
+    closeTagModal();
   });
 
   // ── Ctrl+S / Cmd+S – сохранить из любого места формы ──
@@ -566,8 +491,8 @@ async function mount(container, params) {
   addOn(document, "tags-map-updated", syncTypePickerLabel);
   addOn(document, "tags-map-updated", syncStatusPickerLabel);
   addOn(document, "tags-map-updated", () => {
-    renderTmTagList();
-    renderTmCatList();
+    renderTagCreate();
+    if (!document.getElementById("tag-modal-overlay")?.classList.contains("hidden")) renderTagModal();
   });
   // Держим подписи типов в src-type-label в актуальном состоянии, если
   // SOURCE_LABELS обновился где-то ещё (например, в настройках).
@@ -662,8 +587,7 @@ async function mount(container, params) {
   // Первичная отрисовка – явно, а не по событию: см. шапку файла.
   renderGradeInput();
   renderTagsGrid();
-  resetTagForm();
-  resetCatForm();
+  renderTagCreate();
   syncTypePickerLabel();
   syncStatusPickerLabel();
   updateDateFields();
@@ -699,8 +623,7 @@ function unmount() {
   statusPickerOpen = false;
   typeRenamePending = null;
   statusRenamePending = null;
-  tmBulkMode = false;
-  tmBulkSelected = new Set();
+  tmResetState();
   selectedTags = new Set();
   featuredCardTags = new Set();
   noTagsOnCard = false;
@@ -1011,7 +934,9 @@ function renderTagsGrid() {
     byCat.get(cat).push(tag);
   }
   if (!byCat.size) {
-    tagsGrid.innerHTML = `<div class="ed-picked-empty">${i18n("Такого тега нет – его можно завести кнопкой «Новый тег».")}</div>`;
+    // Ничего не нашлось – что делать, говорит строка создания над
+    // списком (#tag-create, renderTagCreate): «Тега нет – создать в…».
+    tagsGrid.innerHTML = "";
     return;
   }
   tagsGrid.innerHTML = [...byCat.entries()]

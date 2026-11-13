@@ -120,10 +120,13 @@ ok(
   (await page.locator(".ed-tag-tools .btn-new-danger").count()) === 0,
   "у поиска тегов нет красной «Удалить»"
 );
-await page.click('.ed-tag-tools .btn-new:has-text("Все теги")');
-await page.click("#tm-bulk-start-btn");
-ok(await page.isVisible("#tm-bulk-bar"), "«Удалить несколько» в списке тегов включает выбор");
-ok(await page.isHidden("#tm-bulk-start-btn"), "в режиме выбора ссылка «Удалить несколько» скрыта");
+await page.click('.ed-tag-tools .btn-new:has-text("Управлять тегами")');
+await page.click("#tm-bulk");
+ok(await page.isVisible("#tm-bulkbar"), "«Выбрать несколько» в окне тегов включает выбор");
+ok(
+  (await page.textContent("#tm-bulk")).trim() === "Готово",
+  "в режиме выбора кнопка становится «Готово»"
+);
 await page.evaluate(() => window.closeTagModal());
 ok(await page.isHidden("#tag-modal-overlay"), "окно тегов закрывается");
 

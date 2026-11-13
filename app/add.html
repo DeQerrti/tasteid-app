@@ -42,18 +42,18 @@
 <link rel="stylesheet" href="/fonts.css?v=5">
 <script src="/js/mobile.bundle.js?v=1"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=20"></script>
+<script src="/js/i18n-en.js?v=21"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=29"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
 <script src="/js/focus-modal.js?v=1"></script>
 <script src="/js/theme.js?v=17"></script>
 <script src="/js/quick-appearance.js?v=1"></script>
-<script src="/js/config.js?v=15"></script>
+<script src="/js/config.js?v=16"></script>
 <script src="/js/external-ids.js?v=12"></script>
 <script src="/js/api.js?v=13"></script>
 <link rel="stylesheet" href="/style.css?v=24">
-<link rel="stylesheet" href="/admin.css?v=18">
+<link rel="stylesheet" href="/admin.css?v=19">
 <link rel="stylesheet" href="/themes.css?v=22">
 <style>
 /* ══ NOIR PALETTE ════════════════════════════════ */
@@ -255,7 +255,8 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
 .grade-btn.active::before { opacity: 1; }
 .grade-btn.active { filter: brightness(1.4); }
 
-/* ══ МОДАЛКА: новый тег / новая категория ════════ */
+/* ══ КНОПКИ-ИКОНКИ, ССЫЛКИ-КНОПКИ ════════════════
+   Окно «Теги и категории» оформлено в admin.css (.tm-panel и соседи). */
 
 button.icon-btn { background: none; border: 1px solid var(--border2); color: var(--text-dim);
   width: 30px; height: 30px; padding: 0; margin: 0; border-radius: 4px; font-size: .8rem; cursor: pointer; flex-shrink: 0; }
@@ -266,19 +267,6 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
    "ВЫПАДАЮЩИЕ СПИСКИ С ИНЛАЙН-ДОБАВЛЕНИЕМ"), переиспользуются и в
    favorites-edit.html для Ролей. */
 
-.tag-modal-tabs { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
-.tag-modal-tab { flex: 1; background: var(--surface2); border: 1px solid var(--border2); border-radius: 2px;
-  color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: .72rem; letter-spacing: .05em;
-  text-transform: uppercase; padding: .55rem; cursor: pointer; transition: all .15s; }
-.tag-modal-tab:hover { color: var(--text); }
-.tag-modal-tab.active { color: var(--text-hi); border-color: var(--red-dim); background: var(--accent-wash); }
-#tag-modal-status { margin-top: .75rem; }
-
-/* Модалка одновременно и форма, и список существующих записей –
-   в 420px это уже тесно. */
-#tag-modal-overlay .modal { max-width: 520px; }
-
-.tm-actions { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; margin-top: .5rem; }
 .tm-link { background: none; border: none; padding: 0; cursor: pointer;
   font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
   text-decoration: underline; text-underline-offset: 3px; }
@@ -291,63 +279,13 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 .danger-hint { font-family: 'DM Sans', sans-serif; font-size: .68rem;
   color: var(--text-dim); flex: 1; min-width: 12rem; }
 
-.tm-color-row { display: flex; align-items: center; gap: .9rem; }
-.tm-color-row input[type=color] { width: 64px; height: 42px; padding: .2rem; cursor: pointer; }
-.tm-note { font-family: 'DM Sans', sans-serif; font-size: .68rem; color: var(--text-dim); }
-
-.tm-list-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem;
-  margin: 1.5rem 0 .6rem; padding-top: 1.1rem; border-top: 1px solid var(--border);
-  font-family: 'DM Sans', sans-serif; font-size: .62rem; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--text-dim); }
-.tm-list-head input { width: 140px; font-size: .7rem; padding: .25rem .5rem; }
-
-.tm-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: .1rem; }
-.tm-group { font-family: 'DM Sans', sans-serif; font-size: .58rem; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--text-dim); margin: .7rem 0 .2rem; }
-.tm-group:first-child { margin-top: 0; }
-.tm-row { display: flex; align-items: center; gap: .6rem; width: 100%; text-align: left;
-  background: none; border: 1px solid transparent; border-radius: 3px; padding: .3rem .5rem;
-  cursor: pointer; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .74rem; }
-.tm-row:hover { border-color: var(--border2); color: var(--text-hi); }
-.tm-row.active { border-color: var(--red-dim); background: var(--accent-wash); color: var(--text-hi); }
-.tm-row-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tm-row-note { font-size: .64rem; color: var(--text-dim); flex-shrink: 0; }
-.tm-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-  border: 1px solid var(--border2); }
-.tm-empty { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); padding: .4rem 0; }
-
-/* ── Массовое удаление тегов ──
-   Тот же список (#tm-tag-list), что и всегда, просто в другом режиме:
-   форма добавления/правки и переключатель «Тег/Категория» прячутся –
-   нечего редактировать, пока выбираешь, что удалить, – а у строк
-   вместо ✎ появляется галочка выбора. */
 .btn-new-danger { border-color: var(--err); color: var(--err); }
 .btn-new-danger:hover { background: var(--err-wash, rgba(163,51,51,.12)); border-color: var(--err); }
 
-#tag-modal-tag-panel.bulk-mode .field,
-#tag-modal-tag-panel.bulk-mode .tm-actions,
-#tag-modal-overlay.bulk-mode .tag-modal-tabs {
-  display: none;
-}
-.tm-bulk-bar {
-  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
-  margin-bottom: .8rem; padding: .55rem .8rem;
-  background: var(--surface2); border: 1px solid var(--border2); border-radius: 3px;
-  font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim);
-}
-.tm-bulk-bar.hidden { display: none; }
-.tm-bulk-actions { display: flex; align-items: center; gap: .9rem; }
 .tm-row-check {
   width: 14px; height: 14px; flex-shrink: 0; border-radius: 3px;
   border: 1px solid var(--border2); position: relative;
 }
-.tm-row.selected .tm-row-check { border-color: var(--red); background: var(--red-dim); }
-.tm-row.selected .tm-row-check::after {
-  content: ''; position: absolute; left: 3px; top: 0px; width: 4px; height: 8px;
-  border: solid var(--text-hi); border-width: 0 2px 2px 0; transform: rotate(45deg);
-}
-.tm-row.selected { border-color: var(--red-dim); background: var(--accent-wash); color: var(--text-hi); }
-
 /* ── Какие теги показывать на карточке ── */
 .card-tags-hint { font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); margin: .3rem 0 .7rem; }
 .card-tags-count { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); margin: .5rem .1rem 0; }
@@ -367,14 +305,6 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 .card-tag-row-name { flex: 1; }
 .card-tags-none-row { border-bottom: 1px solid var(--border); margin-bottom: .2rem; }
 #card-tags-list.disabled { opacity: .35; pointer-events: none; }
-
-.tm-cat-delete-choice {
-  margin: 1rem 0; padding: .9rem 1rem;
-  background: var(--surface2); border: 1px solid var(--err); border-radius: 3px;
-}
-.tm-cat-delete-choice.hidden { display: none; }
-.tm-cat-delete-choice .tm-note { color: var(--text); margin: 0 0 .7rem; }
-.tm-cat-delete-choice .field { margin-bottom: .7rem; }
 
 /* ══ TAGS ════════════════════════════════════════ */
 .tags-grid {
@@ -417,8 +347,8 @@ button.icon-btn:hover { color: var(--text-hi); border-color: var(--red); backgro
 
 <div id="add-root"></div>
 
-<script src="/js/routes/add.js?v=11"></script>
-<script src="/js/routes/add-tags-modal.js?v=2"></script>
+<script src="/js/routes/add.js?v=12"></script>
+<script src="/js/routes/add-tags-modal.js?v=3"></script>
 <script src="/js/routes/add-source-picker.js?v=1"></script>
 <script src="/js/routes/add-type-picker.js?v=2"></script>
 <script src="/js/routes/add-status-picker.js?v=1"></script>
