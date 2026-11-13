@@ -10,6 +10,10 @@
 // Запуск: node tests/browser/tierlist-redesign.mjs
 // playwright – обычная devDependency. В npm run check не входит (нужен
 // настоящий браузер), гоняется в CI отдельным джобом (npm run test:browser).
+
+// Переменные самой страницы (app/js/tierlist.js, app/js/reviews.js) –
+// читаются только внутри page.evaluate, где они и правда есть.
+/* global tlState, _reviewModalReview */
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -37,11 +41,48 @@ const vaultDir = mkdtempSync(join(tmpdir(), "tasteid-tlredesign-"));
 // клик обязан открыть именно свой, а не первый попавшийся по имени.
 // Оценки только в четырёх тирах из семи – остальные пустые.
 const reviews = [
-  { title: "Двойник", type: "anime", grade: "etalon", year: 2020, status: "completed", date_end: "2021-03-01", review_full: "первый сезон" },
-  { title: "Двойник", type: "anime", grade: "etalon", year: 2022, status: "completed", date_end: "2023-05-01", review_full: "второй сезон" },
-  { title: "Фильм", type: "movie", grade: "attrakcion", year: 2019, status: "completed", date_end: "2021-07-01" },
-  { title: "Манга", type: "manga", grade: "razocharo", year: 2018, status: "completed", date_end: "2023-01-10" },
-  { title: "Смотрю", type: "anime", grade: "fon", year: 2024, status: "current", date_start: "2024-02-01" },
+  {
+    title: "Двойник",
+    type: "anime",
+    grade: "etalon",
+    year: 2020,
+    status: "completed",
+    date_end: "2021-03-01",
+    review_full: "первый сезон",
+  },
+  {
+    title: "Двойник",
+    type: "anime",
+    grade: "etalon",
+    year: 2022,
+    status: "completed",
+    date_end: "2023-05-01",
+    review_full: "второй сезон",
+  },
+  {
+    title: "Фильм",
+    type: "movie",
+    grade: "attrakcion",
+    year: 2019,
+    status: "completed",
+    date_end: "2021-07-01",
+  },
+  {
+    title: "Манга",
+    type: "manga",
+    grade: "razocharo",
+    year: 2018,
+    status: "completed",
+    date_end: "2023-01-10",
+  },
+  {
+    title: "Смотрю",
+    type: "anime",
+    grade: "fon",
+    year: 2024,
+    status: "current",
+    date_start: "2024-02-01",
+  },
 ];
 writeFileSync(join(vaultDir, "reviews.json"), JSON.stringify(reviews));
 
@@ -85,21 +126,35 @@ console.log("Тир-лист: тайтлы");
 await page.click('.tab-btn[data-label="nav.tierlist"]');
 await page.waitForSelector("#tl-titles-rows .tl-poster", { timeout: 10000 });
 
-const chips = await page.$$eval("#tab-tierlist .tl-filters [data-tl-type]", (els) => els.map((e) => e.textContent.replace(/\s+/g, " ").trim()));
-ok(chips.some((t) => /Аниме 3$/.test(t)), `у чипов типов есть счётчики (${chips.join(" | ")})`);
+const chips = await page.$$eval("#tab-tierlist .tl-filters [data-tl-type]", (els) =>
+  els.map((e) => e.textContent.replace(/\s+/g, " ").trim())
+);
+ok(
+  chips.some((t) => /Аниме 3$/.test(t)),
+  `у чипов типов есть счётчики (${chips.join(" | ")})`
+);
 
-const empty = await page.$$eval("#tl-titles-rows .tl-row-empty", (rows) => rows.map((r) => r.getBoundingClientRect().height));
+const empty = await page.$$eval("#tl-titles-rows .tl-row-empty", (rows) =>
+  rows.map((r) => r.getBoundingClientRect().height)
+);
 ok(empty.length === 3, `пустых тиров три, они помечены tl-row-empty (получили ${empty.length})`);
-ok(empty.every((h) => h < 50), `пустой тир – тонкая полоса, а не полная строка (высоты: ${empty.map(Math.round).join(", ")})`);
+ok(
+  empty.every((h) => h < 50),
+  `пустой тир – тонкая полоса, а не полная строка (высоты: ${empty.map(Math.round).join(", ")})`
+);
 
 const labelLines = await page.$$eval("#tl-titles-rows .tl-label-name", (els) =>
   els.map((e) => {
-    const lh = parseFloat(getComputedStyle(e).lineHeight) || parseFloat(getComputedStyle(e).fontSize) * 1.2;
+    const lh =
+      parseFloat(getComputedStyle(e).lineHeight) || parseFloat(getComputedStyle(e).fontSize) * 1.2;
     return [e.textContent, Math.round(e.getBoundingClientRect().height / lh)];
   })
 );
 const broken = labelLines.filter(([, lines]) => lines > 1);
-ok(!broken.length, `метки тиров в одну строку${broken.length ? ": рвутся " + broken.map(([t]) => t).join(", ") : ""}`);
+ok(
+  !broken.length,
+  `метки тиров в одну строку${broken.length ? ": рвутся " + broken.map(([t]) => t).join(", ") : ""}`
+);
 
 // Второй «Двойник» – тот, у которого год выхода 2022.
 await page.click('#tl-titles-rows .tl-poster[data-tl-title="Двойник"][data-tl-year="2022"]');
@@ -108,31 +163,55 @@ ok(
   (await page.evaluate(() => _reviewModalReview?.review_full)) === "второй сезон",
   "клик по обложке открывает окно именно этого отзыва (одинаковые названия не путаются)"
 );
-ok(!(await page.$(".image-lightbox:not(.hidden)")), "вместо отзыва не открылась увеличенная картинка");
+ok(
+  !(await page.$(".image-lightbox:not(.hidden)")),
+  "вместо отзыва не открылась увеличенная картинка"
+);
 await page.keyboard.press("Escape");
 await page.waitForSelector("#review-modal-overlay.hidden", { state: "attached", timeout: 5000 });
 
-const years = await page.$$eval("#tab-tierlist [data-tl-year-btn]", (els) => els.map((e) => e.textContent));
-ok(years.join(",") === "Все годы,2024,2023,2021", `годы строкой: «Все годы» и годы по датам отзывов (${years.join(", ")})`);
+const years = await page.$$eval("#tab-tierlist [data-tl-year-btn]", (els) =>
+  els.map((e) => e.textContent)
+);
+ok(
+  years.join(",") === "Все годы,2024,2023,2021",
+  `годы строкой: «Все годы» и годы по датам отзывов (${years.join(", ")})`
+);
 await page.click('#tab-tierlist [data-tl-year-btn="2023"]');
 await page.waitForTimeout(200);
-const in2023 = await page.$$eval("#tl-titles-rows .tl-poster", (els) => els.map((e) => e.dataset.tlTitle).sort());
-ok(in2023.join(",") === "Двойник,Манга", `год 2023 оставляет только его тайтлы (${in2023.join(", ")})`);
+const in2023 = await page.$$eval("#tl-titles-rows .tl-poster", (els) =>
+  els.map((e) => e.dataset.tlTitle).sort()
+);
 ok(
-  (await page.$eval('#tab-tierlist [data-tl-year-btn="2023"]', (e) => e.classList.contains("active"))),
+  in2023.join(",") === "Двойник,Манга",
+  `год 2023 оставляет только его тайтлы (${in2023.join(", ")})`
+);
+ok(
+  await page.$eval('#tab-tierlist [data-tl-year-btn="2023"]', (e) =>
+    e.classList.contains("active")
+  ),
   "выбранный год подсвечен"
 );
 
 await page.click("#tab-tierlist .tl-captions-btn");
 ok(
-  await page.evaluate(() => document.getElementById("tab-tierlist").classList.contains("tl-captions") && localStorage.getItem("tl-captions") === "1"),
+  await page.evaluate(
+    () =>
+      document.getElementById("tab-tierlist").classList.contains("tl-captions") &&
+      localStorage.getItem("tl-captions") === "1"
+  ),
   "«Подписи» включают названия и запоминаются"
 );
-const caption = await page.$eval("#tl-titles-rows .tl-poster", (e) => getComputedStyle(e, "::after").content);
+const caption = await page.$eval(
+  "#tl-titles-rows .tl-poster",
+  (e) => getComputedStyle(e, "::after").content
+);
 ok(/Двойник|Манга/.test(caption), `под обложкой название (${caption})`);
 
 console.log("Редактор персонажей");
-await page.goto(`http://127.0.0.1:${port}/#/chars-edit?collection=characters`, { waitUntil: "domcontentloaded" });
+await page.goto(`http://127.0.0.1:${port}/#/chars-edit?collection=characters`, {
+  waitUntil: "domcontentloaded",
+});
 await page.waitForSelector(".app-topbar #btn-save", { timeout: 10000 });
 ok(true, "«Сохранить всё» в верхней панели");
 ok(!(await page.$(".save-bar #btn-save")), "и только там, без второй кнопки внизу");
