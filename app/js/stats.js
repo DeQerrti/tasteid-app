@@ -265,7 +265,16 @@ function statsData(reviews, completed, year) {
   return { pool, prev, graded, overall, up, down, types, rated, gradeCounts, topTags, rewatched, watch, decades, faces, people, peopleNoLinks, chars };
 }
 
-const statsCover = (r) => esc(r.cover || r.cover_backup || PH_TALL);
+// src и атрибуты подстраховки – как у карточек во всём приложении
+// (coverFallbackAttrs/imgFallbackAttrs): битая внешняя ссылка на живой
+// странице сама меняется на резервную копию, а снимок (statsExport →
+// proxyImagesToDataUrls) берёт копию с диска сразу. Без них снимок ходил
+// за внешними ссылками, часть сайтов (TMDB, Hardcover) не отдаёт картинки
+// чужой странице (CORS) – и на картинке статистики были пустые места.
+const statsCoverAttrs = (r) =>
+  `src="${esc(r.cover || r.cover_backup || PH_TALL)}" ${coverFallbackAttrs(r.cover, r.cover_backup)}`;
+const statsImageAttrs = (e) =>
+  `src="${esc(e.image || e.image_backup || PH_SQ)}" ${imgFallbackAttrs(e.image, e.image_backup, PH_SQ)}`;
 function statsGradeHtml(g, extra = "") {
   return `<span class="sx-grade" style="--gc:${esc(g.color)}">${esc(g.name)}${extra}</span>`;
 }
@@ -319,7 +328,7 @@ function statsHeroHtml(d, year) {
       </div>
       <div class="sx-covers">${d.faces
         .slice(0, 3)
-        .map((r) => `<img src="${statsCover(r)}" alt="${esc(r.title)}" title="${esc(r.title)}">`)
+        .map((r) => `<img ${statsCoverAttrs(r)} alt="${esc(r.title)}" title="${esc(r.title)}">`)
         .join("")}</div>`;
   }
 
@@ -523,7 +532,7 @@ function statsRewatchHtml(d) {
     .slice(0, 5)
     .map(
       (r) =>
-        `<button type="button" class="sx-rw" data-stat-review="${esc(String(r.id))}"><img src="${statsCover(r)}" alt=""><span class="sx-rw-title">${esc(r.title)}</span><span class="sx-rw-n">×${r.rewatch_count}</span></button>`
+        `<button type="button" class="sx-rw" data-stat-review="${esc(String(r.id))}"><img ${statsCoverAttrs(r)} alt=""><span class="sx-rw-title">${esc(r.title)}</span><span class="sx-rw-n">×${r.rewatch_count}</span></button>`
     )
     .join("")}</div>
     <div class="sx-sum">${esc(
@@ -560,7 +569,7 @@ function statsFacesHtml(d, year) {
   const body = `<div class="sx-faces">${list
     .map(
       (r) =>
-        `<button type="button" class="sx-face" data-stat-review="${esc(String(r.id))}"><img src="${statsCover(r)}" alt="" loading="lazy"><span>${esc(r.title)}</span></button>`
+        `<button type="button" class="sx-face" data-stat-review="${esc(String(r.id))}"><img ${statsCoverAttrs(r)} alt="" loading="lazy"><span>${esc(r.title)}</span></button>`
     )
     .join("")}</div>`;
   return statsCard("spotlight", year === "all" ? "w7" : "w12", title, explain, body);
@@ -575,7 +584,7 @@ function statsPeopleHtml(d) {
         .slice(0, 6)
         .map(
           (p) => `<button type="button" class="sx-person" data-stat-fav="${esc(String(p.e.id))}">
-          <img src="${esc(p.e.image || p.e.image_backup || PH_SQ)}" alt="" style="object-position:${esc(p.e.image_focus || "50% 50%")}">
+          <img ${statsImageAttrs(p.e)} alt="" style="object-position:${esc(p.e.image_focus || "50% 50%")}">
           <span class="sx-person-text"><span class="sx-person-name">${esc(p.e.name)}</span><span class="sx-person-sub">${esc(
             [SUBTYPE_LABELS[p.e.subtype], p.linked.map((r) => r.title).join(", ")].filter(Boolean).join(" · ")
           )}</span></span>
@@ -593,7 +602,7 @@ function statsCharsHtml(d) {
     .slice(0, 16)
     .map(
       (c) => `<button type="button" class="sx-char" data-stat-fav="${esc(String(c.e.id))}">
-        <img src="${esc(c.e.image || c.e.image_backup || PH_SQ)}" alt="" style="object-position:${esc(c.e.image_focus || "50% 50%")}" loading="lazy">
+        <img ${statsImageAttrs(c.e)} alt="" style="object-position:${esc(c.e.image_focus || "50% 50%")}" loading="lazy">
         <span class="sx-char-name">${esc(c.e.name)}</span>
         ${c.e.from ? `<span class="sx-char-from">${esc(c.e.from)}</span>` : ""}
         ${c.avg !== null ? statsGradeHtml(statsShelfFor(c.avg)) : ""}
@@ -740,8 +749,18 @@ async function statsExport(selectedKeys) {
       }
     });
   }
+  // На широком окне (≥2300px, в том числе при уменьшенном масштабе
+  // приложения) у #tab-stats стоит CSS zoom (index.html). html2canvas его
+  // не понимает: места слов берёт увеличенные, а буквы рисует обычного
+  // размера – на снимке между словами выходили дыры. На время снимка
+  // zoom снимаем (раскладка та же, просто без увеличения; чёткость даёт
+  // scale ниже) и возвращаем в finally вместе со спрятанными разделами.
+  const tab = document.getElementById("tab-stats");
+  const prevZoom = tab?.style.zoom ?? "";
+  if (tab && getComputedStyle(tab).zoom !== "1") tab.style.zoom = "1";
   const restoreHidden = () => {
     for (const { el, prev } of hidden) el.style.display = prev;
+    if (tab) tab.style.zoom = prevZoom;
   };
 
   let restoreBtn = () => {};

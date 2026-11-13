@@ -9,7 +9,7 @@
 
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -49,14 +49,34 @@ for (let i = 0; i < 5; i++) add("manga", "brak", ["Скука", "Общий"], 1
 for (let i = 0; i < 4; i++) add("movie", "attrakcion", ["Общий"], 1300 + i, `2026-0${i + 1}-12`);
 reviews[0].favorite = true;
 reviews[0].rewatch_count = 2;
+// Внешняя обложка, которая не открывается, и её резервная копия на диске –
+// статистика должна показать копию (как карточки во всём приложении), а
+// снимок – не остаться с пустым местом.
+reviews[0].cover = "https://img.invalid/cover.jpg";
+reviews[0].cover_backup = "/covers-backup/t2.png";
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEElEQVR42mNg+G+DHQ0tCQC2ik7BakjxzwAAAABJRU5ErkJggg==",
+  "base64"
+);
 
 function vault(settings) {
   const dir = mkdtempSync(join(tmpdir(), "tasteid-stats-"));
   writeFileSync(join(dir, "reviews.json"), JSON.stringify(reviews));
+  mkdirSync(join(dir, "covers-backup"));
+  writeFileSync(join(dir, "covers-backup", "t2.png"), PNG);
+  writeFileSync(join(dir, "covers-backup", "hero.png"), PNG);
   writeFileSync(
     join(dir, "favorites.json"),
     JSON.stringify([
-      { id: 1, type: "character", name: "Герой", from: "T2", linked_review_ids: [1] },
+      {
+        id: 1,
+        type: "character",
+        name: "Герой",
+        from: "T2",
+        linked_review_ids: [1],
+        image: "https://img.invalid/hero.jpg",
+        image_backup: "/covers-backup/hero.png",
+      },
       { id: 2, type: "person", subtype: "director", name: "Режиссёр", linked_review_ids: [1, 2] },
     ])
   );
@@ -85,6 +105,7 @@ const page = await browser.newPage({
 });
 const jsErrors = [];
 page.on("pageerror", (e) => jsErrors.push(e.message));
+await page.route("https://img.invalid/**", (r) => r.fulfill({ status: 404, body: "" }));
 
 async function openStats(p, base) {
   await p.goto(`${base}/`, { waitUntil: "domcontentloaded" });
@@ -189,6 +210,56 @@ ok(
   download.suggestedFilename() === "stats-all-time.png",
   `картинка сохраняется (${download.suggestedFilename()})`
 );
+
+console.log("Картинки статистики: битая внешняя ссылка → резервная копия");
+// Раньше у картинок статистики не было data-fallback: битая ссылка
+// оставалась пустым местом и на странице, и на снимке.
+await page.waitForFunction(() =>
+  [...document.querySelectorAll("#tab-stats .stat-grid img")].some((i) =>
+    (i.getAttribute("src") || "").includes("/covers-backup/t2.png")
+  )
+);
+const statImgs = await page.$$eval("#tab-stats .stat-grid img", (els) =>
+  els.map((i) => ({ src: i.getAttribute("src") || "", ok: i.complete && i.naturalWidth > 0 }))
+);
+ok(
+  statImgs.filter((i) => i.src.includes("img.invalid")).length === 0,
+  "ни одной картинки с битой внешней ссылкой не осталось"
+);
+ok(
+  statImgs.some((i) => i.src.includes("/covers-backup/hero.png")),
+  "у персонажа тоже подставилась копия"
+);
+
+console.log("Снимок на широком окне (zoom у статистики)");
+// ≥2300px: у #tab-stats CSS zoom, который html2canvas не понимает – между
+// словами на снимке выходили дыры. На время снимка zoom снимается.
+await page.setViewportSize({ width: 2560, height: 1440 });
+await page.waitForTimeout(200);
+const zoomBefore = await page.evaluate(
+  () => getComputedStyle(document.getElementById("tab-stats")).zoom
+);
+await page.evaluate(() => {
+  window.__zoomAtCapture = null;
+  const orig = window.html2canvas;
+  window.html2canvas = (el, opts) => {
+    window.__zoomAtCapture = getComputedStyle(document.getElementById("tab-stats")).zoom;
+    return orig(el, opts);
+  };
+});
+await page.click("#stats-export-btn");
+await page.waitForSelector("#stats-export-options label");
+const wideDownload = page.waitForEvent("download", { timeout: 30000 });
+await page.click('#stats-export-overlay [data-act="ok"]');
+await wideDownload;
+ok(zoomBefore !== "1", `на широком окне zoom действует (${zoomBefore})`);
+ok((await page.evaluate(() => window.__zoomAtCapture)) === "1", "во время снимка zoom снят");
+ok(
+  (await page.evaluate(() => getComputedStyle(document.getElementById("tab-stats")).zoom)) ===
+    zoomBefore,
+  "после снимка zoom вернулся"
+);
+await page.setViewportSize({ width: 1920, height: 1080 });
 
 console.log("Скрытые в настройках блоки");
 const port2 = port + 1;
