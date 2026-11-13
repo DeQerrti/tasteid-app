@@ -141,7 +141,7 @@ function renderFavorites({ titles, characters, persons, favData }) {
   // её же комментарий у favModeBodies ниже): один источник правды на
   // «как показать раздел», а не два (тут и там).
   box.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.8rem">
+    <div class="fav-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.8rem">
       <div class="tl-mode-toggle" style="margin-bottom:0">${toggleBtns}</div>
       <div id="fav-action-link" style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">${cameraBtn}</div>
     </div>

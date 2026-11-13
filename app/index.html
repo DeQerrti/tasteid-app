@@ -1741,6 +1741,27 @@ section.group { margin-bottom: 3.5rem; }
   gap: .5rem;
   margin-bottom: 1.8rem;
 }
+/* Верхняя строка раздела остаётся на месте при прокрутке: в длинном
+   списке переключиться на соседнюю вкладку (статус, раздел «Любимого»,
+   тир-лист, год в Статистике) можно, не листая назад наверх. Только
+   прямые дети вкладки раздела: sticky держится, пока на экране его
+   родитель, а родитель здесь – весь раздел целиком. Фон сплошной,
+   иначе карточки просвечивают сквозь строку, когда уезжают под неё;
+   padding + такой же отрицательный margin дают зазор сверху у
+   прилипшей строки и не сдвигают её в обычном положении. «Отзывы» не
+   здесь: их панель фильтров – четыре строки, прилипшей она съела бы
+   пол-экрана. */
+#tab-now > .tl-mode-toggle,
+#tab-tierlist > .tl-mode-toggle,
+#tab-favorites > .fav-head,
+#tab-stats > .stat-toolbar {
+  position: sticky;
+  top: var(--app-titlebar, 0px);
+  z-index: 20;
+  background: var(--bg);
+  padding-top: .75rem;
+  margin-top: -.75rem;
+}
 @media (max-width: 700px) {
   /* На телефоне тут может оказаться несколько своих тир-листов
      (см. tl-mode-add-btn) плюс "Тайтлы" – без переноса и без
@@ -1888,8 +1909,10 @@ section.group { margin-bottom: 3.5rem; }
 
 /* Заголовок года в списке (js/now.js: yearGroupsHtml). Счётчик рядом с
    годом – сколько карточек этого года видно сейчас. scroll-margin –
-   чтобы «Перейти к году» не прятал заголовок под полосу окна в Electron. */
-.year-divider { scroll-margin-top: calc(var(--app-titlebar, 0px) + 14px); }
+   чтобы «Перейти к году» не прятал заголовок под полосу окна в Electron
+   и под прилипшую строку вкладок (см. её же комментарий у
+   .tl-mode-toggle). */
+.year-divider { scroll-margin-top: calc(var(--app-titlebar, 0px) + 4.5rem); }
 .year-count {
   font-family: 'DM Sans', sans-serif;
   font-size: .8rem;
@@ -3542,7 +3565,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/api.js?v=13"></script>
 <script src="/js/cards.js?v=19"></script>
 <script src="/js/now.js?v=16"></script>
-<script src="/js/favorites.js?v=18"></script>
+<script src="/js/favorites.js?v=19"></script>
 <script src="/js/reviews.js?v=25"></script>
 <script src="/js/stats.js?v=20"></script>
 <script src="/js/tierlist.js?v=14"></script>
@@ -3672,6 +3695,26 @@ function switchTab(tabId, btn) {
     if (tabId === "tab-tierlist")  loadTierlist();
   }, 150);
 }
+
+// Строка вкладок раздела прилипает к верху при прокрутке (см. её же
+// комментарий у .tl-mode-toggle в CSS выше). Без этого обработчика
+// переключение вкладки из середины списка оставляло прокрутку на месте:
+// новый список открывался тоже с середины, и его начало приходилось
+// искать листанием вверх – ровно то, от чего прилипание и избавляет.
+// Прокрутку возвращаем в начало, только если строка действительно
+// прилипла (раздел уехал выше края окна); у самого верха страница не
+// дёргается. Перехват на фазе capture: проверяем положение до того, как
+// обработчик раздела перерисует содержимое (Статистика делает это сразу
+// же, синхронно). Сама прокрутка – через два кадра: «Статусы»
+// перерисовываются в requestAnimationFrame (см. bindNowModeToggle).
+const STICKY_TABS_BAR =
+  "#tab-now > .tl-mode-toggle, #tab-tierlist > .tl-mode-toggle, #tab-favorites > .fav-head, #tab-stats > .stat-toolbar";
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest?.(".tl-mode-btn, .tl-filter[data-stat-year]");
+  const bar = btn?.closest(STICKY_TABS_BAR);
+  if (!bar || bar.parentElement.getBoundingClientRect().top >= 0) return;
+  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, 0)));
+}, true);
 
 // ── Горячие клавиши ─────────────────────────────
 // 1–5 переключают вкладки рельсы, / открывает поиск в «Отзывах», N –
