@@ -14,6 +14,18 @@ const SCALE_TYPES = [
 ];
 let scaleType = "categorical";
 let shelves = []; // [{key, name, color, min, max}]
+// Полки другой шкалы, пока открыты настройки: «Названия» и «Числа/Звёзды»
+// хранят полку по-разному (ключ против диапазона), но название, цвет и
+// описание у неё общие. Раньше при переключении список просто стирался и
+// строился заново из стандартных – свои названия приходилось вписывать
+// снова, даже если сразу вернулся обратно. Теперь набор уходящей шкалы
+// запоминается, а правки названий/цветов/описаний переносятся на ту, куда
+// перешли, по порядковому месту полки. Только в памяти: после закрытия
+// настроек остаётся лишь активная шкала (это и сохраняется в файл).
+let shelvesStash = { categorical: null, numeric: null };
+// Ключи полок, у которых показано поле описания, хотя оно пока пустое
+// (по ссылке «+ описание»); без этого поле исчезало бы при перерисовке.
+let shelfDescOpen = new Set();
 // Шкала на момент открытия страницы – см. её же присвоение в
 // settings-shortcuts.js/loadCurrentSettings() и buildRegradeMap() ниже.
 let originalGradeScale = null;
@@ -132,33 +144,34 @@ function buildRegradeMap(usedRawGrades, oldScale, newScale) {
 
 function renderScaleTypeGrid() {
   const grid = document.getElementById("scaleTypeGrid");
+  // Образец оценки под названием: чип с названием полки, «8 / 10», звёзды.
+  // Раньше – три кнопки с одними словами и абзац над ними про то, на что
+  // выбор влияет.
+  const sample = {
+    categorical: `<span class="scale-sample-chip">${esc(shelves[1]?.name || i18n("Эталон"))}</span>`,
+    numeric: `<span class="scale-sample-num">8<em> / 10</em></span>`,
+    stars: `<span class="scale-sample-stars">★★★★★★★★<s>★★</s></span>`,
+  };
   grid.innerHTML = SCALE_TYPES.map(
-    (t) => `<div class="theme-option${t.id === scaleType ? " selected" : ""}" data-scale="${t.id}">${t.label}</div>`
+    (t) =>
+      `<div class="theme-option scale-card${t.id === scaleType ? " selected" : ""}" data-scale="${t.id}"><span>${t.label}</span><span class="scale-sample">${sample[t.id]}</span></div>`
   ).join("");
   grid.querySelectorAll(".theme-option").forEach((el) => {
     el.onclick = async () => {
       const prevWasCategorical = scaleType === "categorical";
       const newScale = el.dataset.scale;
       const nowIsCategorical = newScale === "categorical";
-      // "Названия" и "Числа/Звёзды" хранят полки в несовместимых
-      // формах (ключ+имя против диапазона чисел) – одно в другое не
-      // переносится, так что переключение сотрёт текущие названия
-      // полок. Раньше это стиралось без предупреждения – см. её же
-      // историю в defrostGradeScale (js/theme.js), из-за которой
-      // пользователь принял этот сброс за "перевелось на английский".
-      if (prevWasCategorical !== nowIsCategorical && shelves.length) {
-        if (
-          !(await confirmDialog(
-            i18n(
-              "Переключение между «Названиями» и «Числами/Звёздами» сбросит текущие названия полок на значения по умолчанию. Продолжить?"
-            ),
-            i18n("Переключить"),
-            i18n("Отмена")
-          ))
-        ) {
-          return;
-        }
-        shelves = [];
+      // «Названия» и «Числа/Звёзды» хранят полку по-разному (ключ против
+      // диапазона), но название, цвет и описание у неё общие – их
+      // переносим, а не стираем (раньше тут был диалог «сбросит названия
+      // полок», и свои названия вписывались заново, даже если сразу
+      // вернулся обратно – см. её же историю в defrostGradeScale,
+      // js/theme.js, из-за которой сброс принимали за «перевелось на
+      // английский»). Сами оценки отзывов пересчитываются при сохранении
+      // отдельно (needsRegrade) и спрашиваются там же.
+      if (prevWasCategorical !== nowIsCategorical) {
+        const max = Number(document.getElementById("numericMax").value) || (newScale === "stars" ? 5 : 10);
+        shelves = switchShelvesTo(nowIsCategorical ? "categorical" : "numeric", max);
       }
       scaleType = newScale;
       renderScaleTypeGrid();
@@ -188,6 +201,78 @@ function seedCategoricalShelves() {
   shelves = GRADES_DEF.map((g) => ({ key: g.key, name: g.name, color: g.color, desc: g.desc }));
 }
 
+// Диапазоны для n полок на шкале 1…max – та же разбивка, что у
+// seedNumericShelves(): n полок делят шкалу поровну, начиная с лучшей.
+function numericRange(i, n, max) {
+  const step = max / n;
+  const hi = Math.round(max - i * step);
+  const lo = i === n - 1 ? 1 : Math.round(max - (i + 1) * step) + 1;
+  return { min: lo, max: hi };
+}
+
+// «Названия» -> «Числа/Звёзды»: те же названия, цвета, описания, диапазоны
+// раскладываются по шкале поровну. Больше MAX_NUMERIC_SHELVES (или больше
+// самого максимума) полок в числах не бывает – лишние остаются в запасе
+// shelvesStash и вернутся при переключении назад.
+function shelvesToNumeric(src, max) {
+  const n = Math.max(1, Math.min(src.length, MAX_NUMERIC_SHELVES, max));
+  return src.slice(0, n).map((s, i) => {
+    const out = { key: "shelf_" + (i + 1), name: s.name, color: s.color, ...numericRange(i, n, max) };
+    if (s.desc) out.desc = s.desc;
+    return out;
+  });
+}
+
+// «Числа/Звёзды» -> «Названия»: ключ у полки нужен настоящий (по нему
+// оценки отзывов находят полку), поэтому первым семи отдаём ключи
+// GRADES_DEF по порядку, остальным – свои; название, цвет и описание
+// остаются теми, что были.
+function shelvesToCategorical(src) {
+  return src.map((s, i) => {
+    const out = {
+      key: GRADES_DEF[i]?.key || "custom_" + Date.now().toString(36).slice(-5) + "_" + i,
+      name: s.name,
+      color: s.color,
+    };
+    if (s.desc) out.desc = s.desc;
+    return out;
+  });
+}
+
+// Полки для новой шкалы: если её набор уже был (мы с неё ушли в этом же
+// сеансе) – берём его, наложив на него названия/цвета/описания, которые
+// правили здесь; иначе строим из текущих. Уходящий набор запоминается.
+function switchShelvesTo(toKind, max) {
+  const from = shelves;
+  shelvesStash[toKind === "categorical" ? "numeric" : "categorical"] = from;
+  const stashed = shelvesStash[toKind];
+  if (stashed) {
+    const next = JSON.parse(JSON.stringify(stashed));
+    next.forEach((s, i) => {
+      const f = from[i];
+      if (!f) return;
+      s.name = f.name;
+      s.color = f.color;
+      if (f.desc) s.desc = f.desc;
+      else delete s.desc;
+    });
+    return next;
+  }
+  return toKind === "categorical" ? shelvesToCategorical(from) : shelvesToNumeric(from, max);
+}
+
+// Сменился «Максимум»/«Сколько звёзд»: диапазоны раскладываем заново, а
+// названия, цвета и описания оставляем (раньше любая смена максимума
+// сбрасывала все полки на стандартные).
+function reflowNumericRanges() {
+  const max = Number(document.getElementById("numericMax").value) || (scaleType === "stars" ? 5 : 10);
+  if (!shelves.length) {
+    seedNumericShelves();
+    return;
+  }
+  shelves = shelvesToNumeric(shelves, max);
+}
+
 function seedNumericShelves() {
   const max = Number(document.getElementById("numericMax").value) || (scaleType === "stars" ? 5 : 10);
   const names = [
@@ -214,8 +299,9 @@ function renderShelvesList(containerId, withRange) {
   container.innerHTML = shelves
     .map(
       (s, i) => `
-      <div class="shelf-row">
+      <div class="shelf-row" data-i="${i}">
         <div class="shelf-row-main">
+          ${withRange ? "" : `<span class="shelf-grip" title="${i18n("Перетащить")}">⠿</span>`}
           <input type="color" value="${esc(s.color)}" onchange="shelves[${i}].color=this.value">
           <input type="text" value="${esc(s.name)}" onchange="shelves[${i}].name=this.value" placeholder="${i18n("Название")}">
           ${
@@ -228,14 +314,66 @@ function renderShelvesList(containerId, withRange) {
           `
               : ""
           }
+          ${s.desc || shelfDescOpen.has(s.key) ? "" : `<button type="button" class="shelf-desc-link" onclick="openShelfDesc(${i}, '${containerId}', ${withRange})">${i18n("+ описание")}</button>`}
           <button class="icon-btn" onclick="removeShelfRow(${i}, '${containerId}', ${withRange})">✕</button>
         </div>
-        <input type="text" class="shelf-desc" value="${esc(s.desc || "")}"
-          onchange="shelves[${i}].desc=this.value" placeholder="${i18n("Описание – показывается подсказкой при наведении")}">
+        ${
+          s.desc || shelfDescOpen.has(s.key)
+            ? `<input type="text" class="shelf-desc" value="${esc(s.desc || "")}"
+          onchange="shelves[${i}].desc=this.value" placeholder="${i18n("Описание – показывается подсказкой при наведении")}">`
+            : ""
+        }
       </div>
     `
     )
     .join("");
+  if (!withRange) bindShelvesDnd(container, containerId);
+}
+
+// Описание полки – по ссылке «+ описание»: семь одинаковых пустых полей на
+// всю ширину читались как шум. Заполненное описание видно всегда.
+function openShelfDesc(i, containerId, withRange) {
+  shelfDescOpen.add(shelves[i].key);
+  renderShelvesList(containerId, withRange);
+  document.querySelector(`#${containerId} .shelf-row[data-i="${i}"] .shelf-desc`)?.focus();
+}
+
+// Порядок полок «Названий» – то, насколько хороша оценка: сверху лучшая
+// (от него считаются статистика и тир-лист). Раньше поменять порядок было
+// нечем – своя полка всегда вставала в конец, то есть становилась худшей.
+// У «Чисел»/«Звёзд» порядок задают диапазоны, ручки там нет.
+let shelfDragFrom = null;
+function bindShelvesDnd(container, containerId) {
+  container.querySelectorAll(".shelf-row").forEach((row) => {
+    const grip = row.querySelector(".shelf-grip");
+    if (!grip) return;
+    grip.addEventListener("mousedown", () => (row.draggable = true));
+    row.addEventListener("dragstart", (e) => {
+      shelfDragFrom = Number(row.dataset.i);
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    });
+    row.addEventListener("dragend", () => {
+      row.draggable = false;
+      shelfDragFrom = null;
+      container.querySelectorAll(".shelf-row").forEach((r) => r.classList.remove("dragging", "drag-over"));
+    });
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (shelfDragFrom === null) return;
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const to = Number(row.dataset.i);
+      if (shelfDragFrom === null || shelfDragFrom === to) return;
+      const [moved] = shelves.splice(shelfDragFrom, 1);
+      shelves.splice(to, 0, moved);
+      settingsDirty = true;
+      renderShelvesList(containerId, false);
+    });
+  });
 }
 
 function addShelfRow(categorical) {

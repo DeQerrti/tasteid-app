@@ -150,7 +150,7 @@ function settingsViewHtml() {
       <button class="side-tab active" data-panel="appearance">${sideTabIcon("appearance")}${sideTabLabel("Оформление")}</button>
       <button class="side-tab" data-panel="tabs">${sideTabIcon("tabs")}${sideTabLabel("Вкладки")}</button>
       <button class="side-tab" data-panel="stats">${sideTabIcon("stats")}${sideTabLabel("Статистика")}</button>
-      <button class="side-tab" data-panel="grades">${sideTabIcon("grades")}${sideTabLabel("Оценки и статусы")}</button>
+      <button class="side-tab" data-panel="grades">${sideTabIcon("grades")}${sideTabLabel("Оценки")}</button>
       <button class="side-tab" data-panel="shortcuts">${sideTabIcon("shortcuts")}${sideTabLabel("Горячие клавиши")}</button>
       <div class="side-group" data-i18n>Данные</div>
       <button class="side-tab hidden" data-panel="app" id="tab-app">${sideTabIcon("app")}${sideTabLabel("Приложение")}</button>
@@ -285,13 +285,10 @@ function settingsViewHtml() {
       </div>
 
       <div class="panel" id="panel-grades">
-        <p class="panel-intro" data-i18n>Тип шкалы влияет на то, как выглядит поле оценки в форме добавления и как тайтлы раскладываются по тир-листу.</p>
-
         <div class="theme-grid" id="scaleTypeGrid"></div>
 
         <div id="categoricalBlock">
           <h2 class="section-h" data-i18n>Полки</h2>
-          <p class="panel-intro" data-i18n>Переименуйте, перекрасьте, удалите или добавьте свою.</p>
           <div id="catShelvesList"></div>
           <button class="btn btn-ghost" onclick="addShelfRow(true)" data-i18n>Добавить полку</button>
         </div>
@@ -299,7 +296,7 @@ function settingsViewHtml() {
         <div id="numericBlock" style="display:none;">
           <div class="row">
             <div style="flex:0 0 140px;"><label id="numericMaxLabel" data-i18n>Максимум</label><input type="number" id="numericMax" min="2" max="10" value="10"
-              onchange="clampNumericMax(); seedNumericShelves(); renderShelvesList('shelvesList', true);"></div>
+              onchange="clampNumericMax(); reflowNumericRanges(); renderShelvesList('shelvesList', true);"></div>
           </div>
 
           <h2 class="section-h" data-i18n>Полки</h2>

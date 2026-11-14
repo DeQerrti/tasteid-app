@@ -173,6 +173,8 @@ async function loadCurrentSettings() {
   const gradeScale = defrostGradeScale(settings.gradeScale || null);
   scaleType = gradeScale?.type || "categorical";
   shelves = gradeScale?.shelves ? JSON.parse(JSON.stringify(gradeScale.shelves)) : [];
+  shelvesStash = { categorical: null, numeric: null };
+  shelfDescOpen = new Set();
   document.getElementById("numericMax").value = gradeScale?.numericMax || (scaleType === "stars" ? 5 : 10);
   // Снимок шкалы «как было до правки» – нужен в saveSettings(), чтобы
   // понять, требует ли новая шкала пересчёта уже поставленных оценок

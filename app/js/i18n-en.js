@@ -1504,6 +1504,7 @@ i18nRegister({
   "пересмотрено ×{n}": "rewatched ×{n}",
   "Показывать теги на карточках": "Show tags on cards",
   "Что показывать": "What to show",
+  "+ описание": "+ description",
   "Только текст. Всё остальное увеличивает «Масштаб» на вкладке «Приложение».": "Text only. Everything else is scaled by “Scale” on the “App” tab.",
   "Фоны": "Backgrounds",
   "Линии": "Lines",

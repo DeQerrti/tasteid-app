@@ -178,6 +178,72 @@ ok(
 );
 ok(!(await page.$("#mk-typebar, .type-bar")), "над цветами типов нет полосы-образца");
 
+console.log("Вкладка «Оценки»: названия полок переживают смену шкалы");
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector("#hide-tags-toggle", { timeout: 10000 });
+await page.click('.side-tab[data-panel="grades"]');
+await page.waitForSelector("#catShelvesList .shelf-row");
+ok(
+  (await page.$eval('.side-tab[data-panel="grades"] .side-tab-label', (e) =>
+    e.textContent.trim()
+  )) === "Оценки",
+  "вкладка называется «Оценки» (статусов в ней нет)"
+);
+ok((await page.$$("#scaleTypeGrid .scale-card")).length === 3, "три карточки шкалы с образцом");
+// У стандартных полок описания уже есть и видны; у новой – пусто, поле скрыто за ссылкой.
+await page.click('#categoricalBlock button[onclick="addShelfRow(true)"]');
+const lastRow = "#catShelvesList .shelf-row:last-child";
+ok(!(await page.$(`${lastRow} .shelf-desc`)), "у новой полки пустое поле описания не показано");
+await page.click(`${lastRow} .shelf-desc-link`);
+ok(!!(await page.$(`${lastRow} .shelf-desc`)), "по «+ описание» появляется поле описания");
+// своё название первой полки
+await page.fill(
+  "#catShelvesList .shelf-row:nth-child(1) input[type=text]:not(.shelf-desc)",
+  "Мой топ"
+);
+await page.press(
+  "#catShelvesList .shelf-row:nth-child(1) input[type=text]:not(.shelf-desc)",
+  "Tab"
+);
+// порядок: первую полку на третье место
+await page.dragAndDrop(
+  "#catShelvesList .shelf-row:nth-child(1) .shelf-grip",
+  "#catShelvesList .shelf-row:nth-child(3)"
+);
+const names = () =>
+  page.$$eval("#catShelvesList .shelf-row input[type=text]:not(.shelf-desc)", (els) =>
+    els.map((e) => e.value)
+  );
+ok(
+  (await names())[2] === "Мой топ",
+  `полку можно перетащить (${(await names()).slice(0, 3).join(", ")})`
+);
+// Названия -> Числа -> Названия без диалога и без потери названия
+await page.click('#scaleTypeGrid [data-scale="numeric"]');
+await page.waitForSelector("#shelvesList .shelf-row");
+ok(
+  !(await page.$(".modal-overlay:not(.hidden)")),
+  "переключение шкалы не спрашивает про сброс названий"
+);
+const numNames = await page.$$eval(
+  "#shelvesList .shelf-row input[type=text]:not(.shelf-desc)",
+  (els) => els.map((e) => e.value)
+);
+ok(numNames.includes("Мой топ"), `своё название перешло в «Числа» (${numNames.join(", ")})`);
+await page.click('#scaleTypeGrid [data-scale="categorical"]');
+await page.waitForSelector("#catShelvesList .shelf-row");
+ok((await names())[2] === "Мой топ", "и вернулось в «Названия» на то же место");
+// смена максимума не стирает названия
+await page.click('#scaleTypeGrid [data-scale="numeric"]');
+await page.waitForSelector("#shelvesList .shelf-row");
+await page.fill("#numericMax", "5");
+await page.press("#numericMax", "Tab");
+const afterMax = await page.$$eval(
+  "#shelvesList .shelf-row input[type=text]:not(.shelf-desc)",
+  (els) => els.map((e) => e.value)
+);
+ok(afterMax.includes("Мой топ"), `смена максимума не сбрасывает названия (${afterMax.join(", ")})`);
+
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
 await browser.close();

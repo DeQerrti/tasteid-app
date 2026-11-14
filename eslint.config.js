@@ -373,6 +373,8 @@ const sharedBrowserGlobals = [
   "hiddenTypes",
   "hideTagsAllOn",
   "hideTagsMixed",
+  "shelvesStash",
+  "shelfDescOpen",
   "themeDefaults",
   "loadAppPanel",
   "loadCurrentSettings",
