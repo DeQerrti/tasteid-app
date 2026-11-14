@@ -36,8 +36,30 @@ function renderSyncPanel() {
   if (config && !syncInFlight && localStorage.getItem(AUTOSYNC_CONFLICTS_KEY) === "1") startSync();
 }
 
+// Не подключено: вступление в одну строку, поля и кнопка «Подключить» сразу,
+// а все объяснения (что такое GitHub, как завести токен, чем отличается
+// fine-grained-токен, зачем название репозитория) – под сворачиваемым
+// «Как это работает и как получить токен». Раньше вся эта стена текста
+// шла до полей, и сама форма была внизу экрана. Сами тексты не менялись.
 function syncSetupHtml() {
   return `
+      <p class="panel-intro" data-i18n>
+        Синхронизация между вашими устройствами через приватный репозиторий
+        на GitHub – бесплатно и без своего сервера.
+      </p>
+      <div class="field">
+        <label data-i18n>Токен доступа</label>
+        <input type="password" id="sync-token" placeholder="ghp_…" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n>Название репозитория</label>
+        <input type="text" id="sync-repo" value="tasteid-vault">
+      </div>
+      <button class="btn btn-primary" onclick="connectSync()" id="sync-connect-btn" data-i18n>Подключить</button>
+      <div class="status-msg" id="status-sync"></div>
+      <details class="sync-how">
+        <summary data-i18n>Как это работает и как получить токен</summary>
+        <div class="sync-how-body">
       <p class="sync-intro" data-i18n>
         GitHub – бесплатный сайт, на котором разработчики хранят код;
         здесь он просто чужое хранилище вместо своего сервера, которого
@@ -84,13 +106,6 @@ function syncSetupHtml() {
         Personal access tokens → Fine-grained tokens на github.com) с
         доступом к одному этому репозиторию и правом Contents: Read and write.
       </p>
-      <div class="field">
-        <label data-i18n>Токен доступа</label>
-        <input type="password" id="sync-token" placeholder="ghp_…" autocomplete="off">
-      </div>
-      <div class="field">
-        <label data-i18n>Название репозитория</label>
-        <input type="text" id="sync-repo" value="tasteid-vault">
         <p class="panel-intro" data-i18n>
           Просто оставьте как есть, если не уверены, что означает это
           название, – это техническое имя папки-хранилища на GitHub,
@@ -101,9 +116,8 @@ function syncSetupHtml() {
           одно и то же название, иначе они будут синхронизировать
           разные хранилища и не увидят данные друг друга.
         </p>
-      </div>
-      <button class="btn btn-primary" onclick="connectSync()" id="sync-connect-btn" data-i18n>Подключить</button>
-      <div class="status-msg" id="status-sync"></div>
+        </div>
+      </details>
     `;
 }
 
@@ -128,23 +142,30 @@ function syncConnectedHtml(config) {
         })}
       </p>`
     : "";
+  // Одна строка: слева «● Подключено к репозиторию» и время последней
+  // синхронизации, справа главная кнопка, а «Показать токен» и «Отключить» –
+  // тихими ссылками рядом (раньше «Отключить» стоял вплотную к главной кнопке,
+  // а «Показать токен» – отдельным рядом ниже через большой зазор).
   return `
-      <p class="panel-intro">
-        ${i18n("Подключено к")}
-        <a href="https://github.com/${esc(config.owner)}/${esc(config.repo)}" target="_blank" rel="noopener">${esc(config.owner)}/${esc(config.repo)}</a>.
-        ${i18n("Последняя синхронизация: {when}.", { when: last })}
-      </p>
-      ${errorHtml}
-      <div class="row" style="gap:10px;flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="startSync()" id="sync-now-btn" data-i18n>Синхронизировать сейчас</button>
-        <button class="btn btn-ghost" onclick="disconnectSync()" data-i18n>Отключить</button>
+      <div class="set-row sync-row">
+        <div class="set-row-main">
+          <div class="set-row-title"><span class="sync-dot" aria-hidden="true"></span>${i18n("Подключено к")}
+            <a href="https://github.com/${esc(config.owner)}/${esc(config.repo)}" target="_blank" rel="noopener">${esc(config.owner)}/${esc(config.repo)}</a></div>
+          <div class="set-row-sub">${i18n("Последняя синхронизация: {when}.", { when: last })}</div>
+        </div>
+        <div class="set-row-ctl">
+          <button class="btn btn-primary" onclick="startSync()" id="sync-now-btn" data-i18n>Синхронизировать сейчас</button>
+          <span class="set-links">
+            <button type="button" class="link-btn" onclick="revealSyncToken()" id="sync-token-reveal-btn" data-i18n>Показать токен</button>
+            <button type="button" class="link-btn" onclick="disconnectSync()" data-i18n>Отключить</button>
+          </span>
+        </div>
       </div>
+      ${errorHtml}
       <div class="status-msg" id="status-sync"></div>
       <div id="sync-progress"></div>
       <div id="sync-conflicts"></div>
-      <div class="field" id="sync-token-field">
-        <button type="button" class="btn btn-ghost" onclick="revealSyncToken()" id="sync-token-reveal-btn" data-i18n>Показать токен</button>
-      </div>
+      <div class="field" id="sync-token-field"></div>
     `;
 }
 

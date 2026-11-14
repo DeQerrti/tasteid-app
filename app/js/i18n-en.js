@@ -1504,6 +1504,8 @@ i18nRegister({
   "пересмотрено ×{n}": "rewatched ×{n}",
   "Показывать теги на карточках": "Show tags on cards",
   "Что показывать": "What to show",
+  "Как это работает и как получить токен": "How it works and how to get a token",
+  "Синхронизация между вашими устройствами через приватный репозиторий на GitHub – бесплатно и без своего сервера.": "Sync between your devices through a private GitHub repository – free and without your own server.",
   "+ описание": "+ description",
   "Листать отзывы в окне": "Browse reviews in the window",
   "Сбросить все клавиши": "Reset all keys",

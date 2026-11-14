@@ -235,7 +235,7 @@ function renderVaultsList() {
         <input type="text" id="vaultinput-${v.id}" value="${esc(v.name)}">
         ${
           v.id === currentId
-            ? `<span class="vault-current" data-i18n>текущее</span>`
+            ? `<span class="vault-current"><span class="sync-dot" aria-hidden="true"></span><span data-i18n>текущее</span></span>`
             : `<button class="btn btn-ghost" onclick="switchVault('${v.id}')" data-i18n>Открыть</button>`
         }
         <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleVaultEdit('${v.id}')">✎</button>

@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=35"></script>
+<script src="/js/i18n-en.js?v=36"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=31"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -3712,15 +3712,15 @@ main.fe-view > .status-msg:empty { display: none; }
    глаз. .row-slot – пустое место на месте ✕ у строки, которую удалить
    нельзя («Тайтлы» в тир-листе): так ✎ во всех строках в одну линию. */
 @media (pointer: fine) {
-  :where(.set-view) :is(#panel-tabs, #panel-stats) .tab-row { padding: 4px 0; gap: 6px; min-height: 40px; }
-  :where(.set-view) :is(#panel-tabs, #panel-stats) .tab-row .icon-btn {
+  :where(.set-view) :is(#panel-tabs, #panel-stats, #vaultsList) .tab-row { padding: 4px 0; gap: 6px; min-height: 40px; }
+  :where(.set-view) :is(#panel-tabs, #panel-stats, #vaultsList) .tab-row .icon-btn {
     width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
     border-color: transparent; background: none; color: var(--text-dim);
   }
-  :where(.set-view) :is(#panel-tabs, #panel-stats) .tab-row .icon-btn:hover { color: var(--text-hi); background: var(--tint-hi); border-color: var(--border2); }
-  :where(.set-view) :is(#panel-tabs, #panel-stats) .tab-row .icon-btn ~ .icon-btn { opacity: .45; transition: opacity .15s; }
-  :where(.set-view) :is(#panel-tabs, #panel-stats) .tab-row:hover .icon-btn,
-  :where(.set-view) :is(#panel-tabs, #panel-stats) .tab-row:focus-within .icon-btn { opacity: 1; }
+  :where(.set-view) :is(#panel-tabs, #panel-stats, #vaultsList) .tab-row .icon-btn:hover { color: var(--text-hi); background: var(--tint-hi); border-color: var(--border2); }
+  :where(.set-view) :is(#panel-tabs, #panel-stats, #vaultsList) .tab-row .icon-btn ~ .icon-btn { opacity: .45; transition: opacity .15s; }
+  :where(.set-view) :is(#panel-tabs, #panel-stats, #vaultsList) .tab-row:hover .icon-btn,
+  :where(.set-view) :is(#panel-tabs, #panel-stats, #vaultsList) .tab-row:focus-within .icon-btn { opacity: 1; }
   :where(.set-view) .row-slot { flex: none; width: 30px; height: 30px; }
 }
 @media (pointer: coarse) { :where(.set-view) .row-slot { flex: none; width: 44px; height: 44px; } }
@@ -3805,6 +3805,29 @@ main.fe-view > .status-msg:empty { display: none; }
 .regrade-select { width: 100%; min-width: 0; }
 @media (max-width: 520px) { .regrade-row { grid-template-columns: 1fr; } .regrade-arrow { display: none; } }
 
+
+/* «Хранилища и синхронизация»: строка «Подключено», тихие ссылки, зелёная
+   точка, сворачиваемые объяснения, лёгкие строки хранилищ. */
+:where(.set-view) .sync-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--green, #3fa45b); flex: none; }
+:where(.set-view) .set-row.sync-row { padding-bottom: 6px; border-bottom: 0; }
+:where(.set-view) .sync-row a { color: var(--red-hi); text-decoration: none; }
+:where(.set-view) .sync-row a:hover { text-decoration: underline; }
+:where(.set-view) .sync-row .set-row-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0 .35em; }
+:where(.set-view) .set-links { display: inline-flex; gap: 14px; }
+:where(.set-view) .link-btn {
+  padding: 0; background: none; border: 0; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: .78rem; color: var(--text-dim);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+:where(.set-view) .link-btn:hover { color: var(--text-hi); }
+:where(.set-view) #syncPanel .status-msg:empty { display: none; }
+:where(.set-view) #syncPanel .field input { width: 100%; max-width: 480px; box-sizing: border-box; }
+:where(.set-view) .sync-how { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); }
+:where(.set-view) .sync-how > summary { cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text-dim); }
+:where(.set-view) .sync-how > summary:hover { color: var(--text-hi); }
+:where(.set-view) .sync-how-body { margin-top: 12px; }
+:where(.set-view) .vault-current { display: inline-flex; align-items: center; margin-right: 6px; font-family: 'DM Sans', sans-serif; font-size: .76rem; }
+:where(.set-view) #vaultsList .tab-name { font-family: 'DM Sans', sans-serif; font-size: .9rem; color: var(--text-hi); }
 
 /* «Приложение»: строки «название слева, действие справа» (renderAppPanel,
    settings-app.js, и разметка в settings-edit.js). Раньше – блоки с
@@ -4197,8 +4220,8 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/settings-stats.js?v=3"></script>
 <script src="/js/routes/settings-grades.js?v=4"></script>
 <script src="/js/routes/settings-tabs.js?v=4"></script>
-<script src="/js/routes/settings-app.js?v=2"></script>
-<script src="/js/routes/settings-sync.js?v=4"></script>
+<script src="/js/routes/settings-app.js?v=3"></script>
+<script src="/js/routes/settings-sync.js?v=5"></script>
 <script src="/js/routes/settings-shortcuts.js?v=6"></script>
 <script src="/js/routes/settings-labels.js?v=6"></script>
 <script src="/js/routes/settings-edit.js?v=11"></script>
