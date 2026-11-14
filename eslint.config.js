@@ -373,6 +373,8 @@ const sharedBrowserGlobals = [
   "hiddenTypes",
   "hideTagsAllOn",
   "hideTagsMixed",
+  "groupNewlyOrphaned",
+  "askOrphanedGradesTransfer",
   "shelvesStash",
   "shelfDescOpen",
   "themeDefaults",

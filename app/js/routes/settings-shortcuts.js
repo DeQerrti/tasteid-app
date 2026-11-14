@@ -186,9 +186,18 @@ async function loadCurrentSettings() {
   // понять, требует ли новая шкала пересчёта уже поставленных оценок
   // (см. buildRegradeMap() в settings-labels.js). Копия, а не ссылка –
   // shelves ниже правится прямо в этом же массиве по месту.
+  //
+  // Своей шкалы в файле ещё нет (settings.gradeScale пуст) – отзывы живут на
+  // стандартных полках GRADES_DEF, и «как было» – они, а не пустой список:
+  // иначе при первой же смене типа шкалы (или удалении полки) пересчёту
+  // не с чего было считать, и все уже поставленные оценки пропадали бы.
   originalGradeScale = {
     type: scaleType,
-    shelves: JSON.parse(JSON.stringify(shelves)),
+    shelves: JSON.parse(
+      JSON.stringify(
+        shelves.length ? shelves : GRADES_DEF.map((g) => ({ key: g.key, name: g.name, color: g.color, desc: g.desc }))
+      )
+    ),
     numericMax: Number(document.getElementById("numericMax").value) || 10,
   };
   renderScaleTypeGrid();

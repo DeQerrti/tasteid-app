@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=34"></script>
+<script src="/js/i18n-en.js?v=35"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=31"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -3792,6 +3792,19 @@ main.fe-view > .status-msg:empty { display: none; }
 }
 :where(.set-view) .link-reset:hover { color: var(--text-hi); }
 
+
+/* Окно «Куда перенести оценки?» (askOrphanedGradesTransfer, settings-grades.js). */
+:where(.set-view) .regrade-dialog, .regrade-dialog { max-width: 560px; width: min(560px, 92vw); }
+.regrade-lead { color: var(--text-dim); font-size: .88rem; margin: 0 0 14px; }
+.regrade-rows { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; margin-bottom: 16px; }
+.regrade-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.regrade-from { font-size: .9rem; color: var(--text-hi); min-width: 0; }
+.regrade-dot { display: inline-block; width: .55rem; height: .55rem; margin-right: .5rem; transform: rotate(45deg); background: var(--gc); }
+.regrade-count { display: block; font-size: .74rem; color: var(--text-dim); margin-left: 1.05rem; }
+.regrade-arrow { color: var(--text-dim); }
+.regrade-select { width: 100%; min-width: 0; }
+@media (max-width: 520px) { .regrade-row { grid-template-columns: 1fr; } .regrade-arrow { display: none; } }
+
 /* «Оценки»: карточки типа шкалы с образцом, лёгкие строки полок. */
 :where(.set-view) .theme-option.scale-card { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 150px; padding: 12px 16px; }
 :where(.set-view) .scale-sample { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim); }
@@ -4156,12 +4169,12 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/add-lookup.js?v=2"></script>
 <script src="/js/routes/settings-appearance.js?v=2"></script>
 <script src="/js/routes/settings-stats.js?v=3"></script>
-<script src="/js/routes/settings-grades.js?v=3"></script>
+<script src="/js/routes/settings-grades.js?v=4"></script>
 <script src="/js/routes/settings-tabs.js?v=4"></script>
 <script src="/js/routes/settings-app.js?v=2"></script>
 <script src="/js/routes/settings-sync.js?v=4"></script>
-<script src="/js/routes/settings-shortcuts.js?v=5"></script>
-<script src="/js/routes/settings-labels.js?v=5"></script>
+<script src="/js/routes/settings-shortcuts.js?v=6"></script>
+<script src="/js/routes/settings-labels.js?v=6"></script>
 <script src="/js/routes/settings-edit.js?v=10"></script>
 
 <script>

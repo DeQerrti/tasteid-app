@@ -51,8 +51,8 @@ writeFileSync(
   join(vaultDir, "reviews.json"),
   JSON.stringify([
     { ...base, title: "Один", tags: ["Топ визуал"], no_tags_on_card: true },
-    { ...base, title: "Два", tags: ["Топ визуал"] },
-    { ...base, title: "Три", tags: ["Топ визуал"] },
+    { ...base, title: "Два", grade: "attrakcion", tags: ["Топ визуал"] },
+    { ...base, title: "Три", grade: "fon", tags: ["Топ визуал"] },
   ])
 );
 
@@ -300,6 +300,66 @@ const saved = await page.evaluate(
 ok(
   !saved || Object.keys(saved).length === 0,
   "«Сбросить все клавиши» сбрасывает и клавиши вкладок"
+);
+
+console.log("Оценки: перенос при сокращении шкалы");
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector("#hide-tags-toggle", { timeout: 10000 });
+await page.click('.side-tab[data-panel="grades"]');
+await page.waitForSelector("#catShelvesList .shelf-row");
+const gradesOf = () =>
+  page.evaluate(async () =>
+    Object.fromEntries(
+      (await (await fetch("/reviews.json?_=" + Date.now())).json()).map((r) => [r.title, r.grade])
+    )
+  );
+const before = await gradesOf();
+// удаляем «Аттракцион» (4-я) и «Фоновый шум» (5-я): у «Два» и «Три» такие оценки
+await page.click("#catShelvesList .shelf-row:nth-child(4) .icon-btn");
+await page.waitForSelector("#confirm-dialog-overlay:not(.hidden)");
+const confirmText = await page.$eval(
+  "#confirm-dialog-overlay .confirm-dialog-text",
+  (e) => e.textContent
+);
+ok(
+  /С такой оценкой: 1 отзыв/.test(confirmText),
+  `в вопросе об удалении сказано, сколько отзывов затронуто (${confirmText.slice(-80)})`
+);
+await page.click('#confirm-dialog-overlay [data-act="ok"]');
+await page.waitForSelector("#confirm-dialog-overlay", { state: "hidden" });
+await page.click("#catShelvesList .shelf-row:nth-child(4) .icon-btn");
+await page.waitForSelector("#confirm-dialog-overlay:not(.hidden)");
+await page.click('#confirm-dialog-overlay [data-act="ok"]');
+await page.click("#set-savebar-save");
+await page.waitForSelector(".regrade-dialog");
+ok(
+  (await page.$$(".regrade-row")).length === 2,
+  "окно переноса: по строке на каждую удалённую полку"
+);
+ok(
+  (await page.$$eval(".regrade-count", (els) => els.map((e) => e.textContent.trim()))).every((t) =>
+    /^1 отзыв$/.test(t)
+  ),
+  "у каждой написано, сколько отзывов"
+);
+await page.click('.regrade-dialog [data-act="ok"]');
+await page.waitForFunction(() => !document.querySelector(".regrade-dialog"));
+await page.waitForTimeout(800);
+const after = await gradesOf();
+const keys = await page.evaluate(async () =>
+  (
+    (await (await fetch("/site-settings.json?_=" + Date.now())).json()).gradeScale?.shelves || []
+  ).map((s) => s.key)
+);
+ok(after["Один"] === before["Один"], "оценка, у которой полка осталась, не тронута");
+ok(keys.length === 5, `в шкале осталось пять полок (${keys.join(", ")})`);
+ok(
+  keys.includes(after["Два"]) && after["Два"] !== "attrakcion",
+  `оценка «Два» перенесена на оставшуюся полку (${before["Два"]} → ${after["Два"]})`
+);
+ok(
+  keys.includes(after["Три"]) && after["Три"] !== "fon",
+  `оценка «Три» перенесена на оставшуюся полку (${before["Три"]} → ${after["Три"]})`
 );
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);

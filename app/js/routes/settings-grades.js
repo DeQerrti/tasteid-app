@@ -113,6 +113,156 @@ function rawGradeForShelf(shelf, scale) {
   return Math.round((Number(shelf.min) + Number(shelf.max)) / 2);
 }
 
+// ── Перенос оценок при сокращении шкалы ──
+// Удалили полку («Шедевр») или оставили в числах пробел в диапазонах – у
+// отзывов с такой оценкой в НОВОЙ шкале полки не находится, и они выглядят
+// без оценки (само значение в файле остаётся). Пересчёт выше (needsRegrade)
+// на такую правку не срабатывает – он только при смене типа или максимума.
+// Здесь находим такие отзывы и (askOrphanedGradesTransfer) спрашиваем, на
+// какую из оставшихся полок их перенести, чтобы оценки не пришлось ставить
+// заново. Оценки, у которых полки не было уже ДО правки, не трогаем – это не
+// эта правка их потеряла.
+function groupNewlyOrphaned(reviews, oldScale, newScale) {
+  const groups = new Map(); // ключ старой полки -> { shelf, raws: Map(строка -> сколько), count }
+  for (const r of reviews) {
+    const raw = r.grade;
+    if (raw === null || raw === undefined || raw === "") continue;
+    const oldShelf = shelfForRawGrade(raw, oldScale);
+    if (!oldShelf || shelfForRawGrade(raw, newScale)) continue;
+    let g = groups.get(oldShelf.key);
+    if (!g) groups.set(oldShelf.key, (g = { shelf: oldShelf, raws: new Map(), count: 0 }));
+    g.raws.set(String(raw), (g.raws.get(String(raw)) || 0) + 1);
+    g.count++;
+  }
+  return [...groups.values()];
+}
+
+// Какую полку предложить по умолчанию. «Числа/Звёзды» – ту, чей диапазон
+// ближе всего к потерянному (по значению). «Названия» – ближайшую по месту
+// среди полок, что были и раньше (удалили третью из восьми – предложим
+// вторую, а не «последнюю»).
+function defaultTransferTarget(oldShelf, oldScale, newScale) {
+  if (!newScale.shelves.length) return null;
+  if (newScale.type !== "categorical") {
+    const mid = (Number(oldShelf.min) + Number(oldShelf.max)) / 2;
+    let best = null;
+    let bestDist = Infinity;
+    for (const s of newScale.shelves) {
+      const d = mid < s.min ? s.min - mid : mid > s.max ? mid - s.max : 0;
+      if (d < bestDist) {
+        bestDist = d;
+        best = s;
+      }
+    }
+    return best;
+  }
+  const oldIdx = oldScale.shelves.findIndex((s) => s.key === oldShelf.key);
+  let best = null;
+  let bestDist = Infinity;
+  for (const s of newScale.shelves) {
+    const i = oldScale.shelves.findIndex((o) => o.key === s.key);
+    if (i < 0) continue;
+    const d = Math.abs(i - oldIdx);
+    if (d < bestDist) {
+      bestDist = d;
+      best = s;
+    }
+  }
+  return best || newScale.shelves[0];
+}
+
+function transferShelfLabel(shelf, scale) {
+  if (scale.type === "categorical") return shelf.name;
+  const range = Number(shelf.min) === Number(shelf.max) ? String(shelf.min) : `${shelf.min}–${shelf.max}`;
+  return `${shelf.name} (${range})`;
+}
+
+// Окно «Куда перенести оценки?». Резолвится картой { старое значение -> новое }
+// (пустой, если везде выбрано «оставить без оценки») или null, если
+// сохранение отменили (Отмена, Escape, клик мимо окна).
+function askOrphanedGradesTransfer(groups, oldScale, newScale) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    const reviewsWord = (n) => `${n} ${plural(n, [i18n("отзыв"), i18n("отзыва"), i18n("отзывов")])}`;
+    const rows = groups
+      .map((g, i) => {
+        const target = defaultTransferTarget(g.shelf, oldScale, newScale);
+        const options = newScale.shelves
+          .map(
+            (s) =>
+              `<option value="${esc(s.key)}"${target && s.key === target.key ? " selected" : ""}>${esc(transferShelfLabel(s, newScale))}</option>`
+          )
+          .join("");
+        return `<div class="regrade-row">
+          <div class="regrade-from"><span class="regrade-dot" style="--gc:${esc(g.shelf.color || "#888")}"></span>${esc(transferShelfLabel(g.shelf, oldScale))}
+            <span class="regrade-count">${reviewsWord(g.count)}</span></div>
+          <span class="regrade-arrow" aria-hidden="true">→</span>
+          <select class="regrade-select" data-i="${i}" aria-label="${esc(i18n("Куда перенести"))}">${options}<option value="">${esc(i18n("Оставить без оценки"))}</option></select>
+        </div>`;
+      })
+      .join("");
+    overlay.innerHTML = `<div class="modal regrade-dialog" role="dialog" aria-modal="true" aria-labelledby="regrade-title">
+      <h2 id="regrade-title" class="section-title">${esc(i18n("Куда перенести оценки?"))}</h2>
+      <p class="regrade-lead">${esc(i18n("После правки у части отзывов не осталось полки. Выберите, на какую полку перенести их оценки, – иначе у этих отзывов оценки не будет."))}</p>
+      <div class="regrade-rows">${rows}</div>
+      <div class="confirm-dialog-actions">
+        <button type="button" class="btn btn-ghost" data-act="cancel">${esc(i18n("Отмена"))}</button>
+        <button type="button" class="btn btn-primary" data-act="ok">${esc(i18n("Перенести и сохранить"))}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    const finish = (result) => {
+      document.removeEventListener("keydown", onKey, true);
+      overlay.remove();
+      resolve(result);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        finish(null);
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) finish(null);
+    });
+    overlay.querySelector('[data-act="cancel"]').onclick = () => finish(null);
+    overlay.querySelector('[data-act="ok"]').onclick = () => {
+      const map = {};
+      overlay.querySelectorAll(".regrade-select").forEach((sel) => {
+        const g = groups[Number(sel.dataset.i)];
+        const target = newScale.shelves.find((s) => s.key === sel.value);
+        if (!target) return; // «оставить без оценки»
+        for (const raw of g.raws.keys()) map[raw] = rawGradeForShelf(target, newScale);
+      });
+      finish(map);
+    };
+    overlay.querySelector(".regrade-select")?.focus();
+  });
+}
+
+// Сколько отзывов потеряют оценку, если убрать эту полку из ТЕКУЩЕГО списка
+// (нужно для пометки в вопросе «Удалить полку?»): считаем по шкале как она
+// сейчас в форме, а не по сохранённой, – правок может быть уже несколько.
+async function countReviewsLosingShelf(i) {
+  let reviews = [];
+  try {
+    reviews = await fetch("/reviews.json?_=" + Date.now()).then((r) => (r.ok ? r.json() : []));
+  } catch {
+    return 0;
+  }
+  const before = { type: scaleType, shelves };
+  const after = { type: scaleType, shelves: shelves.filter((_, j) => j !== i) };
+  let n = 0;
+  for (const r of reviews) {
+    const raw = r.grade;
+    if (raw === null || raw === undefined || raw === "") continue;
+    if (shelfForRawGrade(raw, before) === shelves[i] && !shelfForRawGrade(raw, after)) n++;
+  }
+  return n;
+}
+
 // Строит { старое сырое значение (как строка) -> новое сырое значение }
 // по всем оценкам, реально встретившимся в отзывах, – не по всем
 // теоретически возможным числам шкалы (при «Числах» с максимумом 100
@@ -174,6 +324,7 @@ function renderScaleTypeGrid() {
         shelves = switchShelvesTo(nowIsCategorical ? "categorical" : "numeric", max);
       }
       scaleType = newScale;
+      settingsDirty = true;
       renderScaleTypeGrid();
       updateScaleBlocks();
     };
@@ -381,6 +532,7 @@ function addShelfRow(categorical) {
     const name = i18n("Новая полка");
     const key = "custom_" + name.toLowerCase() + "_" + Date.now().toString(36).slice(-5);
     shelves.push({ key, name, color: "#8b1a1a" });
+    settingsDirty = true;
     renderShelvesList("catShelvesList", false);
   } else {
     if (shelves.length >= MAX_NUMERIC_SHELVES) {
@@ -395,13 +547,27 @@ function addShelfRow(categorical) {
       min: 1,
       max,
     });
+    settingsDirty = true;
     renderShelvesList("shelvesList", true);
   }
 }
 
 async function removeShelfRow(i, containerId, withRange) {
-  if (!(await confirmDialog(i18n("Удалить полку «{name}»?", { name: shelves[i].name })))) return;
+  // С такой оценкой есть отзывы – скажем об этом сразу: при сохранении
+  // предложим перенести их на другую полку (askOrphanedGradesTransfer).
+  const lost = await countReviewsLosingShelf(i);
+  const note = lost
+    ? " " +
+      i18n("С такой оценкой: {n}. При сохранении предложу перенести их на другую полку.", {
+        n: `${lost} ${plural(lost, [i18n("отзыв"), i18n("отзыва"), i18n("отзывов")])}`,
+      })
+    : "";
+  if (!(await confirmDialog(i18n("Удалить полку «{name}»?", { name: shelves[i].name }) + note))) return;
   shelves.splice(i, 1);
+  // Клик по кнопке – не input/change, общий слушатель (markSettingsDirty) его
+  // не ловит: без этого после одного лишь удаления полки полоса «Сохранить»
+  // не появлялась, и правку нечем было сохранить.
+  settingsDirty = true;
   renderShelvesList(containerId, withRange);
 }
 

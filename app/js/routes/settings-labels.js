@@ -283,6 +283,34 @@ async function saveSettings() {
     // шкалы: если он не удастся, новую шкалу лучше не сохранять вовсе
     // (см. needsRegrade() в settings-grades.js), чем оставить отзывы с
     // оценками, которые эта шкала больше не понимает.
+    // Сократили шкалу внутри одного типа (удалили полку, оставили пробел в
+    // диапазонах): у части отзывов полки не осталось – спрашиваем, на какую
+    // из оставшихся их перенести. Тот же механизм записи, что и пересчёт ниже.
+    // Если шкалу сменили по типу или максимуму, пересчёт сам кладёт каждую
+    // старую полку на новую по месту, и «бесхозных» не бывает.
+    if (originalGradeScale && !needsRegrade(originalGradeScale, gradeScale)) {
+      const reviewsNow = await fetch("/reviews.json?_=" + Date.now())
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []);
+      const groups = groupNewlyOrphaned(reviewsNow, originalGradeScale, gradeScale);
+      if (groups.length) {
+        const transferMap = await askOrphanedGradesTransfer(groups, originalGradeScale, gradeScale);
+        if (transferMap === null) {
+          flashStatus(statusId, false, i18n("Сохранение отменено – оценки не тронуты"));
+          return;
+        }
+        if (Object.keys(transferMap).length) {
+          const tRes = await fetch("/api/save-review", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ _regrade_map: transferMap }),
+          });
+          const tData = await tRes.json();
+          if (!tRes.ok) throw new Error(tData.error || i18n("Не удалось перенести оценки"));
+        }
+      }
+    }
     if (needsRegrade(originalGradeScale, gradeScale)) {
       const reviews = await fetch("/reviews.json?_=" + Date.now())
         .then((r) => (r.ok ? r.json() : []))
