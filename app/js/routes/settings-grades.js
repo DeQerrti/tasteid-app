@@ -329,18 +329,19 @@ function renderTierModesList() {
     .map((key) => {
       if (key === "titles") {
         return `
-        <div class="tab-row" id="tiermoderow-titles" data-key="titles" draggable="true">
+        <div class="tab-row${hiddenTierModesState.has("titles") ? " is-hidden" : ""}" id="tiermoderow-titles" data-key="titles" draggable="true">
           <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
           ${eyeButton(hiddenTierModesState.has("titles"), "hiddenTierModesState.has('titles') ? hiddenTierModesState.delete('titles') : hiddenTierModesState.add('titles'); renderTierModesList(); settingsDirty = true;")}
           <span class="tab-name" id="tiermodename-titles">${esc(tierTitlesLabel)}</span>
           <input type="text" id="tiermodeinput-titles" value="${esc(tierTitlesLabel)}" onkeydown="if(event.key==='Enter')this.blur();">
           <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTierModeEdit('titles')">✎</button>
+          <span class="row-slot" aria-hidden="true"></span>
         </div>`;
       }
       const c = (tierCollections || []).find((x) => x.id === key);
       if (!c) return "";
       return `
-      <div class="tab-row" id="tiermoderow-${esc(c.id)}" data-key="${esc(c.id)}" draggable="true">
+      <div class="tab-row${hiddenTierModesState.has(c.id) ? " is-hidden" : ""}" id="tiermoderow-${esc(c.id)}" data-key="${esc(c.id)}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenTierModesState.has(c.id), `hiddenTierModesState.has('${c.id}') ? hiddenTierModesState.delete('${c.id}') : hiddenTierModesState.add('${c.id}'); renderTierModesList(); settingsDirty = true;`)}
         <span class="tab-name" id="tiermodename-${esc(c.id)}">${esc(c.label || c.id)}</span>

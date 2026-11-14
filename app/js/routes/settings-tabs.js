@@ -76,7 +76,7 @@ function renderFavSectionsList() {
       if (builtin) {
         const label = favSectionLabels[key] || builtin.def;
         return `
-        <div class="tab-row" id="favsecrow-${key}" data-key="${key}" draggable="true">
+        <div class="tab-row${hiddenFavSectionsState.has(key) ? " is-hidden" : ""}" id="favsecrow-${key}" data-key="${key}" draggable="true">
           <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
           ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList(); settingsDirty = true;`)}
           <span class="tab-name" id="favsecname-${key}">${esc(label)}</span>
@@ -88,7 +88,7 @@ function renderFavSectionsList() {
       const c = favCollections.find((x) => x.id === key);
       if (!c) return "";
       return `
-      <div class="tab-row" id="favcollrow-${c.id}" data-key="${c.id}" draggable="true">
+      <div class="tab-row${hiddenFavSectionsState.has(c.id) ? " is-hidden" : ""}" id="favcollrow-${c.id}" data-key="${c.id}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavSectionsList(); settingsDirty = true;`)}
         <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
@@ -521,7 +521,7 @@ function renderStatusesList() {
       const b = statusBuckets.find((x) => x.key === key);
       if (!b) return "";
       return `
-      <div class="tab-row" id="statusrow-${b.key}" data-key="${b.key}" draggable="true">
+      <div class="tab-row${hiddenStatusesState.has(b.key) ? " is-hidden" : ""}" id="statusrow-${b.key}" data-key="${b.key}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList(); settingsDirty = true;`)}
         <span class="tab-name" id="statusname-${b.key}">${b.label}</span>

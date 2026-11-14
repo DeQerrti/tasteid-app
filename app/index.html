@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=30"></script>
+<script src="/js/i18n-en.js?v=31"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=30"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -3362,6 +3362,19 @@ main.fe-view > .status-msg:empty { display: none; }
   .settings-panel-back svg { width: 18px; height: 18px; flex-shrink: 0; }
 }
 @media (min-width: 721px) {
+  /* Заголовок над панелью («Оформление», «Вкладки»…) на ПК не показываем:
+     тот же текст уже горит в сайдбаре слева, где выбран этот раздел, –
+     дублирование без пользы. В разметке остаётся (скринридеру он нужен, а
+     на телефоне, где сайдбара рядом нет, он виден – см. мобильный блок
+     выше), поэтому прячем визуально, а не убираем. */
+  #settings-panel-title {
+    position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  /* Отступ сверху побольше: без заголовка первая строка панели оказывалась
+     на одной высоте с крестиком закрытия в правом углу, и широкие правые
+     колонки («Вкладки», «Горячие клавиши», «Приложение») налезали на него. */
+  #main { padding-top: 76px; }
   /* Иконки пунктов – и на ПК тоже: в окне настроек сайдбар не тесный,
      а пункты с иконками находятся глазом быстрее (как в рельсе). */
   :where(.set-view) .side-tab { display: flex; align-items: center; gap: 10px; }
@@ -3406,7 +3419,7 @@ main.fe-view > .status-msg:empty { display: none; }
   #view-root.route-overlay .sidebar-resize { display: none; }
   #view-root.route-overlay #sidebar .back + .side-group { padding-top: 6px; }
   #view-root.route-overlay #main {
-    max-width: none; margin: 0; overflow-y: auto; padding: 28px 40px 0; scrollbar-width: thin;
+    max-width: none; margin: 0; overflow-y: auto; padding: 76px 40px 0; scrollbar-width: thin;
   }
   #view-root.route-overlay #main h1 { margin-right: 44px; }
   #view-root.route-overlay .set-close { display: flex; }
@@ -3690,6 +3703,34 @@ main.fe-view > .status-msg:empty { display: none; }
   font-size: .72rem; color: var(--text-dim); cursor: pointer; white-space: nowrap;
 }
 :where(.set-view) .tab-row .main-radio-label input { width: auto; margin: 0; }
+
+
+/* «Вкладки»: строки списков легче. Кнопки без рамок – ✎ и ✕ приглушены и
+   проявляются при наведении на строку или фокусе (на сенсорном экране видны
+   всегда, и размер кнопок там остаётся 44px – см. «ПАЛЕЦ ВМЕСТО КУРСОРА»).
+   Скрытое приглушено и зачёркнуто – раньше о нём говорил только зачёркнутый
+   глаз. .row-slot – пустое место на месте ✕ у строки, которую удалить
+   нельзя («Тайтлы» в тир-листе): так ✎ во всех строках в одну линию. */
+@media (pointer: fine) {
+  :where(.set-view) #panel-tabs .tab-row { padding: 4px 0; gap: 6px; min-height: 40px; }
+  :where(.set-view) #panel-tabs .tab-row .icon-btn {
+    width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+    border-color: transparent; background: none; color: var(--text-dim);
+  }
+  :where(.set-view) #panel-tabs .tab-row .icon-btn:hover { color: var(--text-hi); background: var(--tint-hi); border-color: var(--border2); }
+  :where(.set-view) #panel-tabs .tab-row .icon-btn ~ .icon-btn { opacity: .45; transition: opacity .15s; }
+  :where(.set-view) #panel-tabs .tab-row:hover .icon-btn,
+  :where(.set-view) #panel-tabs .tab-row:focus-within .icon-btn { opacity: 1; }
+  :where(.set-view) .row-slot { flex: none; width: 30px; height: 30px; }
+}
+@media (pointer: coarse) { :where(.set-view) .row-slot { flex: none; width: 44px; height: 44px; } }
+:where(.set-view) .tab-row.is-hidden .tab-name { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--border2); }
+:where(.set-view) .tab-row.is-hidden { opacity: .75; }
+/* Поле «Новый …» и кнопка – одной строкой (раньше – подпись, поле и кнопка
+   тремя ярусами в каждом из трёх блоков). */
+:where(.set-view) .set-add { display: flex; gap: 8px; align-items: stretch; margin-top: 14px; }
+:where(.set-view) .set-add input { flex: 1; min-width: 0; margin: 0; }
+:where(.set-view) .set-add .btn { flex: none; white-space: nowrap; }
 
 /* Телефон. В строке вкладки шесть вещей подряд: ручка перетаскивания,
    глаз, имя, карандаш и подпись «Главная страница» с точкой. Глаз и
@@ -4062,13 +4103,13 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/add-lookup.js?v=2"></script>
 <script src="/js/routes/settings-appearance.js?v=2"></script>
 <script src="/js/routes/settings-stats.js?v=2"></script>
-<script src="/js/routes/settings-grades.js?v=1"></script>
-<script src="/js/routes/settings-tabs.js?v=3"></script>
+<script src="/js/routes/settings-grades.js?v=2"></script>
+<script src="/js/routes/settings-tabs.js?v=4"></script>
 <script src="/js/routes/settings-app.js?v=2"></script>
-<script src="/js/routes/settings-sync.js?v=3"></script>
+<script src="/js/routes/settings-sync.js?v=4"></script>
 <script src="/js/routes/settings-shortcuts.js?v=3"></script>
 <script src="/js/routes/settings-labels.js?v=5"></script>
-<script src="/js/routes/settings-edit.js?v=6"></script>
+<script src="/js/routes/settings-edit.js?v=7"></script>
 
 <script>
 let _navInit = true;

@@ -410,7 +410,7 @@ function renderTabsList() {
       const def = TAB_DEFS_BY_ID[id];
       if (!def) return "";
       return `
-      <div class="tab-row" id="tabrow-${id}" data-id="${id}" draggable="true">
+      <div class="tab-row${hiddenTabsState.has(id) ? " is-hidden" : ""}" id="tabrow-${id}" data-id="${id}" draggable="true">
         <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
         ${eyeButton(hiddenTabsState.has(id), `hiddenTabsState.has('${id}') ? hiddenTabsState.delete('${id}') : hiddenTabsState.add('${id}'); renderTabsList(); settingsDirty = true;`)}
         <span class="tab-name" id="tabname-${id}">${tabLabels[id] || def.def}</span>

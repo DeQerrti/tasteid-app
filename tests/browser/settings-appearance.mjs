@@ -118,6 +118,46 @@ ok(groups.join(",") === "Фоны,Линии,Текст,Акцент", `груп
 ok((await page.$$("#paletteList input[type=color]")).length === 10, "десять цветов на месте");
 ok((await page.$$(".pal-sample .card")).length >= 1, "справа образец настоящими карточками");
 
+console.log("Заголовок панели и вкладка «Вкладки»");
+// Выбор темы выше – несохранённая правка: переход на другую панель спросил бы
+// «Есть несохранённые изменения». Начинаем с чистой страницы.
+await page.goto(`http://127.0.0.1:${port}/#/settings-edit`, { waitUntil: "domcontentloaded" });
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector("#hide-tags-toggle", { timeout: 10000 });
+const titleBox = await page.$eval("#settings-panel-title", (e) => {
+  const r = e.getBoundingClientRect();
+  return { w: r.width, h: r.height };
+});
+ok(
+  titleBox.w <= 1 && titleBox.h <= 1,
+  "заголовок «Оформление» над панелью на ПК не виден (он уже горит в сайдбаре)"
+);
+await page.click('.side-tab[data-panel="tabs"]');
+await page.waitForSelector("#panel-tabs .tab-row");
+const closeBottom = await page.$eval(".set-close", (e) => e.getBoundingClientRect().bottom);
+const firstTop = await page.$eval("#panel-tabs .tab-row", (e) => e.getBoundingClientRect().top);
+ok(firstTop > closeBottom, "содержимое панели начинается ниже крестика закрытия");
+ok(
+  (await page.$$(".set-add")).length === 3,
+  "поле «Новый …» и кнопка – одной строкой в трёх блоках"
+);
+ok(
+  (await page.$$eval(".set-add .btn", (els) => els.map((e) => e.textContent.trim()))).includes(
+    "Добавить статус"
+  ),
+  "у статусов кнопка «Добавить статус»"
+);
+await page.click("#tabrow-reviews .icon-btn");
+ok(
+  await page.$eval("#tabrow-reviews", (e) => e.classList.contains("is-hidden")),
+  "скрытая вкладка помечена (приглушена)"
+);
+const penLefts = await page.$$eval(
+  '#tierModesList .tab-row .icon-btn[title="Переименовать"]',
+  (els) => els.map((e) => Math.round(e.getBoundingClientRect().left))
+);
+ok(new Set(penLefts).size === 1, `карандаши в тир-листе в одну линию (${penLefts.join(", ")})`);
+
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
 await browser.close();

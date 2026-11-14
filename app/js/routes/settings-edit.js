@@ -230,26 +230,26 @@ function settingsViewHtml() {
           <div>
             <h2 class="section-h" id="statusesHeading"></h2>
             <div id="statusesList"></div>
-            <div class="row" style="margin-top:14px;">
-              <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
+            <div class="set-add">
+              <input type="text" id="newStatusName" data-no-dirty aria-label="${i18n("Новый статус")}" placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}">
+              <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить статус</button>
             </div>
-            <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
           </div>
           <div>
             <h2 class="section-h" id="favSectionsHeading"></h2>
             <div id="favSectionsList"></div>
-            <div class="row" style="margin-top:14px;">
-              <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги" onkeydown="if(event.key==='Enter'){event.preventDefault();addFavCollection();}"></div>
+            <div class="set-add">
+              <input type="text" id="newFavCollectionName" data-no-dirty aria-label="${i18n("Новый раздел")}" placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги" onkeydown="if(event.key==='Enter'){event.preventDefault();addFavCollection();}">
+              <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
             </div>
-            <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
           </div>
           <div>
             <h2 class="section-h" id="tierModesHeading"></h2>
             <div id="tierModesList"></div>
-            <div class="row" style="margin-top:14px;">
-              <div><label data-i18n>Новый раздел</label><input type="text" id="newTierCollectionName" data-no-dirty placeholder="Например: Игры" data-i18n-placeholder="Например: Игры" onkeydown="if(event.key==='Enter'){event.preventDefault();addTierCollectionInline();}"></div>
+            <div class="set-add">
+              <input type="text" id="newTierCollectionName" data-no-dirty aria-label="${i18n("Новый раздел")}" placeholder="Например: Игры" data-i18n-placeholder="Например: Игры" onkeydown="if(event.key==='Enter'){event.preventDefault();addTierCollectionInline();}">
+              <button class="btn btn-ghost" onclick="addTierCollectionInline()" data-i18n>Добавить раздел</button>
             </div>
-            <button class="btn btn-ghost" onclick="addTierCollectionInline()" data-i18n>Добавить раздел</button>
           </div>
         </div>
         <div class="status-msg" id="status-tabs"></div>
