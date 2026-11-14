@@ -101,7 +101,9 @@ ok(
   "две строки: выгрузить свой / загрузить чужой, у каждой файл или код"
 );
 ok(
-  await page.evaluate(() => !document.querySelector(".pp-how")?.open && !!document.getElementById("pp-share-open")),
+  await page.evaluate(
+    () => !document.querySelector(".pp-how")?.open && !!document.getElementById("pp-share-open")
+  ),
   "объяснения свёрнуты в «Как это работает», поле для чужого кода видно сразу"
 );
 ok(
