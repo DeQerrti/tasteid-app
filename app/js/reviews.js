@@ -8,22 +8,39 @@
 // сбрасывались каждый раз, хотя вкладка и так помнит, какая она
 // последняя открытая (site-settings.json: mainTab). Ключ и значения –
 // то же rvState, просто зеркалится в localStorage при каждой правке.
+//
+// Тип, оценка и ссылки – списки: можно выбрать несколько сразу («Аниме +
+// Манга», «Эталон + Резонанс»). Раньше каждый ряд принимал одно значение.
+// Теги – тоже список, а tagMode говорит, как их сочетать: «all» – у
+// отзыва есть КАЖДЫЙ выбранный тег (чем больше тегов, тем меньше
+// отзывов), «any» – хотя бы один (больше тегов – больше отзывов).
 const RV_FILTERS_KEY = "tasteid-rv-filters";
+const RV_SORTS = ["date", "date-asc", "grade", "title", "year"];
 const rvState = {
-  type:   "all",
-  grade:  "all",
-  source: "all",
-  search: "",
-  // Раньше был текстовый поиск по подстроке (tagSearch) – заменён
-  // выбором тегов тапом по полному списку (модалка и на телефоне, и
-  // на компьютере, см. её же комментарий у rvTagToggleHtml ниже):
-  // держать в голове точные названия десятков тегов и печатать их
-  // руками не нужно.
+  types: [],
+  grades: [],
+  sources: [],
   tags: [],
+  tagMode: "all",
+  search: "",
+  sort: "date",
+  years: true,
 };
 try {
-  Object.assign(rvState, JSON.parse(localStorage.getItem(RV_FILTERS_KEY)) || {});
-  if (!Array.isArray(rvState.tags)) rvState.tags = [];
+  const saved = JSON.parse(localStorage.getItem(RV_FILTERS_KEY)) || {};
+  // Старый вид (до выбора нескольких значений): type/grade/source – одна
+  // строка, "all" значило «без фильтра». Переносим, чтобы выбранный
+  // раньше фильтр не пропал после обновления.
+  const list = (many, one) =>
+    Array.isArray(many) ? many.filter((v) => typeof v === "string") : typeof one === "string" && one !== "all" ? [one] : [];
+  rvState.types = list(saved.types, saved.type);
+  rvState.grades = list(saved.grades, saved.grade);
+  rvState.sources = list(saved.sources, saved.source);
+  rvState.tags = list(saved.tags);
+  if (saved.tagMode === "any") rvState.tagMode = "any";
+  if (typeof saved.search === "string") rvState.search = saved.search;
+  if (RV_SORTS.includes(saved.sort)) rvState.sort = saved.sort;
+  if (typeof saved.years === "boolean") rvState.years = saved.years;
 } catch {}
 function rvPersistFilters() {
   try {
@@ -32,23 +49,23 @@ function rvPersistFilters() {
 }
 
 let rvLastFiltered = [];
-// Полный (нефильтрованный) список – reset по кнопке «Сбросить» в
-// модалке фильтров зовётся из голого onclick, без доступа к reviews
-// из замыкания renderReviews().
+// Полный (нефильтрованный) список – обработчикам, которые вешаются один
+// раз на документ (закрытие выпадающих списков, «Сбросить»), он нужен без
+// доступа к reviews из замыкания renderReviews().
 let rvAllReviews = [];
 
-// Вкладка «Отзывы» показывает только записи, у которых реально есть
-// отзыв (текст или оценка) – «в процессе»/«планирую» без того и
-// другого сюда не попадают. Общая функция для loadReviews() и
+// Вкладка «Отзывы» – всё законченное: записи со статусом «завершено» (даже
+// без оценки и текста – в «Статусах» их больше нет, «Архив» оттуда убран,
+// и без этого условия такая запись не показывалась бы нигде) и любые, у
+// кого уже есть отзыв (текст или оценка). «В процессе»/«планирую» без
+// того и другого сюда не попадают. Общая функция для loadReviews() и
 // обработчика tags-map-updated ниже: раньше он подставлял в сетку
 // cache.reviews целиком, без этого фильтра – стоило поправить теги на
 // открытом где-то отзыве (add.js шлёт tags-map-updated на каждое
 // изменение), и на вкладке «Отзывы» на миг показывались все карточки
-// подряд, включая «в процессе» без отзыва. Пропадали только при
-// следующем заходе на вкладку, когда loadReviews() перечитывал и
-// фильтровал заново.
+// подряд, включая «в процессе» без отзыва.
 function reviewsWithReview(list) {
-  return list.filter(r => r.review_full || r.preview || r.grade);
+  return list.filter((r) => r.review_full || r.preview || r.grade || r.status === "completed");
 }
 
 document.addEventListener("tags-map-updated", () => {
@@ -92,229 +109,6 @@ function sortByOrder(arr, order) {
   });
 }
 
-function renderReviews(reviews) {
-  rvAllReviews = reviews;
-  const types   = sortByOrder([...new Set(reviews.map(r => r.type).filter(Boolean))],   TYPE_FILTER_ORDER);
-  const grades  = sortByOrder([...new Set(reviews.map(r => gradeToShelf(r.grade)).filter(Boolean))],  GRADE_ORDER);
-  const sources = sortByOrder([...new Set(
-    reviews.flatMap(r => [r.source, r.source2]).filter(Boolean)
-  )], SOURCE_FILTER_ORDER);
-
-  const adminBtn = isAdmin()
-    ? `<a href="#/add" class="admin-add-btn">${i18n("Добавить")}</a>`
-    : "";
-
-  // Тип/Оценка/Ссылки – одна и та же разметка что в десктопной панели,
-  // что в мобильной модалке (см. её же комментарий у .rv-mobile-toolbar
-  // в index.html): querySelectorAll в bindRvFilters/applyRvFilters ниже
-  // и так проходит по ВСЕМ найденным кнопкам разом, независимо от того,
-  // сколько копий на странице, – дублировать разметку безопасно.
-  const filterGroupsHtml = `
-    ${renderRvFilterGroup("type",   siteLabel("filters", "type", i18n("Тип")),     types,   TYPE_LABELS,   rvState.type)}
-    ${renderRvFilterGroup("grade",  siteLabel("filters", "grade", i18n("Оценка")), grades,  gradeLabels(), rvState.grade)}
-    ${renderRvFilterGroup("source", siteLabel("filters", "source", i18n("Ссылки")), sources, SOURCE_LABELS, rvState.source)}
-  `;
-
-  const box = document.getElementById("tab-reviews");
-  box.innerHTML = `
-    <div class="rv-toolbar">
-      <div class="rv-filters">
-        <div class="rv-filter-group">
-          <span class="rv-filter-label">${esc(siteLabel("filters", "search", i18n("Поиск")))}</span>
-          <input
-            type="text"
-            id="rv-search"
-            class="rv-search-input"
-            placeholder="${i18n("Название…")}"
-            autocomplete="off"
-            value="${esc(rvState.search)}"
-          >
-          <!-- Точную сотню тегов наизусть никто не держит – проще
-               потыкать по знакомым названиям в списке, чем гадать,
-               как именно тег назван (модалка – #rv-tags-modal-overlay
-               ниже, тот же список и то же состояние, что и в мобильной
-               панели «Фильтры»). Кнопка на той же строке, что «Поиск»
-               – рядом с ним и так есть свободное место, отдельная
-               строка под неё одну не нужна. -->
-          <button type="button" class="btn btn-ghost rv-tags-open-btn" id="rv-tags-open-btn">
-            ${i18n("Поиск по тегу")}<span class="rv-filters-count" id="rv-tags-btn-count"></span>
-          </button>
-        </div>
-        ${filterGroupsHtml}
-      </div>
-
-      <!-- Только телефон (см. её же CSS в index.html) – поиск сверху и
-           одна кнопка «Фильтры», открывающая модалку с тем же самым
-           набором фильтров плюс полным списком тегов вместо поиска по
-           подстроке: тапнуть по паре нужных проще, чем печатать на
-           маленькой клавиатуре. -->
-      <div class="rv-mobile-toolbar">
-        <input
-          type="text"
-          id="rv-search-mobile"
-          class="rv-search-input"
-          placeholder="${i18n("Поиск по названию…")}"
-          autocomplete="off"
-          value="${esc(rvState.search)}"
-        >
-        <button type="button" class="btn btn-ghost rv-filters-open-btn" id="rv-filters-open-btn">
-          ${i18n("Фильтры")}<span class="rv-filters-count" id="rv-filters-count"></span>
-        </button>
-      </div>
-      ${adminBtn}
-    </div>
-
-    <div class="modal-overlay hidden" id="rv-filters-modal-overlay" onclick="closeRvFiltersModalOnOverlay(event)">
-      <div class="modal rv-filters-modal">
-        <button class="modal-close" onclick="closeRvFiltersModal()">✕</button>
-        <h2 class="section-title" data-i18n>Фильтры</h2>
-        <div class="rv-filters-modal-body">
-          ${filterGroupsHtml}
-          <div class="rv-filter-group">
-            <span class="rv-filter-label">${esc(siteLabel("filters", "tags", i18n("Теги")))}</span>
-            <div class="rv-tag-cloud">${rvTagToggleHtml()}</div>
-          </div>
-        </div>
-        <div class="rv-filters-modal-actions">
-          <button class="btn btn-ghost" type="button" onclick="resetRvFilters()" data-i18n>Сбросить</button>
-          <button class="btn btn-primary" type="button" onclick="closeRvFiltersModal()" data-i18n>Применить</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Компьютер: та же самая идея, что и мобильная модалка выше, но
-         без Типа/Оценки/Ссылок – они и так уже видны рядом на панели,
-         дублировать их тут незачем. Только список тегов – ровно то,
-         что просила кнопка «Поиск по тегу». -->
-    <div class="modal-overlay hidden" id="rv-tags-modal-overlay" onclick="closeRvTagsModalOnOverlay(event)">
-      <div class="modal rv-filters-modal">
-        <button class="modal-close" onclick="closeRvTagsModal()">✕</button>
-        <h2 class="section-title" data-i18n>Поиск по тегу</h2>
-        <div class="rv-filters-modal-body">
-          <div class="rv-tag-cloud">${rvTagToggleHtml()}</div>
-        </div>
-        <div class="rv-filters-modal-actions">
-          <button class="btn btn-ghost" type="button" onclick="resetRvTags()" data-i18n>Сбросить</button>
-          <button class="btn btn-primary" type="button" onclick="closeRvTagsModal()" data-i18n>Применить</button>
-        </div>
-      </div>
-    </div>
-
-    <section class="group">
-      <div class="reviews-grid" id="rv-grid"></div>
-    </section>`;
-
-  // Поиск – два поля (десктопная панель и мобильный тулбар), одно
-  // состояние: держим их значения синхронными, чтобы при изменении
-  // ширины окна (или просто по случайности) второе поле не осталось
-  // со старым текстом, пока фильтр уже поменялся через первое.
-  const searchInput = document.getElementById("rv-search");
-  const searchInputMobile = document.getElementById("rv-search-mobile");
-  const onSearchInput = (src, other) => {
-    rvState.search = src.value.trim().toLowerCase();
-    other.value = src.value;
-    rvPersistFilters();
-    applyRvFilters(reviews);
-  };
-  searchInput.addEventListener("input", () => onSearchInput(searchInput, searchInputMobile));
-  searchInputMobile.addEventListener("input", () => onSearchInput(searchInputMobile, searchInput));
-
-  document.getElementById("rv-filters-open-btn").addEventListener("click", openRvFiltersModal);
-  document.getElementById("rv-tags-open-btn").addEventListener("click", openRvTagsModal);
-
-  bindRvFilters(reviews);
-  bindRvTagToggles(reviews);
-  applyRvFilters(reviews);
-}
-
-// ── Полный список тегов (телефон) ──────────────
-// TAGS_MAP (js/config.js) – тот же справочник, из которого строится
-// выбор тегов у самого отзыва (add.js): имя → {cat, tip}, уже без
-// скрытых (см. её же комментарий у SITE_HIDDEN_TAGS там). Тапнуть по
-// нескольким сразу проще, чем печатать по одному в поиске по
-// подстроке, – то же самое обычно означает «фильтр по тегам» в
-// каталогах вроде MangaLib.
-function rvTagToggleHtml() {
-  const names = Object.keys(TAGS_MAP).sort((a, b) => a.localeCompare(b, "ru"));
-  if (!names.length) return `<span class="panel-intro">${esc(i18n("Тегов пока нет."))}</span>`;
-  return names
-    .map((name) => {
-      const active = rvState.tags.includes(name);
-      return `<span class="tag-toggle${active ? " active" : ""}" data-tag="${esc(name)}" title="${esc(TAGS_MAP[name]?.tip || "")}">${esc(name)}</span>`;
-    })
-    .join("");
-}
-
-function bindRvTagToggles(reviews) {
-  document.querySelectorAll(".rv-tag-cloud .tag-toggle").forEach((el) => {
-    el.addEventListener("click", () => {
-      const tag = el.dataset.tag;
-      const active = rvState.tags.includes(tag);
-      rvState.tags = active ? rvState.tags.filter((t) => t !== tag) : [...rvState.tags, tag];
-      document.querySelectorAll(`.rv-tag-cloud .tag-toggle[data-tag="${CSS.escape(tag)}"]`)
-        .forEach((t) => t.classList.toggle("active", !active));
-      rvPersistFilters();
-      applyRvFilters(reviews);
-    });
-  });
-}
-
-function rvFiltersActiveCount() {
-  let n = 0;
-  if (rvState.type !== "all") n++;
-  if (rvState.grade !== "all") n++;
-  if (rvState.source !== "all") n++;
-  n += rvState.tags.length;
-  return n;
-}
-
-function openRvFiltersModal() {
-  document.getElementById("rv-filters-modal-overlay").classList.remove("hidden");
-}
-function closeRvFiltersModal() {
-  document.getElementById("rv-filters-modal-overlay").classList.add("hidden");
-}
-function closeRvFiltersModalOnOverlay(e) {
-  if (e.target === document.getElementById("rv-filters-modal-overlay")) closeRvFiltersModal();
-}
-
-// Отдельная, чисто тег-модалка для кнопки «Поиск по тегу» на
-// компьютере (см. её же комментарий у разметки в renderReviews) –
-// то же состояние (rvState.tags) и та же разметка тегов
-// (rvTagToggleHtml), что и в мобильной панели «Фильтры» выше, просто
-// без Типа/Оценки/Ссылок – они и так уже на виду рядом на десктопной
-// панели.
-function openRvTagsModal() {
-  document.getElementById("rv-tags-modal-overlay").classList.remove("hidden");
-}
-function closeRvTagsModal() {
-  document.getElementById("rv-tags-modal-overlay").classList.add("hidden");
-}
-function closeRvTagsModalOnOverlay(e) {
-  if (e.target === document.getElementById("rv-tags-modal-overlay")) closeRvTagsModal();
-}
-function resetRvTags() {
-  rvState.tags = [];
-  rvPersistFilters();
-  document.querySelectorAll(".rv-tag-cloud .tag-toggle").forEach((t) => t.classList.remove("active"));
-  applyRvFilters(rvAllReviews);
-}
-
-// Возвращает всё к «Все»/пусто одной кнопкой – проще, чем снимать
-// каждый фильтр по отдельности, когда их накопилось несколько.
-function resetRvFilters() {
-  rvState.type = "all";
-  rvState.grade = "all";
-  rvState.source = "all";
-  rvState.tags = [];
-  rvPersistFilters();
-  document.querySelectorAll(".rv-filter-btn").forEach((b) => {
-    b.classList.toggle("active", b.dataset.val === "all");
-  });
-  document.querySelectorAll(".rv-tag-cloud .tag-toggle").forEach((t) => t.classList.remove("active"));
-  applyRvFilters(rvAllReviews);
-}
-
 // Лейблы оценок для фильтра
 function gradeLabels() {
   const out = {};
@@ -322,83 +116,461 @@ function gradeLabels() {
   return out;
 }
 
-// Рендер одной группы кнопок-фильтров
-function renderRvFilterGroup(field, title, values, labelsMap, active) {
-  if (!values.length) return "";
-  const btns = [
-    `<button class="rv-filter-btn${active === "all" ? " active" : ""}" data-field="${field}" data-val="all">${esc(siteLabel("filters", "all", i18n("Все")))}</button>`,
-    ...values.map(v => {
-      const label = labelsMap[v] || v;
-      return `<button class="rv-filter-btn${active === v ? " active" : ""}" data-field="${field}" data-val="${esc(v)}">${esc(label)}</button>`;
-    })
-  ].join("");
-  return `<div class="rv-filter-group">
-    <span class="rv-filter-label">${esc(title)}</span>
-    ${btns}
-  </div>`;
+// ── Строка поиска и фильтров ───────────────────
+// Одна строка вместо четырёх рядов кнопок: поиск, «Тип», «Оценка»,
+// «Теги», «Ссылки» (выпадающие списки с числом отзывов у каждого
+// значения) и «Сортировка». Выбранное видно чипами под строкой – их же
+// можно снять по одному. Вся эта часть (.rv-sticky) прилипает к верху
+// при прокрутке, как строка вкладок у «Статусов»/«Любимого»/«Статистики»:
+// раньше после пары экранов вниз, чтобы поменять фильтр, приходилось
+// листать обратно. Ссылки строятся из SOURCE_LABELS (встроенные плюс свои
+// источники из настроек и «Другое»), а не из одного Teletype.
+const rvDateOf = (r) => r.date_end || r.date_start || r.date || "";
+const rvDateYearOf = (r) => rvDateOf(r).slice(0, 4) || "–";
+const rvReleaseYearOf = (r) => parseInt(r.year, 10) || "–";
+const rvGradeIndex = (r) => {
+  const i = GRADE_ORDER.indexOf(gradeToShelf(r.grade));
+  return i === -1 ? 999 : i;
+};
+
+function rvSortLabels() {
+  return {
+    date: i18n("Сначала новые"),
+    "date-asc": i18n("Сначала старые"),
+    grade: i18n("По оценке"),
+    title: i18n("По названию"),
+    year: i18n("По году выхода"),
+  };
 }
 
-function bindRvFilters(reviews) {
-  document.querySelectorAll(".rv-filter-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const field = btn.dataset.field;
-      const val   = btn.dataset.val;
-      rvState[field] = val;
-      rvPersistFilters();
+// Сколько отзывов у каждого значения, по всему списку (не по уже
+// отфильтрованному): число рядом с пунктом отвечает «сколько их вообще».
+function rvCounts(reviews, pick) {
+  const out = {};
+  for (const r of reviews) {
+    const v = pick(r);
+    for (const x of Array.isArray(v) ? v : [v]) if (x) out[x] = (out[x] || 0) + 1;
+  }
+  return out;
+}
 
-      document.querySelectorAll(`.rv-filter-btn[data-field="${field}"]`)
-        .forEach(b => b.classList.toggle("active", b.dataset.val === val));
+function rvToggle(arr, value) {
+  const i = arr.indexOf(value);
+  if (i < 0) arr.push(value);
+  else arr.splice(i, 1);
+}
 
-      applyRvFilters(reviews);
+function rvOptHtml(kind, on, label, count, { dot = "", attrs = "" } = {}) {
+  return `<button type="button" class="rv-opt ${kind}${on ? " on" : ""}" aria-pressed="${on}" ${attrs}>
+    <span class="rv-box" aria-hidden="true"></span>${dot}<span>${esc(label)}</span>${count == null ? "" : `<span class="rv-opt-count">${count}</span>`}
+  </button>`;
+}
+
+function renderReviews(reviews) {
+  rvAllReviews = reviews;
+
+  const adminBtn = isAdmin() ? `<a href="#/add" class="admin-add-btn">${i18n("Добавить")}</a>` : "";
+  const dd = (key, label, popClass = "") =>
+    `<div class="rv-dd" data-dd="${key}">
+      <button type="button" class="rv-filter-btn rv-dd-btn" aria-haspopup="true" aria-expanded="false">${esc(label)}<span class="rv-dd-n"></span></button>
+      <div class="rv-pop ${popClass} hidden"></div>
+    </div>`;
+
+  const box = document.getElementById("tab-reviews");
+  // Закрепляемая строка – ПРЯМОЙ ребёнок вкладки, как .tl-mode-toggle/.fav-head у
+  // остальных: sticky держится, пока на экране родитель, а обёртка только
+  // вокруг этой строки кончилась бы вместе с ней.
+  box.innerHTML = `
+    <div class="rv-head">
+      <h1 class="rv-title">${esc(siteLabel("nav", "reviews", i18n("Отзывы")))}</h1>
+      ${adminBtn}
+    </div>
+    <div class="rv-sticky">
+      <div class="rv-bar">
+        <div class="rv-search">
+          <input
+            type="text"
+            id="rv-search"
+            class="rv-search-input"
+            placeholder="${esc(i18n("Название, тег или слово из отзыва"))}"
+            aria-label="${esc(i18n("Поиск"))}"
+            autocomplete="off"
+            value="${esc(rvState.search)}"
+          >
+          <kbd aria-hidden="true">/</kbd>
+        </div>
+        ${dd("types", siteLabel("filters", "type", i18n("Тип")))}
+        ${dd("grades", siteLabel("filters", "grade", i18n("Оценка")))}
+        ${dd("tags", siteLabel("filters", "tags", i18n("Теги")), "rv-pop-tags")}
+        ${dd("sources", siteLabel("filters", "source", i18n("Ссылки")))}
+        <span class="rv-bar-gap"></span>
+        <div class="rv-dd" data-dd="sort">
+          <button type="button" class="rv-filter-btn rv-dd-btn" aria-haspopup="true" aria-expanded="false"><span id="rv-sort-label"></span></button>
+          <div class="rv-pop rv-pop-right hidden"></div>
+        </div>
+      </div>
+      <div class="rv-sub" id="rv-sub"></div>
+    </div>
+    <section class="group">
+      <div class="reviews-grid" id="rv-grid"></div>
+    </section>`;
+
+  const searchInput = document.getElementById("rv-search");
+  searchInput.addEventListener("input", () => {
+    rvState.search = searchInput.value.trim().toLowerCase();
+    rvPersistFilters();
+    applyRvFilters(reviews);
+  });
+
+  box.querySelectorAll(".rv-dd-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const dd = btn.parentElement;
+      const wasOpen = !dd.querySelector(".rv-pop").classList.contains("hidden");
+      closeRvPops();
+      if (wasOpen) return;
+      fillRvPop(dd.dataset.dd);
+      dd.querySelector(".rv-pop").classList.remove("hidden");
+      btn.setAttribute("aria-expanded", "true");
+      if (dd.dataset.dd === "tags") dd.querySelector(".rv-tags-search")?.focus();
     });
   });
+  // Клик внутри списка не должен закрывать его (обработчик на документе
+  // ниже закрывает по клику «снаружи»).
+  box.querySelectorAll(".rv-pop").forEach((p) => p.addEventListener("click", (e) => e.stopPropagation()));
+
+  applyRvFilters(reviews);
+}
+
+function closeRvPops() {
+  document.querySelectorAll("#tab-reviews .rv-pop").forEach((p) => p.classList.add("hidden"));
+  document.querySelectorAll("#tab-reviews .rv-dd-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+}
+document.addEventListener("click", closeRvPops);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeRvPops();
+});
+
+// Содержимое выпадающего списка строится при открытии, а не заранее: так
+// в нём всегда свежие числа и отметки (данные могли поменяться, пока
+// вкладка была закрыта).
+function fillRvPop(which) {
+  const pop = document.querySelector(`#tab-reviews .rv-dd[data-dd="${which}"] .rv-pop`);
+  if (!pop) return;
+  const all = rvAllReviews;
+  const redraw = () => {
+    fillRvPop(which);
+    rvPersistFilters();
+    applyRvFilters(all);
+  };
+
+  if (which === "types") {
+    const counts = rvCounts(all, (r) => r.type);
+    const keys = sortByOrder(Object.keys(counts), TYPE_FILTER_ORDER);
+    pop.innerHTML = keys
+      .map((k) => rvOptHtml("", rvState.types.includes(k), TYPE_LABELS[k] || k, counts[k], { attrs: `data-v="${esc(k)}"` }))
+      .join("");
+    pop.onclick = (e) => {
+      const b = e.target.closest(".rv-opt");
+      if (!b) return;
+      rvToggle(rvState.types, b.dataset.v);
+      redraw();
+    };
+  } else if (which === "grades") {
+    const counts = rvCounts(all, (r) => gradeToShelf(r.grade));
+    pop.innerHTML = GRADE_ORDER.filter((k) => counts[k])
+      .map((k) =>
+        rvOptHtml("", rvState.grades.includes(k), GRADES[k].name, counts[k], {
+          dot: `<span class="rv-dot" style="--gc:${esc(GRADES[k].color)}"></span>`,
+          attrs: `data-v="${esc(k)}"`,
+        })
+      )
+      .join("");
+    pop.onclick = (e) => {
+      const b = e.target.closest(".rv-opt");
+      if (!b) return;
+      rvToggle(rvState.grades, b.dataset.v);
+      redraw();
+    };
+  } else if (which === "sources") {
+    const counts = rvCounts(all, (r) => [r.source, r.source2]);
+    const keys = sortByOrder(Object.keys(counts), SOURCE_FILTER_ORDER);
+    pop.innerHTML = keys.length
+      ? keys
+          .map((k) => rvOptHtml("", rvState.sources.includes(k), SOURCE_LABELS[k] || k, counts[k], { attrs: `data-v="${esc(k)}"` }))
+          .join("")
+      : `<div class="rv-pop-note">${esc(i18n("Ссылок пока нет."))}</div>`;
+    pop.onclick = (e) => {
+      const b = e.target.closest(".rv-opt");
+      if (!b) return;
+      rvToggle(rvState.sources, b.dataset.v);
+      redraw();
+    };
+  } else if (which === "sort") {
+    const labels = rvSortLabels();
+    const jump = rvYearJumpHtml();
+    pop.innerHTML =
+      RV_SORTS.map((k) => rvOptHtml("radio", rvState.sort === k, labels[k], null, { attrs: `data-s="${k}"` })).join("") +
+      `<div class="rv-pop-sep"></div>` +
+      rvOptHtml("", rvState.years, i18n("Группировать по годам"), null, { attrs: `data-years="1"` }) +
+      jump;
+    pop.onclick = (e) => {
+      const y = e.target.closest("[data-jump]");
+      if (y) {
+        closeRvPops();
+        document
+          .querySelector(`#rv-grid .year-divider[data-year="${CSS.escape(y.dataset.jump)}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      const b = e.target.closest(".rv-opt");
+      if (!b) return;
+      if (b.dataset.s) rvState.sort = b.dataset.s;
+      else rvState.years = !rvState.years;
+      redraw();
+    };
+  } else if (which === "tags") {
+    rvFillTagsPop(pop);
+  }
+}
+
+// «Перейти к году» – внутри сортировки, а не отдельным полем: строка
+// и так плотная. Только когда список сейчас разбит по годам и их больше
+// одного (после фильтра – по тем годам, что остались на экране).
+function rvYearJumpHtml() {
+  const years = [...document.querySelectorAll("#rv-grid .year-divider")].map((d) => d.dataset.year);
+  if (years.length < 2) return "";
+  return `<div class="rv-pop-sep"></div>
+    <div class="rv-pop-title">${esc(i18n("Перейти к году…"))}</div>
+    <div class="rv-jump">${years
+      .map((y) => `<button type="button" class="rv-filter-btn" data-jump="${esc(y)}">${esc(y === "–" ? i18n("Без года") : y)}</button>`)
+      .join("")}</div>`;
+}
+
+// Теги – по категориям из TAGS_MAP (js/config.js: тот же справочник и
+// те же названия категорий, что и при выборе тегов у самого отзыва,
+// add.js), самые частые первыми, с числом отзывов; теги, которых нет ни у
+// одного отзыва, не показываются. Раньше – один алфавитный список всех
+// тегов подряд.
+function rvFillTagsPop(pop) {
+  const counts = rvCounts(rvAllReviews, (r) => (r.tags || []).filter((t) => TAGS_MAP[t]));
+  const byCat = {};
+  for (const t of Object.keys(counts)) (byCat[TAGS_MAP[t].cat || "other"] ||= []).push(t);
+  const modeAll = rvState.tagMode === "all";
+  pop.innerHTML = `
+    <div class="rv-tags-top">
+      <input type="text" class="rv-search-input rv-tags-search" placeholder="${esc(i18n("Найти тег…"))}" autocomplete="off">
+      <span class="rv-seg">
+        <button type="button" data-m="all" class="${modeAll ? "on" : ""}">${esc(i18n("Все выбранные"))}</button>
+        <button type="button" data-m="any" class="${modeAll ? "" : "on"}">${esc(i18n("Любой из них"))}</button>
+      </span>
+    </div>
+    <div class="rv-pop-note">${modeAll
+      ? i18n("Отзывы, где есть <b>каждый</b> выбранный тег. Чем больше тегов, тем <b>меньше</b> отзывов.")
+      : i18n("Отзывы, где есть <b>хотя бы один</b> выбранный тег. Чем больше тегов, тем <b>больше</b> отзывов.")}</div>
+    <div class="rv-cats"></div>`;
+  const cats = pop.querySelector(".rv-cats");
+  const paint = () => {
+    const needle = pop.querySelector(".rv-tags-search").value.trim().toLowerCase();
+    const order = [...Object.keys(CAT_LABELS), ...Object.keys(byCat).filter((k) => !(k in CAT_LABELS))];
+    cats.innerHTML =
+      order
+        .filter((k) => byCat[k])
+        .map((k) => {
+          const names = byCat[k]
+            .filter((t) => !needle || t.toLowerCase().includes(needle))
+            .sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, "ru"));
+          if (!names.length) return "";
+          return `<div class="rv-pop-title">${esc(CAT_LABELS[k] || k)}</div>
+            <div class="rv-cloud">${names
+              .map(
+                (t) =>
+                  `<button type="button" class="tag-toggle${rvState.tags.includes(t) ? " active" : ""}" data-tag="${esc(t)}" title="${esc(TAGS_MAP[t].tip || "")}">${esc(t)}<i class="rv-tag-n">${counts[t]}</i></button>`
+              )
+              .join("")}</div>`;
+        })
+        .join("") || `<div class="rv-pop-note">${esc(i18n("Ничего не найдено"))}</div>`;
+  };
+  paint();
+  pop.querySelector(".rv-tags-search").addEventListener("input", paint);
+  pop.onclick = (e) => {
+    const m = e.target.closest("[data-m]");
+    if (m) {
+      rvState.tagMode = m.dataset.m;
+      rvPersistFilters();
+      const typed = pop.querySelector(".rv-tags-search").value;
+      rvFillTagsPop(pop);
+      const input = pop.querySelector(".rv-tags-search");
+      input.value = typed;
+      input.dispatchEvent(new Event("input"));
+      applyRvFilters(rvAllReviews);
+      return;
+    }
+    const t = e.target.closest(".tag-toggle");
+    if (!t) return;
+    rvToggle(rvState.tags, t.dataset.tag);
+    t.classList.toggle("active");
+    rvPersistFilters();
+    applyRvFilters(rvAllReviews);
+  };
+}
+
+// Возвращает всё к «без фильтра» одной кнопкой – проще, чем снимать
+// каждый фильтр по отдельности, когда их накопилось несколько. Поиск и
+// сортировку не трогает: это не фильтры, а способ смотреть.
+function resetRvFilters() {
+  rvState.types = [];
+  rvState.grades = [];
+  rvState.sources = [];
+  rvState.tags = [];
+  rvState.search = "";
+  rvPersistFilters();
+  const input = document.getElementById("rv-search");
+  if (input) input.value = "";
+  applyRvFilters(rvAllReviews);
+}
+
+function rvFiltersActive() {
+  return rvState.types.length + rvState.grades.length + rvState.sources.length + rvState.tags.length > 0 || !!rvState.search;
+}
+
+function rvMatches(r) {
+  if (rvState.types.length && !rvState.types.includes(r.type)) return false;
+  if (rvState.grades.length && !rvState.grades.includes(gradeToShelf(r.grade))) return false;
+  if (rvState.sources.length && !rvState.sources.some((k) => r.source === k || r.source2 === k)) return false;
+  if (rvState.tags.length) {
+    const have = r.tags || [];
+    const ok =
+      rvState.tagMode === "all" ? rvState.tags.every((t) => have.includes(t)) : rvState.tags.some((t) => have.includes(t));
+    if (!ok) return false;
+  }
+  if (rvState.search) {
+    const hay = [r.title, r.review_full, r.preview, ...(r.tags || [])].filter(Boolean).join("\n").toLowerCase();
+    if (!hay.includes(rvState.search)) return false;
+  }
+  return true;
+}
+
+// Порядок записей без даты/года/оценки – в конец при любой сортировке
+// (в «–» они же и группируются), а не где придётся.
+function rvSorted(list) {
+  const byDateDesc = (a, b) => rvDateOf(b).localeCompare(rvDateOf(a));
+  const num = (v) => (typeof v === "number" ? v : null);
+  switch (rvState.sort) {
+    case "date-asc":
+      return [...list].sort((a, b) => {
+        const da = rvDateOf(a), db = rvDateOf(b);
+        return !da ? (db ? 1 : 0) : !db ? -1 : da.localeCompare(db);
+      });
+    case "grade":
+      return [...list].sort((a, b) => rvGradeIndex(a) - rvGradeIndex(b) || byDateDesc(a, b));
+    case "title":
+      return [...list].sort((a, b) => String(a.title || "").localeCompare(String(b.title || ""), undefined, { sensitivity: "base" }));
+    case "year":
+      return [...list].sort((a, b) => (num(rvReleaseYearOf(b)) ?? -1) - (num(rvReleaseYearOf(a)) ?? -1) || byDateDesc(a, b));
+    default:
+      return [...list].sort((a, b) => {
+        const da = rvDateOf(a), db = rvDateOf(b);
+        return !da ? (db ? 1 : 0) : !db ? -1 : db.localeCompare(da);
+      });
+  }
+}
+
+function rvChipsHtml() {
+  const chip = (kind, value, label) =>
+    `<button type="button" class="now-chip active rv-chip" data-k="${kind}" data-v="${esc(value)}" title="${esc(i18n("Убрать"))}">${esc(label)} <span aria-hidden="true">✕</span></button>`;
+  return [
+    ...rvState.types.map((v) => chip("types", v, TYPE_LABELS[v] || v)),
+    ...rvState.grades.map((v) => chip("grades", v, GRADES[v]?.name || v)),
+    ...rvState.tags.map((v) => chip("tags", v, v)),
+    ...rvState.sources.map((v) => chip("sources", v, SOURCE_LABELS[v] || v)),
+  ].join("");
 }
 
 function applyRvFilters(reviews) {
-  let filtered = reviews;
+  const list = rvSorted(reviews.filter(rvMatches));
+  const total = reviews.length;
+  const active = rvFiltersActive();
 
-  if (rvState.type !== "all") {
-    filtered = filtered.filter(r => r.type === rvState.type);
-  }
-  if (rvState.grade !== "all") {
-    filtered = filtered.filter(r => gradeToShelf(r.grade) === rvState.grade);
-  }
-  if (rvState.source !== "all") {
-    filtered = filtered.filter(r =>
-      r.source === rvState.source || r.source2 === rvState.source
-    );
-  }
-  if (rvState.search) {
-    filtered = filtered.filter(r =>
-      r.title.toLowerCase().includes(rvState.search)
-    );
-  }
-  if (rvState.tags.length) {
-    filtered = filtered.filter(r =>
-      (r.tags || []).some(t => rvState.tags.includes(t))
-    );
-  }
+  // Кнопки в строке: подсвечены и с числом выбранного, когда фильтр включён.
+  const mark = (dd, n) => {
+    const btn = document.querySelector(`#tab-reviews .rv-dd[data-dd="${dd}"] .rv-dd-btn`);
+    if (!btn) return;
+    btn.classList.toggle("active", n > 0);
+    btn.querySelector(".rv-dd-n").textContent = n ? ` ${n}` : "";
+  };
+  mark("types", rvState.types.length);
+  mark("grades", rvState.grades.length);
+  mark("tags", rvState.tags.length);
+  mark("sources", rvState.sources.length);
+  const sortLabel = document.getElementById("rv-sort-label");
+  if (sortLabel) sortLabel.textContent = rvSortLabels()[rvState.sort];
 
-  const countEl = document.getElementById("rv-filters-count");
-  if (countEl) {
-    const n = rvFiltersActiveCount();
-    countEl.textContent = n ? ` ${n}` : "";
+  const sub = document.getElementById("rv-sub");
+  if (sub) {
+    const countText = active
+      ? i18n("Показано {shown} из {total}", { shown: list.length, total })
+      : `${total} ${plural(total, [i18n("отзыв"), i18n("отзыва"), i18n("отзывов")])}`;
+    sub.innerHTML =
+      rvChipsHtml() +
+      (rvState.tags.length > 1
+        ? `<span class="rv-note">${esc(rvState.tagMode === "all" ? i18n("теги: каждый из выбранных") : i18n("теги: хотя бы один"))}</span>`
+        : "") +
+      (active ? `<button type="button" class="rv-reset">${esc(i18n("Сбросить всё"))}</button>` : "") +
+      `<span class="rv-result">${esc(countText)}</span>`;
+    sub.onclick = (e) => {
+      if (e.target.closest(".rv-reset")) return resetRvFilters();
+      const c = e.target.closest(".rv-chip");
+      if (!c) return;
+      rvToggle(rvState[c.dataset.k], c.dataset.v);
+      rvPersistFilters();
+      applyRvFilters(rvAllReviews);
+    };
   }
-  const tagsCountEl = document.getElementById("rv-tags-btn-count");
-  if (tagsCountEl) tagsCountEl.textContent = rvState.tags.length ? ` ${rvState.tags.length}` : "";
 
   const grid = document.getElementById("rv-grid");
   if (!grid) return;
 
-  if (!filtered.length) {
+  if (!list.length) {
     grid.innerHTML = `<div class="state-box" style="padding:3rem 1rem;grid-column:1/-1">
       ${esc(siteLabel("empty", "search", i18n("Ничего не найдено")))}
+      ${active ? `<div style="margin-top:.8rem"><button type="button" class="rv-reset" onclick="resetRvFilters()">${esc(i18n("Сбросить фильтры"))}</button></div>` : ""}
     </div>`;
+    rvLastFiltered = [];
     return;
   }
 
-  grid.innerHTML = filtered.map((r, i) => reviewCard(r, i)).join("");
-  rvLastFiltered = filtered;
+  // Заголовки годов – как у «Статусов» (.year-divider), но внутри одной
+  // сетки: растянуты на все колонки. По дате – год завершения, по «году
+  // выхода» – год выхода. По оценке и названию заголовков нет: внутри
+  // каждого года был бы свой порядок, и найти что-то стало бы нельзя.
+  const grouped = rvState.years && ["date", "date-asc", "year"].includes(rvState.sort);
+  const yearOf = rvState.sort === "year" ? rvReleaseYearOf : rvDateYearOf;
+  let html = "";
+  if (grouped) {
+    const counts = {};
+    for (const r of list) counts[yearOf(r)] = (counts[yearOf(r)] || 0) + 1;
+    let cur = null;
+    list.forEach((r, i) => {
+      const y = String(yearOf(r));
+      if (y !== cur) {
+        cur = y;
+        html += `<h3 class="year-divider rv-year" data-year="${esc(y)}">
+          <span class="year-label">${esc(y === "–" ? i18n("Без года") : y)}</span>
+          <span class="year-count">${counts[y]}</span>
+        </h3>`;
+      }
+      html += reviewCard(r, i);
+    });
+  } else {
+    html = list.map((r, i) => reviewCard(r, i)).join("");
+  }
+  // Анимация появления карточек – только при первой отрисовке. На каждый
+  // клик по фильтру она запускалась заново, и вся сетка мигала.
+  grid.classList.toggle("rv-noanim", !!grid.dataset.drawn);
+  grid.dataset.drawn = "1";
+  grid.innerHTML = html;
+  rvLastFiltered = list;
   rvBindCardClicks();
 }
 

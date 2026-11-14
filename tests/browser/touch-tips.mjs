@@ -126,27 +126,18 @@ const openTab = async (id) => {
 await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(2500);
 
-console.log("Оценка на карточке «Статусов»");
-// По умолчанию открывается «Отзывы» (или последняя открытая вкладка) –
-// «Статусы» больше не гарантированно первая, открываем её явно, как и
-// другие вкладки ниже через openTab().
-await openTab("tab-now");
-// «Статусы» сама теперь переключатель разделов (В процессе/Отложено/
-// Планирую/Архив) – виден только один раздел за раз. Тестовая запись
-// сохранена с status: "completed", то есть живёт в «Архиве» – переключаемся
-// на него явно, иначе карточки с оценкой на экране может не быть.
-await page.evaluate(() =>
-  document.querySelector('#tab-now .tl-mode-btn[data-mode="archive"]')?.click()
-);
-await page.waitForTimeout(300);
-const grade = await centerOf("#tab-now [data-tip]");
+console.log("Оценка на карточке «Отзывов»");
+// Тестовая запись сохранена с status: "completed" – после того как «Архив»
+// убрали из «Статусов», законченное живёт только во вкладке «Отзывы»
+// (карточка там – та же role="button", что и была у «Статусов»).
+await openTab("tab-reviews");
+const grade = await centerOf("#rv-grid .card-grade-row[data-tip]");
 if (!grade) {
   ok(false, `в хранилище нет ни одной карточки с оценкой — проверять нечего`);
 } else {
-  // Карточка «Статусов» теперь сама role="button" (открывается и с
-  // клавиатуры, см. manualCard в app/js/cards.js) – значит, по тому же
-  // правилу, что уже действует на вкладке «Отзывы» (см. touchstart в
-  // app/js/utils.js), нажатие открывает отзыв, а подсказку поверх него
+  // Карточка сама role="button" (открывается и с клавиатуры, см.
+  // reviewCard в app/js/reviews.js) – значит, по правилу из touchstart
+  // (app/js/utils.js) нажатие открывает отзыв, а подсказку поверх него
   // не вешает. Раньше здесь случалось и то и другое разом.
   await tap(grade.x, grade.y);
   ok(!(await tipState()).shown, "нажатие по оценке на карточке не вешает подсказку поверх отзыва");

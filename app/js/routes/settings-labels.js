@@ -119,8 +119,7 @@ async function saveSettings() {
     const row = document.getElementById(`tabrow-${id}`);
     if (row && row.classList.contains("editing")) toggleTabEdit(id);
   });
-  const rows = [...statusBuckets, { key: "archive" }];
-  rows.forEach((b) => {
+  statusBuckets.forEach((b) => {
     const row = document.getElementById(`statusrow-${b.key}`);
     if (row && row.classList.contains("editing")) toggleStatusEdit(b.key);
   });

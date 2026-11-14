@@ -28,11 +28,11 @@ document.addEventListener("site-labels-ready", () => {
 // (данные + подписи статусов) и правда стал другим.
 let nowLastSnapshot = null;
 
-// Текущая выбранная вкладка-переключатель (ключ статуса или "archive") –
+// Текущая выбранная вкладка-переключатель (ключ статуса) –
 // см. её же комментарий у nowModeToggleHtml() ниже. Сбрасывается на
 // первую по порядку при каждой загрузке страницы, не запоминается
 // между сеансами – так же, как режим самого тир-листа (tlState.mode).
-const nowState = { buckets: [], completed: [], mode: null };
+const nowState = { buckets: [], mode: null };
 
 // Поиск, фильтр по типу и сортировка над сеткой. Живут до перезагрузки
 // страницы, как и выбранная вкладка: при переключении статуса поиск и
@@ -41,7 +41,6 @@ const nowState = { buckets: [], completed: [], mode: null };
 const nowFilter = { type: "all", q: "", sort: "date" };
 
 function nowModeItems() {
-  if (nowState.mode === "archive") return nowState.completed;
   return nowState.buckets.find((b) => b.key === nowState.mode)?.items || [];
 }
 
@@ -146,8 +145,8 @@ function bindNowTools() {
     e.target.value = "";
   });
   // Сортировка меняет порядок, а не видимость, – уже нарисованные разделы
-  // сбрасываем и строим заново (в «Архиве» другая сортировка ещё и
-  // убирает разбивку по годам, см. archiveBodyHtml).
+  // сбрасываем и строим заново (сортировка «По году выхода» ещё и
+  // разбивает список по годам, см. nowModeBodyHtml).
   document.getElementById("now-sort")?.addEventListener("change", (e) => {
     nowFilter.sort = e.target.value;
     nowModeBodies = {};
@@ -186,13 +185,14 @@ async function loadNow() {
       label: b.label,
       items: reviews.filter(r => r.status === b.key),
     }));
-    const completed = reviews.filter(r =>
-      r.status === "completed" || (!r.status && (r.review_full || r.preview || r.grade))
-    );
-    const snapshot = JSON.stringify({ buckets, completed });
+    // Завершённых здесь нет: раньше они жили в «Архиве» этой же вкладки,
+    // теперь всё законченное – во вкладке «Отзывы» (reviews.js:
+    // reviewsWithReview), с теми же фильтрами и сортировкой, но ещё и по
+    // оценке, тегам и ссылкам. «Статусы» – только то, что идёт сейчас.
+    const snapshot = JSON.stringify({ buckets });
     if (snapshot === nowLastSnapshot) return;
     nowLastSnapshot = snapshot;
-    renderNow({ buckets, completed });
+    renderNow({ buckets });
   } catch (err) {
     nowLastSnapshot = null; // при следующей успешной загрузке перерисовать точно
     box.innerHTML = `<div class="state-box">
@@ -204,13 +204,14 @@ async function loadNow() {
   }
 }
 
-// Порядок статусов вместе с «Архивом» – настраивается в /settings-edit
-// перетаскиванием (statusOrderState там же): «Архив» раньше был жёстко
-// зашит последним, теперь может стоять где угодно. Скрытые статусы
+// Порядок статусов – настраивается в /settings-edit перетаскиванием
+// (statusOrderState там же). В сохранённых настройках может остаться
+// ключ "archive" от прошлых версий («Архив» убран из «Статусов», см.
+// loadNow) – он просто не входит в known и молча отбрасывается. Скрытые статусы
 // (SITE_HIDDEN_STATUSES) сюда не попадают вовсе – ни отдельной секцией,
 // как раньше, ни вкладкой переключателя.
 function nowOrderedKeys() {
-  const known = [...nowState.buckets.map((b) => b.key), "archive"].filter(
+  const known = nowState.buckets.map((b) => b.key).filter(
     (key) => !window.SITE_HIDDEN_STATUSES?.has(key)
   );
   const saved = window.SITE_STATUS_ORDER || [];
@@ -235,9 +236,6 @@ function nowModeToggleHtml() {
   const bucketsByKey = Object.fromEntries(nowState.buckets.map((b) => [b.key, b]));
   const btns = nowOrderedKeys()
     .map((key) => {
-      if (key === "archive") {
-        return `<button class="tl-mode-btn${nowState.mode === "archive" ? " active" : ""}" data-mode="archive">${esc(siteLabel("statuses", "archive", i18n("Архив")))} <span class="section-count">${nowState.completed.length}</span></button>`;
-      }
       const b = bucketsByKey[key];
       if (!b) return "";
       return `<button class="tl-mode-btn${nowState.mode === key ? " active" : ""}" data-mode="${esc(key)}">${esc(b.label)} <span class="section-count">${b.items.length}</span></button>`;
@@ -273,10 +271,8 @@ function bindNowModeToggle() {
 }
 
 // ── Разделы по годам ───────────────────────────
-// Список с заголовками-годами: «Архив» по дате – по году завершения,
-// любой статус при сортировке «По году выхода» – по году выхода. Один и
-// тот же вид в обоих случаях, поэтому и «Перейти к году» (см.
-// nowSyncYearJump) работает одинаково.
+// Список с заголовками-годами: любой статус при сортировке «По году
+// выхода» – по году выхода («Перейти к году», см. nowSyncYearJump).
 //
 // Счётчик в заголовке (.year-count) пересчитывает nowApplyFilter() – он
 // показывает, сколько карточек года видно сейчас, с учётом фильтра.
@@ -309,33 +305,6 @@ function yearGroupsHtml(items, yearOf) {
 
 const releaseYearOf = (r) => parseInt(r.year, 10) || "–";
 
-// «Архив» – не элемент activeStatusBuckets() (это просто все
-// завершённые, а не отдельный ручной статус), поэтому своя функция, а
-// не ещё одна запись в buckets.
-function archiveBodyHtml(completed) {
-  if (!completed.length) {
-    return `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;
-  }
-  // По названию – одним списком: внутри каждого года был бы свой
-  // алфавит, и найти что-то по букве стало бы нельзя.
-  if (nowFilter.sort === "title") {
-    return `<div class="grid-now">${nowSorted(completed)
-      .map((r, i) => manualCard(r, i))
-      .join("")}</div>`;
-  }
-  if (nowFilter.sort === "year") return yearGroupsHtml(nowSorted(completed), releaseYearOf);
-
-  const sorted = [...completed].sort((a, b) => {
-    const da = new Date(a.date_end || a.date_start || a.date || 0);
-    const db = new Date(b.date_end || b.date_start || b.date || 0);
-    return db - da;
-  });
-  return yearGroupsHtml(sorted, (r) => {
-    const raw = r.date_end || r.date_start || r.date;
-    return raw ? parseLocalDate(raw).getFullYear() : "–";
-  });
-}
-
 // «Перейти к году» – в ряду инструментов рядом с сортировкой, а не
 // отдельной строкой над списком. Годы берутся из самих заголовков
 // открытого раздела, причём только видимых: под фильтром «Фильм» в
@@ -365,7 +334,6 @@ function scrollToNowYear(year) {
 }
 
 function nowModeBodyHtml() {
-  if (nowState.mode === "archive") return archiveBodyHtml(nowState.completed);
   const bucketsByKey = Object.fromEntries(nowState.buckets.map((b) => [b.key, b]));
   const b = bucketsByKey[nowState.mode];
   if (!b || !b.items.length) {
@@ -377,7 +345,7 @@ function nowModeBodyHtml() {
 
 // Кэш уже отрисованных разделов – та же причина, что решили для
 // тир-листа (loadTierlist()/tlLastSnapshot): переключение между
-// статусами («В процессе»/«Отложено»/«Планирую»/«Архив») раньше ВСЕГДА
+// статусами («В процессе»/«Отложено»/«Планирую») раньше ВСЕГДА
 // заново строило innerHTML и заводило свежие <img>, даже возвращаясь к
 // разделу, который уже показывали минуту назад в этом же заходе. Байты
 // картинки при этом уже лежали в srcCache (см. её же комментарий у
@@ -407,7 +375,7 @@ function renderNowBody() {
   nowBindCardClicks();
 }
 
-// Клик по карточке в «Сейчас»/«Статусы» и в «Архиве» открывает ту же
+// Клик по карточке в «Сейчас»/«Статусы» открывает ту же
 // модалку отзыва, что уже есть на вкладке «Отзывы» (rvBindCardClicks в
 // reviews.js) и в «Любимом» (favBindCardClicks в favorites.js) – раньше
 // эти карточки (manualCard, js/cards.js) вообще ничего не открывали,
@@ -442,10 +410,9 @@ function nowBindCardClicks() {
   });
 }
 
-function renderNow({ buckets, completed }) {
+function renderNow({ buckets }) {
   const box = document.getElementById("tab-now");
   nowState.buckets = buckets;
-  nowState.completed = completed;
   nowEnsureMode();
   nowModeBodies = {};
 

@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=25"></script>
+<script src="/js/i18n-en.js?v=26"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=30"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -1735,21 +1735,6 @@ section.group { margin-bottom: 3.5rem; }
 }
 
 /* ══ REVIEW FILTERS ══════════════════════════════ */
-.rv-filter-group {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: .4rem;
-}
-.rv-filter-label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: .68rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  min-width: 70px;
-  flex-shrink: 0;
-}
 .rv-filter-btn {
   font-family: 'DM Sans', sans-serif;
   font-size: .76rem;
@@ -1819,63 +1804,97 @@ section.group { margin-bottom: 3.5rem; }
   color: var(--red-hi);
 }
 
-/* ══ REVIEW TOOLBAR ══════════════════════════════ */
-.rv-toolbar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
+/* ══ REVIEW TOOLBAR ══════════════════════════════
+   Шапка вкладки «Отзывы» (js/reviews.js: renderReviews). Заголовок и
+   «Добавить» уезжают при прокрутке, а .rv-sticky – строка поиска и
+   фильтров с чипами выбранного и счётчиком – остаётся на месте, как
+   строка вкладок у «Статусов»/«Любимого» (см. STICKY_TABS_BAR в
+   index.html и правило прилипания выше). Выпадающие списки (.rv-pop) –
+   не <select>: нужен выбор нескольких значений с числом отзывов у
+   каждого. */
+.rv-head { display: flex; align-items: baseline; gap: .8rem; margin-bottom: .2rem; }
+.rv-head .admin-add-btn { margin-left: auto; }
+.rv-title { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 600; color: var(--text-hi); margin: 0; }
+.rv-sticky {
+  position: sticky;
+  top: var(--app-titlebar, 0px);
+  z-index: 20;
+  background: var(--bg);
+  padding: .6rem 0 .5rem;
+  margin-bottom: .4rem;
+  /* Мягкий переход под строкой: карточки уходят под неё, а не упираются
+     в жёсткую линию – так же, как у остальных закреплённых строк. */
+  box-shadow: 0 12px 10px -6px var(--bg);
 }
-.rv-filters {
-  display: inline-flex;
-  flex-direction: column;
-  gap: .75rem;
-  padding: 1.1rem 1.4rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 2px;
+.rv-bar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.rv-bar-gap { flex: 1; }
+.rv-search { flex: 1 1 220px; max-width: 340px; position: relative; }
+.rv-search .rv-search-input { width: 100%; box-sizing: border-box; padding: .5rem 2rem .5rem .8rem; font-size: .8rem; }
+.rv-search kbd {
+  position: absolute; right: .55rem; top: 50%; transform: translateY(-50%);
+  font: .62rem 'DM Sans', sans-serif; color: var(--text-dim);
+  border: 1px solid var(--border2); padding: 0 .35rem; border-radius: 2px; pointer-events: none;
 }
-
-/* ── Мобильная панель «Отзывов» ────────────────────
-   На столе есть место под всегда открытые фильтры (.rv-filters
-   выше) – на телефоне то же самое заняло бы полэкрана до самих
-   карточек. Вместо этого – поиск сверху и одна кнопка «Фильтры»,
-   открывающая модалку с тем же набором плюс полным списком тегов
-   (js/reviews.js: rvTagToggleHtml) вместо поиска по подстроке –
-   тапнуть по паре нужных проще, чем печатать на телефонной
-   клавиатуре. Обе панели рисуются всегда, показ/скрытие решает только
-   media-запрос ниже – тот же приём, что у рельсы/нижней панели вкладок. */
-.rv-mobile-toolbar { display: none; }
+.rv-search .rv-search-input:focus ~ kbd,
+.rv-search .rv-search-input:not(:placeholder-shown) ~ kbd { display: none; }
+.rv-dd { position: relative; }
+.rv-dd-btn { padding: .5rem .8rem; font-size: .78rem; display: inline-flex; align-items: center; gap: .1rem; white-space: nowrap; }
+.rv-dd-btn::after { content: "▾"; font-size: .6rem; opacity: .6; margin-left: .45rem; }
+.rv-dd-n { color: var(--red-hi); font-size: .7rem; }
+.rv-pop {
+  position: absolute; z-index: 60; top: calc(100% + .35rem); left: 0;
+  min-width: 230px; max-height: 70vh; overflow: auto;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 3px;
+  padding: .45rem; box-shadow: 0 14px 40px rgba(0,0,0,.55);
+}
+.rv-pop.hidden { display: none; }
+.rv-pop-right { left: auto; right: 0; }
+.rv-pop-tags { width: min(560px, 92vw); padding: .7rem; }
+.rv-opt {
+  display: flex; align-items: center; gap: .55rem; width: 100%; box-sizing: border-box; text-align: left;
+  font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text);
+  padding: .38rem .55rem; border: 0; background: none; cursor: pointer; border-radius: 2px;
+}
+@media (hover: hover) { .rv-opt:hover { background: var(--tint-hi, rgba(255,255,255,.05)); } }
+.rv-box { width: .85rem; height: .85rem; flex: none; border: 1px solid var(--border2); border-radius: 1px; display: grid; place-items: center; font-size: .6rem; line-height: 1; }
+.rv-opt.on .rv-box { background: var(--red); border-color: var(--red); color: #fff; }
+.rv-opt.on .rv-box::after { content: "✓"; }
+.rv-opt.radio .rv-box { border-radius: 50%; }
+.rv-opt.radio.on .rv-box::after { content: ""; width: .35rem; height: .35rem; border-radius: 50%; background: #fff; }
+.rv-dot { width: .55rem; height: .55rem; flex: none; transform: rotate(45deg); background: var(--gc); }
+.rv-opt-count { margin-left: auto; color: var(--text-dim); font-size: .7rem; font-variant-numeric: tabular-nums; }
+.rv-pop-sep { border-top: 1px solid var(--border); margin: .35rem 0; }
+.rv-pop-title { margin: .55rem 0 .25rem; font-family: 'DM Sans', sans-serif; font-size: .64rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); }
+.rv-pop-note { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); line-height: 1.45; padding: .2rem .1rem; }
+.rv-pop-note b { color: var(--text-hi); font-weight: 600; }
+.rv-jump { display: flex; flex-wrap: wrap; gap: .3rem; padding: 0 .2rem .2rem; }
+.rv-tags-top { display: flex; gap: .5rem; align-items: center; margin-bottom: .4rem; flex-wrap: wrap; }
+.rv-tags-top .rv-search-input { flex: 1; min-width: 8rem; width: auto; }
+.rv-seg { display: inline-flex; border: 1px solid var(--border2); border-radius: 2px; overflow: hidden; }
+.rv-seg button { font-family: 'DM Sans', sans-serif; font-size: .7rem; padding: .35rem .6rem; background: none; border: 0; color: var(--text-dim); cursor: pointer; }
+.rv-seg button.on { background: var(--accent-fill); color: var(--text-hi); }
+.rv-cloud { display: flex; flex-wrap: wrap; gap: .3rem; }
+.rv-tag-n { font-style: normal; opacity: .55; margin-left: .3rem; font-size: .9em; }
+.rv-sub { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin: .55rem 0 0; min-height: 1.7rem; }
+.rv-note { font-family: 'DM Sans', sans-serif; font-size: .7rem; color: var(--text-dim); }
+.rv-reset { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.rv-result { font-family: 'DM Sans', sans-serif; font-size: .74rem; color: var(--text-dim); margin-left: auto; font-variant-numeric: tabular-nums; }
+/* Заголовок года внутри сетки – на все колонки; scroll-margin больше, чем у
+   .year-divider в «Статусах»: сверху ещё прилипшая строка фильтров. */
+.rv-year { grid-column: 1 / -1; margin-top: .9rem; scroll-margin-top: calc(var(--app-titlebar, 0px) + 8rem); }
+.reviews-grid > .rv-year:first-child { margin-top: .2rem; }
+.rv-noanim .card { animation: none !important; }
 @media (max-width: 700px) {
-  .rv-filters { display: none; }
-  .rv-mobile-toolbar {
-    display: flex;
-    gap: .6rem;
-    width: 100%;
-  }
-  .rv-mobile-toolbar .rv-search-input { flex: 1; width: auto; }
-}
-.rv-filters-open-btn { position: relative; white-space: nowrap; }
-.rv-filters-count {
-  font-family: 'DM Sans', sans-serif;
-  font-size: .68rem;
-  color: var(--red-hi);
-}
-.rv-filters-modal .rv-filters-modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  max-height: 60vh;
-  overflow-y: auto;
-  margin: 1rem 0;
-}
-.rv-tag-cloud { display: flex; flex-wrap: wrap; gap: .4rem; }
-.rv-filters-modal-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: .75rem;
+  /* На телефоне строка в несколько рядов и закреплённой занимала бы
+     пол-экрана – там она обычная; списки открываются листом снизу. */
+  .rv-sticky { position: static; box-shadow: none; }
+  .rv-search { flex-basis: 100%; max-width: none; }
+  .rv-dd-btn { padding: .5rem .65rem; font-size: .72rem; }
+  .rv-title { font-size: 1.4rem; }
+  .rv-bar-gap { display: none; }
+  .rv-bar > .rv-dd:last-child { margin-left: auto; }
+  .rv-pop, .rv-pop-right { position: fixed; left: 10px; right: 10px; top: auto; bottom: 76px; width: auto; max-height: 65vh; min-width: 0; z-index: 90; }
+  .rv-pop-tags { width: auto; }
 }
 
   /* ══ TIERLIST MODE TOGGLE ════════════════════════ */
@@ -1892,9 +1911,9 @@ section.group { margin-bottom: 3.5rem; }
    родитель, а родитель здесь – весь раздел целиком. Фон сплошной,
    иначе карточки просвечивают сквозь строку, когда уезжают под неё;
    padding + такой же отрицательный margin дают зазор сверху у
-   прилипшей строки и не сдвигают её в обычном положении. «Отзывы» не
-   здесь: их панель фильтров – четыре строки, прилипшей она съела бы
-   пол-экрана. */
+   прилипшей строки и не сдвигают её в обычном положении. «Отзывы» – своё
+   правило (.rv-sticky ниже): раньше их панель фильтров – четыре строки –
+   прилипшей съела бы пол-экрана, теперь это одна строка. */
 #tab-now > .tl-mode-toggle,
 #tab-tierlist > .tl-mode-toggle,
 #tab-favorites > .fav-head,
@@ -1905,6 +1924,13 @@ section.group { margin-bottom: 3.5rem; }
   background: var(--bg);
   padding-top: .75rem;
   margin-top: -.75rem;
+  /* Снизу – запас и мягкий переход цвета фона: без них закреплённая
+     строка упиралась прямо в уходящие под неё карточки/блоки и сливалась
+     с ними (особенно в «Статистике» над широкими блоками). Тень цвета
+     фона, а не градиент-псевдоэлемент: у .tl-mode-toggle на телефоне
+     overflow, и он обрезал бы всё, что выходит за его рамку. */
+  padding-bottom: .65rem;
+  box-shadow: 0 12px 10px -6px var(--bg);
 }
 @media (max-width: 700px) {
   /* На телефоне тут может оказаться несколько своих тир-листов
@@ -3853,9 +3879,9 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/external-ids.js?v=12"></script>
 <script src="/js/api.js?v=13"></script>
 <script src="/js/cards.js?v=19"></script>
-<script src="/js/now.js?v=16"></script>
+<script src="/js/now.js?v=17"></script>
 <script src="/js/favorites.js?v=19"></script>
-<script src="/js/reviews.js?v=25"></script>
+<script src="/js/reviews.js?v=26"></script>
 <script src="/js/stats.js?v=22"></script>
 <script src="/js/tierlist.js?v=15"></script>
 <script src="/js/backup-history.js?v=2"></script>
@@ -3871,7 +3897,7 @@ main.fe-view > .status-msg:empty { display: none; }
      scripts/check-shared-head.js. -->
 <script src="/js/passports.js?v=14"></script>
 <script src="/js/import-formats.js?v=18"></script>
-<script src="/js/import.js?v=25"></script>
+<script src="/js/import.js?v=26"></script>
 <!-- touch-drag.js – перетаскивание пальцем. Браузер рождает события
      drag только от мыши, и без этого моста порядок вкладок в
      #/settings-edit (как и списки в #/reviews-order, #/chars-edit,
@@ -3901,11 +3927,11 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/settings-appearance.js?v=1"></script>
 <script src="/js/routes/settings-stats.js?v=2"></script>
 <script src="/js/routes/settings-grades.js?v=1"></script>
-<script src="/js/routes/settings-tabs.js?v=1"></script>
+<script src="/js/routes/settings-tabs.js?v=2"></script>
 <script src="/js/routes/settings-app.js?v=2"></script>
 <script src="/js/routes/settings-sync.js?v=3"></script>
 <script src="/js/routes/settings-shortcuts.js?v=2"></script>
-<script src="/js/routes/settings-labels.js?v=4"></script>
+<script src="/js/routes/settings-labels.js?v=5"></script>
 <script src="/js/routes/settings-edit.js?v=5"></script>
 
 <script>

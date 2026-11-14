@@ -5,7 +5,8 @@
 // Плюс старая ошибка, найденная по ходу: привязка вкладок тир-листа
 // искала .tl-mode-btn по всему документу, а это общий класс вкладок
 // «Статусов» и «Любимого». После захода в тир-лист клик по «Архиву» в
-// «Статусах» переключал и тир-лист – в несуществующий режим «archive».
+// «Статусах» переключал и тир-лист – в несуществующий режим (тогда там
+// был «Архив», теперь любая вкладка статуса – общий класс всё тот же).
 //
 // Запуск: node tests/browser/tierlist-redesign.mjs
 // playwright – обычная devDependency. В npm run check не входит (нужен
@@ -109,17 +110,17 @@ page.on("pageerror", (e) => jsErrors.push(e.message));
 
 await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "domcontentloaded" });
 
-console.log("Статусы → Тир-лист → «Архив» в Статусах");
+console.log("Статусы → Тир-лист → вкладка статуса в Статусах");
 await page.click('.tab-btn[data-label="nav.now"]');
-await page.waitForSelector('#tab-now .tl-mode-btn[data-mode="archive"]', { timeout: 10000 });
+await page.waitForSelector("#tab-now .tl-mode-btn", { timeout: 10000 });
 await page.click('.tab-btn[data-label="nav.tierlist"]');
 await page.waitForSelector("#tl-titles-rows", { timeout: 10000 });
 await page.click('.tab-btn[data-label="nav.now"]');
-await page.click('#tab-now .tl-mode-btn[data-mode="archive"]');
+await page.click("#tab-now .tl-mode-btn:not(.active)");
 await page.waitForTimeout(400);
 ok(
   (await page.evaluate(() => tlState.mode)) === "titles",
-  "клик по «Архиву» в «Статусах» не трогает режим тир-листа"
+  "клик по вкладке статуса в «Статусах» не трогает режим тир-листа"
 );
 
 console.log("Тир-лист: тайтлы");

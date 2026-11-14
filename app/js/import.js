@@ -608,7 +608,7 @@ function importMapHtml() {
         <div class="imp-arrow">→</div>
         <select class="imp-select" data-status="${key}">
           <option value="">${i18n("не импортировать")}</option>
-          <option value="completed"${importStatusMap[key] === "completed" ? " selected" : ""}>${esc(siteLabel("statuses", "archive", i18n("Архив")))}</option>
+          <option value="completed"${importStatusMap[key] === "completed" ? " selected" : ""}>${esc(siteLabel("statuses", "archive", i18n("Завершено")))}</option>
           ${activeStatusBuckets().map((b) =>
             `<option value="${esc(b.key)}"${importStatusMap[key] === b.key ? " selected" : ""}>${esc(b.label)}</option>`
           ).join("")}

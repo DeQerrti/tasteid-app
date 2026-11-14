@@ -493,20 +493,24 @@ function toggleTabEdit(id) {
 }
 
 // ── Статусы ──
+// Название статуса «завершено» (labels.statuses.archive – ключ остался от
+// времён, когда это был «Архив» во вкладке «Статусы»; теперь вкладки такой
+// нет, а имя показывается в выборе статуса отзыва и в импорте, см.
+// add-status-picker.js). Здесь только хранится и пишется обратно при
+// сохранении, чтобы настроенная подпись не терялась; правится она в
+// выборе статуса у самого отзыва и на вкладке «Подписи».
 let archiveLabel = i18n("Архив");
 let statusBuckets = [];
 let hiddenStatusesState = new Set();
-// Порядок статусов вместе с «Архивом» – раньше архив был жёстко зашит
-// последним рядом (не перетаскивался вовсе), хотя физически ничего не
-// требует, чтобы он шёл последним: js/now.js просто рендерит статусы в
-// этом самом порядке. Теперь один общий список, архив – обычный ряд в
-// нём. statusOrderedKeys() сама достраивает порядок при рассинхроне
-// (только что заведённый статус, или загрузка настроек до того, как
-// в них появился archive) – в конец, а не молча теряет ряд.
+// Порядок статусов: js/now.js рендерит их в этом самом порядке.
+// statusOrderedKeys() сама достраивает порядок при рассинхроне (только
+// что заведённый статус) – в конец, а не молча теряет ряд; ключ
+// "archive" из настроек прошлых версий («Архив» убран из «Статусов»)
+// сюда не попадает и при следующем сохранении исчезает из файла.
 let statusOrderState = [];
 
 function statusOrderedKeys() {
-  const known = [...statusBuckets.map((b) => b.key), "archive"];
+  const known = statusBuckets.map((b) => b.key);
   const ordered = statusOrderState.filter((k) => known.includes(k));
   const missing = known.filter((k) => !ordered.includes(k));
   return [...ordered, ...missing];
@@ -516,16 +520,6 @@ function renderStatusesList() {
   const container = document.getElementById("statusesList");
   const rows = statusOrderedKeys()
     .map((key) => {
-      if (key === "archive") {
-        return `
-        <div class="tab-row" id="statusrow-archive" data-key="archive" draggable="true">
-          <span class="drag-handle" title="${i18n("Перетащить")}">⠿</span>
-          ${eyeButton(hiddenStatusesState.has("archive"), `hiddenStatusesState.has('archive') ? hiddenStatusesState.delete('archive') : hiddenStatusesState.add('archive'); renderStatusesList(); settingsDirty = true;`)}
-          <span class="tab-name" id="statusname-archive">${archiveLabel}</span>
-          <input type="text" id="statusinput-archive" value="${archiveLabel}" onkeydown="if(event.key==='Enter')this.blur();">
-          <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('archive')">✎</button>
-        </div>`;
-      }
       const b = statusBuckets.find((x) => x.key === key);
       if (!b) return "";
       return `
@@ -594,15 +588,10 @@ function toggleStatusEdit(key) {
   const editing = row.classList.toggle("editing");
   if (!editing) {
     const val = document.getElementById(`statusinput-${key}`).value.trim();
-    if (key === "archive") {
-      archiveLabel = val || i18n("Архив");
-      document.getElementById(`statusname-${key}`).textContent = archiveLabel;
-    } else {
-      const bucket = statusBuckets.find((b) => b.key === key);
-      if (bucket) {
-        bucket.label = val || bucket.label;
-        document.getElementById(`statusname-${key}`).textContent = bucket.label;
-      }
+    const bucket = statusBuckets.find((b) => b.key === key);
+    if (bucket) {
+      bucket.label = val || bucket.label;
+      document.getElementById(`statusname-${key}`).textContent = bucket.label;
     }
   }
 }

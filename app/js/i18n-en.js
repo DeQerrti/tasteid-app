@@ -1499,6 +1499,25 @@ i18nRegister({
 i18nRegister({
   Теги: "Tags",
   "Поиск по тегу": "Search by tag",
+  "Все выбранные": "All selected",
+  "Любой из них": "Any of them",
+  "Группировать по годам": "Group by year",
+  "Название, тег или слово из отзыва": "Title, tag or a word from the review",
+  "Найти тег…": "Find a tag…",
+  "отзыв": "review",
+  "отзыва": "reviews",
+  "отзывов": "reviews",
+  "Отзывы, где есть <b>каждый</b> выбранный тег. Чем больше тегов, тем <b>меньше</b> отзывов.": "Reviews that have <b>every</b> selected tag. The more tags, the <b>fewer</b> reviews.",
+  "Отзывы, где есть <b>хотя бы один</b> выбранный тег. Чем больше тегов, тем <b>больше</b> отзывов.": "Reviews that have <b>at least one</b> selected tag. The more tags, the <b>more</b> reviews.",
+  "По оценке": "By rating",
+  "Показано {shown} из {total}": "Showing {shown} of {total}",
+  "Сбросить всё": "Reset all",
+  "Сбросить фильтры": "Reset filters",
+  "Сначала новые": "Newest first",
+  "Сначала старые": "Oldest first",
+  "Ссылок пока нет.": "No links yet.",
+  "теги: каждый из выбранных": "tags: every selected one",
+  "теги: хотя бы один": "tags: at least one",
 });
 
 // ── Какие теги показывать на карточке (add.html) ──
