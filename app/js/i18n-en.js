@@ -1008,8 +1008,24 @@ i18nRegister({
   "Файлом выгрузки – если профиль закрыт или нужны личные даты с Шикимори.":
     "From an export file – if your profile is private or you need your personal dates from Shikimori.",
   "Оценки, просмотренное и список «посмотреть».": "Ratings, watched films and your watchlist.",
-  "Оценки и список «посмотреть». Постер находится точно – по номеру фильма, а не по названию.":
-    "Ratings and watchlist. Posters are matched exactly – by the film’s ID, not its title.",
+  "Оценки и список «посмотреть», фильмы и сериалы. Постер находится точно – по номеру фильма, а не по названию.":
+    "Ratings and watchlist, films and series. Posters are matched exactly – by the title’s ID, not its name.",
+  "Войдите на imdb.com, нажмите на своё имя вверху справа → Your ratings.":
+    "Sign in to imdb.com, click your name at the top right → Your ratings.",
+  "Над списком нажмите ⋮ (три точки) → Export – IMDb соберёт файл и пришлёт ссылку на странице imdb.com/exports.":
+    "Above the list, click ⋮ (three dots) → Export – IMDb builds the file and puts a link on imdb.com/exports.",
+  "Скачайте оттуда ratings.csv. Для списка «посмотреть» сделайте то же на странице Your watchlist – получится второй файл.":
+    "Download ratings.csv from there. For the watchlist, do the same on the Your watchlist page – that gives a second file.",
+  "Выберите их кнопкой ниже – по одному за раз. Дата оценки ляжет как дата просмотра: другой у IMDb нет.":
+    "Pick them with the button below, one at a time. The rating date becomes the watch date – IMDb has no other.",
+  "Войдите на app.thestorygraph.com, нажмите на значок профиля → Manage Account.":
+    "Sign in to app.thestorygraph.com, click the profile icon → Manage Account.",
+  "Внизу страницы нажмите Export StoryGraph Library, а затем Generate export.":
+    "At the bottom of the page click Export StoryGraph Library, then Generate export.",
+  "Через минуту на той же странице появится ссылка на файл .csv – скачайте его.":
+    "In a minute a link to the .csv file appears on the same page – download it.",
+  "Выберите его кнопкой ниже. Тексты отзывов перенесутся только в новые записи – свои уже написанные отзывы импорт не трогает.":
+    "Pick it with the button below. Review texts go only into new entries – reviews you’ve already written stay untouched.",
   "Не список, а постеры, год и номер фильма – для любого источника выше.":
     "Not a list – posters, year and film ID for any source above.",
   "Постеры к фильмам приходят только с ключом TMDB – он бесплатный.":

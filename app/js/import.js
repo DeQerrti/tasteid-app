@@ -233,8 +233,17 @@ function importGroups() {
           id: "imdb",
           name: "IMDb",
           kind: "file",
-          planned: true,
-          what: i18n("Оценки и список «посмотреть». Постер находится точно – по номеру фильма, а не по названию."),
+          what: i18n("Оценки и список «посмотреть», фильмы и сериалы. Постер находится точно – по номеру фильма, а не по названию."),
+          groups: [
+            {
+              steps: [
+                i18n("Войдите на imdb.com, нажмите на своё имя вверху справа → Your ratings."),
+                i18n("Над списком нажмите ⋮ (три точки) → Export – IMDb соберёт файл и пришлёт ссылку на странице imdb.com/exports."),
+                i18n("Скачайте оттуда ratings.csv. Для списка «посмотреть» сделайте то же на странице Your watchlist – получится второй файл."),
+                i18n("Выберите их кнопкой ниже – по одному за раз. Дата оценки ляжет как дата просмотра: другой у IMDb нет."),
+              ],
+            },
+          ],
         },
         {
           id: "tmdb",
@@ -267,8 +276,17 @@ function importGroups() {
           id: "storygraph",
           name: "StoryGraph",
           kind: "file",
-          planned: true,
           what: i18n("Прочитанное, читаю, хочу прочитать и брошенное – с оценками, отзывами и датами."),
+          groups: [
+            {
+              steps: [
+                i18n("Войдите на app.thestorygraph.com, нажмите на значок профиля → Manage Account."),
+                i18n("Внизу страницы нажмите Export StoryGraph Library, а затем Generate export."),
+                i18n("Через минуту на той же странице появится ссылка на файл .csv – скачайте его."),
+                i18n("Выберите его кнопкой ниже. Тексты отзывов перенесутся только в новые записи – свои уже написанные отзывы импорт не трогает."),
+              ],
+            },
+          ],
         },
       ],
     },
@@ -786,8 +804,9 @@ async function createStatusFromImport(malKey) {
 //   ?default=false заставляет её отдать 404 вместо пустой картинки,
 //   а с битой ссылкой сайт и так умеет (см. imgFallbackAttrs);
 //
-//   фильмы – только с ключом TMDB, и только по названию с годом: в
-//   выгрузке Letterboxd нет ни номера фильма, ни ссылки на базу. Без
+//   фильмы – только с ключом TMDB. У Letterboxd – по названию с годом:
+//   в его выгрузке нет ни номера фильма, ни ссылки на базу. У IMDb –
+//   точно, по номеру (tt…), и не только фильмы, но и сериалы. Без
 //   ключа приедут без обложек, и это честно сказано на экране.
 
 function openLibraryCover(isbn13) {
@@ -801,7 +820,14 @@ function tmdbPoster(path) {
 // Ключ, под которым найденный фильм ждёт своей записи. Название с годом –
 // единственное, чем фильм из выгрузки себя называет, так что и здесь то же.
 function tmdbCacheKey(item) {
+  if (item.ids?.imdb) return `imdb:${item.ids.imdb}`;
   return `${normTitle(item.title)}|${item.year ? String(item.year).slice(0, 4) : ""}`;
+}
+
+// Кому искать постер у TMDB: фильмам (по названию) и всему, что пришло
+// с номером IMDb (по номеру – там и сериалы).
+function wantsTmdb(item) {
+  return item.type === "movie" || !!item.ids?.imdb;
 }
 
 // Поиск по названию с годом. Год важен: «Дюна» без него – это и 1984-й,
@@ -818,14 +844,25 @@ async function fetchTmdbMeta(items, onProgress) {
     onProgress?.(Math.min(i + chunk.length, items.length), items.length);
 
     await Promise.all(chunk.map(async (item) => {
-      const params = new URLSearchParams({ api_key: key, query: item.title, language: "ru-RU" });
-      const year = item.year ? String(item.year).slice(0, 4) : "";
-      if (year) params.set("year", year);
       try {
-        const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/search/movie?${params}`);
-        if (!res.ok) return;
-        const body = await res.json();
-        const hit = body?.results?.[0];
+        // С номером IMDb – /find: ответ ровно про этот тайтл, фильм это
+        // или сериал. Без номера – поиск фильма по названию с годом.
+        let hit;
+        if (item.ids?.imdb) {
+          const params = new URLSearchParams({ api_key: key, external_source: "imdb_id", language: "ru-RU" });
+          const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/find/${encodeURIComponent(item.ids.imdb)}?${params}`);
+          if (!res.ok) return;
+          const body = await res.json();
+          hit = body?.movie_results?.[0] || body?.tv_results?.[0];
+        } else {
+          const params = new URLSearchParams({ api_key: key, query: item.title, language: "ru-RU" });
+          const year = item.year ? String(item.year).slice(0, 4) : "";
+          if (year) params.set("year", year);
+          const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/search/movie?${params}`);
+          if (!res.ok) return;
+          const body = await res.json();
+          hit = body?.results?.[0];
+        }
         if (hit) found.set(tmdbCacheKey(item), hit);
       } catch {
         // Сеть отвалилась – этот фильм приедет без постера, остальные нет.
@@ -1184,7 +1221,7 @@ async function runImport() {
     });
   }
 
-  const movies = selected.filter((i) => i.type === "movie");
+  const movies = selected.filter((i) => !i.cover && wantsTmdb(i));
   let films = new Map();
   if (movies.length && tmdbKey()) {
     films = await fetchTmdbMeta(movies, (done, total) => {
@@ -1194,7 +1231,7 @@ async function runImport() {
 
   const payload = selected.map((item) => {
     const extra = item.ids?.mal ? meta.get(item.ids.mal) : null;
-    const film = item.type === "movie" ? films.get(tmdbCacheKey(item)) : null;
+    const film = wantsTmdb(item) ? films.get(tmdbCacheKey(item)) : null;
     const ids = { ...(item.ids || {}) };
     if (extra?.id) ids.anilist = extra.id;
     if (film?.id) ids.tmdb = film.id;
@@ -1213,11 +1250,16 @@ async function runImport() {
       year:
         item.year ||
         (extra?.startDate?.year ? String(extra.startDate.year) : null) ||
-        (film?.release_date ? film.release_date.slice(0, 4) : null),
+        (film?.release_date ? film.release_date.slice(0, 4) : null) ||
+        // у сериала из /find (tv_results) вместо release_date – first_air_date
+        (film?.first_air_date ? film.first_air_date.slice(0, 4) : null),
       cover,
       rewatch_count: item.rewatch || 0,
       date_start: item.dateStart,
       date_end: item.dateEnd,
+      // Текст отзыва (пока он есть только у StoryGraph) – сервер кладёт
+      // его только в новые записи, свой написанный не перезаписывает.
+      review: item.review || undefined,
       ids: Object.keys(ids).length ? ids : undefined,
     };
   });

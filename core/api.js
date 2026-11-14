@@ -244,7 +244,13 @@ async function importReviews({ vault, body }) {
         const value = num(raw.ids[key]);
         if (value) ids[key] = value;
       }
+      // Номер IMDb – не число, а «tt» с ведущими нулями (tt0111161):
+      // числом он потерял бы и то, и другое. Пропускаем только в этом виде.
+      if (typeof raw.ids.imdb === "string" && /^tt\d{5,10}$/.test(raw.ids.imdb)) ids.imdb = raw.ids.imdb;
     }
+    // Текст отзыва из выгрузки (StoryGraph) – только для новых записей,
+    // см. ниже: свой уже написанный отзыв импорт не перезаписывает.
+    const reviewText = typeof raw.review === "string" ? raw.review.trim().slice(0, 20000) : "";
     const item = {
       title: str(raw.title),
       type: str(raw.type),
@@ -303,6 +309,7 @@ async function importReviews({ vault, body }) {
       tags: [],
       id: maxId,
       ids: item.ids,
+      ...(reviewText ? { review_full: reviewText } : {}),
     });
     // В индекс сразу: если запись встретится в выгрузке дважды, второй
     // раз она уже найдётся.

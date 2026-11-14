@@ -343,6 +343,112 @@ function parseLetterboxd(rows) {
   return { source: "Letterboxd", scaleMin: 0.5, scaleMax: 5, items, skipped };
 }
 
+// ── IMDb (CSV) ─────────────────────────────────
+// Две выгрузки одного вида: ratings.csv (всё оценённое) и watchlist.csv
+// («посмотреть потом» – у него есть столбец Position). У каждой строки
+// есть номер IMDb (Const, «tt0111161») – по нему постер у TMDB находится
+// точно, а не по названию с годом, как у Letterboxd.
+//
+// Title Type у IMDb пишется двумя способами: в старой выгрузке
+// «tvSeries», в новой (с 2024-го) «TV Series». Сводим оба к одному виду:
+// нижний регистр без пробелов. Отдельные эпизоды, подкасты и клипы – не
+// тайтлы паспорта, их пропускаем и считаем в skipped.
+const IMDB_TYPES = {
+  movie: "movie",
+  tvmovie: "movie",
+  tvspecial: "movie",
+  short: "movie",
+  tvshort: "movie",
+  video: "movie",
+  tvseries: "show",
+  tvminiseries: "show",
+  videogame: "game",
+};
+
+function parseImdb(rows) {
+  const items = [];
+  let skipped = 0;
+
+  for (const r of rows) {
+    const title = (r["Title"] || r["Original Title"] || "").trim();
+    const kind = (r["Title Type"] || "").toLowerCase().replace(/[\s-]/g, "");
+    const type = IMDB_TYPES[kind];
+    if (!title || !type) { skipped++; continue; }
+
+    // Оценка 1–10. В watchlist.csv тоже бывает столбец «Your Rating» –
+    // если там что-то стоит, это уже просмотренное, а не «в планах».
+    const rating = Number(r["Your Rating"]) || 0;
+    const watchlist = "Position" in r;
+    const imdb = (r["Const"] || "").trim();
+
+    items.push({
+      title,
+      type,
+      status: rating || !watchlist ? "completed" : "plantowatch",
+      score: rating,
+      rewatch: 0,
+      dateStart: null,
+      // Даты просмотра IMDb не хранит – только дату оценки. Это ближе
+      // всего к «когда смотрел», и по ней раскладываются годы в
+      // статистике; у «посмотреть потом» её нет.
+      dateEnd: rating ? cleanDate(r["Date Rated"]) : null,
+      year: (r["Year"] || "").trim() || null,
+      ids: /^tt\d+$/.test(imdb) ? { imdb } : undefined,
+    });
+  }
+  return { source: "IMDb", scaleMin: 1, scaleMax: 10, items, skipped };
+}
+
+// ── StoryGraph (CSV) ───────────────────────────
+// Выгрузка из Manage Account → Export StoryGraph Library. Статусы –
+// read / currently-reading / to-read / did-not-finish / paused; оценка
+// с четвертинками звёзд (0,25…5); даты пишутся через «/»
+// (2023/05/12), а в «Dates Read» – диапазоном, иногда несколькими через
+// запятую. Есть и текст отзыва – его и переносим (только в новые
+// записи, см. importReviews в core/api.js).
+const STORYGRAPH_STATUS = {
+  read: "completed",
+  "currently-reading": "watching",
+  "to-read": "plantowatch",
+  "did-not-finish": "dropped",
+  paused: "onhold",
+};
+
+function parseStoryGraph(rows) {
+  const items = [];
+  let skipped = 0;
+
+  for (const r of rows) {
+    const title = (r["Title"] || "").trim();
+    if (!title) { skipped++; continue; }
+
+    const status = STORYGRAPH_STATUS[(r["Read Status"] || "").trim().toLowerCase()] || null;
+    // Первая дата первого диапазона – начало, «Last Date Read» – конец.
+    const firstRead = (r["Dates Read"] || "").match(/\d{4}\/\d{2}\/\d{2}/);
+    const isbn = (r["ISBN/UID"] || "").replace(/[^0-9]/g, "");
+    // Отзыв иногда приходит с HTML-переносами – оставляем простой текст.
+    const review = (r["Review"] || "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .trim();
+
+    items.push({
+      title,
+      type: "book",
+      status,
+      score: Number(r["Star Rating"]) || 0,
+      rewatch: Math.max(Number(r["Read Count"]) || 0, 1) - 1,
+      dateStart: firstRead ? cleanDate(firstRead[0]) : null,
+      dateEnd: cleanDate(r["Last Date Read"]),
+      year: null, // года издания в выгрузке нет
+      author: (r["Authors"] || "").trim() || null,
+      review: review || null,
+      ids: isbn.length === 13 ? { isbn13: Number(isbn) } : undefined,
+    });
+  }
+  return { source: "StoryGraph", scaleMin: 0.25, scaleMax: 5, items, skipped };
+}
+
 // ── AniList (ответ API, а не файл) ─────────────
 // Единственный источник, который приходит не файлом: список у AniList
 // открытый и спрашивается по нику, без ключа. Разбор всё равно живёт
@@ -731,6 +837,8 @@ function buildImportFromTable(table, roles, { typeMap = {}, typeAll = "" } = {})
 function detectCsvFormat(headers) {
   const has = (name) => headers.includes(name);
   if (has("Book Id") && has("Exclusive Shelf")) return "goodreads";
+  if (has("Const") && has("Title Type")) return "imdb";
+  if (has("Read Status") && has("Star Rating")) return "storygraph";
   if (has("Letterboxd URI") || (has("Name") && has("Year") && (has("Rating") || has("Watched Date")))) {
     return "letterboxd";
   }
@@ -764,6 +872,14 @@ function parseImportFile(text, filename = "") {
   }
   if (format === "letterboxd") {
     const parsed = parseLetterboxd(rows);
+    if (parsed.items.length) return parsed;
+  }
+  if (format === "imdb") {
+    const parsed = parseImdb(rows);
+    if (parsed.items.length) return parsed;
+  }
+  if (format === "storygraph") {
+    const parsed = parseStoryGraph(rows);
     if (parsed.items.length) return parsed;
   }
 
