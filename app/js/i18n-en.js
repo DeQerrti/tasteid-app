@@ -1761,6 +1761,13 @@ i18nRegister({
     "This is a separate token from the one for “Sync” higher up in settings – deliberately with fewer rights: the “gist” checkbox only allows placing individual temporary files, it doesn't grant access to your repositories on GitHub. Just like the sync token, it stays only on this device and is never sent anywhere else.",
   "Создать код": "Create a code",
   "сменить токен": "change token",
+  "Выгрузить свой паспорт": "Export my passport",
+  "Файлом или кодом – одной строкой, которую можно вставить в сообщение.": "As a file or a code – one line you can paste into a message.",
+  "Файл или код, который вам прислали. Свои данные это не трогает.": "A file or a code someone sent you. Your own data is not touched.",
+  "Файлом": "As a file",
+  "Файл": "File",
+  "Как это работает": "How it works",
+  "Один раз нужен токен GitHub": "A GitHub token is needed once",
   "Готово. Это не шестизначный код, а длинная строка – её не нужно запоминать или печатать вручную, только скопировать целиком и переслать, например, в мессенджере:":
     "Done. This isn't a six-digit code, it's a long string – no need to memorize or type it, just copy it whole and send it, for example, in a messenger:",
   Скопировать: "Copy",

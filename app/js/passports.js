@@ -474,35 +474,52 @@ function passportIntroHtml() {
        </div>`
     : "";
 
-  return `
-    <p class="panel-intro">
-      ${i18n("Чужой паспорт – файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо на вашем компьютере, никуда не отправляется.")}
-    </p>
-    <p class="panel-intro">
-      ${i18n("Это не резервная копия: файл легче, чем ваши настоящие данные (без текста отзывов, без избранного, без тир-листов), и загрузка сюда чужого паспорта ничего своего не трогает и не заменяет.")}
-    </p>
-    <div class="pp-actions">
-      <label class="btn btn-ghost file-btn">
-        <input type="file" id="pp-file" accept="application/json,.json">
-        <span>${i18n("Загрузить чужой паспорт")}</span>
-      </label>
-      <button class="btn btn-ghost" id="pp-export" type="button">${i18n("Выгрузить свой")}</button>
-    </div>
-    <div class="status-msg" id="pp-status"></div>
-    ${shareCodeHtml()}
-    ${loaded}
-    ${modes}`;
-}
-
-// Свернуто по умолчанию (<details>): большинству людей файла из
-// кнопки выше хватает, а вставленное само по себе объяснение из шести
-// шагов про GitHub и токены не должно быть первым, что видно на панели.
-function shareCodeHtml() {
+  // Две строки в стиле остальных настроек: «Выгрузить свой» и «Загрузить
+  // чужой», у каждой – файл или код. Объяснения (что это и как работает код)
+  // сворачиваются в «Как это работает», а не стоят абзацами перед кнопками.
   const token = getShareToken();
   return `
-    <details class="pp-share"${shareDetailsOpen ? " open" : ""}>
-      <summary data-i18n>Поделиться кодом, без файла</summary>
-      <div class="pp-share-body">
+    <div class="set-row">
+      <div class="set-row-main">
+        <div class="set-row-title">${i18n("Выгрузить свой паспорт")}</div>
+        <div class="set-row-sub">${i18n("Файлом или кодом – одной строкой, которую можно вставить в сообщение.")}</div>
+      </div>
+      <div class="set-row-ctl">
+        <button class="btn btn-ghost" id="pp-export" type="button">${i18n("Файлом")}</button>
+        ${
+          token
+            ? `<button class="btn btn-ghost" id="pp-share-make" type="button">${i18n("Создать код")}</button>
+               <button class="link-btn" id="pp-share-forget-token" type="button">${i18n("сменить токен")}</button>`
+            : `<button class="btn btn-ghost" id="pp-share-setup-open" type="button">${i18n("Создать код")}</button>`
+        }
+      </div>
+    </div>
+    <div class="set-row">
+      <div class="set-row-main">
+        <div class="set-row-title">${i18n("Загрузить чужой паспорт")}</div>
+        <div class="set-row-sub">${i18n("Файл или код, который вам прислали. Свои данные это не трогает.")}</div>
+      </div>
+      <div class="set-row-ctl">
+        <label class="btn btn-ghost file-btn">
+          <input type="file" id="pp-file" accept="application/json,.json">
+          <span>${i18n("Файл")}</span>
+        </label>
+        <input type="text" id="pp-share-code-in" placeholder="${i18n("Код от другого человека")}">
+        <button class="btn btn-ghost" id="pp-share-open" type="button">${i18n("Показать")}</button>
+      </div>
+    </div>
+    <div class="status-msg" id="pp-status"></div>
+    <div class="status-msg" id="pp-share-status"></div>
+    ${token ? (shareLastCode ? `<div class="pp-share-create">${shareResultHtml(shareLastCode)}</div>` : "") : shareTokenSetupHtml()}
+    <details class="pp-how">
+      <summary>${i18n("Как это работает")}</summary>
+      <div class="pp-how-body">
+        <p class="panel-intro">
+          ${i18n("Чужой паспорт – файл: пусть человек выгрузит свой такой же кнопкой ниже и пришлёт. Дальше его можно просто посмотреть или сравнить со своим. Всё считается прямо на вашем компьютере, никуда не отправляется.")}
+        </p>
+        <p class="panel-intro">
+          ${i18n("Это не резервная копия: файл легче, чем ваши настоящие данные (без текста отзывов, без избранного, без тир-листов), и загрузка сюда чужого паспорта ничего своего не трогает и не заменяет.")}
+        </p>
         <p class="panel-intro" data-i18n>
           То же самое, что кнопки выше, только вместо файла, который
           нужно куда-то сохранить и переслать, – одна длинная строка
@@ -514,21 +531,16 @@ function shareCodeHtml() {
           настройках) – здесь он просто временное хранилище для одного
           файла, без своего сервера.
         </p>
-        ${token ? shareCreateHtml() : shareTokenSetupHtml()}
-        <hr class="pp-share-sep">
-        <p class="panel-intro" data-i18n>Вам прислали код – вставьте его сюда:</p>
-        <div class="pp-share-row">
-          <input type="text" id="pp-share-code-in" placeholder="${i18n("Код от другого человека")}">
-          <button class="btn btn-ghost" id="pp-share-open" type="button" data-i18n>Показать</button>
-        </div>
-        <div class="status-msg" id="pp-share-status"></div>
       </div>
-    </details>`;
+    </details>
+    ${loaded}
+    ${modes}`;
 }
 
 function shareTokenSetupHtml() {
   return `
-    <div class="pp-share-setup">
+    <details class="pp-share pp-share-setup"${shareDetailsOpen ? " open" : ""}>
+      <summary>${i18n("Один раз нужен токен GitHub")}</summary>
       <p class="panel-intro" data-i18n>
         Один раз нужно завести отдельный «пропуск» (он называется
         токеном) – он разрешает этому приложению класть на GitHub
@@ -565,18 +577,7 @@ function shareTokenSetupHtml() {
         синхронизации, он остаётся только на этом устройстве и никуда
         больше не отправляется.
       </p>
-    </div>`;
-}
-
-function shareCreateHtml() {
-  return `
-    <div class="pp-share-create">
-      <div class="pp-share-row">
-        <button class="btn btn-ghost" id="pp-share-make" type="button" data-i18n>Создать код</button>
-        <button class="pp-link" id="pp-share-forget-token" type="button" data-i18n>сменить токен</button>
-      </div>
-      ${shareLastCode ? shareResultHtml(shareLastCode) : ""}
-    </div>`;
+    </details>`;
 }
 
 function shareResultHtml(id) {
@@ -1009,6 +1010,14 @@ function bindPassports() {
     shareDetailsOpen = e.target.open;
   });
 
+  document.getElementById("pp-share-setup-open")?.addEventListener("click", () => {
+    const d = document.querySelector(".pp-share");
+    if (!d) return;
+    d.open = true;
+    d.scrollIntoView({ block: "nearest" });
+    document.getElementById("pp-share-token")?.focus();
+  });
+
   document.getElementById("pp-share-save-token")?.addEventListener("click", () => {
     const input = document.getElementById("pp-share-token");
     const value = input?.value.trim();
@@ -1087,7 +1096,15 @@ function bindPassports() {
 
 function passportStyles() {
   return `<style>
-    .pp-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: .5rem; }
+    .set-row-ctl input[type="text"] { width: 14rem; margin: 0; }
+    #passportsPanel .status-msg:empty { display: none; }
+    .pp-how { margin-top: 1.1rem; }
+    .pp-how > summary {
+      font-family: 'DM Sans', sans-serif; font-size: .85rem;
+      color: var(--text-dim); cursor: pointer;
+    }
+    .pp-how > summary:hover { color: var(--text-hi); }
+    .pp-how-body { margin-top: .8rem; }
     .pp-loaded {
       font-family: 'DM Sans', sans-serif;
       font-size: .76rem;
@@ -1100,21 +1117,18 @@ function passportStyles() {
       text-decoration: underline; text-underline-offset: .2em;
     }
 
-    .pp-share { margin-top: 1.2rem; }
+    .pp-share { margin-top: 1.1rem; }
     .pp-share > summary {
-      font-family: 'DM Sans', sans-serif;
-      font-size: .78rem;
-      color: var(--text-dim);
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: .2em;
+      font-family: 'DM Sans', sans-serif; font-size: .85rem;
+      color: var(--text-dim); cursor: pointer;
     }
-    .pp-share > summary:hover { color: var(--text); }
-    .pp-share-body { margin-top: .9rem; }
-    .pp-share-sep { border: none; border-top: 1px solid var(--border); margin: 1.4rem 0; }
+    .pp-share > summary:hover { color: var(--text-hi); }
+    .pp-share-setup > * + * { margin-top: .8rem; }
+    .pp-share-setup ol { font-family: 'DM Sans', sans-serif; font-size: .82rem; color: var(--text-dim); }
+    .pp-share-setup ol a { color: var(--text-hi); }
+    .pp-share-create { margin-top: 1.1rem; }
     .pp-share-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
     .pp-share-row input[type="text"] { flex: 1 1 14rem; min-width: 0; }
-    .pp-share-create .pp-share-row:first-child { margin-bottom: .8rem; }
 
     .pp-modes { display: flex; gap: .4rem; margin: 1.1rem 0 0; flex-wrap: wrap; }
     .pp-mode {

@@ -96,17 +96,25 @@ console.log("Открытие панели «Обмен»");
 await page.click('.side-tab[data-panel="passports"]');
 await page.waitForTimeout(400);
 ok(
-  await page.evaluate(() => !!document.querySelector(".pp-share")),
-  "блок «Поделиться кодом» есть"
+  (await page.locator("#passportsPanel .set-row-title").allTextContents()).join("|") ===
+    "Выгрузить свой паспорт|Загрузить чужой паспорт",
+  "две строки: выгрузить свой / загрузить чужой, у каждой файл или код"
 );
 ok(
-  (await page.evaluate(() => document.querySelector(".pp-share > summary")?.textContent)) ===
-    "Поделиться кодом, без файла",
-  "заголовок свёрнут по умолчанию"
+  await page.evaluate(() => !document.querySelector(".pp-how")?.open && !!document.getElementById("pp-share-open")),
+  "объяснения свёрнуты в «Как это работает», поле для чужого кода видно сразу"
+);
+ok(
+  await page.evaluate(() => !document.querySelector(".pp-share")?.open),
+  "настройка токена свёрнута по умолчанию"
 );
 
-await page.click(".pp-share > summary");
+await page.click("#pp-share-setup-open");
 await page.waitForTimeout(200);
+ok(
+  await page.evaluate(() => document.querySelector(".pp-share")?.open),
+  "«Создать код» без токена раскрывает настройку токена"
+);
 ok(
   await page.evaluate(() => !!document.getElementById("pp-share-token")),
   "без токена показана настройка токена"
@@ -178,8 +186,6 @@ await page2.goto(`http://127.0.0.1:${port}/#/settings-edit`, { waitUntil: "domco
 await page2.waitForSelector(".side-tab");
 await page2.click('.side-tab[data-panel="passports"]');
 await page2.waitForTimeout(400);
-await page2.click(".pp-share > summary");
-await page2.waitForTimeout(200);
 await page2.fill("#pp-share-code-in", code);
 await page2.click("#pp-share-open");
 await page2.waitForFunction(() => !!document.querySelector(".pp-loaded"), null, { timeout: 5000 });
