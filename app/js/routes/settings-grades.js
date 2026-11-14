@@ -246,11 +246,13 @@ function askOrphanedGradesTransfer(groups, oldScale, newScale) {
 // (нужно для пометки в вопросе «Удалить полку?»): считаем по шкале как она
 // сейчас в форме, а не по сохранённой, – правок может быть уже несколько.
 async function countReviewsLosingShelf(i) {
+  // null – посчитать не удалось. Раньше возвращался 0, то есть «таких
+  // отзывов нет», и предупреждение при удалении полки молча пропадало.
   let reviews = [];
   try {
-    reviews = await fetch("/reviews.json?_=" + Date.now()).then((r) => (r.ok ? r.json() : []));
+    reviews = await fetchVaultList("reviews.json");
   } catch {
-    return 0;
+    return null;
   }
   const before = { type: scaleType, shelves };
   const after = { type: scaleType, shelves: shelves.filter((_, j) => j !== i) };
@@ -556,7 +558,9 @@ async function removeShelfRow(i, containerId, withRange) {
   // С такой оценкой есть отзывы – скажем об этом сразу: при сохранении
   // предложим перенести их на другую полку (askOrphanedGradesTransfer).
   const lost = await countReviewsLosingShelf(i);
-  const note = lost
+  const note = lost === null
+    ? " " + i18n("Не удалось посчитать, сколько отзывов стоит на этой полке, – файл отзывов не читается.")
+    : lost
     ? " " +
       i18n("С такой оценкой: {n}. При сохранении предложу перенести их на другую полку.", {
         n: `${lost} ${plural(lost, [i18n("отзыв"), i18n("отзыва"), i18n("отзывов")])}`,

@@ -1223,7 +1223,6 @@ i18nRegister({
   "MyAnimeList / Шикимори": "MyAnimeList / Shikimori",
   "myanimelist.net → значок профиля → Export → Anime List или Manga List → Export My List. Скачается архив .xml.gz – распакуй его, нужен файл .xml изнутри.":
     "myanimelist.net → profile icon → Export → Anime List or Manga List → Export My List. You get an .xml.gz archive – unpack it, the .xml inside is what’s needed.",
-  "reviews.json не найден": "reviews.json not found",
   "shikimori.io → Настройки → Списки → Экспорт → формат MyAnimeList. Аниме и манга выгружаются двумя отдельными файлами – загрузите их по очереди.":
     "shikimori.io → Settings → Lists → Export → MyAnimeList format. Anime and manga come as two separate files – load them one after another.",
   "TMDB не узнал этот ключ. Проверьте, что скопирован он целиком.":
@@ -1278,6 +1277,10 @@ i18nRegister({
   "Не удалось сохранить: ": "Couldn’t save: ",
   "Не удалось прочитать настройки – ничего не сохранено.": "Couldn’t read the settings – nothing was saved.",
   "Сохранить нельзя: ": "Can’t save: ",
+  "Файл {file} не читается. Прошлые версии лежат в настройках, в «Истории версий».":
+    "The file {file} can’t be read. Earlier versions are in Settings, under “Version history”.",
+  "Не удалось посчитать, сколько отзывов стоит на этой полке, – файл отзывов не читается.":
+    "Couldn’t count the reviews on this shelf – the reviews file can’t be read.",
   "Файл {file} не читается – сохранение выключено, чтобы не стереть его. Прошлые версии лежат в «Истории версий».":
     "The file {file} can’t be read – saving is turned off so it isn’t wiped. Earlier versions are in “Version history”.",
   "Сервер ответил {status}": "The server responded with {status}",

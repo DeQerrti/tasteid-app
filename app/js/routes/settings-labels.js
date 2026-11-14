@@ -295,9 +295,10 @@ async function saveSettings() {
     // Если шкалу сменили по типу или максимуму, пересчёт сам кладёт каждую
     // старую полку на новую по месту, и «бесхозных» не бывает.
     if (originalGradeScale && !needsRegrade(originalGradeScale, gradeScale)) {
-      const reviewsNow = await fetch("/reviews.json?_=" + Date.now())
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []);
+      // Не прочитались отзывы – шкалу не сохраняем вовсе (ошибка уйдёт в
+      // catch ниже). Раньше сбой давал [] – «переносить нечего», и новая
+      // шкала сохранялась, оставляя отзывы с оценками без полки.
+      const reviewsNow = await fetchVaultList("reviews.json");
       const groups = groupNewlyOrphaned(reviewsNow, originalGradeScale, gradeScale);
       if (groups.length) {
         const transferMap = await askOrphanedGradesTransfer(groups, originalGradeScale, gradeScale);
@@ -318,9 +319,7 @@ async function saveSettings() {
       }
     }
     if (needsRegrade(originalGradeScale, gradeScale)) {
-      const reviews = await fetch("/reviews.json?_=" + Date.now())
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []);
+      const reviews = await fetchVaultList("reviews.json");
       const usedRawGrades = [
         ...new Set(reviews.map((r) => r.grade).filter((g) => g !== null && g !== undefined && g !== "")),
       ];

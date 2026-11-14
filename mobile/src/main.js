@@ -88,19 +88,27 @@ if (NATIVE) window.__TASTEID = { vaultId: currentVaultId() };
 // только «дать имя», всё остальное берёт на себя MobileVault.
 const VAULTS_KEY = "tasteid_vaults";
 const CURRENT_VAULT_KEY = "tasteid_current_vault";
+const VAULTS_BROKEN_KEY = "tasteid_vaults_broken";
 
 function genVaultId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function listVaults() {
+  const raw = localStorage.getItem(VAULTS_KEY);
   let list;
   try {
-    list = JSON.parse(localStorage.getItem(VAULTS_KEY) || "null");
+    list = JSON.parse(raw || "null");
   } catch {
     list = null;
   }
   if (!Array.isArray(list) || !list.length) {
+    // Список был, но не разобрался – ниже он заменится одной записью
+    // «TasteID», и остальные хранилища пропадут из списка (их файлы на
+    // диске остаются). Раньше испорченная строка при этом затиралась
+    // насовсем; теперь она откладывается под отдельным ключом, чтобы
+    // имена и id хранилищ можно было достать и вернуть.
+    if (raw && !Array.isArray(list)) localStorage.setItem(VAULTS_BROKEN_KEY, raw);
     // Первый запуск или обновление со старой версии, где хранилище
     // было одно без имени и без id – заводим список из одной записи,
     // указывающей на те же файлы, что уже лежат на диске.

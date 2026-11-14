@@ -111,14 +111,12 @@
   async function load() {
     try {
       if (section === "favTitles") {
-        const res = await fetch("/reviews.json?_=" + Date.now());
-        const data = await res.json();
+        const data = await fetchVaultList("reviews.json");
         titles = data
           .filter((r) => r.favorite === true)
           .sort((a, b) => (a.fav_order ?? 9999) - (b.fav_order ?? 9999));
       } else {
-        const res = await fetch("/favorites.json?_=" + Date.now());
-        allFav = res.ok ? await res.json() : [];
+        allFav = await fetchVaultList("favorites.json");
         const type = favTypeOf(section);
         titles = allFav.filter((r) => r.type === type);
       }

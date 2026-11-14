@@ -261,7 +261,9 @@ async function mount(container, params) {
   // Тайтлы (see «Тайтлы» ниже) читаются из cache.reviews – если сюда
   // зашли напрямую по ссылке (#/favorites-edit?edit=ID), а не через
   // уже открытую вкладку «Любимое», кэш ещё мог быть не заполнен.
-  await fetchReviews();
+  // Отзывы не прочитались – редактор записи всё равно должен открыться
+  // (просто без привязанных тайтлов), причину показываем строкой статуса.
+  await fetchReviews().catch((err) => setFavStatus("err", err.message));
 
   // Переход по клику на карточку персонажа/персоны из «Любимого»
   // (favPersonCard в js/favorites.js) – та же схема, что у #/add?edit=ID
@@ -1018,7 +1020,12 @@ function titleLinkModalEnsure() {
 
 async function openTitleLinkSearch() {
   const overlay = titleLinkModalEnsure();
-  await fetchReviews();
+  try {
+    await fetchReviews();
+  } catch (err) {
+    setFavStatus("err", err.message);
+    return;
+  }
   overlay.classList.remove("hidden");
   const input = document.getElementById("title-link-search");
   input.value = "";
@@ -1703,12 +1710,12 @@ function fillFavForm(r) {
 // записей с перетаскиванием – теперь порядок живёт на #/favorites-order.
 async function loadList() {
   try {
-    const res = await fetch("/favorites.json?_=" + Date.now());
-    if (!res.ok) return;
-    const data = await res.json();
-    allEntries = Array.isArray(data) ? data : [];
-  } catch {
-    // нет файла/сети – записей просто нет
+    allEntries = await fetchVaultList("favorites.json");
+  } catch (err) {
+    // Раньше сбой молча оставлял список пустым: запись по ссылке не
+    // открывалась, поиск связей ничего не находил – и без объяснений.
+    allEntries = [];
+    setFavStatus("err", err.message);
   }
 }
 

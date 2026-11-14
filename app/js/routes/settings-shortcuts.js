@@ -93,7 +93,13 @@ async function loadCurrentSettings() {
   // Отзывы нужны уже палитре: образец рядом с ней рисуется настоящими
   // карточками (paletteSampleHtml). fetchReviews() кэширует, ниже тот же
   // список идёт на выключатель тегов.
-  const reviewsForTagsToggle = await fetchReviews();
+  // Отзывы не прочитались – настройки от этого не зависят и должны
+  // открыться: образец палитры будет без карточек, выключатель тегов –
+  // выключен. Причину показываем, а не глотаем.
+  const reviewsForTagsToggle = await fetchReviews().catch((err) => {
+    backupToastGlobal(err.message, false);
+    return [];
+  });
   if (stale()) return;
   renderThemeGrid();
   renderPalette();

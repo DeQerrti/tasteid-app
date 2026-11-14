@@ -104,7 +104,10 @@ async function loadImport() {
   if (importBusy) return;
   importBusy = true;
   try {
-    await fetchReviews();
+    // Отзывы не прочитались – экран импорта всё равно рисуем (иначе
+    // раздел остался бы пустым без объяснений); сам импорт остановится
+    // с понятной ошибкой на startMapping(), который читает их заново.
+    await fetchReviews().catch(() => {});
     renderImport();
   } finally {
     importBusy = false;
@@ -1203,7 +1206,15 @@ async function runImport() {
   if (!selected.length && favWanted) {
     btn.disabled = true;
     status.className = "status-msg";
-    const fav = await runImportFavourites(status);
+    let fav;
+    try {
+      fav = await runImportFavourites(status);
+    } catch (err) {
+      status.className = "status-msg err";
+      status.textContent = `Не получилось: ${err.message}`;
+      btn.disabled = false;
+      return;
+    }
     importData.added = 0;
     importData.updated = 0;
     importData.untouched = importData.items.length;
@@ -1590,13 +1601,10 @@ async function runImportFavourites(status) {
 
   await fetchReviews();
   const reviews = cache.reviews || [];
-  let favData = [];
-  try {
-    const res = await fetch("/favorites.json?_=" + Date.now());
-    favData = res.ok ? await res.json() : [];
-  } catch {
-    favData = [];
-  }
+  // Раньше сбой чтения давал favData = []: «в Любимом пусто» – и все
+  // отмеченные персонажи заводились заново, дублями к уже существующим.
+  // Теперь это ошибка, её показывает вызывающий код (runImport).
+  const favData = await fetchVaultList("favorites.json");
 
   const picked = [
     ...fav.chars.filter((c) => importFavPicked.has(c.key)).map((c) => ({ ...c, type: "character" })),
@@ -1909,7 +1917,12 @@ function bindImportColumns() {
           : i18n("Ни одной записи: в столбце названия пусто.");
       return;
     }
-    await startMapping(parsed);
+    try {
+      await startMapping(parsed);
+    } catch (err) {
+      status.className = "status-msg err";
+      status.textContent = err.message;
+    }
   });
 }
 
@@ -1936,12 +1949,9 @@ async function startMapping(parsed) {
 // новые). Возвращает, сколько в избранном персонажей и людей.
 async function attachImportFavourites(parsed, favourites) {
   parsed.favourites = favourites;
-  try {
-    const res = await fetch("/favorites.json?_=" + Date.now());
-    parsed.favExisting = res.ok ? await res.json() : [];
-  } catch {
-    parsed.favExisting = [];
-  }
+  // Не прочиталось – ошибка (её показывает кнопка «Забрать список»), а
+  // не «всё новое»: иначе уже заведённые были бы отмечены к переносу.
+  parsed.favExisting = await fetchVaultList("favorites.json");
   importFavHearts = true;
   importFavPicked = new Set(
     [...(favourites?.chars || []), ...(favourites?.people || [])]

@@ -279,9 +279,10 @@ async function removeFavCollection(id) {
     // removeTierCollectionSetting(), удаление сразу на сервер, а не в
     // копилку общей кнопки «Сохранить»: «Отмена»/уход со страницы после
     // такого удаления не должны делать вид, что записи можно вернуть.
-    const favData = await fetch("/favorites.json")
-      .then((r) => (r.ok ? r.json() : []))
-      .catch(() => []);
+    // Не прочиталось – ошибка (catch ниже), а не «записей в разделе нет»:
+    // иначе раздел убрался бы из настроек, а его записи остались бы
+    // в файле ничьими.
+    const favData = await fetchVaultList("favorites.json");
     const toDelete = favData.filter((r) => r.type === id);
     if (toDelete.length) {
       const res = await fetch("/api/save-favorite", {

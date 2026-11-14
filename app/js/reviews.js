@@ -81,7 +81,20 @@ document.addEventListener("tags-map-updated", () => {
 let reviewsLastSnapshot = null;
 
 async function loadReviews() {
-  const data = await fetchReviews();
+  let data;
+  try {
+    data = await fetchReviews();
+  } catch (err) {
+    // Файл не прочитался – это не «отзывов пока нет» (см. fetchVaultList
+    // в js/api.js), показываем причину тем же блоком, что и другие вкладки.
+    reviewsLastSnapshot = null;
+    document.getElementById("tab-reviews").innerHTML =
+      `<div class="state-box">
+        <div style="font-size:2rem;margin-bottom:.75rem">⚠️</div>
+        ${i18n("Ошибка:")} ${esc(err.message)}
+      </div>`;
+    return;
+  }
   const withReview = reviewsWithReview(data);
   const snapshot = JSON.stringify(withReview);
   if (snapshot === reviewsLastSnapshot) return;

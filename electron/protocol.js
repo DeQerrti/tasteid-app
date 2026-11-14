@@ -105,8 +105,11 @@ async function serveFile(filePath, { store = true, lang, vaultId, syncToken } = 
   let stat;
   try {
     stat = await fs.stat(filePath);
-  } catch {
-    return null;
+  } catch (e) {
+    // Та же причина, что в server.js: только «файла нет» значит «идём
+    // дальше», любой другой сбой – ошибка, а не пустые данные.
+    if (e.code === "ENOENT" || e.code === "ENOTDIR") return null;
+    throw e;
   }
   if (!stat.isFile()) return null;
   const isHtml = path.extname(filePath).toLowerCase() === ".html";

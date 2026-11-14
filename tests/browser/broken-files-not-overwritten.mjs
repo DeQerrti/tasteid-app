@@ -11,7 +11,10 @@
 //   – целый site-settings.json правится как раньше и остальные поля не теряет;
 //   – файл тир-листа испорчен: редактор сообщает об этом, «Сохранить всё»
 //     выключено, и даже прямой вызов saveAll() файл не трогает. Раньше
-//     редактор открывался пустым и сохранял пустой список поверх.
+//     редактор открывался пустым и сохранял пустой список поверх;
+//   – reviews.json или favorites.json испорчен: вкладки «Отзывы» и
+//     «Любимое» показывают ошибку с именем файла, а не «пока ничего нет»;
+//     файла нет вовсе – это по-прежнему просто пустой список.
 //
 // Запуск: node tests/browser/broken-files-not-overwritten.mjs
 // playwright – обычная devDependency. В npm run check не входит (нужен
@@ -122,6 +125,29 @@ ok(await page.$eval("#btn-save", (b) => b.disabled), "«Сохранить вс�
 await page.evaluate(() => window.saveAll());
 await page.waitForTimeout(300);
 ok(readFileSync(tierFile, "utf8") === BROKEN_TIER, "файл тир-листа на диске не тронут");
+
+console.log("Испорченные отзывы и «Любимое»");
+const reviewsFile = join(vaultDir, "reviews.json");
+const favFile = join(vaultDir, "favorites.json");
+await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+await page.waitForFunction(() => typeof window.fetchVaultList === "function");
+ok(
+  (await page.evaluate(() => window.fetchVaultList("favorites.json"))).length === 0,
+  "файла ещё нет – пустой список, не ошибка"
+);
+writeFileSync(reviewsFile, '[{"id":1,"title":"Тайтл"');
+await page.evaluate(() => window.loadReviews());
+const reviewsTab = await page.textContent("#tab-reviews");
+ok(/reviews\.json/.test(reviewsTab), "вкладка «Отзывы» называет нечитаемый файл");
+ok(!/Отзывов пока нет/.test(reviewsTab), "и не притворяется, что отзывов нет");
+
+writeFileSync(reviewsFile, "[]");
+writeFileSync(favFile, '[{"id":1,"name":"Персонаж"');
+await page.evaluate(() => window.loadFavorites());
+await page.waitForFunction(() =>
+  /favorites\.json/.test(document.getElementById("tab-favorites").textContent)
+);
+ok(true, "вкладка «Любимое» называет нечитаемый файл");
 
 await browser.close();
 server.kill();

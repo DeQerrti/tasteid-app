@@ -29,9 +29,8 @@ async function loadFavorites() {
   try {
     await fetchReviews();
 
-    const favData = await fetch("/favorites.json")
-      .then(r => r.ok ? r.json() : [])
-      .catch(() => []);
+    // Не прочиталось – ошибка в catch ниже, а не пустое «Любимое».
+    const favData = await fetchVaultList("favorites.json");
 
     const titles = (cache.reviews || [])
       .filter(r => r.favorite === true)

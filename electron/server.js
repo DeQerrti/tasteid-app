@@ -114,8 +114,13 @@ async function serveFile(res, filePath, { store = true } = {}) {
   let stat;
   try {
     stat = await fs.stat(filePath);
-  } catch {
-    return false;
+  } catch (e) {
+    // Только «файла нет» – повод идти дальше (для данных это первый
+    // запуск и пустой список). Любой другой сбой (нет прав, диск
+    // недоступен) – ошибка 500, а не «данных нет»: иначе недоступный
+    // reviews.json выглядел бы как пустое хранилище.
+    if (e.code === "ENOENT" || e.code === "ENOTDIR") return false;
+    throw e;
   }
   if (!stat.isFile()) return false;
 

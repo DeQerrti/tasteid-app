@@ -31,11 +31,12 @@ async function loadStats() {
     // «Любимое» – для блоков «Твои люди» и «Твои персонажи»; без него
     // статистика всё равно рисуется, просто без этих двух блоков.
     try {
-      const res = await fetch("/favorites.json?_=" + Date.now());
-      const data = res.ok ? await res.json() : [];
-      statsFavData = Array.isArray(data) ? data : [];
-    } catch {
+      statsFavData = await fetchVaultList("favorites.json");
+    } catch (err) {
+      // Статистику по отзывам это не останавливает, но молчать нельзя:
+      // иначе два блока просто исчезают, и непонятно почему.
       statsFavData = [];
+      backupToastGlobal(err.message, false);
     }
     statsRender();
   } catch (err) {
