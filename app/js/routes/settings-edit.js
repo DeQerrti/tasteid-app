@@ -181,8 +181,7 @@ function settingsViewHtml() {
              работает вообще везде, включая сайт. -->
         <h2 class="section-h" data-i18n>Размер шрифта</h2>
         <p class="panel-intro" data-i18n>
-          Только текст – иконки и отступы не меняются. Чтобы увеличить вообще
-          всё, используйте «Масштаб» на вкладке «Приложение».
+          Только текст. Всё остальное увеличивает «Масштаб» на вкладке «Приложение».
         </p>
         <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
           <input type="range" id="text-scale-slider" class="app-zoom-slider" min="80" max="150" step="5" value="100"
@@ -191,20 +190,12 @@ function settingsViewHtml() {
           <button type="button" class="btn btn-ghost" onclick="applyTextScale(100, true)" data-i18n>Сбросить</button>
         </div>
 
-        <h2 class="section-h" data-i18n>Теги на карточках</h2>
-        <p class="panel-intro" data-i18n>
-          Ставит «Не показывать теги на карточке» сразу во всех отзывах –
-          то же самое, что открыть каждый и отметить эту галочку вручную.
-          Сами теги никуда не пропадают, они по-прежнему видны внутри
-          отзыва. Выключение возвращает теги на карточки всех отзывов
-          разом, включая те, где галочку поставили вручную в редакторе
-          конкретного отзыва.
-        </p>
-        <button type="button" class="btn btn-ghost hide-tags-toggle" id="hide-tags-toggle"
-                aria-pressed="false" onclick="toggleHideAllCardTags()">
-          <span class="hide-tags-toggle-icon" id="hide-tags-toggle-icon">${eyeIcon(false)}</span>
-          <span id="hide-tags-toggle-label" data-i18n>Скрыть теги на всех карточках</span>
-        </button>
+        <div class="set-switch-row">
+          <span class="set-switch-title" data-i18n>Показывать теги на карточках</span>
+          <button type="button" class="set-switch" id="hide-tags-toggle" role="switch"
+                  aria-checked="true" aria-label="${i18n("Показывать теги на карточках")}"
+                  onclick="toggleHideAllCardTags()"><i></i></button>
+        </div>
         <p class="status-msg" id="status-hide-all-card-tags"></p>
 
         <h2 class="section-h" data-i18n>Палитра</h2>
@@ -581,8 +572,8 @@ async function mount(container, params) {
   setLeaveGuard(settingsBackAction);
   appInfo = null;
   hideTagsAllOn = false;
+  hideTagsMixed = false;
   rawSettings = {};
-  openThemeGroup = null;
   tabDragSrc = null;
   shelves = [];
   scaleType = "categorical";
@@ -807,13 +798,6 @@ async function mount(container, params) {
     { passive: false }
   );
 
-  // Клик мимо попапа «тёмная/светлая» закрывает его.
-  seOn(document, "click", () => {
-    if (!openThemeGroup) return;
-    openThemeGroup = null;
-    document.querySelectorAll(".theme-popover").forEach((p) => p.classList.add("hidden"));
-  });
-
   // ── Escape ──
   // Раньше страница звала enableEscapeToLeave() из js/utils.js – тот
   // висит на всплытии и уходит на "/", если открытой .modal-overlay нет.
@@ -880,10 +864,10 @@ function unmount() {
   document.title = sePrevTitle || document.title;
   settingsDirty = false;
   seMobilePanelOpen = false;
-  openThemeGroup = null;
   tabDragSrc = null;
   appInfo = null;
   hideTagsAllOn = false;
+  hideTagsMixed = false;
 }
 
 // Общая проверка при уходе с ТЕКУЩЕЙ панели – неважно, на другую

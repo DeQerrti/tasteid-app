@@ -384,40 +384,38 @@ function themeGroups() {
   return Object.values(groups);
 }
 
-let openThemeGroup = null;
-
+// Карточка темы: две половины – светлая и тёмная, нарисованные настоящими
+// цветами этой темы (themeDefaults читает их прямо из стилей). Раньше – пять
+// кнопок с одними названиями, по которым не понять, как тема выглядит, и выбор
+// в два клика (тема, затем «Светлая/Тёмная» в попапе). Теперь – один клик по
+// нужной половине.
 function renderThemeGrid() {
   const grid = document.getElementById("themeGrid");
-  const groups = themeGroups();
-  grid.innerHTML = groups
+  const half = (t, label) => {
+    if (!t) return "";
+    const c = themeDefaults(t.id);
+    const sel = t.id === selectedTheme;
+    return `<button type="button" class="theme-half${sel ? " sel" : ""}" data-theme="${t.id}" aria-pressed="${sel}"
+      aria-label="${esc(`${t.label}: ${label}`)}" style="background:${c["--bg"]};--a:${c.accent}">
+      <span class="theme-mini" style="background:${c["--surface"]};border-color:${c["--border2"]}">
+        <i style="background:${c["--text-hi"]};width:70%"></i><i style="background:${c["--text-dim"]};width:45%"></i><b style="background:${c.accent}"></b>
+      </span>
+      <span class="theme-half-label" style="color:${c["--text-dim"]}">${label}</span>
+    </button>`;
+  };
+  grid.innerHTML = themeGroups()
     .map((g) => {
       const active = [g.light, g.dark].find((v) => v && v.id === selectedTheme);
-      const mode = active ? (g.dark && active.id === g.dark.id ? i18n(" – тёмная") : i18n(" – светлая")) : "";
-      return `<div class="theme-group">
-        <div class="theme-option${active ? " selected" : ""}" data-group="${g.key}">${g.label}${mode}</div>
-        <div class="theme-popover hidden" id="popover-${g.key}">
-          ${g.light ? `<button type="button" class="${g.light.id === selectedTheme ? "current" : ""}" data-theme="${g.light.id}">${i18n("Светлая")}</button>` : ""}
-          ${g.dark ? `<button type="button" class="${g.dark.id === selectedTheme ? "current" : ""}" data-theme="${g.dark.id}">${i18n("Тёмная")}</button>` : ""}
-        </div>
+      return `<div class="theme-card${active ? " sel" : ""}">
+        <div class="theme-halves">${half(g.light, i18n("Светлая"))}${half(g.dark, i18n("Тёмная"))}</div>
+        <div class="theme-card-name">${esc(g.label)}</div>
       </div>`;
     })
     .join("");
 
-  grid.querySelectorAll(".theme-option").forEach((el) => {
-    el.onclick = (e) => {
-      e.stopPropagation();
-      const key = el.dataset.group;
-      openThemeGroup = openThemeGroup === key ? null : key;
-      grid.querySelectorAll(".theme-popover").forEach((p) => {
-        p.classList.toggle("hidden", p.id !== `popover-${openThemeGroup}`);
-      });
-    };
-  });
-  grid.querySelectorAll(".theme-popover button").forEach((btn) => {
-    btn.onclick = (e) => {
-      e.stopPropagation();
+  grid.querySelectorAll(".theme-half").forEach((btn) => {
+    btn.onclick = () => {
       selectedTheme = btn.dataset.theme;
-      openThemeGroup = null;
       renderThemeGrid();
       renderPalette();
       previewPalette();

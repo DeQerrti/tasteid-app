@@ -70,6 +70,11 @@ async function loadCurrentSettings() {
   if (settings.customAccent && !themeHasOwnAccent && !(themeColors[selectedTheme] || {}).accent) {
     (themeColors[selectedTheme] = themeColors[selectedTheme] || {}).accent = settings.customAccent;
   }
+  // Отзывы нужны уже палитре: образец рядом с ней рисуется настоящими
+  // карточками (paletteSampleHtml). fetchReviews() кэширует, ниже тот же
+  // список идёт на выключатель тегов.
+  const reviewsForTagsToggle = await fetchReviews();
+  if (stale()) return;
   renderThemeGrid();
   renderPalette();
 
@@ -78,10 +83,12 @@ async function loadCurrentSettings() {
   // каждом монтировании и никогда не пересчитывался, поэтому уже
   // спрятанные везде теги при повторном заходе в настройки снова
   // предлагали спрятать, а глазик никогда не показывал перечёркнутым.
-  const reviewsForTagsToggle = await fetchReviews();
-  if (stale()) return;
-  hideTagsAllOn =
-    reviewsForTagsToggle.length > 0 && reviewsForTagsToggle.every((r) => r.no_tags_on_card === true);
+  // Три состояния: у всех скрыты, ни у кого, или у части (флаг поставили
+  // вручную в редакторе конкретного отзыва) – последнее выключатель показывает
+  // «посередине», а не врёт про «у всех».
+  const hiddenCount = reviewsForTagsToggle.filter((r) => r.no_tags_on_card === true).length;
+  hideTagsAllOn = reviewsForTagsToggle.length > 0 && hiddenCount === reviewsForTagsToggle.length;
+  hideTagsMixed = hiddenCount > 0 && !hideTagsAllOn;
   syncHideTagsToggle();
 
   // stripFrozenLabelDefaults – см. её же историю в js/theme.js: без

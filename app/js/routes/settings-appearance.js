@@ -24,21 +24,25 @@
 // скрыто (или уже всё видно), сервер честно вернёт touched: 0, и
 // сообщение об этом скажет.
 let hideTagsAllOn = false;
+// У части отзывов теги скрыты, у части нет (флаг поставили руками в редакторе
+// одного отзыва). Выключатель показывается «посередине», а клик – «показать
+// у всех»: из смешанного состояния прятать всё разом никто не просил.
+let hideTagsMixed = false;
 
+// Выключатель называется «Показывать теги»: включён – теги видны, поэтому
+// флаг no_tags_on_card (hideTagsAllOn) читается наоборот.
 function syncHideTagsToggle() {
   const btn = document.getElementById("hide-tags-toggle");
   if (!btn) return;
-  btn.classList.toggle("on", hideTagsAllOn);
-  btn.setAttribute("aria-pressed", String(hideTagsAllOn));
-  document.getElementById("hide-tags-toggle-icon").innerHTML = eyeIcon(hideTagsAllOn);
-  document.getElementById("hide-tags-toggle-label").textContent = hideTagsAllOn
-    ? i18n("Теги скрыты на всех карточках")
-    : i18n("Скрыть теги на всех карточках");
+  btn.setAttribute("aria-checked", hideTagsMixed ? "mixed" : String(!hideTagsAllOn));
+  btn.classList.toggle("mixed", hideTagsMixed);
 }
 
 async function toggleHideAllCardTags() {
   const statusId = "status-hide-all-card-tags";
-  const next = !hideTagsAllOn;
+  // Прячем только когда сейчас видно у всех; иначе (скрыто у всех или у части) –
+  // показываем у всех.
+  const next = !hideTagsAllOn && !hideTagsMixed;
   try {
     const res = await fetch("/api/save-review", {
       method: "POST",
@@ -50,6 +54,7 @@ async function toggleHideAllCardTags() {
     if (!res.ok || data.error) throw new Error(data.error || `Сервер ответил ${res.status}`);
     refreshOpenReviewsTab();
     hideTagsAllOn = next;
+    hideTagsMixed = false;
     syncHideTagsToggle();
     flashStatus(
       statusId,
@@ -116,21 +121,68 @@ const PALETTE_ROWS = [
   { key: "accent", label: i18n("Акцент"), hint: i18n("Активные кнопки, ссылки, подсветки") },
 ];
 
+// Цвета по смыслу: девять подряд читались как один длинный список. Токен,
+// которого нет ни в одной группе (добавили в PALETTE_TOKENS и забыли здесь),
+// попадает в «Другое», а не пропадает из настроек.
+const PALETTE_GROUPS = [
+  [i18n("Фоны"), ["--bg", "--bg2", "--surface", "--surface2"]],
+  [i18n("Линии"), ["--border", "--border2"]],
+  [i18n("Текст"), ["--text", "--text-dim", "--text-hi"]],
+  [i18n("Акцент"), ["accent"]],
+];
+
+// Образец справа от палитры: окно настроек почти закрывает приложение, и
+// изменение цвета не на чем было увидеть. Рисуем те же карточки отзывов, что и
+// на вкладке «Отзывы» (reviewCard), – они берут цвета из переменных страницы, а
+// previewPalette() как раз их и меняет на лету.
+function paletteSampleHtml() {
+  const list = (cache.reviews || []).filter((r) => r.cover || r.cover_backup);
+  const pick = [
+    list.find((r) => r.grade === "etalon" && (r.tags || []).length) || list[0],
+    list.find((r) => r.grade === "attrakcion" && r !== list[0]) || list[1],
+  ].filter(Boolean);
+  if (!pick.length) return "";
+  return `<div class="pal-sample" aria-hidden="true">
+      <div class="pal-sample-title">${i18n("Так выглядит")}</div>
+      <div class="pal-sample-cards">${pick.map((r, i) => reviewCard(r, i)).join("")}</div>
+      <div class="pal-sample-row">
+        <button type="button" class="rv-filter-btn active" tabindex="-1">${i18n("Фильтр")}</button>
+        <button type="button" class="rv-filter-btn" tabindex="-1">${i18n("Тип")} ▾</button>
+        <span class="rtag rtag-special">${i18n("Тег")}</span>
+      </div>
+      <div class="pal-sample-text">${i18n("Обычный текст отзыва")} <span>${i18n("и приглушённый")}</span></div>
+    </div>`;
+}
+
 function renderPalette() {
   const defaults = themeDefaults(selectedTheme);
   const own = themeColors[selectedTheme] || {};
   const box = document.getElementById("paletteList");
-  box.innerHTML = PALETTE_ROWS.map((t) => {
+  const rowHtml = (t) => {
     const custom = own[t.key];
     return `<div class="pal-row">
-        <input type="color" data-token="${t.key}" value="${custom || defaults[t.key] || "#000000"}">
+        <input type="color" data-token="${t.key}" value="${custom || defaults[t.key] || "#000000"}" aria-label="${t.label}">
         <div class="pal-text">
           <div class="pal-name">${t.label}</div>
           <div class="pal-hint">${t.hint}</div>
         </div>
         <button type="button" class="pal-reset" data-reset="${t.key}"${custom ? "" : " hidden"}>${i18n("Цвет темы")}</button>
       </div>`;
-  }).join("");
+  };
+  const byKey = Object.fromEntries(PALETTE_ROWS.map((t) => [t.key, t]));
+  const grouped = new Set(PALETTE_GROUPS.flatMap(([, keys]) => keys));
+  const groups = [...PALETTE_GROUPS];
+  const rest = PALETTE_ROWS.filter((t) => !grouped.has(t.key)).map((t) => t.key);
+  if (rest.length) groups.push([i18n("Другое"), rest]);
+  box.innerHTML = `<div class="pal-wrap">
+      <div class="pal-groups">${groups
+        .map(
+          ([title, keys]) =>
+            `<div class="pal-group"><div class="pal-group-title">${title}</div>${keys.map((k) => rowHtml(byKey[k])).join("")}</div>`
+        )
+        .join("")}</div>
+      ${paletteSampleHtml()}
+    </div>`;
 
   box.querySelectorAll('input[type="color"]').forEach((input) => {
     input.oninput = () => {
