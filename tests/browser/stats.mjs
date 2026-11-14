@@ -7,6 +7,9 @@
 // В npm run check не входит (нужен настоящий браузер), гоняется
 // npm run test:browser и отдельным CI-джобом.
 
+// Функция самой страницы (app/js/image-lightbox.js) – вызывается только
+// внутри page.evaluate, где она и правда есть.
+/* global openImageLightbox */
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -162,6 +165,58 @@ ok(
 ok(
   (await page.textContent('[data-stat-key="people"]')).includes("Режиссёр"),
   "«Твои люди» – из «Любимого»"
+);
+
+console.log("Раскрытие строк и приписки");
+// Тип → сколько на каждой полке: у аниме все пять – «Резонанс».
+const animeRow = page.locator(".sx-type[data-stat-expand]", { hasText: "Аниме" });
+ok((await animeRow.getAttribute("aria-expanded")) === "false", "строка типа сначала свёрнута");
+await animeRow.click();
+const animeDetail = await page.evaluate(() => {
+  const row = [...document.querySelectorAll(".sx-type[data-stat-expand]")].find((r) =>
+    r.textContent.includes("Аниме")
+  );
+  const det = row.nextElementSibling;
+  return {
+    hidden: det.hidden,
+    rows: [...det.querySelectorAll(".sx-grow")].map((r) => r.textContent.replace(/\s+/g, "")),
+  };
+});
+ok(
+  !animeDetail.hidden && animeDetail.rows.join() === "Резонанс5",
+  `клик по типу – полки (${animeDetail.rows})`
+);
+// Десятилетие → по годам: манга 1990–1994, по одной в год.
+await page.locator(".sx-decade[data-stat-expand]", { hasText: "1990-е" }).click();
+const years = await page.evaluate(() => {
+  const row = [...document.querySelectorAll(".sx-decade[data-stat-expand]")].find((r) =>
+    r.textContent.includes("1990-е")
+  );
+  return [...row.nextElementSibling.querySelectorAll(".sx-decade-year")].map((r) =>
+    r.textContent.replace(/\s+/g, "")
+  );
+});
+ok(
+  years.join() === "19941,19931,19921,19911,19901",
+  `клик по десятилетию – годы, новые сверху (${years})`
+);
+// Вкладкой делятся снимком – у этих блоков подписей под заголовком нет.
+for (const k of ["tags", "people", "rewatch", "characters"]) {
+  ok(!(await page.$(`[data-stat-key="${k}"] .sx-explain`)), `у «${k}» нет приписки`);
+}
+ok(
+  !(await page.textContent('[data-stat-key="lift-down"] .sx-explain')).includes("прощаешь"),
+  "у «Что гарантированно роняет» – без «то, чего ты не прощаешь»"
+);
+// Лайтбокс без крестика закрывается кликом и по самой картинке.
+await page.evaluate(() => openImageLightbox("/covers-backup/t2.png", "x"));
+ok(!(await page.$(".image-lightbox-close")), "у увеличенной картинки нет крестика");
+await page.click("#image-lightbox-img");
+ok(
+  await page.evaluate(() =>
+    document.getElementById("image-lightbox-overlay").classList.contains("hidden")
+  ),
+  "клик по картинке закрывает её"
 );
 
 console.log("Резиновая раскладка");

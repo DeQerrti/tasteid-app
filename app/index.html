@@ -42,7 +42,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <meta name="theme-color" content="#0a0a0c">
 <link rel="stylesheet" href="/fonts.css?v=5">
-<link rel="stylesheet" href="/style.css?v=24">
+<link rel="stylesheet" href="/style.css?v=25">
 <!-- admin.css – раньше только у страниц редактирования (настройки,
      add.html и т.д.), теперь ещё и для маршрутов SPA-роутера: у
      #/reviews-order (js/routes/reviews-order.js) собственная шапка
@@ -51,12 +51,12 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=24"></script>
+<script src="/js/i18n-en.js?v=25"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=30"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
 <script src="/js/focus-modal.js?v=1"></script>
-<script src="/js/image-lightbox.js?v=1"></script>
+<script src="/js/image-lightbox.js?v=2"></script>
 <script src="/js/theme.js?v=17"></script>
 <script src="/js/quick-appearance.js?v=1"></script>
 <style>
@@ -1208,6 +1208,35 @@ section.group { margin-bottom: 3.5rem; }
 .sx-row { display: grid; align-items: center; grid-template-columns: minmax(7rem, 30%) minmax(0, 1fr) minmax(7rem, 28%); gap: clamp(.6rem, calc(2 * var(--sxu)), 1.6rem); }
 .sx-decade { display: grid; align-items: center; grid-template-columns: minmax(4rem, 12%) minmax(0, 1fr) minmax(2rem, 6%); gap: clamp(.6rem, calc(2 * var(--sxu)), 1.6rem); }
 
+/* Раскрывающиеся строки (js/stats.js, data-stat-expand): тип → сколько
+   на каждой полке, десятилетие → по годам. Подсказки текстом нет
+   (вкладкой делятся снимком) – стрелка у названия видна при наведении
+   и у раскрытой строки. .sx-expand – обёртка «строка + раскрытая
+   часть»: она и есть элемент колонки, растянутой на высоту карточки. */
+.sx-expand { display: flex; flex-direction: column; }
+[data-stat-expand] { cursor: pointer; border-radius: 3px; }
+[data-stat-expand]:focus-visible { outline: 2px solid var(--red-hi); outline-offset: 3px; }
+[data-stat-expand] :is(.sx-type-name, .sx-decade-lbl)::after {
+  content: ""; flex: none; display: inline-block; width: 6px; height: 6px; margin-left: .45rem;
+  border-right: 1.5px solid var(--text-dim); border-bottom: 1.5px solid var(--text-dim);
+  transform: rotate(-45deg); opacity: 0; transition: opacity .15s, transform .15s;
+  vertical-align: .15em;
+}
+@media (hover: hover) {
+  [data-stat-expand]:hover :is(.sx-type-name, .sx-decade-lbl)::after { opacity: .9; }
+}
+[data-stat-expand][aria-expanded="true"] :is(.sx-type-name, .sx-decade-lbl)::after { opacity: .9; transform: rotate(45deg); }
+.sx-detail {
+  display: flex; flex-direction: column; gap: clamp(.3rem, calc(1 * var(--sxu)), .7rem);
+  margin: clamp(.4rem, calc(1.2 * var(--sxu)), .9rem) 0 clamp(.3rem, calc(1 * var(--sxu)), .6rem);
+  padding-left: clamp(.8rem, calc(2.4 * var(--sxu)), 1.6rem);
+  border-left: 1px solid var(--border2);
+}
+.sx-detail[hidden] { display: none; }
+.sx-detail .sx-grade, .sx-decade-year .sx-decade-lbl, .sx-detail .sx-grow-n {
+  font-size: clamp(.78rem, calc(1.9 * var(--sxu)), 1.05rem);
+}
+
 /* шапка: вкус в трёх словах + числа по типам (от ширины вкладки) */
 .sx .sx-hero {
   grid-column: 1 / -1; margin: 0;
@@ -1252,7 +1281,14 @@ section.group { margin-bottom: 3.5rem; }
 .sx-year-lbl b { display: block; font-weight: 500; font-size: clamp(.72rem, calc(1.3 * var(--sxu)), 1.2rem); color: var(--text-hi); }
 
 /* теги, пересмотры, лицо вкуса, люди, персонажи */
-.sx-tags { display: flex; flex-wrap: wrap; align-content: flex-start; gap: clamp(.35rem, calc(1.2 * var(--sxu)), .8rem); }
+.sx-tags { display: flex; flex-wrap: wrap; align-content: flex-start; gap: clamp(.35rem, calc(1.2 * var(--sxu)), .8rem); position: relative; }
+/* Теги заполняют карточку целиком (statsFitTags в js/stats.js): с
+   flex-basis 0 список не влияет на высоту ряда сетки – карточка
+   тянется до соседней, а список – на всё оставшееся в ней место; что
+   не влезло целиком, прячется (.sx-tag-off). Одна в ряду – обычная
+   высота по содержимому. */
+.sx .sx-card[data-stat-key="tags"]:not(.sx-solo) .sx-tags { flex: 1 1 0; min-height: 5.5rem; overflow: hidden; }
+.sx-tags .sx-tag.sx-tag-off { display: none; }
 /* Цвет и рамку тегу даёт его категория (.rtag-* – как в отзывах),
    здесь – только размер под резиновую сетку. */
 .sx-tags .sx-tag { display: inline-flex; align-items: baseline; gap: .4rem; padding: clamp(.25rem, calc(.8 * var(--sxu)), .55rem) clamp(.5rem, calc(1.6 * var(--sxu)), 1rem); border-radius: 3px; font-size: clamp(.76rem, calc(2.1 * var(--sxu)), 1.15rem); letter-spacing: 0; cursor: default; }
@@ -3820,7 +3856,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/now.js?v=16"></script>
 <script src="/js/favorites.js?v=19"></script>
 <script src="/js/reviews.js?v=25"></script>
-<script src="/js/stats.js?v=20"></script>
+<script src="/js/stats.js?v=22"></script>
 <script src="/js/tierlist.js?v=15"></script>
 <script src="/js/backup-history.js?v=2"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и
@@ -3835,7 +3871,7 @@ main.fe-view > .status-msg:empty { display: none; }
      scripts/check-shared-head.js. -->
 <script src="/js/passports.js?v=14"></script>
 <script src="/js/import-formats.js?v=18"></script>
-<script src="/js/import.js?v=24"></script>
+<script src="/js/import.js?v=25"></script>
 <!-- touch-drag.js – перетаскивание пальцем. Браузер рождает события
      drag только от мыши, и без этого моста порядок вкладок в
      #/settings-edit (как и списки в #/reviews-order, #/chars-edit,
@@ -3869,7 +3905,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/settings-app.js?v=2"></script>
 <script src="/js/routes/settings-sync.js?v=3"></script>
 <script src="/js/routes/settings-shortcuts.js?v=2"></script>
-<script src="/js/routes/settings-labels.js?v=3"></script>
+<script src="/js/routes/settings-labels.js?v=4"></script>
 <script src="/js/routes/settings-edit.js?v=5"></script>
 
 <script>

@@ -292,7 +292,6 @@ function importGroups() {
     },
     {
       title: i18n("Игры"),
-      note: i18n("Backloggd, PlayStation и Xbox снаружи закрыты – ни по нику, ни файлом их не прочитать."),
       cards: [
         {
           id: "steam",

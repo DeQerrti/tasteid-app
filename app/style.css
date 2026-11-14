@@ -784,18 +784,8 @@ html:not(.kb-nav) *:focus {
 .image-lightbox img {
   max-width: 100%; max-height: 100%;
   object-fit: contain;
-  cursor: default;
   box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
 }
-.image-lightbox-close {
-  position: fixed; top: 1rem; right: 1.25rem;
-  background: none; border: none;
-  color: rgba(255, 255, 255, .85);
-  font-size: 1.6rem;
-  cursor: pointer;
-  z-index: 1201;
-}
-.image-lightbox-close:hover { color: #fff; }
 
 /* ══ ТОЧКА ФОКУСА (js/focus-modal.js) ═════════════ */
 .focus-modal { max-width: 420px; }

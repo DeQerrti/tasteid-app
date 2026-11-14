@@ -15,8 +15,14 @@
 //
 //  Не переиспользует focus-modal.js (тоже полноэкранная картинка) – та
 //  модалка про ВЫБОР точки кадрирования кликом по картинке, здесь же
-//  клик по самой картинке ничего не значит, закрывает только клик
-//  мимо/крестик/Escape.
+//  клик по самой картинке ничего не значит – закрывает любой клик (и по
+//  картинке, и мимо) и Escape.
+//
+//  Крестика нет: в Electron он уезжал под полосу окна (её top 0 – тот
+//  же угол, где кнопки окна), а нужен не был – owner закрывает кликом.
+//  Клик и по самой картинке, а не только мимо: у персонажей с
+//  прозрачным фоном картинка занимает почти весь экран, и «мимо» почти
+//  не остаётся.
 // ══════════════════════════════════════════════
 
 let lightboxEl = null;
@@ -26,13 +32,9 @@ function lightboxEnsure() {
   lightboxEl = document.createElement("div");
   lightboxEl.id = "image-lightbox-overlay";
   lightboxEl.className = "image-lightbox hidden";
-  lightboxEl.innerHTML = `
-    <button class="image-lightbox-close" type="button" onclick="closeImageLightbox()">✕</button>
-    <img id="image-lightbox-img" alt="">`;
+  lightboxEl.innerHTML = `<img id="image-lightbox-img" alt="">`;
   document.body.appendChild(lightboxEl);
-  lightboxEl.addEventListener("click", (e) => {
-    if (e.target === lightboxEl) closeImageLightbox();
-  });
+  lightboxEl.addEventListener("click", () => closeImageLightbox());
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !lightboxEl.classList.contains("hidden")) closeImageLightbox();
   });

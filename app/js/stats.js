@@ -121,6 +121,7 @@ function statsRender() {
 
   box.innerHTML = toolbar + `<div class="stat-grid sx">${blocks.join("")}</div>`;
   statsFixLoneCards();
+  statsFitTags();
   statsBindAll();
 }
 
@@ -157,6 +158,11 @@ const STATS_MIN_TYPE = 3;
 // а тег с 4 тайтлами уже не обгонит его только потому, что четыре оценки
 // случайно оказались высокими.
 const STATS_TAG_SMOOTHING = 5;
+// «Частые теги»: сколько берём в запас (сколько из них видно – решает
+// высота карточки, statsFitTags) и сколько показываем, когда карточка
+// одна в ряду (телефон, скрытый сосед) – там подгонять не под что.
+const STATS_TAGS_MAX = 60;
+const STATS_TAGS_SOLO = 16;
 
 function statsData(reviews, completed, year) {
   const pool =
@@ -198,7 +204,11 @@ function statsData(reviews, completed, year) {
   }
   const types = [...byType].map(([type, list]) => {
     const q = list.map(statsQuality).filter((x) => x !== null);
-    return { type, n: list.length, avg: q.length ? statsAvg(q) : null };
+    // Сколько тайтлов типа на каждой полке – раскрывается кликом по
+    // строке в «Как ты оцениваешь типы»: средняя «Отлично» на 51 фильм
+    // не говорит, сколько из них «Резонанс», а сколько «Брак».
+    const shelves = GRADE_ORDER.map((k) => ({ g: GRADES[k], n: list.filter((r) => gradeToShelf(r.grade) === k).length }));
+    return { type, n: list.length, avg: q.length ? statsAvg(q) : null, shelves };
   });
   const rated = types.filter((t) => t.avg !== null && t.n >= STATS_MIN_TYPE).sort((a, b) => b.avg - a.avg);
 
@@ -206,7 +216,9 @@ function statsData(reviews, completed, year) {
 
   const tagCount = new Map();
   for (const r of pool) for (const t of r.tags || []) tagCount.set(t, (tagCount.get(t) || 0) + 1);
-  const topTags = [...tagCount].sort((a, b) => b[1] - a[1]).slice(0, 16);
+  // С запасом: сколько из них показать, решает высота карточки
+  // (statsFitTags) – на широком экране влезает больше, на узком меньше.
+  const topTags = [...tagCount].sort((a, b) => b[1] - a[1]).slice(0, STATS_TAGS_MAX);
 
   const rewatched = pool.filter((r) => r.rewatch_count > 0).sort((a, b) => b.rewatch_count - a.rewatch_count);
 
@@ -222,6 +234,9 @@ function statsData(reviews, completed, year) {
   // Годы выхода – десятилетиями; всё до 1950 – одной строкой: пара
   // книг XIV века иначе растягивала шкалу на семь веков.
   const decades = new Map();
+  // Те же тайтлы внутри десятилетия – по годам (раскрывается кликом по
+  // десятилетию): decadeYears.get(1990).get(1994) → Map(тип → сколько).
+  const decadeYears = new Map();
   for (const r of pool) {
     const y = parseInt(r.year);
     if (!y) continue;
@@ -230,6 +245,10 @@ function statsData(reviews, completed, year) {
     const m = decades.get(key);
     const t = r.type || "anime";
     m.set(t, (m.get(t) || 0) + 1);
+    if (!decadeYears.has(key)) decadeYears.set(key, new Map());
+    const years = decadeYears.get(key);
+    if (!years.has(y)) years.set(y, new Map());
+    years.get(y).set(t, (years.get(y).get(t) || 0) + 1);
   }
 
   const best = GRADE_ORDER[0];
@@ -262,7 +281,7 @@ function statsData(reviews, completed, year) {
       return { e, avg: linked.length ? statsAvg(linked.map(statsQuality)) : null };
     });
 
-  return { pool, prev, graded, overall, up, down, types, rated, gradeCounts, topTags, rewatched, watch, decades, faces, people, peopleNoLinks, chars };
+  return { pool, prev, graded, overall, up, down, types, rated, gradeCounts, topTags, rewatched, watch, decades, decadeYears, faces, people, peopleNoLinks, chars };
 }
 
 // src и атрибуты подстраховки – как у карточек во всём приложении
@@ -364,17 +383,37 @@ function statsHeroHtml(d, year) {
   </section>`;
 }
 
+// Раскрытая строка типа: полки, на которых у этого типа что-то есть, –
+// подпись полки, полоса (от самой полной полки типа) и число.
+function statsShelvesDetailHtml(shelves) {
+  const used = shelves.filter((s) => s.n);
+  const max = Math.max(...used.map((s) => s.n), 1);
+  return `<div class="sx-detail" hidden>${used
+    .map(
+      (s) =>
+        `<div class="sx-grow">${statsGradeHtml(s.g)}<span class="sx-bar" style="--tc:${esc(s.g.color)}"><i style="width:${Math.round((s.n / max) * 100)}%"></i></span><span class="sx-grow-n">${s.n}</span></div>`
+    )
+    .join("")}</div>`;
+}
+
 function statsTypesHtml(d) {
   const list = d.types.filter((t) => t.avg !== null).sort((a, b) => b.avg - a.avg);
   const n = GRADE_ORDER.length;
+  // Строка – кнопка: клик раскрывает под ней, сколько тайтлов этого
+  // типа на каждой полке (statsBindAll, data-stat-expand). Подсказки
+  // текстом нет – вкладкой делятся снимком; что строка раскрывается,
+  // видно по стрелке у названия при наведении.
   const body = `<div class="sx-types">${list
     .map((t) => {
       const g = statsShelfFor(t.avg);
-      return `<div class="sx-type" style="--tc:${esc(typeColor(t.type))}">
+      return `<div class="sx-expand">
+      <div class="sx-type" style="--tc:${esc(typeColor(t.type))}" data-stat-expand role="button" tabindex="0" aria-expanded="false">
         <span class="sx-type-name"><i></i>${esc(statsTypeName(t.type))}</span>
         <span class="sx-bar" style="--tc:${esc(g.color)}"><i style="width:${Math.round((t.avg / n) * 100)}%"></i></span>
         <span class="sx-type-n">${t.n}<small>${esc(plural(t.n, [i18n("оценка"), i18n("оценки"), i18n("оценок")]))}</small></span>
         ${statsGradeHtml(g)}
+      </div>
+      ${statsShelvesDetailHtml(t.shelves)}
       </div>`;
     })
     .join("")}</div>`;
@@ -382,7 +421,7 @@ function statsTypesHtml(d) {
     "donut",
     "w7",
     siteLabel("stats", "types", i18n("Как ты оцениваешь типы")),
-    i18n("Средняя оценка по каждому типу – от самого щедрого к самому строгому. Справа – ближайшая полка шкалы и сколько оценок."),
+    i18n("Средняя оценка по каждому типу – от самого щедрого к самому строгому."),
     body
   );
 }
@@ -436,7 +475,7 @@ function statsLiftHtml(d, year) {
       "lift-down",
       "",
       i18n("Что гарантированно роняет"),
-      i18n("Теги, с которыми оценка заметно ниже {vs} – то, чего ты не прощаешь.", { vs }),
+      i18n("Теги, с которыми оценка заметно ниже {vs}.", { vs }),
       statsReasonRows(d.down)
     )
   );
@@ -478,17 +517,40 @@ function statsDecadesHtml(d) {
   const max = Math.max(...totals, 1);
   const typeKeys = [...new Set(keys.flatMap((k) => [...d.decades.get(k).keys()]))];
   const label = (k) => (k === 0 ? i18n("до 1950") : i18n("{d}-е", { d: k }));
+  const stack = (m, width) =>
+    `<span class="sx-bar-wrap"><span class="sx-bar sx-bar-stack" style="width:${width}%">${typeKeys
+      .filter((t) => m.get(t))
+      .map((t) => `<i style="--tc:${esc(typeColor(t))};flex:${m.get(t)}"></i>`)
+      .join("")}</span></span>`;
+  const sum = (m) => [...m.values()].reduce((a, b) => a + b, 0);
+  // Десятилетие – кнопка: клик раскрывает его по годам (новые сверху,
+  // как и сами десятилетия). Полосы годов – от самого полного года
+  // внутри этого десятилетия, а не от всей шкалы: иначе год с парой
+  // тайтлов был бы точкой.
+  const yearsHtml = (k) => {
+    const years = [...(d.decadeYears.get(k) || new Map())].sort((a, b) => b[0] - a[0]);
+    const yMax = Math.max(...years.map(([, m]) => sum(m)), 1);
+    return `<div class="sx-detail" hidden>${years
+      .map(
+        ([y, m]) => `<div class="sx-decade sx-decade-year">
+          <span class="sx-decade-lbl">${y}</span>
+          ${stack(m, Math.max(Math.round((sum(m) / yMax) * 100), 3))}
+          <span class="sx-grow-n">${sum(m)}</span>
+        </div>`
+      )
+      .join("")}</div>`;
+  };
   const body = `${statsLegendHtml(typeKeys)}
     <div class="sx-decades">${keys
       .map((k, i) => {
         const m = d.decades.get(k);
-        return `<div class="sx-decade">
+        return `<div class="sx-expand">
+        <div class="sx-decade" data-stat-expand role="button" tabindex="0" aria-expanded="false">
           <span class="sx-decade-lbl">${esc(label(k))}</span>
-          <span class="sx-bar-wrap"><span class="sx-bar sx-bar-stack" style="width:${Math.max(Math.round((totals[i] / max) * 100), 3)}%">${typeKeys
-            .filter((t) => m.get(t))
-            .map((t) => `<i style="--tc:${esc(typeColor(t))};flex:${m.get(t)}"></i>`)
-            .join("")}</span></span>
+          ${stack(m, Math.max(Math.round((totals[i] / max) * 100), 3))}
           <span class="sx-grow-n">${totals[i]}</span>
+        </div>
+        ${yearsHtml(k)}
         </div>`;
       })
       .join("")}</div>`;
@@ -519,7 +581,7 @@ function statsTagsHtml(d) {
     "tags",
     "",
     siteLabel("stats", "tags", i18n("Частые теги в отзывах")),
-    i18n("16 самых частых тегов."),
+    "",
     body
   );
 }
@@ -546,7 +608,7 @@ function statsRewatchHtml(d) {
     "rewatch",
     "w5",
     siteLabel("stats", "rewatch", i18n("Пересмотры")),
-    i18n("К чему ты возвращаешься."),
+    "",
     body
   );
 }
@@ -564,7 +626,7 @@ function statsFacesHtml(d, year) {
         ).replace("{year}", year);
   const explain =
     year === "all"
-      ? i18n("Любимые тайтлы с высшей оценкой «{grade}» – то, что ты показал бы первым.", { grade: best })
+      ? i18n("Любимые тайтлы с высшей оценкой")
       : i18n("Всё, что получило «{grade}» в этом году.", { grade: best });
   const body = `<div class="sx-faces">${list
     .map(
@@ -575,10 +637,11 @@ function statsFacesHtml(d, year) {
   return statsCard("spotlight", year === "all" ? "w7" : "w12", title, explain, body);
 }
 
+// Без приписок под заголовками «Твои люди», «Пересмотры», «Твои
+// персонажи», «Частые теги»: вкладкой делятся снимком, а из названия
+// блока и так понятно, что в нём (просьба owner'а).
 function statsPeopleHtml(d) {
-  const explain = d.peopleNoLinks
-    ? i18n("Персоны из «Любимого» и средняя оценка их тайтлов у тебя · у {n} тайтлы ещё не привязаны.", { n: d.peopleNoLinks })
-    : i18n("Персоны из «Любимого» и средняя оценка их тайтлов у тебя.");
+  const explain = "";
   const body = d.people.length
     ? `<div class="sx-people">${d.people
         .slice(0, 6)
@@ -613,7 +676,7 @@ function statsCharsHtml(d) {
     "characters",
     "w7",
     i18n("Твои персонажи"),
-    i18n("Персонажи из «Любимого» в твоём порядке, под каждым – откуда он и как ты оценил этот тайтл."),
+    "",
     body
   );
 }
@@ -645,8 +708,76 @@ function statsYearFiltersHtml(years) {
   return `<div class="stat-year-filters">${allBtn}${yearBtns}</div>`;
 }
 
+// «Частые теги» заполняют свою карточку целиком: карточка тянется до
+// высоты соседней в ряду (CSS: .sx-tags с flex-basis 0 не влияет на
+// высоту ряда), и в ней видно столько тегов, сколько помещается
+// целиком, – на широком экране больше, на узком меньше. Карточка одна в
+// ряду (телефон, сосед скрыт) – подгонять не под что, показываем
+// STATS_TAGS_SOLO. ResizeObserver пересчитывает при любом изменении
+// размера, в том числе когда вкладку показывают после скрытой
+// отрисовки (тогда высота была 0 и считать было не по чему).
+let statsTagsObserver = null;
+function statsFitTags() {
+  statsTagsObserver?.disconnect();
+  statsTagsObserver = null;
+  const card = document.querySelector('#tab-stats .sx-card[data-stat-key="tags"]');
+  const box = card?.querySelector(".sx-tags");
+  if (!box) return;
+  const tags = [...box.children];
+  const fit = () => {
+    if (card.classList.contains("sx-solo")) {
+      tags.forEach((t, i) => t.classList.toggle("sx-tag-off", i >= STATS_TAGS_SOLO));
+      return;
+    }
+    const h = box.clientHeight;
+    if (!h) return;
+    tags.forEach((t) => t.classList.remove("sx-tag-off"));
+    let cut = false;
+    for (const t of tags) {
+      if (!cut && t.offsetTop + t.offsetHeight > h) cut = true;
+      if (cut) t.classList.add("sx-tag-off");
+    }
+  };
+  fit();
+  statsTagsObserver = new ResizeObserver(fit);
+  statsTagsObserver.observe(box);
+}
+
+// При смене размера окна ряды карточек перестраиваются – какая из них
+// осталась одна в ряду (sx-solo), а с ней и сколько тегов влезает,
+// нужно пересчитать. Один слушатель на всё время жизни страницы.
+let statsResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(statsResizeTimer);
+  statsResizeTimer = setTimeout(() => {
+    if (document.getElementById("tab-stats")?.classList.contains("hidden")) return;
+    statsFixLoneCards();
+    statsFitTags();
+  }, 150);
+});
+
 function statsBindAll() {
   const box = document.getElementById("tab-stats");
+  // Раскрывающиеся строки: тип → полки, десятилетие → годы.
+  box.querySelectorAll("[data-stat-expand]").forEach((row) => {
+    const toggle = () => {
+      const detail = row.nextElementSibling;
+      if (!detail) return;
+      detail.hidden = !detail.hidden;
+      row.setAttribute("aria-expanded", String(!detail.hidden));
+      // Карточка выросла или сжалась – вместе с ней и ряд, а значит, и
+      // место под теги соседней карточки. ResizeObserver это тоже
+      // поймает, но только к следующей отрисовке – пересчитываем сразу.
+      statsFitTags();
+    };
+    row.addEventListener("click", toggle);
+    row.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggle();
+      }
+    });
+  });
   box.querySelectorAll(".tl-filter[data-stat-year]").forEach((btn) => {
     btn.addEventListener("click", () => {
       statsState.year = btn.dataset.statYear === "all" ? "all" : parseInt(btn.dataset.statYear);
