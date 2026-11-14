@@ -335,19 +335,26 @@ function settingsViewHtml() {
            показывается только когда /api/app/info отвечает, то есть когда
            страницу открыло приложение, а не браузер. -->
       <div class="panel" id="panel-app">
-        <h2 class="section-h" data-i18n>Папка с данными</h2>
-        <div class="row">
-          <div class="app-path" id="app-vault-path">–</div>
-        </div>
-        <!-- «Открыть в проводнике» и «Сменить папку» – только для компьютера:
-             там это настоящая папка на диске. На телефоне хранилище лежит
-             во внутренней области приложения – там нет ни проводника, чтобы
-             её открыть, ни смысла её менять (она одна). Раньше эти кнопки
-             просто ничего не делали на телефоне – appInfo.mobile в
-             renderAppPanel() решает, какой из двух блоков показать. -->
-        <div class="row" id="app-vault-actions" style="gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" onclick="openVaultFolder()" data-i18n>Открыть в проводнике</button>
-          <button class="btn btn-ghost" onclick="changeVault()" data-i18n>Сменить папку…</button>
+        <!-- Панель – строками «название слева, действие справа» (раньше шесть
+             блоков с заголовками, абзацами и кнопками друг под другом; поля
+             пути и версии были в пунктирной рамке и выглядели как поля ввода).
+             Идентификаторы и обработчики прежние: на них завязаны settings-app.js
+             и тесты. -->
+        <div class="set-row">
+          <div class="set-row-main">
+            <div class="set-row-title" data-i18n>Папка с данными</div>
+            <div class="app-path" id="app-vault-path">–</div>
+          </div>
+          <!-- «Открыть в проводнике» и «Сменить папку» – только для компьютера:
+               там это настоящая папка на диске. На телефоне хранилище лежит
+               во внутренней области приложения – там нет ни проводника, чтобы
+               её открыть, ни смысла её менять (она одна). Раньше эти кнопки
+               просто ничего не делали на телефоне – appInfo.mobile в
+               renderAppPanel() решает, какой из двух блоков показать. -->
+          <div class="set-row-ctl" id="app-vault-actions">
+            <button class="btn btn-ghost" onclick="openVaultFolder()" data-i18n>Открыть в проводнике</button>
+            <button class="btn btn-ghost" onclick="changeVault()" data-i18n>Сменить папку…</button>
+          </div>
         </div>
         <p class="panel-intro hidden" id="app-vault-mobile-note" data-i18n>
           Хранится во внутренней области приложения – её не видят другие
@@ -363,23 +370,27 @@ function settingsViewHtml() {
              обычное копирование папки хранилища; на телефоне такой папки
              не видно, и без этой кнопки перенести свои же данные было бы
              нечем – сравнить с чужими можно, а увезти свои с собой нет. -->
-        <h2 class="section-h" data-i18n>Резервная копия</h2>
-        <p class="panel-intro" data-i18n>
-          Отзывы, любимое, тир-листы, настройки и загруженные вручную
-          картинки – одним файлом, для себя.
-        </p>
-        <div class="row" style="gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-ghost" onclick="exportBackup()" data-i18n>Скачать резервную копию</button>
-          <label class="btn btn-ghost file-btn">
-            <input type="file" id="backup-file" data-no-dirty accept="application/json,.json" onchange="restoreBackup(this)">
-            <span data-i18n>Восстановить из файла</span>
-          </label>
+        <div class="set-row">
+          <div class="set-row-main">
+            <div class="set-row-title" data-i18n>Резервная копия</div>
+            <div class="set-row-sub" data-i18n>
+              Отзывы, любимое, тир-листы, настройки и загруженные вручную
+              картинки – одним файлом, для себя.
+            </div>
+          </div>
+          <div class="set-row-ctl">
+            <button class="btn btn-ghost" onclick="exportBackup()" data-i18n>Скачать резервную копию</button>
+            <label class="btn btn-ghost file-btn">
+              <input type="file" id="backup-file" data-no-dirty accept="application/json,.json" onchange="restoreBackup(this)">
+              <span data-i18n>Восстановить из файла</span>
+            </label>
+          </div>
         </div>
         <div class="status-msg" id="status-backup"></div>
 
-        <h2 class="section-h" data-i18n>Язык</h2>
-        <div class="row">
-          <div style="flex:0 0 220px;">
+        <div class="set-row">
+          <div class="set-row-main"><div class="set-row-title" data-i18n>Язык</div></div>
+          <div class="set-row-ctl">
             <select id="app-lang" data-no-dirty onchange="setAppLanguage(this.value)"></select>
           </div>
         </div>
@@ -390,9 +401,9 @@ function settingsViewHtml() {
              разный способ добиться одного и того же result – растянуть
              вообще всё, а не только текст (см. её же противопоставление
              у «Размера шрифта» на вкладке «Оформление»). -->
-        <div id="app-zoom-section">
-          <h2 class="section-h" data-i18n>Масштаб</h2>
-          <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
+        <div class="set-row" id="app-zoom-section">
+          <div class="set-row-main"><div class="set-row-title" data-i18n>Масштаб</div></div>
+          <div class="set-row-ctl">
             <input type="range" id="app-zoom-slider" class="app-zoom-slider" data-no-dirty
               min="50" max="200" step="5" value="100"
               oninput="previewZoom(this.value)" onchange="setZoom(this.value)">
@@ -401,10 +412,14 @@ function settingsViewHtml() {
           </div>
         </div>
 
-        <h2 class="section-h" data-i18n>О программе</h2>
-        <div class="row"><div class="app-path" id="app-version">–</div></div>
-        <div class="row">
-          <button class="btn btn-ghost" id="btn-check-update" onclick="checkForUpdateNow()" data-i18n>Проверить обновления</button>
+        <div class="set-row">
+          <div class="set-row-main">
+            <div class="set-row-title" data-i18n>О программе</div>
+            <div class="app-path" id="app-version">–</div>
+          </div>
+          <div class="set-row-ctl">
+            <button class="btn btn-ghost" id="btn-check-update" onclick="checkForUpdateNow()" data-i18n>Проверить обновления</button>
+          </div>
         </div>
         <div class="status-msg" id="status-update"></div>
         <div class="status-msg" id="status-app"></div>
@@ -468,9 +483,11 @@ function settingsViewHtml() {
           </ol>
         </div>
 
-        <h2 class="section-h" data-i18n>Поддержать автора</h2>
-        <div class="row">
-          <a class="btn btn-ghost" href="https://boosty.to/qerrti/posts/38bee13e-3140-4b7d-816b-c4d3217b397d" target="_blank" rel="noopener" data-i18n>Поддержать на Boosty</a>
+        <div class="set-row">
+          <div class="set-row-main"><div class="set-row-title" data-i18n>Поддержать автора</div></div>
+          <div class="set-row-ctl">
+            <a class="btn btn-ghost" href="https://boosty.to/qerrti/posts/38bee13e-3140-4b7d-816b-c4d3217b397d" target="_blank" rel="noopener" data-i18n>Поддержать на Boosty</a>
+          </div>
         </div>
       </div>
 

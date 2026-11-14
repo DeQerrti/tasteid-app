@@ -3805,6 +3805,32 @@ main.fe-view > .status-msg:empty { display: none; }
 .regrade-select { width: 100%; min-width: 0; }
 @media (max-width: 520px) { .regrade-row { grid-template-columns: 1fr; } .regrade-arrow { display: none; } }
 
+
+/* «Приложение»: строки «название слева, действие справа» (renderAppPanel,
+   settings-app.js, и разметка в settings-edit.js). Раньше – блоки с
+   заголовками друг под другом, путь и версия в пунктирных рамках. */
+:where(.set-view) .set-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 16px 0; border-bottom: 1px solid var(--border);
+}
+:where(.set-view) .set-row-main { min-width: 0; flex: 1; }
+:where(.set-view) .set-row-title { font-family: 'DM Sans', sans-serif; font-size: .92rem; color: var(--text-hi); }
+:where(.set-view) .set-row-sub { margin-top: 4px; font-family: 'DM Sans', sans-serif; font-size: .78rem; color: var(--text-dim); }
+/* Пустые строки состояния (результат резервной копии, проверки обновлений)
+   не занимают места между строками, пока в них ничего нет. */
+:where(.set-view) #panel-app .status-msg:empty { display: none; }
+:where(.set-view) .set-row .app-path { margin-top: 4px; padding: 0; border: 0; font-size: .78rem; }
+/* :not(.hidden) – renderAppPanel прячет блок кнопок на телефоне классом hidden;
+   без него display: flex здесь перебил бы его (тот же вес, а правило ниже по файлу). */
+:where(.set-view) .set-row-ctl:not(.hidden) { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+:where(.set-view) .set-row-ctl .btn { margin: 0; white-space: nowrap; }
+:where(.set-view) .set-row-ctl .app-zoom-slider { width: 150px; }
+:where(.set-view) .set-row-ctl select { min-width: 160px; }
+@media (max-width: 720px) {
+  :where(.set-view) .set-row { flex-direction: column; align-items: stretch; gap: 10px; }
+  :where(.set-view) .set-row-ctl:not(.hidden) { justify-content: flex-start; }
+}
+
 /* «Оценки»: карточки типа шкалы с образцом, лёгкие строки полок. */
 :where(.set-view) .theme-option.scale-card { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 150px; padding: 12px 16px; }
 :where(.set-view) .scale-sample { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim); }
@@ -4175,7 +4201,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/settings-sync.js?v=4"></script>
 <script src="/js/routes/settings-shortcuts.js?v=6"></script>
 <script src="/js/routes/settings-labels.js?v=6"></script>
-<script src="/js/routes/settings-edit.js?v=10"></script>
+<script src="/js/routes/settings-edit.js?v=11"></script>
 
 <script>
 let _navInit = true;
