@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=28"></script>
+<script src="/js/i18n-en.js?v=29"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=30"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -1067,9 +1067,6 @@ section.group { margin-bottom: 3.5rem; }
 .review-modal-nav { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; padding-right: 8px; border-right: 1px solid var(--border2); }
 .review-nav-count { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); font-variant-numeric: tabular-nums; min-width: 3.4rem; text-align: center; }
 .review-modal-nav .icon-btn[disabled], .review-side-arrow[disabled] { opacity: .3; pointer-events: none; }
-.review-modal-hint { font-family: 'DM Sans', sans-serif; font-size: .68rem; color: var(--text-dim); margin-top: 1.2rem; padding-top: .7rem; border-top: 1px solid var(--border); }
-.review-modal-hint kbd { font: inherit; border: 1px solid var(--border2); border-radius: 2px; padding: 0 .35rem; }
-@media (hover: none) { .review-modal-hint { display: none; } }
 .review-side-arrow {
   position: fixed; top: 50%; transform: translateY(-50%); z-index: 510;
   width: 44px; height: 64px; display: none;
@@ -1933,15 +1930,15 @@ section.group { margin-bottom: 3.5rem; }
    index.html и правило прилипания выше). Выпадающие списки (.rv-pop) –
    не <select>: нужен выбор нескольких значений с числом отзывов у
    каждого. */
-.rv-head { display: flex; align-items: baseline; gap: .8rem; margin-bottom: .2rem; }
-.rv-head .admin-add-btn { margin-left: auto; }
-.rv-title { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 600; color: var(--text-hi); margin: 0; }
 .rv-sticky {
   position: sticky;
   top: var(--app-titlebar, 0px);
   z-index: 20;
   background: var(--bg);
-  padding: .6rem 0 .5rem;
+  /* Зазор сверху и отрицательный margin – тот же приём, что у остальных
+     закреплённых строк (см. правило с STICKY_TABS_BAR ниже). */
+  padding: .75rem 0 .65rem;
+  margin-top: -.75rem;
   margin-bottom: .4rem;
   /* Мягкий переход под строкой: карточки уходят под неё, а не упираются
      в жёсткую линию – так же, как у остальных закреплённых строк. */
@@ -2011,9 +2008,8 @@ section.group { margin-bottom: 3.5rem; }
   .rv-sticky { position: static; box-shadow: none; }
   .rv-search { flex-basis: 100%; max-width: none; }
   .rv-dd-btn { padding: .5rem .65rem; font-size: .72rem; }
-  .rv-title { font-size: 1.4rem; }
   .rv-bar-gap { display: none; }
-  .rv-bar > .rv-dd:last-child { margin-left: auto; }
+  .rv-bar > .rv-dd[data-dd="sort"] { margin-left: auto; }
   .rv-pop, .rv-pop-right { position: fixed; left: 10px; right: 10px; top: auto; bottom: 76px; width: auto; max-height: 65vh; min-width: 0; z-index: 90; }
   .rv-pop-tags { width: auto; }
 }
@@ -4004,7 +4000,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/cards.js?v=19"></script>
 <script src="/js/now.js?v=17"></script>
 <script src="/js/favorites.js?v=19"></script>
-<script src="/js/reviews.js?v=28"></script>
+<script src="/js/reviews.js?v=29"></script>
 <script src="/js/stats.js?v=22"></script>
 <script src="/js/tierlist.js?v=15"></script>
 <script src="/js/backup-history.js?v=2"></script>

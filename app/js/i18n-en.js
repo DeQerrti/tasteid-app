@@ -1503,8 +1503,6 @@ i18nRegister({
   "Предыдущий отзыв": "Previous review",
   "пересмотрено ×{n}": "rewatched ×{n}",
   "Следующий отзыв": "Next review",
-  "листать": "browse",
-  "закрыть": "close",
   "Любой из них": "Any of them",
   "Группировать по годам": "Group by year",
   "Название, тег или слово из отзыва": "Title, tag or a word from the review",

@@ -180,11 +180,9 @@ function renderReviews(reviews) {
   // Закрепляемая строка – ПРЯМОЙ ребёнок вкладки, как .tl-mode-toggle/.fav-head у
   // остальных: sticky держится, пока на экране родитель, а обёртка только
   // вокруг этой строки кончилась бы вместе с ней.
+  // Заголовка «Отзывы» нет – у остальных вкладок его тоже нет, а название и
+  // так видно в боковой панели. «Добавить» – в конце строки фильтров.
   box.innerHTML = `
-    <div class="rv-head">
-      <h1 class="rv-title">${esc(siteLabel("nav", "reviews", i18n("Отзывы")))}</h1>
-      ${adminBtn}
-    </div>
     <div class="rv-sticky">
       <div class="rv-bar">
         <div class="rv-search">
@@ -208,6 +206,7 @@ function renderReviews(reviews) {
           <button type="button" class="rv-filter-btn rv-dd-btn" aria-haspopup="true" aria-expanded="false"><span id="rv-sort-label"></span></button>
           <div class="rv-pop rv-pop-right hidden"></div>
         </div>
+        ${adminBtn}
       </div>
       <div class="rv-sub" id="rv-sub"></div>
     </div>
@@ -737,7 +736,6 @@ function reviewModalBodyHtml(r) {
       </div>
       ${textHtml}
       <div class="source-buttons">${btn1}${btn2}</div>
-      ${reviewModalHintHtml()}
     </div>
   `;
 }
@@ -852,13 +850,6 @@ function reviewModalNavHtml() {
     <span class="review-nav-count">${i + 1} / ${n}</span>
     <button type="button" class="icon-btn review-nav-step" ${i === n - 1 ? "disabled" : ""} title="${i18n("Следующий отзыв")} (→)" aria-label="${i18n("Следующий отзыв")}" onclick="reviewModalStep(1)">›</button>
   </span>`;
-}
-
-// Подсказка про клавиши – только там, где есть клавиатура (на телефоне её
-// скрывает CSS по hover: none) и только когда есть что листать.
-function reviewModalHintHtml() {
-  if (reviewModalIndex() < 0 || (_reviewModalList?.length || 0) < 2) return "";
-  return `<div class="review-modal-hint" data-no-export><kbd>←</kbd> <kbd>→</kbd> ${i18n("листать")} · <kbd>Esc</kbd> ${i18n("закрыть")}</div>`;
 }
 
 // Большие стрелки по бокам окна (широкий экран): сами кнопки лежат в
