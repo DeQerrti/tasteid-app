@@ -87,7 +87,7 @@ function renderStatsList() {
   const container = document.getElementById("statsList");
   container.innerHTML = STAT_BLOCKS.map(
     (b) => `
-      <div class="tab-row">
+      <div class="tab-row${hiddenStatsState.has(b.key) ? " is-hidden" : ""}">
         ${eyeButton(hiddenStatsState.has(b.key), `hiddenStatsState.has('${b.key}') ? hiddenStatsState.delete('${b.key}') : hiddenStatsState.add('${b.key}'); renderStatsList(); settingsDirty = true;`)}
         <span class="tab-name">${esc(b.label)}</span>
       </div>

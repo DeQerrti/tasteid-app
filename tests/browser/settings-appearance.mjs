@@ -158,6 +158,26 @@ const penLefts = await page.$$eval(
 );
 ok(new Set(penLefts).size === 1, `карандаши в тир-листе в одну линию (${penLefts.join(", ")})`);
 
+console.log("Вкладка «Статистика»");
+// Скрытая выше вкладка – несохранённая правка: переход на другую панель спросил
+// бы «Есть несохранённые изменения». Начинаем с чистой страницы.
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector("#hide-tags-toggle", { timeout: 10000 });
+await page.click('.side-tab[data-panel="stats"]');
+await page.waitForSelector("#statsList .tab-row");
+ok(
+  (await page.$eval("#panel-stats > h2.section-h", (e) => e.textContent.trim())) ===
+    "Что показывать",
+  "над блоками заголовок «Что показывать» вместо абзаца с названием вкладки"
+);
+ok((await page.$$("#statsList .tab-row")).length === 12, "двенадцать блоков");
+await page.click("#statsList .tab-row:nth-child(2) .icon-btn");
+ok(
+  await page.$eval("#statsList .tab-row:nth-child(2)", (e) => e.classList.contains("is-hidden")),
+  "скрытый блок помечен (приглушён)"
+);
+ok(!(await page.$("#mk-typebar, .type-bar")), "над цветами типов нет полосы-образца");
+
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
 await browser.close();

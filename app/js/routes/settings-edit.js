@@ -274,7 +274,7 @@ function settingsViewHtml() {
       </div>
 
       <div class="panel" id="panel-stats">
-        <p class="panel-intro" data-i18n>Что показывать на вкладке "Статистика".</p>
+        <h2 class="section-h" data-i18n>Что показывать</h2>
         <div id="statsList"></div>
 
         <h2 class="section-h" data-i18n>Цвета по типам</h2>

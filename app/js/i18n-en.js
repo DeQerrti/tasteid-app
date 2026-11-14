@@ -1503,7 +1503,7 @@ i18nRegister({
   "Предыдущий отзыв": "Previous review",
   "пересмотрено ×{n}": "rewatched ×{n}",
   "Показывать теги на карточках": "Show tags on cards",
-  "Добавить статус": "Add status",
+  "Что показывать": "What to show",
   "Только текст. Всё остальное увеличивает «Масштаб» на вкладке «Приложение».": "Text only. Everything else is scaled by “Scale” on the “App” tab.",
   "Фоны": "Backgrounds",
   "Линии": "Lines",
