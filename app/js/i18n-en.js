@@ -1501,6 +1501,7 @@ i18nRegister({
   "Поиск по тегу": "Search by tag",
   "Все выбранные": "All selected",
   "Предыдущий отзыв": "Previous review",
+  "пересмотрено ×{n}": "rewatched ×{n}",
   "Следующий отзыв": "Next review",
   "листать": "browse",
   "закрыть": "close",

@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=27"></script>
+<script src="/js/i18n-en.js?v=28"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=30"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -999,12 +999,16 @@ section.group { margin-bottom: 3.5rem; }
   align-items: start;
 }
 #review-modal-body .review-modal-cover { width: 210px; grid-row: 1 / span 2; }
-#review-modal-body .review-modal-main { min-width: 0; padding-right: 104px; }
+/* Место под кнопки в правом верхнем углу нужно только названию (оно на
+   их уровне); строка «тип · год · пересмотрено» и даты ниже кнопок и
+   могут занимать всю колонку – иначе они переносились по слову. */
+#review-modal-body .review-modal-main { min-width: 0; }
+#review-modal-body .review-modal-main .review-modal-title { padding-right: 104px; }
 #review-modal-body .review-modal-header > .review-modal-tags {
   grid-column: 2; grid-row: 2; align-self: start;
   margin: 1rem 0 0;
 }
-#review-modal-body:has(.review-modal-nav) .review-modal-main { padding-right: 190px; }
+#review-modal-body:has(.review-modal-nav) .review-modal-main .review-modal-title { padding-right: 190px; }
 .review-meta-row { font-family: 'DM Sans', sans-serif; font-size: .85rem; letter-spacing: .03em; color: var(--text); margin: 0 0 .5rem; }
 .review-format { color: var(--text); }
 #review-modal-body .grade-chip { font-size: 1.2rem; display: inline-flex; align-items: center; gap: .55rem; color: var(--text-hi); }
@@ -1014,12 +1018,48 @@ section.group { margin-bottom: 3.5rem; }
 }
 #review-modal-body .review-dates { margin-top: .7rem; }
 .review-modal-notext { margin-bottom: .6rem; }
+/* «В любимом» – в правой колонке шапки, под тегами: маленький круглый
+   портрет, имя и подпись в ряд (раньше – большие карточки отдельным блоком
+   под текстом). Те же .card-char, поэтому клик по ним открывает окно
+   персонажа как и раньше (обработчик в DOMContentLoaded выше). */
+#review-modal-body .review-modal-header { grid-template-rows: auto auto 1fr; }
+#review-modal-body .review-modal-cover { grid-row: 1 / span 3; }
+#review-modal-body .review-modal-header > .review-linked-favs {
+  grid-column: 2; grid-row: 3; align-self: start; margin: 1.2rem 0 0;
+}
+#review-modal-body .review-linked-favs .fav-modal-titles-title { margin: 0 0 .45rem; }
+#review-modal-body .review-linked-favs .grid-chars {
+  display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .8rem;
+}
+#review-modal-body .review-linked-favs .card-char {
+  display: flex; flex-direction: row; align-items: center; gap: .6rem; width: auto; min-width: 0;
+  padding: .3rem .9rem .3rem .3rem; animation: none;
+}
+#review-modal-body .review-linked-favs .card-char img {
+  width: 40px; height: 40px; flex: none; aspect-ratio: 1; border-radius: 50%; object-fit: cover;
+}
+#review-modal-body .review-linked-favs .card-char .card-body { padding: 0; min-width: 0; }
+#review-modal-body .review-linked-favs .card-char .card-title { font-size: .9rem; line-height: 1.25; }
+#review-modal-body .review-linked-favs .card-char .card-meta { margin: 0; font-size: .72rem; }
+.review-rewatch-inline { white-space: nowrap; }
+/* Ссылка на источник – спокойная, как Teletype, а не красная («Другое» была
+   красной и читалась как предупреждение). */
+#review-modal-body .review-source-link.source-other {
+  background: var(--tint); border-color: var(--tint-line); color: var(--text);
+}
+#review-modal-body .review-source-link.source-other:hover {
+  background: var(--tint-hi); border-color: var(--tint-line-hi); color: var(--text-hi);
+}
+#review-modal-body .source-dot-other { background: var(--text-dim); }
+#review-modal-body .source-buttons { margin-top: .4rem; }
 @media (max-width: 560px) {
+  #review-modal-body .review-modal-header > .review-linked-favs { grid-column: 1 / -1; grid-row: 3; margin-top: 1rem; }
+  #review-modal-body .review-modal-cover { grid-row: 1; }
   #review-modal-body .review-modal-header { grid-template-columns: auto minmax(0, 1fr); }
   #review-modal-body .review-modal-cover { width: 120px; grid-row: 1; }
   #review-modal-body .review-modal-title { font-size: 1.5rem; }
-  #review-modal-body .review-modal-main,
-  #review-modal-body:has(.review-modal-nav) .review-modal-main { padding-right: 0; }
+  #review-modal-body .review-modal-main .review-modal-title,
+  #review-modal-body:has(.review-modal-nav) .review-modal-main .review-modal-title { padding-right: 0; }
   #review-modal-body .review-modal-header > .review-modal-tags { grid-column: 1 / -1; grid-row: 2; margin-top: 1rem; }
 }
 /* Листание: ‹ 3 / 44 › в верхнем ряду, большие стрелки по бокам окна на
@@ -1043,7 +1083,7 @@ section.group { margin-bottom: 3.5rem; }
   .review-side-arrow:not([hidden]) { display: block; }
   .review-modal-nav .review-nav-step { display: none; }
   .review-modal-nav { border-right: 0; }
-  #review-modal-body:has(.review-modal-nav) .review-modal-main { padding-right: 150px; }
+  #review-modal-body:has(.review-modal-nav) .review-modal-main .review-modal-title { padding-right: 150px; }
 }
 @media (max-width: 480px) {
   /* Пять кнопок по 44px (палец, см. «ПАЛЕЦ ВМЕСТО КУРСОРА») плюс счётчик не
@@ -3964,7 +4004,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/cards.js?v=19"></script>
 <script src="/js/now.js?v=17"></script>
 <script src="/js/favorites.js?v=19"></script>
-<script src="/js/reviews.js?v=27"></script>
+<script src="/js/reviews.js?v=28"></script>
 <script src="/js/stats.js?v=22"></script>
 <script src="/js/tierlist.js?v=15"></script>
 <script src="/js/backup-history.js?v=2"></script>

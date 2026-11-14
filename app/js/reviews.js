@@ -637,8 +637,14 @@ function reviewModalBodyHtml(r) {
     if (r.date_start) datesHtml = `<span>${esc(i18n("с {date}", { date: fmtLongDate(r.date_start) }))}</span>${note(i18n("в процессе"))}`;
   } else if (r.date_start && r.date_end && r.date_start !== r.date_end) {
     const days = Math.round((parseLocalDate(r.date_end) - parseLocalDate(r.date_start)) / 86400000) + 1;
+    // Оба в одном году – год пишем один раз, в конце («9 ноября → 23 ноября
+    // 2024 г.»): иначе строка не влезала рядом с кнопками, и «· 15 дней»
+    // уезжало на свою строку с точкой в начале.
+    const sameYear = parseLocalDate(r.date_start).getFullYear() === parseLocalDate(r.date_end).getFullYear();
+    const fmtNoYear = raw =>
+      parseLocalDate(raw).toLocaleDateString(dateLocale(), { day: "numeric", month: "long" });
     datesHtml =
-      `<span>${esc(fmtLongDate(r.date_start))}</span><span class="review-dates-arrow">→</span><span>${esc(fmtLongDate(r.date_end))}</span>` +
+      `<span>${esc(sameYear ? fmtNoYear(r.date_start) : fmtLongDate(r.date_start))}</span><span class="review-dates-arrow">→</span><span>${esc(fmtLongDate(r.date_end))}</span>` +
       (days > 0 ? note(`${days} ${plural(days, [i18n("день"), i18n("дня"), i18n("дней")])}`) : "");
   } else {
     const dateRaw = r.date_end || r.date_start || r.date || null;
@@ -693,7 +699,15 @@ function reviewModalBodyHtml(r) {
   // Тип показываем тоже («Книга · 2013»): в окне его раньше не было вовсе,
   // он был только плашкой на обложке карточки в сетке.
   const typeLabel = TYPE_LABELS[r.type] || "";
-  const metaLine = [typeLabel, formatYear].filter(Boolean).join(" · ");
+  const metaParts = [typeLabel, formatYear].filter(Boolean).map(esc);
+  // Пересмотры – тем же текстом в этой строке, а не рамкой отдельной
+  // строкой: плашка-«таблетка» на карточках отклонена, и «↻ ×2» без подписи
+  // не сразу понятно. Подсказка с полным словом – по наведению.
+  if (r.rewatch_count > 0) {
+    const tip = i18n("Пересмотров: {v0}", { v0: r.rewatch_count });
+    metaParts.push(`<span class="review-rewatch-inline" title="${esc(tip)}">↻ ${esc(i18n("пересмотрено ×{n}", { n: r.rewatch_count }))}</span>`);
+  }
+  const metaLine = metaParts.join(" · ");
 
   // Шапка – сетка: обложка слева на две строки, справа название с оценкой
   // и датами, а ТЕГИ под ними, на уровне обложки, – раньше они шли
@@ -715,10 +729,9 @@ function reviewModalBodyHtml(r) {
         <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}"${coverClickable} style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
         <div class="review-modal-main">
           <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
-          ${metaLine ? `<div class="review-meta-row"><span class="review-format">${esc(metaLine)}</span></div>` : ""}
+          ${metaLine ? `<div class="review-meta-row"><span class="review-format">${metaLine}</span></div>` : ""}
           ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
           ${datesHtml ? `<div class="review-dates">${datesHtml}</div>` : ""}
-          ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
         </div>
         ${tagsHtml}
       </div>
@@ -948,8 +961,13 @@ async function appendReviewLinkedFavorites(r) {
       <div class="grid-chars fav-modal-titles-grid">${g.items.map((e, i) => favPersonCard(e, i)).join("")}</div>`
     )
     .join("");
-  const sources = capture.querySelector(".source-buttons");
-  capture.insertBefore(box, sources);
+  // В шапку, в правую колонку под тегами (на уровне обложки), а не отдельным
+  // блоком под текстом: большие карточки занимали столько же места, сколько
+  // сама обложка, а справа от неё при этом оставалась пустая область. Место
+  // под блок в сетке шапки есть всегда (пустая строка сетки не занимает
+  // высоты), так что окно не прыгает, когда блок дорисовывается после показа.
+  box.classList.add("review-modal-favs");
+  capture.querySelector(".review-modal-header")?.appendChild(box);
 }
 // Записи favorites.json, прочитанные последним appendReviewLinkedFavorites –
 // по ним клик по карточке открывает модалку персонажа.
@@ -1083,7 +1101,14 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 function sourceBtnHtml(url, source) {
   if (!url) return "";
-  const label = SOURCE_LABELS[source] || source || i18n("Подробнее");
+  // «Другое» ничего не говорит о том, куда ведёт ссылка – подписываем её
+  // адресом сайта (youtu.be, t.me). Названия своих источников из настроек и
+  // Teletype остаются как есть.
+  let host = "";
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {}
+  const label = (source === "other" && host) || SOURCE_LABELS[source] || source || host || i18n("Подробнее");
   if (source === "teletype") {
     return `<a href="${esc(url)}" target="_blank" rel="noopener" class="review-source-link source-teletype">
       <span class="source-dot-teletype"></span>${esc(label)} →
