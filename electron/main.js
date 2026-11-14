@@ -24,6 +24,7 @@ import { promises as fs, appendFileSync as fsAppendFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Vault } from "./vault.js";
+import { readConfigFile, writeConfigFile } from "./config-file.js";
 import { registerScheme, createHandler, SCHEME } from "./protocol.js";
 import { titleBarOptions, titleBarCss, overlayColors } from "./chrome.js";
 import { findUpdate, openDownload } from "./update.js";
@@ -104,28 +105,29 @@ let vault = null;
 let win = null;
 let config = {};
 
+// Файл конфига есть, но не прочитался – см. шапку config-file.js: первая
+// же запись сперва отложит его в сторону, а не затрёт.
+let configBroken = false;
+
 async function readConfig() {
-  try {
-    const cfg = JSON.parse(await fs.readFile(configFile(), "utf8"));
-    // До этой версии zoom хранился «уровнем» setZoomLevel (-3..5, шаг
-    // ×1.2 за step) – теперь это готовый процент для setZoomFactor
-    // (50..200, см. комментарий у ZOOM_MIN). Уровень всегда меньше
-    // ZOOM_MIN, живой процент – никогда, этим и отличаем старое
-    // значение от нового; пересчитываем на лету, чтобы у тех, кто уже
-    // подгонял масштаб под себя, он не сбросился молча на 100%.
-    if (typeof cfg.zoom === "number" && cfg.zoom < ZOOM_MIN) {
-      cfg.zoom = Math.round(100 * Math.pow(1.2, cfg.zoom));
-    }
-    return cfg;
-  } catch {
-    return {};
+  const { config: cfg, broken } = await readConfigFile(configFile());
+  configBroken = broken;
+  // До этой версии zoom хранился «уровнем» setZoomLevel (-3..5, шаг
+  // ×1.2 за step) – теперь это готовый процент для setZoomFactor
+  // (50..200, см. комментарий у ZOOM_MIN). Уровень всегда меньше
+  // ZOOM_MIN, живой процент – никогда, этим и отличаем старое
+  // значение от нового; пересчитываем на лету, чтобы у тех, кто уже
+  // подгонял масштаб под себя, он не сбросился молча на 100%.
+  if (typeof cfg.zoom === "number" && cfg.zoom < ZOOM_MIN) {
+    cfg.zoom = Math.round(100 * Math.pow(1.2, cfg.zoom));
   }
+  return cfg;
 }
 
 async function saveConfig(patch) {
   config = { ...config, ...patch };
-  await fs.mkdir(path.dirname(configFile()), { recursive: true });
-  await fs.writeFile(configFile(), JSON.stringify(config, null, 2));
+  await writeConfigFile(configFile(), config, { broken: configBroken });
+  configBroken = false;
 }
 
 function isWebUrl(url) {

@@ -1276,6 +1276,10 @@ i18nRegister({
   "Не удалось сохранить копию": "Couldn’t save the copy",
   "Не удалось удалить: ": "Couldn’t delete: ",
   "Не удалось сохранить: ": "Couldn’t save: ",
+  "Не удалось прочитать настройки – ничего не сохранено.": "Couldn’t read the settings – nothing was saved.",
+  "Сохранить нельзя: ": "Can’t save: ",
+  "Файл {file} не читается – сохранение выключено, чтобы не стереть его. Прошлые версии лежат в «Истории версий».":
+    "The file {file} can’t be read – saving is turned off so it isn’t wiped. Earlier versions are in “Version history”.",
   "Сервер ответил {status}": "The server responded with {status}",
   "Картинка убрана из записи, но файл удалить не удалось: ":
     "The image was removed from the entry, but the file couldn’t be deleted: ",

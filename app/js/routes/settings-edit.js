@@ -594,6 +594,7 @@ async function mount(container, params) {
   hideTagsAllOn = false;
   hideTagsMixed = false;
   rawSettings = {};
+  settingsLoadError = null;
   tabDragSrc = null;
   shelves = [];
   scaleType = "categorical";

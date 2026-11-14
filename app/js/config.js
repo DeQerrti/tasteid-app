@@ -446,23 +446,31 @@ function guessRussianPlural(word) {
 // сервере перечитывается перед записью и всегда верный, неверно
 // содержимое.
 //
-// /api/site-settings отдаёт то, что лежит в репозитории сию секунду.
-// Запасной путь оставлен на случай, если эндпоинта нет (старая выкладка):
-// лучше вернуться к прежнему поведению, чем не сохранить ничего.
+// /api/site-settings отдаёт то, что лежит на диске сию секунду. Файла ещё
+// нет (первый запуск) – хранилище само отвечает пустым объектом, это не
+// ошибка.
+//
+// Раньше при любом сбое здесь был запасной путь: прочитать
+// /site-settings.json напрямую, а не вышло и это – вернуть {}. Остался он
+// со времён сайта («эндпоинта нет на старой выкладке») и в приложении
+// только вредил: испорченный или не прочитавшийся файл настроек молча
+// превращался в пустой объект, patchSiteSettings ниже дописывал в него
+// одну правку и сохранял ЦЕЛИКОМ – поверх всех подписей, разделов,
+// тир-листов и шкалы оценок. Хранилище (readJson в vault.js) как раз
+// затем и бросает ошибку на битом файле, чтобы пустышку не записали
+// поверх; теперь эта ошибка доходит до человека, а не глушится здесь.
 async function currentSiteSettings() {
+  let res;
   try {
-    const res = await fetch("/api/site-settings", { credentials: "include", cache: "no-store" });
-    if (res.ok) return await res.json();
+    res = await fetch("/api/site-settings", { credentials: "include", cache: "no-store" });
   } catch {
-    // сеть отвалилась – пробуем выложенную копию ниже
+    throw new Error(i18n("Не удалось прочитать настройки – ничего не сохранено."));
   }
-  try {
-    const res = await fetch("/site-settings.json", { cache: "no-store" });
-    if (res.ok) return await res.json();
-  } catch {
-    // нет файла/сети – работаем с пустым объектом, как при первом сохранении
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error((data && data.error) || i18n("Не удалось прочитать настройки – ничего не сохранено."));
   }
-  return {};
+  return data;
 }
 
 async function patchSiteSettings(mutator) {

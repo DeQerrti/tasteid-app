@@ -384,6 +384,7 @@ const sharedBrowserGlobals = [
   "originalGradeScale",
   "previewPalette",
   "rawSettings",
+  "settingsLoadError",
   "removedFavSections",
   "renderFavSectionsList",
   "renderLabelsPanel",

@@ -123,6 +123,8 @@ let DATA_FILE = "characters-tier.json";
 let ceCleanupFns = [];
 let cePrevTitle = null;
 let ceDirty = false;
+// Текст ошибки, если файл тир-листа не прочитался, – см. initCharsEdit.
+let ceLoadError = null;
 // "Открыть папку" в модалке персонажа умеет только настольное приложение
 // (shell.openPath в electron/main.js) – на телефоне и в обычном браузере
 // (dev-сервер) /api/app/info либо не отвечает мобильным mobile:true,
@@ -425,13 +427,30 @@ function updateDropIndicator(zone, clientX, clientY) {
 }
 
 // ══ ЗАГРУЗКА ═══════════════════════════════════
+// Файла ещё нет (новый тир-лист) – сервер сам отвечает пустым списком, это
+// не ошибка. А вот файл, который есть, но не прочитался (испорчен,
+// занят), раньше тоже молча превращался в data = []: редактор открывался
+// пустым, и «Сохранить всё» записывало этот пустой (или почти пустой)
+// список ЦЕЛИКОМ поверх настоящего тир-листа. Теперь причина видна, а
+// сохранение закрыто (см. ceLoadError в saveAll), пока файл не прочитан.
 async function initCharsEdit() {
+  ceLoadError = null;
   try {
     const res = await fetch(`/${DATA_FILE}?_=` + Date.now());
-    if (res.ok) data = await res.json();
-    else data = [];
+    if (!res.ok) throw new Error(i18n("Сервер ответил {status}", { status: res.status }));
+    const loaded = await res.json();
+    if (!Array.isArray(loaded)) throw new Error("JSON");
+    data = loaded;
   } catch {
     data = [];
+    ceLoadError = i18n("Файл {file} не читается – сохранение выключено, чтобы не стереть его. Прошлые версии лежат в «Истории версий».", { file: DATA_FILE });
+    const status = document.getElementById("status-msg");
+    if (status) {
+      status.className = "status-msg err";
+      status.textContent = ceLoadError;
+    }
+    const btn = document.getElementById("btn-save");
+    if (btn) btn.disabled = true;
   }
   ceDirty = false;
   renderSidebar();
@@ -2097,6 +2116,11 @@ function bindDragDrop() {
 async function saveAll() {
   const btn = document.getElementById("btn-save");
   const status = document.getElementById("status-msg");
+  if (ceLoadError) {
+    status.className = "status-msg err";
+    status.textContent = ceLoadError;
+    return;
+  }
   btn.disabled = true;
   btn.textContent = i18n("Сохраняем…");
   status.className = "status-msg";

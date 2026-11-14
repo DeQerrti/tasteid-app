@@ -115,6 +115,12 @@ function prunePalette() {
 }
 
 async function saveSettings() {
+  // См. settingsLoadError в settings-shortcuts.js: настройки при открытии
+  // не прочитались, на экране умолчания – сохранять их поверх файла нельзя.
+  if (settingsLoadError) {
+    backupToastGlobal(i18n("Сохранить нельзя: ") + settingsLoadError, false);
+    return;
+  }
   tabOrderState.forEach((id) => {
     const row = document.getElementById(`tabrow-${id}`);
     if (row && row.classList.contains("editing")) toggleTabEdit(id);

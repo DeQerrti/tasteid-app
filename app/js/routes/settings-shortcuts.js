@@ -44,6 +44,11 @@ async function resetShortcutsToDefault() {
 // страницей не управляется – без базового объекта они терялись бы при
 // любом сохранении отсюда.
 let rawSettings = {};
+// Настройки не прочитались (файл испорчен или недоступен) – текст ошибки.
+// Пока он стоит, saveSettings() (settings-labels.js) ничего не пишет:
+// форма в этот момент заполнена умолчаниями, а rawSettings пуст, и
+// «Сохранить» записало бы эту пустышку поверх настоящего файла.
+let settingsLoadError = null;
 
 async function loadCurrentSettings() {
   // Через currentSiteSettings (js/config.js), а не напрямую из
@@ -60,8 +65,17 @@ async function loadCurrentSettings() {
   // быстрого закрытия стало дотянуться проще, чем раньше.
   const mountRoot = document.getElementById("panel-appearance");
   const stale = () => !mountRoot?.isConnected;
-  const settings = await currentSiteSettings();
+  let settings;
+  try {
+    settings = await currentSiteSettings();
+  } catch (e) {
+    if (stale()) return;
+    settingsLoadError = e.message;
+    backupToastGlobal(e.message, false);
+    return;
+  }
   if (stale()) return;
+  settingsLoadError = null;
   rawSettings = settings;
 
   applyTextScale(Number(settings.textScale) || 100, false);
