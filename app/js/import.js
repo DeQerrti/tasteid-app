@@ -475,22 +475,37 @@ function importCardHtml(card) {
   </article>`;
 }
 
+// Экран выбора источника. «Ничего не сохранится, пока вы не подтвердите» –
+// сразу под вступлением, а не в самом конце после двух экранов карточек: это
+// главное, что хочется знать до первого импорта. Группы с одной карточкой
+// («Игры», «Любое другое приложение») идут рядом по две (.imp-pair), а не
+// каждая растянутой на всю ширину; карточки в неполной последней строке
+// растягиваются (.imp-cards-flow), пустых ячеек с линиями не остаётся.
 function importFileHtml() {
+  const groupHtml = (group) => `
+      <h2 class="section-h imp-group">${esc(group.title)}</h2>
+      <div class="imp-cards"><div class="imp-cards-grid imp-cards-flow">${group.cards.map(importCardHtml).join("")}</div></div>
+      ${group.note ? `<p class="imp-note imp-group-note">${esc(group.note)}</p>` : ""}`;
+  const groups = importGroups();
+  let html = "";
+  for (let i = 0; i < groups.length; i++) {
+    const g = groups[i];
+    const next = groups[i + 1];
+    if (g.cards.length === 1 && next && next.cards.length === 1) {
+      html += `<div class="imp-pair"><div class="imp-pair-col">${groupHtml(g)}</div><div class="imp-pair-col">${groupHtml(next)}</div></div>`;
+      i++;
+    } else {
+      html += groupHtml(g);
+    }
+  }
   return `
     <p class="panel-intro">
       ${i18n("Перенесите в паспорт то, что уже ведёте где-то ещё. Откройте нужный сервис – внутри по шагам написано, куда нажать и что выбрать.")}
     </p>
-    ${importGroups()
-      .map(
-        (group) => `
-      <h2 class="section-h imp-group">${esc(group.title)}</h2>
-      <div class="imp-cards"><div class="imp-cards-grid">${group.cards.map(importCardHtml).join("")}</div></div>
-      ${group.note ? `<p class="imp-note imp-group-note">${esc(group.note)}</p>` : ""}`
-      )
-      .join("")}
-    <p class="imp-note imp-foot">
+    <p class="imp-note imp-reassure">
       ${i18n("Ничего не сохранится, пока вы не подтвердите: сначала покажем, что нашлось, и как чужие оценки и статусы лягут на ваши. Что уже есть в паспорте, по умолчанию пропускается – без дублей и перезаписи. Файл разбирается прямо здесь, на этом устройстве, и никуда не отправляется.")}
-    </p>`;
+    </p>
+    ${html}`;
 }
 
 // ── Ключи сервисов ─────────────────────────────
@@ -2202,6 +2217,17 @@ function importStyles() {
       grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
       margin: 0 -1px -1px 0;
     }
+    /* Список источников: карточки в неполной последней строке растягиваются на
+       всю строку (flex вместо сетки) – пустых ячеек с линиями не остаётся.
+       Шаг «Что в каких столбцах» (.imp-cols) остаётся сеткой. */
+    .imp-cards-grid.imp-cards-flow { display: flex; flex-wrap: wrap; }
+    .imp-cards-flow .imp-card { flex: 1 1 17rem; box-sizing: border-box; }
+    .imp-cards-flow .imp-card.is-open { flex-basis: 100%; }
+    /* Две группы с одной карточкой – рядом. */
+    .imp-pair { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .imp-pair-col { flex: 1 1 0; min-width: 0; }
+    @media (max-width: 720px) { .imp-pair { flex-direction: column; gap: 0; } .imp-pair-col { width: 100%; } }
+    .imp-reassure { margin: -.4rem 0 .4rem; max-width: 74ch; line-height: 1.55; }
     .imp-card {
       background: var(--surface);
       border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
@@ -2238,7 +2264,6 @@ function importStyles() {
     .imp-card-body .imp-note { margin: .8rem 0 0; }
     .imp-card-note { margin-top: .2rem !important; }
     .imp-group-note { margin: .6rem 0 0; }
-    .imp-foot { margin: 2.4rem 0 1rem; }
     .imp-steps-label {
       font-family: 'DM Sans', sans-serif;
       font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;

@@ -60,6 +60,38 @@ ok(
   ),
   `разделы по видам (${groups.join(", ")})`
 );
+// Раскладка: «Игры» и «Любое другое приложение» – рядом, а не растянутыми на всю
+// ширину; «Ничего не сохранится…» – до карточек, а не в самом конце.
+ok(
+  (await page.locator(".imp-pair .imp-pair-col .imp-group").allTextContents()).join("|") ===
+    "Игры|Любое другое приложение",
+  "группы с одной карточкой («Игры», «Любое другое приложение») стоят рядом"
+);
+ok(
+  await page.evaluate(() => {
+    const r = document.querySelector(".imp-reassure");
+    const first = document.querySelector(".imp-group");
+    return (
+      !!r &&
+      !document.querySelector(".imp-foot") &&
+      !!(r.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING)
+    );
+  }),
+  "«Ничего не сохранится…» стоит до карточек, внизу его нет"
+);
+ok(
+  await page.evaluate(() => {
+    // карточки неполной последней строки растянуты: ни одна группа не оставляет пустой ячейки справа
+    return [...document.querySelectorAll(".imp-cards")].every((box) => {
+      const b = box.getBoundingClientRect();
+      const cards = [...box.querySelectorAll(".imp-card")].map((c) => c.getBoundingClientRect());
+      const lastRowBottom = Math.max(...cards.map((c) => c.bottom));
+      const lastRow = cards.filter((c) => Math.abs(c.bottom - lastRowBottom) < 2);
+      return Math.max(...lastRow.map((c) => c.right)) >= b.right - 2;
+    });
+  }),
+  "карточки последней строки доходят до края – пустых ячеек нет"
+);
 ok((await page.locator(".imp-card-body").count()) === 0, "сначала все карточки свёрнуты");
 ok(
   (await page.locator(".imp-card.is-planned [data-imp-open]").count()) === 0,
