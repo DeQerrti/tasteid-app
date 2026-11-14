@@ -503,37 +503,44 @@ function settingsViewHtml() {
            между панелями уже умеет .side-tab. -->
       <div class="panel" id="panel-backup">
         <p class="panel-intro" data-i18n>
-          Каждое сохранение файла – это отдельная версия, которая навсегда остаётся здесь, даже если
-          текущая версия сломается. Выберите файл, найдите нужную дату и либо скачайте эту версию как
-          JSON, либо восстановите её – тогда она станет текущей.
+          Каждое сохранение файла – отдельная версия: она остаётся здесь, даже если текущая сломается.
         </p>
-        <div class="history-retention">
-          <label for="history-retention-select" data-i18n>Автоматически удалять версии старше:</label>
-          <select id="history-retention-select" data-no-dirty onchange="saveHistoryRetention(this.value)"></select>
-          <button class="btn btn-ghost" onclick="pruneHistoryNow()" title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки – по всем файлам сразу" data-i18n data-i18n-title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки – по всем файлам сразу">Почистить сейчас</button>
+        <!-- Обслуживание – двумя строками сверху: срок хранения версий и поиск
+             неиспользуемых обложек (раньше они были в самом низу, после всего
+             списка версий, хотя к истории не относятся). -->
+        <div class="set-row">
+          <div class="set-row-main"><div class="set-row-title" data-i18n>Автоматически удалять версии</div></div>
+          <div class="set-row-ctl">
+            <select id="history-retention-select" data-no-dirty aria-label="${i18n("Автоматически удалять версии")}" onchange="saveHistoryRetention(this.value)"></select>
+            <button class="btn btn-ghost" onclick="pruneHistoryNow()" title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки – по всем файлам сразу" data-i18n data-i18n-title="Применить выбранный срок прямо сейчас, не дожидаясь автоматической чистки – по всем файлам сразу">Почистить сейчас</button>
+          </div>
         </div>
         <div class="status-msg" id="status-history-retention"></div>
-        <div class="file-tabs" id="fileTabs"></div>
-        <div id="content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
 
         <!-- Смена обложки удаляет старый файл сама (js/utils.js:
              deleteMediaFile), но удаление ЦЕЛОГО отзыва/раздела/персонажа –
              намеренно нет: ссылка должна остаться рабочей при откате через
-             историю версий выше. Со временем такие файлы накапливаются,
-             никем уже не используемые, – эта секция находит их и, по явному
-             запросу, убирает тем же путём (см. её же комментарий у
-             findOrphanedCovers в core/api.js). -->
-        <h2 class="section-h" data-i18n>Осиротевшие обложки</h2>
-        <p class="panel-intro" data-i18n>
-          Смена обложки удаляет старый файл сама, но удаление целого отзыва, раздела или персонажа – нет:
-          ссылка должна остаться рабочей, если вы передумаете и восстановите запись через историю версий
-          выше. Такие файлы со временем накапливаются на диске, никем уже не используемые.
-        </p>
-        <div class="row">
-          <button class="btn btn-ghost" onclick="scanOrphanedCovers()" data-i18n>Найти неиспользуемые обложки</button>
+             историю версий. Со временем такие файлы накапливаются, никем уже
+             не используемые, – эта строка находит их и, по явному запросу,
+             убирает тем же путём (см. её же комментарий у findOrphanedCovers
+             в core/api.js). -->
+        <div class="set-row">
+          <div class="set-row-main">
+            <div class="set-row-title" data-i18n>Неиспользуемые обложки</div>
+            <div class="set-row-sub" data-i18n>
+              Остаются после удаления отзыва, раздела или персонажа – так ссылка работает,
+              если восстановить запись из истории.
+            </div>
+          </div>
+          <div class="set-row-ctl">
+            <button class="btn btn-ghost" onclick="scanOrphanedCovers()" data-i18n>Найти неиспользуемые обложки</button>
+          </div>
         </div>
         <div class="status-msg" id="status-orphaned-covers"></div>
         <div id="orphaned-covers-list"></div>
+
+        <div class="file-tabs" id="fileTabs"></div>
+        <div id="content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
       </div>
 
       <!-- Одна полоса «Сохранить» вместо пяти одинаковых кнопок по

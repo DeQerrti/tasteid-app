@@ -197,17 +197,35 @@
         <span class="version-list-count">${i18n("Версий: {n}", { n: pastCount })}</span>
         ${pastCount ? `<button class="btn-mini danger" onclick="clearFileHistory('${path}')" title="${esc(i18n("Стереть все прошлые версии этого файла целиком, независимо от возраста – не только старые"))}">${i18n("Удалить всю историю")}</button>` : ""}
       </div>`;
+    // По дням: заголовок «13 ноября 2026» и в строках только время – раньше в
+    // каждой из десятков строк повторялась дата целиком и одна и та же подпись
+    // «сохранение». Подпись показываем, только когда она не «сохранение»
+    // (например, восстановление версии). Полное время с секундами – в подсказке
+    // у времени: две версии в одну минуту иначе не отличить.
+    let prevDay = null;
     content.innerHTML = head + versions.map((v) => {
       const isCurrent = v.sha === "current";
       const dt = v.date ? new Date(v.date) : null;
       const dateStr = isCurrent ? i18n("сейчас") :
         dt ? dt.toLocaleString(dateLocale(), { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : i18n("дата неизвестна");
+      const dayStr = !isCurrent && dt
+        ? dt.toLocaleDateString(dateLocale(), { day: "2-digit", month: "long", year: "numeric" }).replace(/\s*г\.$/, "")
+        : "";
+      const timeStr = !isCurrent && dt ? dt.toLocaleTimeString(dateLocale(), { hour: "2-digit", minute: "2-digit" }) : dateStr;
+      const fullStr = !isCurrent && dt
+        ? dt.toLocaleString(dateLocale(), { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        : "";
+      const dayHead = dayStr && dayStr !== prevDay ? `<div class="version-day">${esc(dayStr)}</div>` : "";
+      if (dayStr) prevDay = dayStr;
       const msg = firstLine(v.message);
-      return `
+      const msgHtml = msg && msg !== "сохранение"
+        ? `<div class="version-msg" title="${esc(v.message)}">${esc(msg)}</div>`
+        : "";
+      return `${dayHead}
       <div class="version-row">
         <div class="version-main">
-          <div class="version-date">${esc(dateStr)}${isCurrent ? `<span class="version-badge">${i18n("текущая")}</span>` : ""}</div>
-          <div class="version-msg" title="${esc(v.message)}">${esc(msg)}</div>
+          <div class="version-date"${fullStr ? ` title="${esc(fullStr)}"` : ""}>${esc(timeStr)}${isCurrent ? `<span class="version-badge">${i18n("текущая")}</span>` : ""}</div>
+          ${msgHtml}
         </div>
         <div class="version-actions">
           <button class="btn-mini" onclick="downloadBackupVersion('${path}','${v.sha}')">${i18n("⤓ Скачать")}</button>

@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=36"></script>
+<script src="/js/i18n-en.js?v=37"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=31"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -3829,6 +3829,29 @@ main.fe-view > .status-msg:empty { display: none; }
 :where(.set-view) .vault-current { display: inline-flex; align-items: center; margin-right: 6px; font-family: 'DM Sans', sans-serif; font-size: .76rem; }
 :where(.set-view) #vaultsList .tab-name { font-family: 'DM Sans', sans-serif; font-size: .9rem; color: var(--text-hi); }
 
+/* «История версий»: версии по дням, строки легче, кнопки ссылками (список
+   рисует js/backup-history.js, он же – у маршрута #/backup-history, поэтому
+   стили только в панели настроек). «Удалить всю историю» – тихая ссылка:
+   самое необратимое действие страницы не должно быть боксовой кнопкой. */
+:where(.set-view) #panel-backup .status-msg:empty { display: none; }
+:where(.set-view) #panel-backup .file-tabs { margin-top: 18px; }
+:where(.set-view) #panel-backup .version-day {
+  font-family: 'DM Sans', sans-serif; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-dim); margin: 18px 0 2px;
+}
+:where(.set-view) #panel-backup .version-row { padding: 6px 0; min-height: 38px; }
+:where(.set-view) #panel-backup .version-date { font-size: .9rem; }
+:where(.set-view) #panel-backup .version-actions .btn-mini {
+  background: none; border: 0; box-shadow: none; padding: 4px 8px; color: var(--text-dim);
+  font-size: .76rem; text-decoration: underline; text-underline-offset: 3px;
+}
+:where(.set-view) #panel-backup .version-actions .btn-mini:hover { background: none; color: var(--text-hi); }
+:where(.set-view) #panel-backup .version-list-head .btn-mini.danger {
+  background: none; border: 0; box-shadow: none; color: var(--text-dim);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+:where(.set-view) #panel-backup .version-list-head .btn-mini.danger:hover { background: none; color: var(--red-hi); }
+
 /* «Приложение»: строки «название слева, действие справа» (renderAppPanel,
    settings-app.js, и разметка в settings-edit.js). Раньше – блоки с
    заголовками друг под другом, путь и версия в пунктирных рамках. */
@@ -3848,7 +3871,7 @@ main.fe-view > .status-msg:empty { display: none; }
 :where(.set-view) .set-row-ctl:not(.hidden) { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
 :where(.set-view) .set-row-ctl .btn { margin: 0; white-space: nowrap; }
 :where(.set-view) .set-row-ctl .app-zoom-slider { width: 150px; }
-:where(.set-view) .set-row-ctl select { min-width: 160px; }
+:where(.set-view) .set-row-ctl select { min-width: 160px; width: auto; }
 @media (max-width: 720px) {
   :where(.set-view) .set-row { flex-direction: column; align-items: stretch; gap: 10px; }
   :where(.set-view) .set-row-ctl:not(.hidden) { justify-content: flex-start; }
@@ -4176,7 +4199,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/reviews.js?v=29"></script>
 <script src="/js/stats.js?v=22"></script>
 <script src="/js/tierlist.js?v=15"></script>
-<script src="/js/backup-history.js?v=2"></script>
+<script src="/js/backup-history.js?v=3"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и
      «Импорт» маршрута #/settings-edit (js/routes/settings-edit.js).
      Раньше их подключала только сама settings-edit.html; в общей
@@ -4224,7 +4247,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/settings-sync.js?v=5"></script>
 <script src="/js/routes/settings-shortcuts.js?v=6"></script>
 <script src="/js/routes/settings-labels.js?v=6"></script>
-<script src="/js/routes/settings-edit.js?v=11"></script>
+<script src="/js/routes/settings-edit.js?v=12"></script>
 
 <script>
 let _navInit = true;
