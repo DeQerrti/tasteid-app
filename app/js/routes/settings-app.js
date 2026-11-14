@@ -27,9 +27,9 @@ async function detectApp() {
   try {
     appInfo = await appApi("/api/app/info");
     document.getElementById("tab-app").classList.remove("hidden");
-    document.getElementById("tab-vaults").classList.remove("hidden");
     // Синхронизация ходит в /api/export-backup и /api/restore-backup –
-    // они есть у приложения (core/api.js), но не у голого сайта.
+    // они есть у приложения (core/api.js), но не у голого сайта. В той
+    // же панели – и хранилища (отдельной вкладки у них больше нет).
     document.getElementById("tab-sync").classList.remove("hidden");
   } catch {
     // Обычный браузер – панелей приложения просто нет.

@@ -44,7 +44,18 @@ async function loadCurrentSettings() {
   // выложенного файла: сохранение отсюда отправляет весь объект целиком,
   // и прочитанная копия, отставшая на одну выкладку, стёрла бы всё, что
   // изменилось за это время в другой вкладке или с телефона.
+  //
+  // stale() – окно настроек закрыли (или закрыли и открыли заново), пока
+  // шла загрузка: дорисовывать нечего, а в новое окно – нельзя, оно
+  // загружает своё. Сверяемся с тем самым узлом, что был на старте, а
+  // не просто «есть ли #panel-appearance»: у заново открытого окна он
+  // уже другой. Раньше дорисовка падала на «Cannot set properties of
+  // null» (renderLabelsPanel, renderTabsList…) – с окном и Escape до
+  // быстрого закрытия стало дотянуться проще, чем раньше.
+  const mountRoot = document.getElementById("panel-appearance");
+  const stale = () => !mountRoot?.isConnected;
   const settings = await currentSiteSettings();
+  if (stale()) return;
   rawSettings = settings;
 
   applyTextScale(Number(settings.textScale) || 100, false);
@@ -68,6 +79,7 @@ async function loadCurrentSettings() {
   // спрятанные везде теги при повторном заходе в настройки снова
   // предлагали спрятать, а глазик никогда не показывал перечёркнутым.
   const reviewsForTagsToggle = await fetchReviews();
+  if (stale()) return;
   hideTagsAllOn =
     reviewsForTagsToggle.length > 0 && reviewsForTagsToggle.every((r) => r.no_tags_on_card === true);
   syncHideTagsToggle();

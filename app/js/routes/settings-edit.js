@@ -121,6 +121,11 @@ function sideTabLabel(text) {
   return `<span class="side-tab-label" data-i18n>${text}</span>`;
 }
 
+// Бывшие отдельные панели, влитые в соседние: старые ссылки
+// #/settings-edit?panel=… (и чьи-то закладки) ведут туда, где их
+// содержимое живёт теперь.
+const SETTINGS_PANEL_ALIASES = { labels: "appearance", vaults: "sync" };
+
 function settingsViewHtml() {
   return `
   <div id="locked" class="hidden">
@@ -130,20 +135,30 @@ function settingsViewHtml() {
   </div>
 
   <div id="app" class="hidden">
+    <!-- ✕ – только в режиме окна поверх приложения (ПК, см.
+         #view-root.route-overlay в index.html); на телефоне настройки
+         по-прежнему на весь экран со своей стрелкой «назад». -->
+    <button type="button" class="set-close" id="se-close" aria-label="Закрыть" data-i18n-aria-label="Закрыть" title="Esc">✕</button>
+    <!-- Пункты – тремя группами вместо одного списка из двенадцати.
+         «Подписи» живут в конце «Оформления», «Хранилища» – в одной
+         панели с «Синхронизацией» (обе про то, где лежат данные).
+         Старые адреса ?panel=labels / ?panel=vaults ведут туда же – см.
+         SETTINGS_PANEL_ALIASES ниже. -->
     <nav id="sidebar">
       <a href="#" class="back" id="se-back" data-i18n>На главную</a>
+      <div class="side-group" data-i18n>Вид</div>
       <button class="side-tab active" data-panel="appearance">${sideTabIcon("appearance")}${sideTabLabel("Оформление")}</button>
       <button class="side-tab" data-panel="tabs">${sideTabIcon("tabs")}${sideTabLabel("Вкладки")}</button>
-      <button class="side-tab" data-panel="shortcuts">${sideTabIcon("shortcuts")}${sideTabLabel("Горячие клавиши")}</button>
       <button class="side-tab" data-panel="stats">${sideTabIcon("stats")}${sideTabLabel("Статистика")}</button>
       <button class="side-tab" data-panel="grades">${sideTabIcon("grades")}${sideTabLabel("Оценки и статусы")}</button>
-      <button class="side-tab" data-panel="labels">${sideTabIcon("labels")}${sideTabLabel("Подписи")}</button>
-      <button class="side-tab" data-panel="passports">${sideTabIcon("passports")}${sideTabLabel("Обмен")}</button>
-      <button class="side-tab hidden" data-panel="sync" id="tab-sync">${sideTabIcon("sync")}${sideTabLabel("Синхронизация")}</button>
-      <button class="side-tab" data-panel="import">${sideTabIcon("import")}${sideTabLabel("Импорт")}</button>
-      <button class="side-tab hidden" data-panel="vaults" id="tab-vaults">${sideTabIcon("vaults")}${sideTabLabel("Хранилища")}</button>
+      <button class="side-tab" data-panel="shortcuts">${sideTabIcon("shortcuts")}${sideTabLabel("Горячие клавиши")}</button>
+      <div class="side-group" data-i18n>Данные</div>
       <button class="side-tab hidden" data-panel="app" id="tab-app">${sideTabIcon("app")}${sideTabLabel("Приложение")}</button>
-      <button class="side-tab side-tab-divider" data-panel="backup">${sideTabIcon("backup")}${sideTabLabel("История версий")}</button>
+      <button class="side-tab hidden" data-panel="sync" id="tab-sync">${sideTabIcon("sync")}${sideTabLabel("Хранилища и синхронизация")}</button>
+      <button class="side-tab" data-panel="backup">${sideTabIcon("backup")}${sideTabLabel("История версий")}</button>
+      <div class="side-group" data-i18n>Перенос</div>
+      <button class="side-tab" data-panel="import">${sideTabIcon("import")}${sideTabLabel("Импорт")}</button>
+      <button class="side-tab" data-panel="passports">${sideTabIcon("passports")}${sideTabLabel("Обмен")}</button>
       <div class="sidebar-resize" id="sidebar-resize" aria-hidden="true"></div>
     </nav>
 
@@ -170,7 +185,7 @@ function settingsViewHtml() {
           всё, используйте «Масштаб» на вкладке «Приложение».
         </p>
         <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="range" id="text-scale-slider" min="80" max="150" step="5" value="100"
+          <input type="range" id="text-scale-slider" class="app-zoom-slider" min="80" max="150" step="5" value="100"
             oninput="applyTextScale(this.value, true)">
           <span class="app-zoom" id="text-scale-value">100%</span>
           <button type="button" class="btn btn-ghost" onclick="applyTextScale(100, true)" data-i18n>Сбросить</button>
@@ -195,57 +210,76 @@ function settingsViewHtml() {
         <h2 class="section-h" data-i18n>Палитра</h2>
         <div id="paletteList"></div>
         <div class="pal-foot">
-          <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
           <button type="button" class="pal-reset" onclick="resetPalette()" data-i18n>Вернуть все цвета темы</button>
         </div>
         <div class="status-msg" id="status-appearance"></div>
+
+        <!-- Бывшая отдельная панель «Подписи». Группы – сворачиваемые
+             разделы (collapsibleizeSettingsSections) в две колонки. -->
+        <h2 class="set-merged-h" data-i18n>Подписи</h2>
+        <p class="panel-intro" data-i18n>
+          Пустое поле означает «оставить как есть» – под ним написано
+          значение по умолчанию.
+        </p>
+        <div id="labelsGroups" class="set-cols"></div>
+        <div class="status-msg" id="status-labels"></div>
       </div>
 
+      <!-- Четыре списка – по колонке на каждый (две в ряд), а не друг под
+           другом на всю ширину. Каждый список в своей обёртке: так
+           collapsibleizeSettingsSections() сворачивает внутри неё, а
+           не тянет в раздел всё до следующего заголовка. Сохраняет всё
+           общая полоса внизу (#set-savebar). -->
       <div class="panel" id="panel-tabs">
-        <div id="tabsList"></div>
-
-        <!-- Один общий "Сохранить" на всю панель – см. её же комментарий
-             ниже, у мест, откуда кнопку сюда перенесли. Стоит ДО первого
-             сворачиваемого h2.section-h намеренно: collapsibleizeSettingsSections()
-             заворачивает всё до следующего h2 включительно, и кнопка,
-             стоявшая физически последней (после «Тир-листов»), исчезала
-             вместе с этим разделом при его сворачивании – нажать «Сохранить»
-             можно было, только сначала раскрыв самый нижний блок. -->
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
+        <div class="set-cols">
+          <div>
+            <h2 class="section-h set-static" data-i18n>Вкладки</h2>
+            <div id="tabsList"></div>
+          </div>
+          <div>
+            <h2 class="section-h" id="statusesHeading"></h2>
+            <div id="statusesList"></div>
+            <div class="row" style="margin-top:14px;">
+              <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
+            </div>
+            <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
+          </div>
+          <div>
+            <h2 class="section-h" id="favSectionsHeading"></h2>
+            <div id="favSectionsList"></div>
+            <div class="row" style="margin-top:14px;">
+              <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги" onkeydown="if(event.key==='Enter'){event.preventDefault();addFavCollection();}"></div>
+            </div>
+            <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
+          </div>
+          <div>
+            <h2 class="section-h" id="tierModesHeading"></h2>
+            <div id="tierModesList"></div>
+            <div class="row" style="margin-top:14px;">
+              <div><label data-i18n>Новый раздел</label><input type="text" id="newTierCollectionName" data-no-dirty placeholder="Например: Игры" data-i18n-placeholder="Например: Игры" onkeydown="if(event.key==='Enter'){event.preventDefault();addTierCollectionInline();}"></div>
+            </div>
+            <button class="btn btn-ghost" onclick="addTierCollectionInline()" data-i18n>Добавить раздел</button>
+          </div>
+        </div>
         <div class="status-msg" id="status-tabs"></div>
-
-        <h2 class="section-h" id="statusesHeading"></h2>
-        <div id="statusesList"></div>
-        <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новый статус</label><input type="text" id="newStatusName" data-no-dirty placeholder="Например: Брошено" data-i18n-placeholder="Например: Брошено" onkeydown="if(event.key==='Enter'){event.preventDefault();addStatusBucket();}"></div>
-        </div>
-        <button class="btn btn-ghost" onclick="addStatusBucket()" data-i18n>Добавить раздел</button>
-
-        <h2 class="section-h" id="favSectionsHeading"></h2>
-        <div id="favSectionsList"></div>
-        <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новый раздел</label><input type="text" id="newFavCollectionName" data-no-dirty placeholder="Например: Пейринги" data-i18n-placeholder="Например: Пейринги" onkeydown="if(event.key==='Enter'){event.preventDefault();addFavCollection();}"></div>
-        </div>
-        <button class="btn btn-ghost" onclick="addFavCollection()" data-i18n>Добавить раздел</button>
-
-        <h2 class="section-h" id="tierModesHeading"></h2>
-        <div id="tierModesList"></div>
-        <div class="row" style="margin-top:14px;">
-          <div><label data-i18n>Новый раздел</label><input type="text" id="newTierCollectionName" data-no-dirty placeholder="Например: Игры" data-i18n-placeholder="Например: Игры" onkeydown="if(event.key==='Enter'){event.preventDefault();addTierCollectionInline();}"></div>
-        </div>
-        <button class="btn btn-ghost" onclick="addTierCollectionInline()" data-i18n>Добавить раздел</button>
       </div>
 
       <div class="panel" id="panel-shortcuts">
-        <div id="shortcutsList"></div>
-        <button class="btn btn-ghost" onclick="resetShortcutsToDefault()" data-i18n>Сбросить</button>
-
-        <h2 class="section-h" data-i18n>Переключение вкладок</h2>
-        <p class="panel-intro" data-i18n>
-          Цифры 1–5 переключают вкладки по порядку и сами подстраиваются,
-          если какую-то скрыть.
-        </p>
-        <div id="tabKeyBindingsList"></div>
+        <div class="set-cols">
+          <div>
+            <h2 class="section-h" data-i18n>Действия</h2>
+            <div id="shortcutsList"></div>
+            <button class="btn btn-ghost" onclick="resetShortcutsToDefault()" data-i18n>Сбросить</button>
+          </div>
+          <div>
+            <h2 class="section-h" data-i18n>Переключение вкладок</h2>
+            <p class="panel-intro" data-i18n>
+              Цифры 1–5 переключают вкладки по порядку и сами подстраиваются,
+              если какую-то скрыть.
+            </p>
+            <div id="tabKeyBindingsList"></div>
+          </div>
+        </div>
       </div>
 
       <div class="panel" id="panel-stats">
@@ -256,7 +290,6 @@ function settingsViewHtml() {
         <p class="panel-intro" data-i18n>Красят разбивку по типам и годам – диаграмму, столбики и цифры.</p>
         <div id="typeColorsList"></div>
 
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
         <div class="status-msg" id="status-stats"></div>
       </div>
 
@@ -283,18 +316,7 @@ function settingsViewHtml() {
           <button class="btn btn-ghost" onclick="addShelfRow()" data-i18n>Добавить полку</button>
         </div>
 
-        <button class="btn-save" onclick="saveSettings()" style="margin-top:20px;" data-i18n>Сохранить</button>
         <div class="status-msg" id="status-grades"></div>
-      </div>
-
-      <div class="panel" id="panel-labels">
-        <p class="panel-intro" data-i18n>
-          Пустое поле означает «оставить как есть» – под ним написано
-          значение по умолчанию.
-        </p>
-        <div id="labelsGroups"></div>
-        <button class="btn-save" onclick="saveSettings()" data-i18n>Сохранить</button>
-        <div class="status-msg" id="status-labels"></div>
       </div>
 
       <div class="panel" id="panel-passports">
@@ -307,17 +329,17 @@ function settingsViewHtml() {
            про показ себя чужим, этот – про то, чтобы твои же данные были
            одинаковыми на всех твоих устройствах. Подробности решения –
            в app/js/sync.js. -->
+      <!-- Ниже в той же панели – список хранилищ и переключение между
+           ними (раньше отдельная панель «Хранилища»: две полупустые
+           страницы про одно и то же – где лежат данные). Не путать с
+           «Паспортом»: тот – урезанный файл-слепок для показа чужим, а
+           тут – свои полноценные хранилища, между которыми можно
+           переключаться, как между профилями в Obsidian. Показывается
+           только в приложении – на голом сайте хранилище всегда одно. -->
       <div class="panel" id="panel-sync">
+        <h2 class="section-h" data-i18n>Синхронизация</h2>
         <div id="syncPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
-      </div>
-
-      <!-- Список хранилищ и переключение между ними. Не путать с
-           «Паспортом» на соседней вкладке: тот – урезанный файл-слепок
-           для показа чужим, а тут – свои полноценные хранилища, между
-           которыми можно переключаться, как между профилями в Obsidian.
-           Панель показывается только в приложении – на голом сайте
-           хранилище всегда одно и переключать нечего. -->
-      <div class="panel" id="panel-vaults">
+        <h2 class="set-merged-h" data-i18n>Хранилища</h2>
         <div id="vaultsPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
       </div>
 
@@ -509,6 +531,17 @@ function settingsViewHtml() {
         <div class="status-msg" id="status-orphaned-covers"></div>
         <div id="orphaned-covers-list"></div>
       </div>
+
+      <!-- Одна полоса «Сохранить» вместо пяти одинаковых кнопок по
+           панелям: все они звали ту же saveSettings(), которая сохраняет
+           всё разом. Видна, только пока есть несохранённое
+           (settingsDirty, см. syncSaveBar() ниже), прилипает к низу
+           окна, так что до неё не нужно листать. -->
+      <div class="set-savebar" id="set-savebar" hidden>
+        <span class="set-savebar-text" data-i18n>Есть несохранённые изменения</span>
+        <button type="button" class="btn btn-ghost" id="set-savebar-cancel" data-i18n>Отменить</button>
+        <button type="button" class="set-savebar-save" id="set-savebar-save" onclick="saveSettings()" data-i18n>Сохранить</button>
+      </div>
     </main>
   </div>
 
@@ -603,6 +636,38 @@ async function mount(container, params) {
   seOn(window, "resize", syncAppPadding);
   syncAppPadding();
 
+  // На ПК настройки – окно поверх приложения (router.js: overlay у
+  // этого маршрута, #view-root.route-overlay в index.html). Закрывают
+  // его ✕, Escape (settingsBackAction, как и раньше) и нажатие мимо
+  // окна, на затемнение, – все три через тот же вопрос про
+  // несохранённое, что и «На главную». mousedown, а не click: иначе
+  // выделение текста в поле, отпущенное за краем окна, закрывало бы его.
+  container.querySelector("#se-close")?.addEventListener("click", () => leaveSettingsRoute());
+  seOn(container, "mousedown", (e) => {
+    if (e.target === container && container.classList.contains("route-overlay")) leaveSettingsRoute();
+  });
+
+  // Полоса «Сохранить»: settingsDirty взводят десятки мест (oninput в
+  // разметке, markSettingsDirty, обработчики списков), поэтому не
+  // подписываемся на каждое, а сверяемся с флагом чуть-чуть раз в
+  // несколько кадров – дёшево, и ни одно место не забыто.
+  const saveBar = container.querySelector("#set-savebar");
+  const syncSaveBar = () => {
+    if (saveBar) saveBar.hidden = !settingsDirty;
+  };
+  const saveBarTimer = setInterval(syncSaveBar, 250);
+  seCleanupFns.push(() => clearInterval(saveBarTimer));
+  // «Отменить» – выбросить несохранённое: вернуть превью палитры и
+  // перечитать маршрут с диска, оставшись на той же панели.
+  container.querySelector("#set-savebar-cancel")?.addEventListener("click", () => {
+    settingsDirty = false;
+    revertPalettePreview();
+    const panel = container.querySelector(".side-tab.active")?.dataset.panel;
+    const target = `#/settings-edit${panel ? `?panel=${panel}` : ""}`;
+    if (location.hash === target) location.reload();
+    else location.hash = target;
+  });
+
   // Заголовок над панелью – раньше везде висело общее «Настройки»
   // независимо от того, какой раздел открыт; здесь ставим название
   // самого раздела, взятое из подписи под тем же .side-tab (она уже
@@ -654,9 +719,12 @@ async function mount(container, params) {
       // Паспорта грузятся при первом открытии панели, а не вместе со
       // страницей: они тянут reviews.json целиком, а заходят сюда редко.
       if (btn.dataset.panel === "passports") loadPassports();
-      if (btn.dataset.panel === "sync") renderSyncPanel();
+      // Хранилища – в той же панели, что и синхронизация.
+      if (btn.dataset.panel === "sync") {
+        renderSyncPanel();
+        renderVaultsPanel();
+      }
       if (btn.dataset.panel === "import") loadImport();
-      if (btn.dataset.panel === "vaults") renderVaultsPanel();
       if (btn.dataset.panel === "app") loadAppPanel();
       if (btn.dataset.panel === "backup") initBackupHistoryPanel();
     });
@@ -785,7 +853,8 @@ async function mount(container, params) {
   // не бьёт по ещё скрытой кнопке.
   detectApp().then(() => {
     if (!openPanel) return;
-    const btn = container.querySelector(`.side-tab[data-panel="${openPanel}"]`);
+    const panel = SETTINGS_PANEL_ALIASES[openPanel] || openPanel;
+    const btn = container.querySelector(`.side-tab[data-panel="${panel}"]`);
     if (btn && !btn.classList.contains("hidden")) btn.click();
   });
 }
@@ -932,11 +1001,17 @@ function collapsibleizeSettingsSections() {
   // загрузки настроек (renderLabelsPanel), и эта функция вызывается
   // ещё раз – уже обёрнутые заголовки пропускаем, а не заворачиваем
   // повторно (иначе .set-sec оказалась бы вложена сама в себя).
+  //
+  // «Вкладки» теперь в две колонки, места хватает – там разделы
+  // раскрыты сразу (свернуть по-прежнему можно). Подписи (группы в
+  // #labelsGroups в конце «Оформления») – свёрнуты, их много. Заголовок
+  // .set-static («Вкладки» над самим списком вкладок) не сворачивается.
   document
     .querySelectorAll(
-      "#panel-tabs h2.section-h:not(.set-sec-toggle), #panel-labels h2.section-h:not(.set-sec-toggle)"
+      "#panel-tabs h2.section-h:not(.set-sec-toggle):not(.set-static), #labelsGroups h2.section-h:not(.set-sec-toggle)"
     )
     .forEach((h2) => {
+      const startOpen = !!h2.closest("#panel-tabs");
       const parent = h2.parentNode;
       const body = document.createElement("div");
       body.className = "set-sec-body";
@@ -947,11 +1022,11 @@ function collapsibleizeSettingsSections() {
         body.appendChild(toMove);
       }
       const wrap = document.createElement("div");
-      wrap.className = "set-sec collapsed";
+      wrap.className = startOpen ? "set-sec" : "set-sec collapsed";
       h2.classList.add("set-sec-toggle");
       h2.setAttribute("tabindex", "0");
       h2.setAttribute("role", "button");
-      h2.setAttribute("aria-expanded", "false");
+      h2.setAttribute("aria-expanded", String(startOpen));
       parent.insertBefore(wrap, h2);
       wrap.appendChild(h2);
       wrap.appendChild(body);
@@ -986,4 +1061,5 @@ function flashStatus(id, ok, msg) {
 }
 
 
-registerRoute("#/settings-edit", { mount, unmount });
+// overlay – на ПК окном поверх приложения (см. router.js).
+registerRoute("#/settings-edit", { mount, unmount, overlay: true });

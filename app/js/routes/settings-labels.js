@@ -57,6 +57,11 @@ const LABEL_KEY_TITLES = {
 
 function renderLabelsPanel(saved) {
   const box = document.getElementById("labelsGroups");
+  // Зовётся после загрузки настроек (loadCurrentSettings) – если окно
+  // настроек успели закрыть раньше (Escape сразу после открытия),
+  // разметки уже нет, и без этой проверки падало «Cannot set properties
+  // of null». Та же страховка, что у renderTypeColorsList.
+  if (!box) return;
   const defaults = typeof DEFAULT_LABELS === "object" ? DEFAULT_LABELS : {};
 
   box.innerHTML = Object.entries(LABEL_GROUP_TITLES)

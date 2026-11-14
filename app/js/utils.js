@@ -1177,12 +1177,23 @@ function tabBindingMatchesMouse(e, b) {
 
 function tabSwitchBindingsHtml() {
   const bindings = currentTabKeyBindings();
+  // Без своей клавиши вкладка всё равно переключается цифрой – по
+  // позиции среди ВИДИМЫХ вкладок рельсы, тем же счётом, что и сам
+  // обработчик цифр в index.html (visibleTabBtns). Раньше здесь стояло
+  // «не задано» прямо под пояснением «цифры 1–5 переключают вкладки» –
+  // одно противоречило другому.
+  const visible = Array.from(document.querySelectorAll(".rail-tabs .tab-btn:not([hidden])")).map((btn) =>
+    btn.getAttribute("aria-controls")
+  );
   return TAB_IDS.map((id) => {
     const label = typeof window.siteLabel === "function" ? window.siteLabel("nav", id, id) : id;
     const b = bindings[id];
+    const pos = visible.indexOf(`tab-${id}`);
     const current = b
       ? `<span class="kbd">${esc(tabBindingLabel(b))}</span>`
-      : `<span class="shortcut-desc">${esc(i18n("не задано"))}</span>`;
+      : pos >= 0 && pos < 5
+        ? `<span class="kbd">${pos + 1}</span> <span class="shortcut-desc">${esc(i18n("по умолчанию"))}</span>`
+        : `<span class="shortcut-desc">${esc(i18n(pos < 0 && visible.length ? "вкладка скрыта" : "не задано"))}</span>`;
     const clearBtn = b
       ? `<button type="button" class="btn-mini" onclick="clearTabKeyBinding('${id}')">${i18n("Очистить")}</button>`
       : "";

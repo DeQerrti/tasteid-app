@@ -1752,4 +1752,13 @@ i18nRegister({
     "GitHub will show a long string starting with “ghp_” or “github_pat_” – that's the token. It's shown only once, so copy it right away (the copy-icon button next to it on the github.com page) and paste it into the field below.",
   "Просто оставьте как есть, если не уверены, что означает это название, – это техническое имя папки-хранилища на GitHub, самим внешним видом приложения оно никак не пользуется. Если такого репозитория ещё нет на вашем GitHub – создадим сами, приватным. Если уже есть (например, второе устройство его уже завело) – подключимся к нему: на всех устройствах должно быть одно и то же название, иначе они будут синхронизировать разные хранилища и не увидят данные друг друга.":
     "Just leave it as is if you're not sure what this name means – it's a technical name for the storage folder on GitHub, the app's appearance doesn't depend on it at all. If this repository doesn't exist on your GitHub yet, we'll create it, private. If it already exists (say, a second device already set it up) – we'll connect to it: all your devices need the same name, otherwise they'd sync different storages and never see each other's data.",
+  // Настройки окном: группы меню, объединённые разделы, полоса «Сохранить»
+  Вид: "View",
+  Данные: "Data",
+  Перенос: "Transfer",
+  "Хранилища и синхронизация": "Vaults & sync",
+  Действия: "Actions",
+  Отменить: "Discard",
+  "по умолчанию": "default",
+  "вкладка скрыта": "tab hidden",
 });

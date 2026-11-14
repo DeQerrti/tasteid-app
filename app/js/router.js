@@ -106,6 +106,7 @@ async function renderRoute() {
   if (!view) {
     // Пустой или незнакомый хэш – обычный вид приложения (рельса и вкладки).
     viewRoot.classList.add("hidden");
+    viewRoot.classList.remove("route-overlay");
     viewRoot.innerHTML = "";
     shell.classList.remove("hidden");
     // Та же подстраховка, что и в switchTab() (index.html) – см. её же
@@ -137,7 +138,19 @@ async function renderRoute() {
     return;
   }
 
-  shell.classList.add("hidden");
+  // { overlay: true } у вида (сейчас – только у настроек) – на ПК он
+  // открывается окном поверх приложения, как настройки в Obsidian:
+  // рельса и вкладки остаются видны под затемнением, а не прячутся
+  // целиком. Сама рамка окна – #view-root.route-overlay в index.html.
+  // Только на ширине компьютера (та же граница 720px, что у мобильной
+  // раскладки настроек): на телефоне маршрут по-прежнему на весь экран
+  // со своей прокруткой страницы. Решается один раз при открытии.
+  const overlay = !!view.overlay && matchMedia("(min-width: 721px)").matches;
+  viewRoot.classList.toggle("route-overlay", overlay);
+  shell.classList.toggle("hidden", !overlay);
+  // Прокручивается окно, а не страница под ним (сбрасывается выше,
+  // при следующем переходе).
+  if (overlay) document.body.style.overflow = "hidden";
   viewRoot.classList.remove("hidden");
   viewRoot.innerHTML = "";
   const result = await view.mount(viewRoot, params);
