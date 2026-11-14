@@ -585,7 +585,7 @@ function rvBindCardClicks() {
     if (!wrap) return;
     const idx = parseInt(wrap.dataset.reviewIdx, 10);
     const review = rvLastFiltered[idx];
-    if (review) openReviewModal(review);
+    if (review) openReviewModal(review, rvLastFiltered);
   }
 
   grid.addEventListener("click", openFromEvent);
@@ -657,12 +657,14 @@ function reviewModalBodyHtml(r) {
   // Приписка про ссылку – только когда текста нет совсем, а источник
   // указан.
   const fullText = (r.review_full && r.review_full.trim()) || (r.preview && r.preview.trim()) || "";
+  // Нет текста и нет ссылок – блока нет вовсе: раньше тут стояла большая
+  // строка «Пока без текста» и под неё пустая область (у каждого второго
+  // отзыва). Есть только ссылка – одна тихая строка про неё.
   const textHtml = fullText
     ? `<div class="review-modal-fulltext">${esc(fullText).split("\n").map(p => p ? `<p>${p}</p>` : "").join("")}</div>`
-    : `<div class="review-modal-fulltext">
-        <p>${i18n("Пока без текста.")}</p>
-        ${(btn1 || btn2) ? `<p class="review-modal-nofull-hint">${i18n("Развёрнутый текст сюда не перенесён – полный отзыв можно почитать по ссылке ниже.")}</p>` : ""}
-      </div>`;
+    : (btn1 || btn2)
+      ? `<div class="review-modal-fulltext review-modal-notext"><p class="review-modal-nofull-hint">${i18n("Развёрнутый текст сюда не перенесён – полный отзыв можно почитать по ссылке ниже.")}</p></div>`
+      : "";
 
   // Карточка режет теги до CARD_TAGS_MAX (reviews.js: reviewCard) – тут,
   // в развороте отзыва, места на всех хватает, показываем полный набор.
@@ -688,8 +690,22 @@ function reviewModalBodyHtml(r) {
     ? `<a href="#/add?edit=${editId}" class="icon-btn" title="${i18n("Редактировать")}">✎</a>`
     : "";
 
+  // Тип показываем тоже («Книга · 2013»): в окне его раньше не было вовсе,
+  // он был только плашкой на обложке карточки в сетке.
+  const typeLabel = TYPE_LABELS[r.type] || "";
+  const metaLine = [typeLabel, formatYear].filter(Boolean).join(" · ");
+
+  // Шапка – сетка: обложка слева на две строки, справа название с оценкой
+  // и датами, а ТЕГИ под ними, на уровне обложки, – раньше они шли
+  // отдельным рядом под всей шапкой, а справа от обложки оставалась
+  // пустая колонка. На телефоне теги уходят под обложку (см. CSS,
+  // #review-modal-body .review-modal-header). Оценка – сразу под названием
+  // и светлым текстом с цветным ромбом, как на карточках в сетке: это
+  // главный вывод отзыва, а цветной текст в 1rem на тёмном фоне был
+  // самым слабым по контрасту элементом окна.
   return `
     <div class="review-modal-actions">
+      ${reviewModalNavHtml()}
       ${cameraButton("reviewExport()", "review-export-btn")}
       ${editBtn}
       <button type="button" class="icon-btn" title="${i18n("Закрыть")}" onclick="closeReviewModal()">✕</button>
@@ -697,17 +713,18 @@ function reviewModalBodyHtml(r) {
     <div id="review-modal-capture">
       <div class="review-modal-header">
         <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}"${coverClickable} style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
-        <div>
+        <div class="review-modal-main">
           <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
-          <div class="review-meta-row">${formatYear ? `<span class="review-format">${esc(formatYear)}</span>` : ""}</div>
+          ${metaLine ? `<div class="review-meta-row"><span class="review-format">${esc(metaLine)}</span></div>` : ""}
+          ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
           ${datesHtml ? `<div class="review-dates">${datesHtml}</div>` : ""}
           ${r.rewatch_count > 0 ? `<div class="review-rewatch" title="${i18n("Пересмотров: {v0}", { v0: r.rewatch_count })}">↻ ×${r.rewatch_count}</div>` : ""}
-          ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
         </div>
+        ${tagsHtml}
       </div>
-      ${tagsHtml}
       ${textHtml}
       <div class="source-buttons">${btn1}${btn2}</div>
+      ${reviewModalHintHtml()}
     </div>
   `;
 }
@@ -798,14 +815,84 @@ let _reviewModalTitle = null;
 // (том самом, что лежит в cache.reviews) и пересохраняет его целиком.
 let _reviewModalReview = null;
 
-function openReviewModal(r) {
+// Список, по которому окно листается (← → , кнопки, свайп): тот же массив,
+// что сейчас на экране во вкладке «Отзывы» (с её фильтрами и сортировкой).
+// Открыли из «Статусов», «Любимого», статистики или тир-листа – списка нет
+// (null), и листать нечего: там «соседний» отзыв ничего не значит.
+let _reviewModalList = null;
+
+function reviewModalIndex() {
+  if (!_reviewModalList || !_reviewModalReview) return -1;
+  return _reviewModalList.indexOf(_reviewModalReview);
+}
+
+// Кнопки ‹ счётчик › в верхнем ряду окна. Это часть разметки отзыва
+// (reviewModalBodyHtml), а не дописывается после: окно перерисовывается
+// целиком при смене обложки в галерее (persistReviewCoverChange), и
+// дописанные снаружи кнопки при этом пропадали бы.
+function reviewModalNavHtml() {
+  const i = reviewModalIndex();
+  const n = _reviewModalList?.length || 0;
+  if (i < 0 || n < 2) return "";
+  return `<span class="review-modal-nav">
+    <button type="button" class="icon-btn review-nav-step" ${i === 0 ? "disabled" : ""} title="${i18n("Предыдущий отзыв")} (←)" aria-label="${i18n("Предыдущий отзыв")}" onclick="reviewModalStep(-1)">‹</button>
+    <span class="review-nav-count">${i + 1} / ${n}</span>
+    <button type="button" class="icon-btn review-nav-step" ${i === n - 1 ? "disabled" : ""} title="${i18n("Следующий отзыв")} (→)" aria-label="${i18n("Следующий отзыв")}" onclick="reviewModalStep(1)">›</button>
+  </span>`;
+}
+
+// Подсказка про клавиши – только там, где есть клавиатура (на телефоне её
+// скрывает CSS по hover: none) и только когда есть что листать.
+function reviewModalHintHtml() {
+  if (reviewModalIndex() < 0 || (_reviewModalList?.length || 0) < 2) return "";
+  return `<div class="review-modal-hint" data-no-export><kbd>←</kbd> <kbd>→</kbd> ${i18n("листать")} · <kbd>Esc</kbd> ${i18n("закрыть")}</div>`;
+}
+
+// Большие стрелки по бокам окна (широкий экран): сами кнопки лежат в
+// index.html внутри оверлея, здесь только показ/недоступность.
+function reviewModalSyncSideArrows() {
+  const i = reviewModalIndex();
+  const n = _reviewModalList?.length || 0;
+  const show = i >= 0 && n > 1;
+  const prev = document.getElementById("review-side-prev");
+  const next = document.getElementById("review-side-next");
+  if (!prev || !next) return;
+  prev.hidden = next.hidden = !show;
+  prev.disabled = i <= 0;
+  next.disabled = i >= n - 1;
+  prev.setAttribute("aria-label", i18n("Предыдущий отзыв"));
+  next.setAttribute("aria-label", i18n("Следующий отзыв"));
+}
+
+// dir: -1 – предыдущий, 1 – следующий. Окно остаётся открытым и просто
+// показывает соседний отзыв; прокрутка текста – в начало.
+function reviewModalStep(dir) {
+  const i = reviewModalIndex();
+  const next = _reviewModalList?.[i + dir];
+  if (i < 0 || !next) return;
+  const panel = document.querySelector("#review-modal-overlay .review-modal-panel");
+  const list = _reviewModalList;
+  openReviewModal(next, list);
+  if (panel) {
+    panel.scrollTop = 0;
+    panel.classList.remove("slide-prev", "slide-next");
+    void panel.offsetWidth;
+    panel.classList.add(dir < 0 ? "slide-prev" : "slide-next");
+  }
+}
+
+function openReviewModal(r, list) {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
-  _reviewModalOpener = document.activeElement;
+  // Повторное открытие при листании: фокус вернуть надо на карточку, с
+  // которой окно открыли впервые, а не на уже скрытый элемент.
+  if (overlay.classList.contains("hidden")) _reviewModalOpener = document.activeElement;
   _reviewModalTitle = r.title;
   _reviewModalReview = r;
+  _reviewModalList = Array.isArray(list) && list.includes(r) ? list : null;
   document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
   appendReviewLinkedFavorites(r);
+  reviewModalSyncSideArrows();
   overlay.classList.remove("hidden");
   document.body.style.overflow = "hidden";
   // Фокус внутрь окна – иначе скринридер продолжит читать страницу
@@ -877,6 +964,8 @@ function closeReviewModal() {
   _reviewModalOpener = null;
   _reviewModalTitle = null;
   _reviewModalReview = null;
+  _reviewModalList = null;
+  reviewModalSyncSideArrows();
 }
 
 // ── Галерея обложек (модалка отзыва) ────────────
@@ -962,7 +1051,35 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeReviewModal();
     if (e.key === "Tab") trapReviewModalFocus(e);
+    // Стрелки – по физической клавише (code), а не по символу, как и
+    // остальные горячие клавиши (index.html): работают на любой раскладке.
+    // Не трогаем, когда печатают (поле в окне) или открыто что-то поверх
+    // (галерея обложек, модалка персонажа).
+    if ((e.code === "ArrowLeft" || e.code === "ArrowRight") && !overlay.classList.contains("hidden")) {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "")) return;
+      if (document.querySelector(".modal-overlay:not(.hidden), #fav-modal-overlay:not(.hidden)")) return;
+      e.preventDefault();
+      reviewModalStep(e.code === "ArrowLeft" ? -1 : 1);
+    }
   });
+
+  // Свайп пальцем по окну: влево – следующий, вправо – предыдущий. Только
+  // заметно горизонтальный жест (иначе это прокрутка текста) и не поверх
+  // картинки-галереи/ссылок с прокруткой.
+  let sx = 0, sy = 0, tracking = false;
+  overlay.addEventListener("touchstart", (e) => {
+    tracking = e.touches.length === 1 && !e.target.closest("a, button, input, textarea, select");
+    if (tracking) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
+  }, { passive: true });
+  overlay.addEventListener("touchend", (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    reviewModalStep(dx < 0 ? 1 : -1);
+  }, { passive: true });
 });
 function sourceBtnHtml(url, source) {
   if (!url) return "";

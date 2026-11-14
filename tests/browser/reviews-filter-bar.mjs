@@ -18,6 +18,9 @@
 // playwright – обычная devDependency. В npm run check не входит (нужен
 // настоящий браузер), гоняется в CI отдельным джобом (npm run test:browser).
 
+// Переменные самой страницы (app/js/reviews.js) – читаются только внутри
+// page.evaluate, где они и правда есть.
+/* global reviewModalBodyHtml, _reviewModalReview */
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -202,6 +205,74 @@ t = await titles(page);
 ok(t.length === 1 && t[0] === "Бета", `«Другое» – запись с YouTube (${t.join(", ")})`);
 await page.keyboard.press("Escape");
 await page.click("#tab-reviews .rv-sub .rv-reset");
+
+console.log("Окно отзыва: листание, теги рядом с обложкой");
+await page.click("#rv-grid .review-card-wrap >> nth=1");
+await page.waitForSelector("#review-modal-overlay:not(.hidden) .review-nav-count");
+const countText = () => page.$eval(".review-nav-count", (e) => e.textContent.trim());
+ok((await countText()) === "2 / 5", "счётчик «2 / 5» по текущему списку");
+const first = await page.$eval(".review-modal-title", (e) => e.textContent);
+await page.keyboard.press("ArrowRight");
+ok((await countText()) === "3 / 5", "→ листает вперёд");
+await page.keyboard.press("ArrowLeft");
+await page.keyboard.press("ArrowLeft");
+ok((await countText()) === "1 / 5", "← листает назад");
+ok(await page.$eval("#review-side-prev", (e) => e.disabled), "на первом отзыве «назад» недоступно");
+await page.keyboard.press("ArrowRight");
+ok(
+  (await page.$eval(".review-modal-title", (e) => e.textContent)) === first,
+  "и возвращается к тому же отзыву"
+);
+// Свайп: влево – следующий, вправо – предыдущий
+const swipe = (from, to) =>
+  page.evaluate(
+    ([a, b]) => {
+      const t = document.querySelector(".review-modal-title");
+      const touch = (x) => new Touch({ identifier: 1, target: t, clientX: x, clientY: 300 });
+      t.dispatchEvent(
+        new TouchEvent("touchstart", {
+          bubbles: true,
+          touches: [touch(a)],
+          changedTouches: [touch(a)],
+        })
+      );
+      t.dispatchEvent(
+        new TouchEvent("touchend", { bubbles: true, touches: [], changedTouches: [touch(b)] })
+      );
+    },
+    [from, to]
+  );
+await swipe(300, 150);
+ok((await countText()) === "3 / 5", "свайп влево – следующий");
+await swipe(150, 300);
+ok((await countText()) === "2 / 5", "свайп вправо – предыдущий");
+// Перерисовка окна (так делает смена обложки в галерее) не теряет листание
+await page.evaluate(
+  () =>
+    (document.getElementById("review-modal-body").innerHTML =
+      reviewModalBodyHtml(_reviewModalReview))
+);
+ok((await countText()) === "2 / 5", "после перерисовки окна листание на месте");
+ok(
+  !!(await page.$(".review-modal-header > .review-modal-tags")) ||
+    !!(await page.$(".review-modal-header .review-modal-main")),
+  "шапка окна – сеткой"
+);
+ok(!(await page.$(".rm-cat")), "подписей категорий тегов нет");
+await page.keyboard.press("Escape");
+// Из «Статусов» соседнего списка нет – листания нет
+await page.click('.tab-btn[data-label="nav.now"]');
+await page.waitForSelector("#tab-now .tl-mode-btn");
+await page.click("#tab-now .tl-mode-btn >> nth=0");
+await page.waitForTimeout(300);
+const card = await page.$("#tab-now .review-card-wrap");
+if (card) {
+  await card.click();
+  await page.waitForSelector("#review-modal-overlay:not(.hidden)");
+  ok(!(await page.$(".review-nav-count")), "из «Статусов» окно открывается без листания");
+  await page.keyboard.press("Escape");
+}
+await openReviews(page);
 
 console.log("«/» на русской раскладке");
 await page.click("body", { position: { x: 5, y: 5 } });

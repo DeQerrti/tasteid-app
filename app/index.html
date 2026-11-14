@@ -51,7 +51,7 @@
 <link rel="stylesheet" href="/themes.css?v=22">
 <script src="/js/mobile.bundle.js?v=2"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=26"></script>
+<script src="/js/i18n-en.js?v=27"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=30"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -978,6 +978,87 @@ section.group { margin-bottom: 3.5rem; }
   font-family: 'DM Sans', sans-serif !important;
   font-size: .8rem !important;
   color: var(--text-dim) !important;
+}
+
+/* ══ ОКНО ОТЗЫВА: шапка сеткой, листание ═══════════
+   Только #review-modal-body: те же классы (.review-modal-header,
+   .review-modal-cover) использует и окно персонажа/персоны в «Любимом»
+   (#fav-modal-body) – ему этот вид не нужен.
+   Обложка слева на две строки; справа название, тип и год, оценка, даты;
+   под ними теги – на уровне обложки (раньше они шли отдельным рядом под
+   всей шапкой, а справа от обложки оставалась пустая колонка). Под
+   шапкой – только текст отзыва и ссылки. На телефоне теги уходят под
+   обложку, на всю ширину. */
+#review-modal-body .review-modal-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 1.8rem;
+  row-gap: 0;
+  padding-right: 0;
+  align-items: start;
+}
+#review-modal-body .review-modal-cover { width: 210px; grid-row: 1 / span 2; }
+#review-modal-body .review-modal-main { min-width: 0; padding-right: 104px; }
+#review-modal-body .review-modal-header > .review-modal-tags {
+  grid-column: 2; grid-row: 2; align-self: start;
+  margin: 1rem 0 0;
+}
+#review-modal-body:has(.review-modal-nav) .review-modal-main { padding-right: 190px; }
+.review-meta-row { font-family: 'DM Sans', sans-serif; font-size: .85rem; letter-spacing: .03em; color: var(--text); margin: 0 0 .5rem; }
+.review-format { color: var(--text); }
+#review-modal-body .grade-chip { font-size: 1.2rem; display: inline-flex; align-items: center; gap: .55rem; color: var(--text-hi); }
+#review-modal-body .grade-chip::before {
+  content: ""; width: .6rem; height: .6rem; flex: none; border-radius: 1px;
+  background: var(--gc); transform: rotate(45deg);
+}
+#review-modal-body .review-dates { margin-top: .7rem; }
+.review-modal-notext { margin-bottom: .6rem; }
+@media (max-width: 560px) {
+  #review-modal-body .review-modal-header { grid-template-columns: auto minmax(0, 1fr); }
+  #review-modal-body .review-modal-cover { width: 120px; grid-row: 1; }
+  #review-modal-body .review-modal-title { font-size: 1.5rem; }
+  #review-modal-body .review-modal-main,
+  #review-modal-body:has(.review-modal-nav) .review-modal-main { padding-right: 0; }
+  #review-modal-body .review-modal-header > .review-modal-tags { grid-column: 1 / -1; grid-row: 2; margin-top: 1rem; }
+}
+/* Листание: ‹ 3 / 44 › в верхнем ряду, большие стрелки по бокам окна на
+   широком экране, подсказка про клавиши – только где есть мышь. */
+.review-modal-nav { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; padding-right: 8px; border-right: 1px solid var(--border2); }
+.review-nav-count { font-family: 'DM Sans', sans-serif; font-size: .72rem; color: var(--text-dim); font-variant-numeric: tabular-nums; min-width: 3.4rem; text-align: center; }
+.review-modal-nav .icon-btn[disabled], .review-side-arrow[disabled] { opacity: .3; pointer-events: none; }
+.review-modal-hint { font-family: 'DM Sans', sans-serif; font-size: .68rem; color: var(--text-dim); margin-top: 1.2rem; padding-top: .7rem; border-top: 1px solid var(--border); }
+.review-modal-hint kbd { font: inherit; border: 1px solid var(--border2); border-radius: 2px; padding: 0 .35rem; }
+@media (hover: none) { .review-modal-hint { display: none; } }
+.review-side-arrow {
+  position: fixed; top: 50%; transform: translateY(-50%); z-index: 510;
+  width: 44px; height: 64px; display: none;
+  font-size: 1.8rem; line-height: 1; color: var(--text-dim);
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 3px; cursor: pointer;
+}
+.review-side-arrow:hover { color: var(--text-hi); border-color: var(--red); }
+.review-side-arrow.prev { left: max(8px, calc(50% - 380px - 60px)); }
+.review-side-arrow.next { right: max(8px, calc(50% - 380px - 60px)); }
+@media (min-width: 1000px) {
+  .review-side-arrow:not([hidden]) { display: block; }
+  .review-modal-nav .review-nav-step { display: none; }
+  .review-modal-nav { border-right: 0; }
+  #review-modal-body:has(.review-modal-nav) .review-modal-main { padding-right: 150px; }
+}
+@media (max-width: 480px) {
+  /* Пять кнопок по 44px (палец, см. «ПАЛЕЦ ВМЕСТО КУРСОРА») плюс счётчик не
+     влезали в ряд при полях по 32px – левая стрелка обрезалась краем окна. */
+  #review-modal-overlay .review-modal-panel { padding: 22px; }
+  .review-modal-nav { margin-right: auto; padding-right: 0; gap: 2px; border-right: 0; }
+  .review-nav-count { min-width: 2.8rem; }
+}
+/* Лёгкий сдвиг при листании – видно, в какую сторону пошли. */
+@keyframes reviewSlideNext { from { opacity: .4; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+@keyframes reviewSlidePrev { from { opacity: .4; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+.review-modal-panel.slide-next { animation: reviewSlideNext .2s ease both; }
+.review-modal-panel.slide-prev { animation: reviewSlidePrev .2s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .review-modal-panel.slide-next, .review-modal-panel.slide-prev { animation: none; }
 }
 
 /* ══ МОДАЛКА ПЕРСОНАЖА/ПЕРСОНЫ: анкета (favorites.js) ══ */
@@ -3818,6 +3899,8 @@ main.fe-view > .status-msg:empty { display: none; }
     <div class="review-modal-panel" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" tabindex="-1">
       <div id="review-modal-body"></div>
     </div>
+    <button type="button" class="review-side-arrow prev" id="review-side-prev" onclick="reviewModalStep(-1)" hidden>‹</button>
+    <button type="button" class="review-side-arrow next" id="review-side-next" onclick="reviewModalStep(1)" hidden>›</button>
   </div>
   <!-- Модалка персонажа/персоны из «Любимого» (favPersonCard, js/favorites.js) –
        та же панель, что у review-modal-overlay выше, отдельный оверлей
@@ -3881,7 +3964,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/cards.js?v=19"></script>
 <script src="/js/now.js?v=17"></script>
 <script src="/js/favorites.js?v=19"></script>
-<script src="/js/reviews.js?v=26"></script>
+<script src="/js/reviews.js?v=27"></script>
 <script src="/js/stats.js?v=22"></script>
 <script src="/js/tierlist.js?v=15"></script>
 <script src="/js/backup-history.js?v=2"></script>
