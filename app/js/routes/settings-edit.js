@@ -260,17 +260,16 @@ function settingsViewHtml() {
           <div>
             <h2 class="section-h" data-i18n>Действия</h2>
             <div id="shortcutsList"></div>
-            <button class="btn btn-ghost" onclick="resetShortcutsToDefault()" data-i18n>Сбросить</button>
           </div>
           <div>
             <h2 class="section-h" data-i18n>Переключение вкладок</h2>
             <p class="panel-intro" data-i18n>
-              Цифры 1–5 переключают вкладки по порядку и сами подстраиваются,
-              если какую-то скрыть.
+              Цифры 1–5 переключают вкладки по порядку, скрытые пропускаются.
             </p>
             <div id="tabKeyBindingsList"></div>
           </div>
         </div>
+        <button type="button" class="link-reset" onclick="resetShortcutsToDefault()" data-i18n>Сбросить все клавиши</button>
       </div>
 
       <div class="panel" id="panel-stats">

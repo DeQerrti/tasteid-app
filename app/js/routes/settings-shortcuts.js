@@ -20,13 +20,19 @@ function refreshTabKeyBindingsPanel() {
   if (el) el.innerHTML = tabSwitchBindingsHtml();
 }
 
+// Сбрасывает все клавиши разом – и действия (/, N, ?), и свои клавиши
+// переключения вкладок. Раньше кнопка стояла под одним «Действия» и
+// клавиши вкладок не трогала: вернуть их можно было только по одной.
 async function resetShortcutsToDefault() {
   try {
     await patchSiteSettings((settings) => {
       settings.keyBindings = {};
+      settings.tabKeyBindings = {};
     });
     window.SITE_KEYBINDINGS = {};
+    window.SITE_TAB_KEYBINDINGS = {};
     refreshShortcutsPanel();
+    refreshTabKeyBindingsPanel();
   } catch (e) {
     backupToastGlobal(e.message, false);
   }

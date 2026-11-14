@@ -14,6 +14,8 @@
 // playwright – обычная devDependency. В npm run check не входит (нужен
 // настоящий браузер), гоняется в CI отдельным джобом (npm run test:browser).
 
+// Функции самой страницы – читаются только внутри page.evaluate, где они и правда есть.
+/* global patchSiteSettings, refreshTabKeyBindingsPanel */
 import { execFileSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -243,6 +245,62 @@ const afterMax = await page.$$eval(
   (els) => els.map((e) => e.value)
 );
 ok(afterMax.includes("Мой топ"), `смена максимума не сбрасывает названия (${afterMax.join(", ")})`);
+
+console.log("Вкладка «Горячие клавиши»");
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector("#hide-tags-toggle", { timeout: 10000 });
+await page.click('.side-tab[data-panel="shortcuts"]');
+await page.waitForSelector("#shortcutsList .shortcut-row");
+const fixedRows = await page.$$eval("#shortcutsList .shortcut-fixed .shortcut-desc", (els) =>
+  els.map((e) => e.textContent.trim())
+);
+ok(
+  fixedRows.includes("Листать отзывы в окне") && fixedRows.includes("Закрыть окно"),
+  `в списке есть клавиши ← → и Esc без кнопки «Изменить» (${fixedRows.join(", ")})`
+);
+ok(
+  !(await page.$("#shortcutsList .shortcut-fixed .btn-mini")),
+  "у неперебиндиваемых клавиш кнопки «Изменить» нет"
+);
+ok(
+  await page.$$eval("#tabKeyBindingsList .shortcut-row", (els) =>
+    els.every(
+      (e) =>
+        e.children[1].classList.contains("shortcut-desc") &&
+        e.children[2].classList.contains("shortcut-note")
+    )
+  ),
+  "в клавишах вкладок после названия идёт пометка «по умолчанию»"
+);
+ok(
+  (await page.$$("#panel-shortcuts .link-reset")).length === 1,
+  "одна ссылка «Сбросить все клавиши»"
+);
+// своя клавиша вкладки и сброс одной ссылкой
+await page.evaluate(async () => {
+  await patchSiteSettings((s) => {
+    s.tabKeyBindings = { reviews: { type: "key", code: "KeyR", label: "R" } };
+  });
+  window.SITE_TAB_KEYBINDINGS = { reviews: { type: "key", code: "KeyR", label: "R" } };
+  refreshTabKeyBindingsPanel();
+});
+ok(
+  (await page.$$eval("#tabKeyBindingsList .kbd", (els) => els.map((e) => e.textContent))).includes(
+    "R"
+  ),
+  "своя клавиша вкладки видна"
+);
+await page.click("#panel-shortcuts .link-reset");
+await page.waitForFunction(
+  () => !document.querySelector("#tabKeyBindingsList").textContent.includes("R")
+);
+const saved = await page.evaluate(
+  async () => (await (await fetch("/site-settings.json?_=" + Date.now())).json()).tabKeyBindings
+);
+ok(
+  !saved || Object.keys(saved).length === 0,
+  "«Сбросить все клавиши» сбрасывает и клавиши вкладок"
+);
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 

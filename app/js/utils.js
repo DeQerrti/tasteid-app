@@ -1066,17 +1066,20 @@ function keyboardShortcutsList() {
     { action: "search", keys: [keyBindingLabel(kb.search)], desc: i18n("Поиск в «Отзывах»") },
     { action: "newReview", keys: [keyBindingLabel(kb.newReview)], desc: i18n("Новый отзыв"), adminOnly: true },
     { action: "shortcuts", keys: [keyBindingLabel(kb.shortcuts)], desc: i18n("Список горячих клавиш") },
-    { keys: ["Esc"], desc: i18n("Закрыть окно"), settingsHide: true },
+    // fixed – не перебиндивается: в настройках показывается строкой без
+    // кнопки «Изменить» (приглушённо), чтобы весь список клавиш был в одном
+    // месте. ← → – листание отзывов в открытом окне отзыва (reviews.js).
+    { keys: ["←", "→"], desc: i18n("Листать отзывы в окне"), fixed: true },
+    { keys: ["Esc"], desc: i18n("Закрыть окно"), fixed: true },
   ];
 }
 // editable – только для панели «Горячие клавиши» в настройках: рядом с
 // перебиндиваемыми строками рисует кнопку «Изменить». В подсказке по
 // «?» на главной этого не должно быть – там просто справка.
 // settingsHide – строки, которые в настройках лишние: «1–5» дублирует
-// отдельный раздел «Переключение вкладок» чуть ниже на той же
-// странице, а «Esc – Закрыть окно» – это не перебиндиваемое действие,
-// а системное поведение (закрывает то, что открыто) без своей кнопки
-// «Изменить»; в подсказке по «?» на главной обе строки остаются.
+// отдельный раздел «Переключение вкладок» рядом на той же странице; в
+// подсказке по «?» на главной она остаётся. «Esc» и «← →» – не
+// перебиндиваемые (fixed): в настройках они есть, но без кнопки.
 function keyboardShortcutsHtml(editable) {
   const admin = typeof isAdmin === "function" && isAdmin();
   return keyboardShortcutsList()
@@ -1089,7 +1092,7 @@ function keyboardShortcutsHtml(editable) {
       const editBtn = editable && s.action
         ? `<button type="button" class="btn-mini" data-rebind="${s.action}" onclick="startRebindShortcut('${s.action}', this)">${i18n("Изменить")}</button>`
         : "";
-      return `<div class="shortcut-row"><span class="shortcut-keys">${keys}</span><span class="shortcut-desc">${esc(s.desc)}</span>${editBtn}</div>`;
+      return `<div class="shortcut-row${s.fixed ? " shortcut-fixed" : ""}"><span class="shortcut-keys">${keys}</span><span class="shortcut-desc">${esc(s.desc)}</span>${editBtn}</div>`;
     })
     .join("");
 }
@@ -1189,17 +1192,26 @@ function tabSwitchBindingsHtml() {
     const label = typeof window.siteLabel === "function" ? window.siteLabel("nav", id, id) : id;
     const b = bindings[id];
     const pos = visible.indexOf(`tab-${id}`);
+    // Клавиша слева, название, пометка справа («по умолчанию» стояла между
+    // клавишей и названием: «1 по умолчанию Статусы» читалось как «по
+    // умолчанию – Статусы»).
     const current = b
       ? `<span class="kbd">${esc(tabBindingLabel(b))}</span>`
       : pos >= 0 && pos < 5
-        ? `<span class="kbd">${pos + 1}</span> <span class="shortcut-desc">${esc(i18n("по умолчанию"))}</span>`
-        : `<span class="shortcut-desc">${esc(i18n(pos < 0 && visible.length ? "вкладка скрыта" : "не задано"))}</span>`;
+        ? `<span class="kbd">${pos + 1}</span>`
+        : "";
+    const note = b
+      ? ""
+      : pos >= 0 && pos < 5
+        ? `<span class="shortcut-note">${esc(i18n("по умолчанию"))}</span>`
+        : `<span class="shortcut-note">${esc(i18n(pos < 0 && visible.length ? "вкладка скрыта" : "не задано"))}</span>`;
     const clearBtn = b
       ? `<button type="button" class="btn-mini" onclick="clearTabKeyBinding('${id}')">${i18n("Очистить")}</button>`
       : "";
     return `<div class="shortcut-row">
       <span class="shortcut-keys">${current}</span>
       <span class="shortcut-desc">${esc(label)}</span>
+      ${note}
       <button type="button" class="btn-mini" data-rebind-tab="${id}" onclick="startRebindTabKey('${id}', this)">${i18n("Изменить")}</button>
       ${clearBtn}
     </div>`;
