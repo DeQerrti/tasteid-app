@@ -48,7 +48,7 @@
      #/reviews-order (js/routes/reviews-order.js) собственная шапка
      .app-topbar, которая до сих пор жила только там. -->
 <link rel="stylesheet" href="/admin.css?v=19">
-<link rel="stylesheet" href="/themes.css?v=26">
+<link rel="stylesheet" href="/themes.css?v=27">
 <script src="/js/mobile.bundle.js?v=3"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=40"></script>
@@ -849,6 +849,13 @@ section.group { margin-bottom: 3.5rem; }
   font-family: 'Cormorant Garamond', serif;
   font-size: .95rem; font-weight: 600; font-style: italic;
   color: var(--text-hi);
+}
+/* На телефоне карточка вчетверо уже: в кегле .95rem «Аттракцион» и
+   «Разочарование» обрезались краем карточки («Аттракци»), а «Фоновый шум»
+   переносился на вторую строку. Тот же приём, что у .card-grade-inline
+   выше, – оценка на узкой карточке мельче. */
+@media (max-width: 700px) {
+  .card-grade-row { font-size: .7rem; gap: .25rem; }
 }
 /* Тот же приём отрисовки, что у .tab-btn.active::before (index.html) –
    не символ шрифта, а повёрнутый на 45° квадрат, чтобы отпечаток не

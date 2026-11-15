@@ -2998,8 +2998,9 @@ html[data-skin="neomorphism-dark"] * {
    Раньше тема отличалась от классической только цветом, скруглениями и
    лианой. Owner выбрал по макету свой язык для неё: тонкие линии, курсив,
    ветка с листьями, бумажные ярлычки, обложки как листы гербария. Темы
-   переосмысляются по одной вкладке – пока сделаны боковая панель и
-   «Статусы» (#tab-now); остальные вкладки ещё в прежнем виде.
+   переосмысляются по одной вкладке – пока сделаны боковая панель,
+   «Статусы» (#tab-now), «Любимое» и «Отзывы»; «Статистика» и «Тир-лист»
+   ещё в прежнем виде.
 
    Правила общие для компьютера и телефона; то, что на телефоне сделано
    иначе (нижняя панель, перенос вкладок, размеры), – отдельным блоком
@@ -3164,17 +3165,17 @@ html[data-skin="neomorphism-dark"] * {
 
 /* ── «Статусы»: карточка – лист гербария. Поля вокруг обложки, тонкая
    рамка на ней, подпись под пунктиром, тип – бумажным ярлычком. ── */
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .card {
   border-radius: 5px;
   padding: 9px 9px 0;
   background: var(--surface);
   box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .card-poster {
   border-radius: 2px;
   overflow: hidden;
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster::after {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .card-poster::after {
   content: "";
   position: absolute;
   inset: 5px;
@@ -3182,20 +3183,20 @@ html[data-skin="neomorphism-dark"] * {
   border-radius: 1px;
   pointer-events: none;
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-body {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .card-body {
   padding: 0.6rem 0.15rem 0.65rem;
   background: none;
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-title {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .card-title {
   font-style: italic;
   font-size: 1.02rem;
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-meta {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .card-meta {
   border-top: 1px dashed var(--border2);
   margin-top: 0.45rem;
   padding-top: 0.4rem;
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .type-tag {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .type-tag {
   top: 10px;
   right: auto;
   left: -4px;
@@ -3212,7 +3213,7 @@ html[data-skin="neomorphism-dark"] * {
 }
 /* Ярлычок выступает за край обложки влево – у обложки overflow: hidden,
    поэтому выступ даёт сама карточка (её поля), а не обложка. */
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster .type-tag {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .card-poster .type-tag {
   left: 4px;
 }
 
@@ -3226,17 +3227,17 @@ html[data-skin="neomorphism-dark"] * {
    заметным поворотом (соседние – в разные стороны). Только там, где
    есть настоящий указатель. */
 @media (hover: hover) {
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap {
     transition: transform 0.28s ease;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap:hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap:hover {
     transform: translateY(-6px) rotate(-0.7deg);
     z-index: 3;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap:nth-child(2n):hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap:nth-child(2n):hover {
     transform: translateY(-6px) rotate(0.7deg);
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap:hover .card {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap:hover .card {
     box-shadow: 0 0 0 1px var(--border2), 0 26px 34px -18px var(--shadow);
   }
 }
@@ -3359,6 +3360,149 @@ html[data-skin="neomorphism-dark"] * {
   }
 }
 
+/* ── «Отзывы» в том же языке (ноябрь 2026, третий заход по макету) ──
+   Карточки берут общие правила листа гербария выше (в селекторах –
+   #tab-reviews). Здесь – то, что есть только на этой вкладке: строка
+   поиска и фильтров, открытый список фильтра, метка пересмотра и дата.
+   Заголовок года и сама метка пересмотра оставлены как были – так выбрал
+   owner; окно отзыва (по нажатию на карточку) ещё в прежнем виде. */
+
+/* Поиск – строкой с линией снизу, фильтры и «Добавить» – курсивом без
+   рамок, как в «Статусах»; подчёркиваются при наведении и когда открыты
+   или что-то выбрано. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar {
+  gap: 0.4rem 1.3rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar .rv-search-input {
+  background-color: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border2);
+  border-radius: 0;
+  padding-left: 0.15rem;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar .rv-search-input:focus {
+  background-color: transparent;
+  border-bottom-color: var(--ink2);
+  outline: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-search kbd {
+  border-radius: 2px;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar :is(.rv-filter-btn, .admin-add-btn) {
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0.15rem 0;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.08rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar :is(.rv-filter-btn, .admin-add-btn):hover,
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar .rv-filter-btn[aria-expanded="true"],
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar .rv-filter-btn.active {
+  background: none;
+  color: var(--text-hi);
+  border-bottom-color: var(--ink2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar .rv-dd-n {
+  font-style: normal;
+  color: var(--ink2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-result {
+  color: var(--ink2);
+}
+
+/* Открытый список фильтра – «страница дневника»: почти прямые углы,
+   тонкая рамка, заголовки курсивом, пункты без капсул. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop {
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  box-shadow: 0 18px 34px -16px var(--shadow);
+  padding: 0.7rem 0.8rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop-title {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-hi);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop-sep {
+  height: 0;
+  background: none;
+  border-top: 1px dashed var(--border2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop :is(.rv-opt, .rv-box, .tag-toggle, .rv-filter-btn, .rv-seg button) {
+  border-radius: 2px;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .rv-opt.on {
+  background: color-mix(in srgb, var(--paper) 14%, transparent);
+  color: var(--text-hi);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .rv-opt.on .rv-box {
+  background: var(--ink2);
+  border-color: var(--ink2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .rv-opt-count {
+  color: var(--ink2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .tag-toggle.active {
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-color: transparent;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .rv-search-input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border2);
+  border-radius: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 1rem;
+}
+
+/* Карточка отзыва: метка пересмотра уходит в правый верхний угол –
+   левый занят бумажным ярлычком типа; дата – вторым цветом и не
+   переносится на вторую строку (длинная подпись слева обрезается). */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .review-card-wrap .rewatch-badge {
+  left: auto;
+  right: 8px;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .review-card-wrap .meta-date {
+  flex: none;
+  white-space: nowrap;
+  color: var(--ink2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .review-card-wrap .card-meta > span:first-child:not(.meta-date) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar {
+    gap: 0.35rem 1rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-bar :is(.rv-filter-btn, .admin-add-btn) {
+    font-size: 1rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .review-card-wrap .rewatch-badge {
+    right: 4px;
+  }
+}
+
 /* ── Телефон (до 700px) ──
    Тот же язык, уменьшенный под карточку втрое уже и под нижнюю панель
    вкладок. Отличия от компьютера:
@@ -3415,31 +3559,31 @@ html[data-skin="neomorphism-dark"] * {
     font-size: 0.98rem;
   }
 
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .card {
     border-radius: 3px;
     padding: 4px 4px 0;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster::after {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .card-poster::after {
     inset: 3px;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-body {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .card-body {
     padding: 0.4rem 0.1rem 0.45rem;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-title {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .card-title {
     font-size: 0.84rem;
     line-height: 1.22;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-meta {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .card-meta {
     margin-top: 0.3rem;
     padding-top: 0.28rem;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .type-tag {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .review-card-wrap .type-tag {
     top: 5px;
     padding: 0.12rem 0.32rem;
     font-size: 0.5rem;
     letter-spacing: 0.05em;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster .type-tag {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-reviews, .fav-export) .card-poster .type-tag {
     left: 1px;
   }
 

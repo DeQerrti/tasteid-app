@@ -229,6 +229,37 @@ for (const theme of ["soft-dark", "soft"]) {
     return pad;
   });
   ok(parseFloat(exported) >= 4, `снимок «Любимого» берёт новый вид карточек (поля ${exported})`);
+
+  // «Отзывы»: карточки – те же листы гербария; поиск и фильтры строкой;
+  // открытый список фильтра – «страница дневника».
+  await page.click('.tab-btn[data-label="nav.reviews"]');
+  await page.waitForSelector("#tab-reviews .review-card-wrap", { timeout: 10000 });
+  await page.click('#tab-reviews .rv-dd[data-dd="types"] .rv-dd-btn');
+  await page.waitForSelector("#tab-reviews .rv-pop:not(.hidden)", { timeout: 5000 });
+  const rv = await page.evaluate(() => {
+    const css = (el, pseudo) => getComputedStyle(el, pseudo);
+    const card = document.querySelector("#tab-reviews .review-card-wrap .card");
+    return {
+      cardPad: css(card).paddingLeft,
+      frame: css(card.querySelector(".card-poster"), "::after").borderTopStyle,
+      filterBorder: css(document.querySelector("#tab-reviews .rv-bar .rv-filter-btn"))
+        .borderTopWidth,
+      searchBorder: css(document.querySelector("#tab-reviews .rv-bar .rv-search-input"))
+        .borderTopWidth,
+      popRadius: css(document.querySelector("#tab-reviews .rv-pop:not(.hidden)"))
+        .borderTopLeftRadius,
+    };
+  });
+  ok(
+    parseFloat(rv.cardPad) >= 8 && rv.frame === "solid",
+    "«Отзывы»: карточка – лист гербария с рамкой"
+  );
+  ok(
+    rv.filterBorder === "0px" && rv.searchBorder === "0px",
+    "«Отзывы»: поиск и фильтры – строкой, без рамок"
+  );
+  ok(rv.popRadius === "4px", "«Отзывы»: открытый список фильтра – с почти прямыми углами");
+  await page.keyboard.press("Escape");
 }
 
 // ── Телефон: тот же язык, уменьшенный ──
