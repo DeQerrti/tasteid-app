@@ -207,7 +207,70 @@ for (const theme of ["soft-dark", "soft"]) {
   ok(parseFloat(favPersons.charPad) >= 7, "«Любимое»: персона – лист гербария с полями");
   ok(favPersons.headBg === favPersons.paperRgb, "«Любимое»: название роли – на бумажном ярлычке");
   ok(look.railBg === look.paperRgb, "выбранный раздел панели – на бумажном ярлычке");
+
+  // Рамка на картинке – псевдоэлементом обёртки .card-poster: контур самой
+  // картинки (outline) не попадал в снимок «Сохранить как картинку».
+  const frame = await page.evaluate(() => {
+    const poster = document.querySelector("#tab-favorites .card-char .card-poster");
+    return poster ? getComputedStyle(poster, "::after").borderTopStyle : "нет обёртки";
+  });
+  ok(frame === "solid", `«Любимое»: рамка на картинке – на обёртке .card-poster (${frame})`);
+
+  // Снимок собирается вне вкладки, в .fav-export, – правила темы должны
+  // доставать и до него, иначе на картинке остаётся прежний вид.
+  const exported = await page.evaluate(() => {
+    const wrap = document.createElement("div");
+    wrap.className = "fav-export";
+    wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:900px";
+    wrap.innerHTML = `<div class="grid-chars">${document.querySelector("#tab-favorites .card-char").outerHTML}</div>`;
+    document.body.appendChild(wrap);
+    const pad = getComputedStyle(wrap.querySelector(".card-char")).paddingLeft;
+    wrap.remove();
+    return pad;
+  });
+  ok(parseFloat(exported) >= 4, `снимок «Любимого» берёт новый вид карточек (поля ${exported})`);
 }
+
+// ── Телефон: тот же язык, уменьшенный ──
+console.log("Телефон (soft-dark)");
+writeFileSync(join(vaultDir, "site-settings.json"), JSON.stringify({ theme: "soft-dark" }));
+const phone = await browser.newPage({ viewport: { width: 390, height: 800 } });
+phone.on("pageerror", (e) => jsErrors.push(e.message));
+await phone.goto(base + "/", { waitUntil: "domcontentloaded" });
+await phone.click('.tab-btn[data-label="nav.now"]');
+await phone.waitForSelector("#tab-now .review-card-wrap", { timeout: 10000 });
+await phone.waitForTimeout(500);
+const small = await phone.evaluate(() => {
+  const css = (el, pseudo) => getComputedStyle(el, pseudo);
+  const paper = css(document.documentElement).getPropertyValue("--paper").trim();
+  const probe = document.createElement("i");
+  probe.style.color = paper;
+  document.body.appendChild(probe);
+  const paperRgb = css(probe).color;
+  probe.remove();
+  const toggle = document.querySelector("#tab-now > .tl-mode-toggle");
+  const btn = toggle.querySelector(".tl-mode-btn.active");
+  return {
+    paperRgb,
+    btnCase: css(btn).textTransform,
+    branchMask: css(toggle, "::after").maskImage || css(toggle, "::after").webkitMaskImage,
+    fits: toggle.scrollWidth <= toggle.clientWidth + 1,
+    cardPad: css(document.querySelector("#tab-now .review-card-wrap .card")).paddingLeft,
+    tagBg: css(document.querySelector("#tab-now .type-tag")).backgroundColor,
+    navBg: css(document.querySelector("#rail .tab-btn.active")).backgroundColor,
+    navTransform: css(document.querySelector("#rail .tab-btn.active")).transform,
+  };
+});
+ok(
+  small.btnCase === "none" && /branch\.svg/.test(small.branchMask || ""),
+  "вкладки статусов – текстом на ветке"
+);
+ok(small.fits, "вкладки статусов не уезжают за край (переносятся, ветка под ними целиком)");
+ok(parseFloat(small.cardPad) >= 3, `карточка – лист гербария с полями (${small.cardPad})`);
+ok(small.tagBg === small.paperRgb, "тип на карточке – бумажным ярлычком");
+ok(small.navBg === small.paperRgb, "выбранный раздел нижней панели – бумажный ярлычок");
+ok(small.navTransform === "none", "и без поворота: в нижней панели ему тесно");
+await phone.close();
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 

@@ -107,6 +107,12 @@
 }
 :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-row-empty .tl-label-name { font-size: .95rem; }
 :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-exporting .tl-label { position: static; }
+/* На телефоне строка вкладок тир-листа выше (кнопки крупнее, под ней
+   тень) – полоса полки закрепляется ниже, иначе её верх прятался под
+   этой строкой. */
+@media (max-width: 700px) {
+  :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label { top: calc(var(--app-titlebar, 0px) + 4.2rem); }
+}
 @media (max-width: 600px) {
   :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label { padding: .35rem .6rem; }
   :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label-name { font-size: 1rem; }
@@ -2995,8 +3001,9 @@ html[data-skin="neomorphism-dark"] * {
    переосмысляются по одной вкладке – пока сделаны боковая панель и
    «Статусы» (#tab-now); остальные вкладки ещё в прежнем виде.
 
-   Только компьютер (от 701px): на телефоне вкладки статусов – строка с
-   прокруткой, а карточка втрое уже, там этот вид не проверялся.
+   Правила общие для компьютера и телефона; то, что на телефоне сделано
+   иначе (нижняя панель, перенос вкладок, размеры), – отдельным блоком
+   «Телефон» в конце раздела.
 
    Второй цвет темы: --paper (бумага ярлычков), --paper-ink (текст на
    ней) и --ink2 (счётчики, даты, лист у выбранного пункта). В тёмной
@@ -3016,222 +3023,220 @@ html[data-skin="neomorphism-dark"] * {
   --ink2: #7a5c2e;
 }
 
-@media (min-width: 701px) {
-  /* ── Боковая панель: выбранный раздел – на бумажном ярлычке ── */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn {
-    transition: color 0.15s, background 0.15s, transform 0.2s;
-  }
-  /* Наведение – бледный бумажный ярлычок той же формы, что у выбранного
-     раздела: раньше при наведении появлялась прежняя зелёная капсула. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn {
-    border-radius: 2px;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn:not(.active):hover {
-    background: color-mix(in srgb, var(--paper) 16%, transparent);
-    color: var(--text-hi);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn.active {
-    background: var(--paper);
-    color: var(--paper-ink);
-    border-radius: 2px;
-    transform: rotate(-1.6deg);
-    box-shadow: 0 8px 16px -9px var(--shadow);
-  }
+/* ── Боковая панель: выбранный раздел – на бумажном ярлычке ── */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn {
+  transition: color 0.15s, background 0.15s, transform 0.2s;
+}
+/* Наведение – бледный бумажный ярлычок той же формы, что у выбранного
+   раздела: раньше при наведении появлялась прежняя зелёная капсула. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn {
+  border-radius: 2px;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn:not(.active):hover {
+  background: color-mix(in srgb, var(--paper) 16%, transparent);
+  color: var(--text-hi);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn.active {
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 2px;
+  transform: rotate(-1.6deg);
+  box-shadow: 0 8px 16px -9px var(--shadow);
+}
 
-  /* ── «Статусы»: вкладки статусов стоят на ветке ──
-     padding-bottom – место под ветку и под лист, который растёт из неё
-     вверх у выбранной вкладки (лист не должен ни выходить за ветку вниз,
-     ни задевать нижние выносные букв). */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle {
-    gap: 0 2.2rem;
-    padding-bottom: 2.2rem;
-    margin-bottom: 1.1rem;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0.35rem;
-    height: 18px;
-    opacity: 0.85;
-    background: var(--border2);
-    mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
-    -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
-    position: relative;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    padding: 0.3rem 0 0.45rem;
-    font-family: "Playfair Display", serif;
-    font-style: italic;
-    font-weight: 600;
-    font-size: 1.35rem;
-    text-transform: none;
-    letter-spacing: 0;
-    color: var(--text-dim);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:hover {
-    color: var(--text);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active {
-    background: none;
-    color: var(--text-hi);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn .section-count {
-    font-style: normal;
-  }
-  /* Лист: черешком стоит на ветке (её середина – 0.35rem + 9px от низа
-     строки), весь выше неё. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: calc(-2.2rem + 0.35rem + 8px);
-    width: 13px;
-    height: 18px;
-    margin-left: -6.5px;
-    background: var(--ink2);
-    mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
-    -webkit-mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
-  }
+/* ── «Статусы»: вкладки статусов стоят на ветке ──
+   padding-bottom – место под ветку и под лист, который растёт из неё
+   вверх у выбранной вкладки (лист не должен ни выходить за ветку вниз,
+   ни задевать нижние выносные букв). */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle {
+  gap: 0 2.2rem;
+  padding-bottom: 2.2rem;
+  margin-bottom: 1.1rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.35rem;
+  height: 18px;
+  opacity: 0.85;
+  background: var(--border2);
+  mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+  -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
+  position: relative;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0.3rem 0 0.45rem;
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.35rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:hover {
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active {
+  background: none;
+  color: var(--text-hi);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn .section-count {
+  font-style: normal;
+}
+/* Лист: черешком стоит на ветке (её середина – 0.35rem + 9px от низа
+   строки), весь выше неё. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(-2.2rem + 0.35rem + 8px);
+  width: 13px;
+  height: 18px;
+  margin-left: -6.5px;
+  background: var(--ink2);
+  mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
+  -webkit-mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
+}
 
-  /* ── «Статусы»: кнопки типов – тихой строкой, чтобы не спорили с
-     вкладками статусов; у выбранной – лист и линия. ── */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chips {
-    gap: 0.2rem 1.15rem;
-    align-items: baseline;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip {
-    position: relative;
-    border: 0;
-    border-bottom: 1px solid transparent;
-    border-radius: 0;
-    background: none;
-    padding: 0.2rem 0;
-    color: var(--text-dim);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip:hover {
-    color: var(--text);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip.active {
-    background: none;
-    color: var(--text-hi);
-    border-bottom-color: var(--ink2);
-    padding-left: 1.2rem;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip.active::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 14px;
-    height: 14px;
-    margin-top: -8px;
-    background: var(--ink2);
-    mask: url("/decor/leaf.svg") center / contain no-repeat;
-    -webkit-mask: url("/decor/leaf.svg") center / contain no-repeat;
-  }
+/* ── «Статусы»: кнопки типов – тихой строкой, чтобы не спорили с
+   вкладками статусов; у выбранной – лист и линия. ── */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chips {
+  gap: 0.2rem 1.15rem;
+  align-items: baseline;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip {
+  position: relative;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0.2rem 0;
+  color: var(--text-dim);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip:hover {
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip.active {
+  background: none;
+  color: var(--text-hi);
+  border-bottom-color: var(--ink2);
+  padding-left: 1.2rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -8px;
+  background: var(--ink2);
+  mask: url("/decor/leaf.svg") center / contain no-repeat;
+  -webkit-mask: url("/decor/leaf.svg") center / contain no-repeat;
+}
 
-  /* ── «Статусы»: поиск и сортировка – строкой, как в дневнике ── */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort) {
-    background-color: transparent;
-    border: 0;
-    border-bottom: 1px solid var(--border2);
-    border-radius: 0;
-    padding-left: 0.15rem;
-    font-family: "Cormorant Garamond", serif;
-    font-style: italic;
-    font-size: 1.02rem;
-    color: var(--text);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-sort option {
-    background: var(--surface);
-    color: var(--text);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort):focus {
-    border-bottom-color: var(--ink2);
-    outline: none;
-  }
+/* ── «Статусы»: поиск и сортировка – строкой, как в дневнике ── */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort) {
+  background-color: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border2);
+  border-radius: 0;
+  padding-left: 0.15rem;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 1.02rem;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-sort option {
+  background: var(--surface);
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort):focus {
+  border-bottom-color: var(--ink2);
+  outline: none;
+}
 
-  /* ── «Статусы»: карточка – лист гербария. Поля вокруг обложки, тонкая
-     рамка на ней, подпись под пунктиром, тип – бумажным ярлычком. ── */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .card {
-    border-radius: 5px;
-    padding: 9px 9px 0;
-    background: var(--surface);
-    box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-poster {
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-poster::after {
-    content: "";
-    position: absolute;
-    inset: 5px;
-    border: 1px solid rgba(233, 226, 200, 0.38);
-    border-radius: 1px;
-    pointer-events: none;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .card-body {
-    padding: 0.6rem 0.15rem 0.65rem;
-    background: none;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .card-title {
-    font-style: italic;
-    font-size: 1.02rem;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .card-meta {
-    border-top: 1px dashed var(--border2);
-    margin-top: 0.45rem;
-    padding-top: 0.4rem;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .type-tag {
-    top: 10px;
-    right: auto;
-    left: -4px;
-    border-radius: 2px;
-    padding: 0.22rem 0.6rem 0.22rem 0.5rem;
-    background: var(--paper);
-    color: var(--paper-ink);
-    font-family: "Cormorant Garamond", serif;
-    font-weight: 700;
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
-    box-shadow: 0 4px 10px -5px var(--shadow);
-    transform: rotate(-3deg);
-  }
-  /* Ярлычок выступает за край обложки влево – у обложки overflow: hidden,
-     поэтому выступ даёт сама карточка (её поля), а не обложка. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-poster .type-tag {
-    left: 4px;
-  }
+/* ── «Статусы»: карточка – лист гербария. Поля вокруг обложки, тонкая
+   рамка на ней, подпись под пунктиром, тип – бумажным ярлычком. ── */
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card {
+  border-radius: 5px;
+  padding: 9px 9px 0;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster {
+  border-radius: 2px;
+  overflow: hidden;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(233, 226, 200, 0.38);
+  border-radius: 1px;
+  pointer-events: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-body {
+  padding: 0.6rem 0.15rem 0.65rem;
+  background: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-title {
+  font-style: italic;
+  font-size: 1.02rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-meta {
+  border-top: 1px dashed var(--border2);
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .type-tag {
+  top: 10px;
+  right: auto;
+  left: -4px;
+  border-radius: 2px;
+  padding: 0.22rem 0.6rem 0.22rem 0.5rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  box-shadow: 0 4px 10px -5px var(--shadow);
+  transform: rotate(-3deg);
+}
+/* Ярлычок выступает за край обложки влево – у обложки overflow: hidden,
+   поэтому выступ даёт сама карточка (её поля), а не обложка. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster .type-tag {
+  left: 4px;
+}
 
-  /* ── «Статусы»: счётчики и даты – вторым цветом ── */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .section-count,
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-meta-date {
-    color: var(--ink2);
-  }
+/* ── «Статусы»: счётчики и даты – вторым цветом ── */
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .section-count,
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-meta-date {
+  color: var(--ink2);
 }
 
 /* Наведение: карточку приподнимают, как лист бумаги, – с тенью и едва
    заметным поворотом (соседние – в разные стороны). Только там, где
    есть настоящий указатель. */
-@media (min-width: 701px) and (hover: hover) {
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap {
+@media (hover: hover) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap {
     transition: transform 0.28s ease;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap:hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap:hover {
     transform: translateY(-6px) rotate(-0.7deg);
     z-index: 3;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap:nth-child(2n):hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap:nth-child(2n):hover {
     transform: translateY(-6px) rotate(0.7deg);
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap:hover .card {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap:hover .card {
     box-shadow: 0 0 0 1px var(--border2), 0 26px 34px -18px var(--shadow);
   }
 }
@@ -3240,135 +3245,215 @@ html[data-skin="neomorphism-dark"] * {
    Вкладки разделов, карточки тайтлов и счётчики берут правила «Статусов»
    выше (там селектор :is(#tab-now, #tab-favorites)). Здесь – то, что у
    «Любимого» устроено иначе: ветка лежит на .fav-head (закреплённая
-   строка здесь она, а не сами вкладки), у карточки тайтла нет обёртки
-   .card-poster (рамка – контуром самой картинки), плюс свои кнопки,
+   строка здесь она, а не сами вкладки), плюс свои кнопки,
    карточки персонажей/персон/своих разделов и заголовки ролей.
-   Снимок «Сохранить как картинку» собирается отдельно от вкладки и
-   остаётся в прежнем виде. */
-@media (min-width: 701px) {
-  /* Ветка под строкой разделов. У .fav-head отступ и выравнивание
-     заданы в разметке (style=…), отсюда !important. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites > .fav-head {
-    align-items: center !important;
-    padding-bottom: 2.2rem;
-    margin-bottom: 1.1rem !important;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites > .fav-head::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0.35rem;
-    height: 18px;
-    opacity: 0.85;
-    background: var(--border2);
-    mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
-    -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
-    gap: 0 2.2rem;
-  }
-
-  /* «Добавить», «Порядок», камера – курсивом без рамок, как надписи на
-     полях; подчёркиваются при наведении. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link {
-    gap: 1.2rem !important;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .admin-add-btn {
-    border: 0;
-    border-bottom: 1px solid transparent;
-    border-radius: 0;
-    background: none;
-    padding: 0.1rem 0;
-    font-family: "Cormorant Garamond", serif;
-    font-style: italic;
-    font-weight: 600;
-    font-size: 1.08rem;
-    letter-spacing: 0;
-    text-transform: none;
-    color: var(--text);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .admin-add-btn:hover {
-    color: var(--text-hi);
-    border-bottom-color: var(--ink2);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .icon-btn {
-    border: 0;
-    background: none;
-    color: var(--text);
-    padding: 0;
-    width: auto;
-    height: auto;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .icon-btn:hover {
-    color: var(--ink2);
-  }
-
-  /* Карточка тайтла: рамка на обложке – контуром картинки; ярлычок типа
-     отсчитывается от карточки, а не от обложки. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .review-card-wrap .card > img {
-    border-radius: 2px;
-    outline: 1px solid rgba(233, 226, 200, 0.38);
-    outline-offset: -6px;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .review-card-wrap .type-tag {
-    top: 19px;
-    left: 13px;
-  }
-
-  /* Персонажи, персоны и свои разделы – такие же листы, квадратные. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char {
-    border-radius: 5px;
-    padding: 8px 8px 0;
-    background: var(--surface);
-    box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char > img {
-    border-radius: 2px;
-    outline: 1px solid rgba(233, 226, 200, 0.38);
-    outline-offset: -5px;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char .card-body {
-    padding: 0.55rem 0.15rem 0.6rem;
-    background: none;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char .card-title {
-    font-style: italic;
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char .card-meta {
-    border-top: 1px dashed var(--border2);
-    margin-top: 0.4rem;
-    padding-top: 0.35rem;
-  }
-
-  /* Заголовок роли («Сэйю», «Режиссёры») – на бумажном ярлычке. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-role-head {
-    display: inline-flex;
-    justify-self: start;
-    border-bottom: 0;
-    border-radius: 2px;
-    padding: 0.3rem 0.9rem;
-    background: var(--paper);
-    color: var(--paper-ink);
-    box-shadow: 0 6px 12px -7px var(--shadow);
-    transform: rotate(-1.2deg);
-  }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-role-head .section-count {
-    color: var(--paper-ink);
-    opacity: 0.65;
-  }
+   Снимок «Сохранить как картинку» собирается отдельно от вкладки, в
+   контейнере .fav-export (favExport в favorites.js), – карточки и ярлычки
+   ролей в нём оформлены теми же правилами, что на вкладке. */
+/* Ветка под строкой разделов. У .fav-head отступ и выравнивание
+   заданы в разметке (style=…), отсюда !important. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites > .fav-head {
+  align-items: center !important;
+  padding-bottom: 2.2rem;
+  margin-bottom: 1.1rem !important;
 }
-@media (min-width: 701px) and (hover: hover) {
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char {
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites > .fav-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.35rem;
+  height: 18px;
+  opacity: 0.85;
+  background: var(--border2);
+  mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+  -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
+  gap: 0 2.2rem;
+}
+
+/* «Добавить», «Порядок», камера – курсивом без рамок, как надписи на
+   полях; подчёркиваются при наведении. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link {
+  gap: 1.2rem !important;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .admin-add-btn {
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0.1rem 0;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.08rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .admin-add-btn:hover {
+  color: var(--text-hi);
+  border-bottom-color: var(--ink2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .icon-btn {
+  border: 0;
+  background: none;
+  color: var(--text);
+  padding: 0;
+  width: auto;
+  height: auto;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .icon-btn:hover {
+  color: var(--ink2);
+}
+
+
+/* Персонажи, персоны и свои разделы – такие же листы, квадратные. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char {
+  border-radius: 5px;
+  padding: 8px 8px 0;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char .card-body {
+  padding: 0.55rem 0.15rem 0.6rem;
+  background: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char .card-title {
+  font-style: italic;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char .card-meta {
+  border-top: 1px dashed var(--border2);
+  margin-top: 0.4rem;
+  padding-top: 0.35rem;
+}
+
+/* Заголовок роли («Сэйю», «Режиссёры») – на бумажном ярлычке. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .fav-role-head {
+  display: inline-flex;
+  justify-self: start;
+  border-bottom: 0;
+  border-radius: 2px;
+  padding: 0.3rem 0.9rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow: 0 6px 12px -7px var(--shadow);
+  transform: rotate(-1.2deg);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .fav-role-head .section-count {
+  color: var(--paper-ink);
+  opacity: 0.65;
+}
+@media (hover: hover) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char {
     transition: transform 0.28s ease, box-shadow 0.28s;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char:hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char:hover {
     transform: translateY(-5px) rotate(-0.8deg);
     box-shadow: 0 0 0 1px var(--border2), 0 22px 30px -16px var(--shadow);
     z-index: 3;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char:nth-child(2n):hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char:nth-child(2n):hover {
     transform: translateY(-5px) rotate(0.8deg);
+  }
+}
+
+/* ── Телефон (до 700px) ──
+   Тот же язык, уменьшенный под карточку втрое уже и под нижнюю панель
+   вкладок. Отличия от компьютера:
+   – выбранный раздел нижней панели – бумажный ярлычок без поворота;
+   – вкладки статусов переносятся на вторую строку, а не прокручиваются:
+     ветка лежит под ними на всю ширину, а у прокручиваемой строки она
+     уезжала бы вместе с содержимым. Поэтому и лист у выбранной вкладки
+     здесь стоит перед названием (как у кнопок типов), а не на ветке –
+     при двух строках «на ветке» оказалась бы не та вкладка;
+   – поля, рамки и ярлычки карточек мельче. */
+@media (max-width: 700px) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn.active {
+    transform: none;
+    box-shadow: none;
+  }
+
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle {
+    flex-wrap: wrap;
+    overflow: visible;
+    gap: 0 0.85rem;
+    padding-bottom: 1.5rem;
+    margin-bottom: 0.8rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites > .fav-head {
+    padding-bottom: 1.5rem;
+    margin-bottom: 0.8rem !important;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
+    gap: 0 1.1rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
+    font-size: 0.95rem;
+    padding: 0.25rem 0 0.3rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::after {
+    display: none;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::before {
+    content: "";
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-right: 0.3em;
+    vertical-align: -0.05em;
+    background: var(--ink2);
+    mask: url("/decor/leaf.svg") center / contain no-repeat;
+    -webkit-mask: url("/decor/leaf.svg") center / contain no-repeat;
+  }
+
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link {
+    gap: 0.9rem !important;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .admin-add-btn {
+    font-size: 0.98rem;
+  }
+
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card {
+    border-radius: 3px;
+    padding: 4px 4px 0;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster::after {
+    inset: 3px;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-body {
+    padding: 0.4rem 0.1rem 0.45rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-title {
+    font-size: 0.84rem;
+    line-height: 1.22;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .card-meta {
+    margin-top: 0.3rem;
+    padding-top: 0.28rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .review-card-wrap .type-tag {
+    top: 5px;
+    padding: 0.12rem 0.32rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, .fav-export) .card-poster .type-tag {
+    left: 1px;
+  }
+
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char {
+    border-radius: 3px;
+    padding: 4px 4px 0;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .card-char .card-title {
+    font-size: 0.84rem;
+    line-height: 1.22;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-favorites, .fav-export) .fav-role-head {
+    padding: 0.2rem 0.65rem;
+    font-size: 1rem;
   }
 }
 

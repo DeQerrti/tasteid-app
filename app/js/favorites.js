@@ -330,8 +330,10 @@ function favTitleCard(r, index, forExport) {
   return `<div class="review-card-wrap" data-review-id="${editId}" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${editBtn}
     <div class="card" style="animation-delay:0ms${gradeColorStyle(info)}">
-      <span class="type-tag ${tagClass}">${esc(tagLabel)}</span>
-      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      <div class="card-poster">
+        <span class="type-tag ${tagClass}">${esc(tagLabel)}</span>
+        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+      </div>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
         ${r.year || info
@@ -358,9 +360,13 @@ function favPersonCard(r, index) {
     ? `<div class="card-meta"><span>${esc(subLine)}</span></div>`
     : "";
 
+  // .card-poster – та же обёртка картинки, что у карточек «Статусов» и
+  // «Отзывов»: темы рисуют на ней рамку поверх обложки (ботаническая –
+  // «лист гербария»), и эта рамка попадает в снимок «Сохранить как
+  // картинку». Контур самой картинки (outline) в снимок не попадал.
   return `<div class="card card-char" data-fav-id="${r.id}"
       style="animation-delay:${Math.min(index * 25, 500)}ms">
-    <img src="${esc(img)}" alt="${esc(r.name)}" loading="lazy" style="object-position:${esc(r.image_focus || "50% 50%")}" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
+    <div class="card-poster"><img src="${esc(img)}" alt="${esc(r.name)}" loading="lazy" style="object-position:${esc(r.image_focus || "50% 50%")}" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}></div>
     <div class="card-body">
       <div class="card-title">${esc(r.name)}</div>
       ${sub}
@@ -786,6 +792,10 @@ async function favExport(sectionIds) {
   }
 
   const wrap = document.createElement("div");
+  // Класс – для тем: снимок собирается вне #tab-favorites, и правила вида
+  // «карточка в «Любимом» – лист гербария» (themes.css, ботаническая тема)
+  // до него не дотягивались – на картинке всё оставалось в прежнем виде.
+  wrap.className = "fav-export";
   wrap.style.cssText = "position:fixed;left:-9999px;top:0;width:900px;padding:1.5rem;";
   wrap.innerHTML = html;
   document.body.appendChild(wrap);
