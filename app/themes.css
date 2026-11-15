@@ -2898,33 +2898,54 @@ html[data-skin="neomorphism-dark"] * {
    страницах) левое поле уже не пустует почти никогда — панели либо
    съедают его целиком, либо сама лиана невидна за их фоном. Оставлена
    только правая, где поле и правда бывает пустым. */
+/* Ноябрь 2026: вместо лианы – две крупные бледные ветви папоротника из
+   правых углов окна (owner выбрал по макету: лиана была видна только на
+   широком окне и почти не читалась). Всё сказанное выше про mask-image,
+   цвет из палитры и слой под контентом относится и к ним. Рисунки –
+   /decor/fern-top.svg и /decor/fern-bottom.svg (scripts/make-decor.mjs);
+   /decor/vine.svg остался в папке, но больше не подключён. */
 [data-skin="soft"] body::after,
-[data-skin="soft-dark"] body::after {
+[data-skin="soft-dark"] body::after,
+[data-skin="soft"] body::before,
+[data-skin="soft-dark"] body::before {
   content: "";
   position: fixed;
-  top: 0;
-  bottom: 0;
   right: 0;
-  width: 100px;
   z-index: 0;
-  opacity: 0.4;
+  opacity: 0.3;
   pointer-events: none;
   background-color: var(--border2);
-  mask-image: url("/decor/vine.svg");
-  -webkit-mask-image: url("/decor/vine.svg");
-  mask-size: 100px 400px;
-  -webkit-mask-size: 100px 400px;
-  mask-repeat: repeat-y;
-  -webkit-mask-repeat: repeat-y;
-  transform: scaleX(-1);
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+}
+[data-skin="soft"] body::after,
+[data-skin="soft-dark"] body::after {
+  top: 0;
+  width: 520px;
+  height: 620px;
+  mask-image: url("/decor/fern-top.svg");
+  -webkit-mask-image: url("/decor/fern-top.svg");
+  mask-position: right top;
+  -webkit-mask-position: right top;
+}
+[data-skin="soft"] body::before,
+[data-skin="soft-dark"] body::before {
+  bottom: 0;
+  width: 460px;
+  height: 420px;
+  mask-image: url("/decor/fern-bottom.svg");
+  -webkit-mask-image: url("/decor/fern-bottom.svg");
+  mask-position: right bottom;
+  -webkit-mask-position: right bottom;
 }
 
-/* В тёмном варианте лиана тише и чуть отодвинута от края окна: на
-   почти чёрном фоне 0.4 спорила с обложками, а вплотную к полосе
-   прокрутки выглядела обрезанной. */
-[data-skin="soft-dark"] body::after {
-  opacity: 0.22;
-  right: 10px;
+/* В тёмном варианте папоротники тише: на почти чёрном фоне 0.3
+   спорило бы с обложками. */
+[data-skin="soft-dark"] body::after,
+[data-skin="soft-dark"] body::before {
+  opacity: 0.2;
 }
 
 /* Контент должен лежать поверх украшения. Навигации здесь нет
@@ -2938,11 +2959,14 @@ html[data-skin="neomorphism-dark"] * {
   z-index: 1;
 }
 
-/* Лиана живёт в пустом поле. Как только поле кончилось — она наезжает
-   на контент, поэтому ниже этой ширины её нет. */
-@media (max-width: 1400px) {
+/* Папоротники лежат под контентом и видны в полях и между карточками.
+   На узком окне и на телефоне полей нет вовсе – там от них остаётся
+   только рябь под сеткой обложек, поэтому ниже этой ширины их нет. */
+@media (max-width: 1100px) {
   [data-skin="soft"] body::after,
-  [data-skin="soft-dark"] body::after {
+  [data-skin="soft-dark"] body::after,
+  [data-skin="soft"] body::before,
+  [data-skin="soft-dark"] body::before {
     display: none;
   }
 }
@@ -2961,6 +2985,245 @@ html[data-skin="neomorphism-dark"] * {
   [data-skin="soft"] nav#rail ~ main,
   [data-skin="soft-dark"] nav#rail ~ main {
     padding-right: calc(2.5rem + 100px);
+  }
+}
+
+/* ══ БОТАНИЧЕСКАЯ: «полевой дневник» (ноябрь 2026) ═══════════════
+   Раньше тема отличалась от классической только цветом, скруглениями и
+   лианой. Owner выбрал по макету свой язык для неё: тонкие линии, курсив,
+   ветка с листьями, бумажные ярлычки, обложки как листы гербария. Темы
+   переосмысляются по одной вкладке – пока сделаны боковая панель и
+   «Статусы» (#tab-now); остальные вкладки ещё в прежнем виде.
+
+   Только компьютер (от 701px): на телефоне вкладки статусов – строка с
+   прокруткой, а карточка втрое уже, там этот вид не проверялся.
+
+   Второй цвет темы: --paper (бумага ярлычков), --paper-ink (текст на
+   ней) и --ink2 (счётчики, даты, лист у выбранного пункта). В тёмной
+   теме это цвет старой бумаги, в светлой – сепия: кремовый на кремовом
+   фоне был бы не виден.
+
+   Рисунки – /decor/leaf.svg, leaf-up.svg, branch.svg (их рисует
+   scripts/make-decor.mjs), подключены маской, цвет берут из палитры. */
+[data-skin="soft-dark"] {
+  --paper: #e9e2c8;
+  --paper-ink: #24301a;
+  --ink2: #e9e2c8;
+}
+[data-skin="soft"] {
+  --paper: #fffdf6;
+  --paper-ink: #2f3a26;
+  --ink2: #7a5c2e;
+}
+
+@media (min-width: 701px) {
+  /* ── Боковая панель: выбранный раздел – на бумажном ярлычке ── */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn {
+    transition: color 0.15s, background 0.15s, transform 0.2s;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn.active {
+    background: var(--paper);
+    color: var(--paper-ink);
+    border-radius: 2px;
+    transform: rotate(-1.6deg);
+    box-shadow: 0 8px 16px -9px var(--shadow);
+  }
+
+  /* ── «Статусы»: вкладки статусов стоят на ветке ──
+     padding-bottom – место под ветку и под лист, который растёт из неё
+     вверх у выбранной вкладки (лист не должен ни выходить за ветку вниз,
+     ни задевать нижние выносные букв). */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle {
+    gap: 0 2.2rem;
+    padding-bottom: 2.2rem;
+    margin-bottom: 1.1rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.35rem;
+    height: 18px;
+    opacity: 0.85;
+    background: var(--border2);
+    mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+    -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn {
+    position: relative;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0.3rem 0 0.45rem;
+    font-family: "Playfair Display", serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.35rem;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-dim);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn:hover {
+    color: var(--text);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn.active {
+    background: none;
+    color: var(--text-hi);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn .section-count {
+    font-style: normal;
+  }
+  /* Лист: черешком стоит на ветке (её середина – 0.35rem + 9px от низа
+     строки), весь выше неё. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn.active::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: calc(-2.2rem + 0.35rem + 8px);
+    width: 13px;
+    height: 18px;
+    margin-left: -6.5px;
+    background: var(--ink2);
+    mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
+    -webkit-mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
+  }
+
+  /* ── «Статусы»: кнопки типов – тихой строкой, чтобы не спорили с
+     вкладками статусов; у выбранной – лист и линия. ── */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chips {
+    gap: 0.2rem 1.15rem;
+    align-items: baseline;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip {
+    position: relative;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    background: none;
+    padding: 0.2rem 0;
+    color: var(--text-dim);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip:hover {
+    color: var(--text);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip.active {
+    background: none;
+    color: var(--text-hi);
+    border-bottom-color: var(--ink2);
+    padding-left: 1.2rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-chip.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -8px;
+    background: var(--ink2);
+    mask: url("/decor/leaf.svg") center / contain no-repeat;
+    -webkit-mask: url("/decor/leaf.svg") center / contain no-repeat;
+  }
+
+  /* ── «Статусы»: поиск и сортировка – строкой, как в дневнике ── */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort) {
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--border2);
+    border-radius: 0;
+    padding-left: 0.15rem;
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 1.02rem;
+    color: var(--text);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .now-sort option {
+    background: var(--surface);
+    color: var(--text);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort):focus {
+    border-bottom-color: var(--ink2);
+    outline: none;
+  }
+
+  /* ── «Статусы»: карточка – лист гербария. Поля вокруг обложки, тонкая
+     рамка на ней, подпись под пунктиром, тип – бумажным ярлычком. ── */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap .card {
+    border-radius: 5px;
+    padding: 9px 9px 0;
+    background: var(--surface);
+    box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-poster {
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-poster::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(233, 226, 200, 0.38);
+    border-radius: 1px;
+    pointer-events: none;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-body {
+    padding: 0.6rem 0.15rem 0.65rem;
+    background: none;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-title {
+    font-style: italic;
+    font-size: 1.02rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-meta {
+    border-top: 1px dashed var(--border2);
+    margin-top: 0.45rem;
+    padding-top: 0.4rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .type-tag {
+    top: 10px;
+    right: auto;
+    left: -4px;
+    border-radius: 2px;
+    padding: 0.22rem 0.6rem 0.22rem 0.5rem;
+    background: var(--paper);
+    color: var(--paper-ink);
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 700;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    box-shadow: 0 4px 10px -5px var(--shadow);
+    transform: rotate(-3deg);
+  }
+  /* Ярлычок выступает за край обложки влево – у обложки overflow: hidden,
+     поэтому выступ даёт сама карточка (её поля), а не обложка. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-poster .type-tag {
+    left: 4px;
+  }
+
+  /* ── «Статусы»: счётчики и даты – вторым цветом ── */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .section-count,
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-meta-date {
+    color: var(--ink2);
+  }
+}
+
+/* Наведение: карточку приподнимают, как лист бумаги, – с тенью и едва
+   заметным поворотом (соседние – в разные стороны). Только там, где
+   есть настоящий указатель. */
+@media (min-width: 701px) and (hover: hover) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap {
+    transition: transform 0.28s ease;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap:hover {
+    transform: translateY(-6px) rotate(-0.7deg);
+    z-index: 3;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap:nth-child(2n):hover {
+    transform: translateY(-6px) rotate(0.7deg);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap:hover .card {
+    box-shadow: 0 0 0 1px var(--border2), 0 26px 34px -18px var(--shadow);
   }
 }
 
