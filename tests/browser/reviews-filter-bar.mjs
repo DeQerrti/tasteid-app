@@ -267,6 +267,17 @@ await page.click("#tab-now .tl-mode-btn >> nth=0");
 await page.waitForTimeout(300);
 const card = await page.$("#tab-now .review-card-wrap");
 if (card) {
+  // Тип в «Статусах» – плашкой на обложке, как в «Отзывах» и «Любимом»,
+  // а в подписи под названием его больше нет.
+  const typeOnCard = await card.evaluate((c) => ({
+    tag: c.querySelector(".card-poster .type-tag")?.textContent.trim() || "",
+    meta: c.querySelector(".card-meta-main")?.textContent.trim() || "",
+  }));
+  ok(!!typeOnCard.tag, `тип на карточке «Статусов» – плашкой на обложке (${typeOnCard.tag})`);
+  ok(
+    !typeOnCard.meta.toLowerCase().includes(typeOnCard.tag.toLowerCase()),
+    `в подписи остался только год (${typeOnCard.meta || "пусто"})`
+  );
   await card.click();
   await page.waitForSelector("#review-modal-overlay:not(.hidden)");
   ok(!(await page.$(".review-nav-count")), "из «Статусов» окно открывается без листания");

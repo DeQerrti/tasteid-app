@@ -341,6 +341,26 @@ ok(
   `оставшийся без пары блок растянут на всю ширину (${lone})`
 );
 
+// Полосы «Как ты оцениваешь типы» – с делениями по числу полок.
+const ticks = await page.evaluate(() => {
+  const bar = document.querySelector("#tab-stats .sx-types .sx-type > .sx-bar");
+  if (!bar) return null;
+  return {
+    n: bar.querySelectorAll(".sx-ticks b").length,
+    // Число полок – по шагу делений: первое стоит на 100/N процентов.
+    shelves: Math.round(100 / parseFloat(bar.querySelector(".sx-ticks b").style.left)),
+    shown: getComputedStyle(bar.querySelector(".sx-ticks")).display !== "none",
+  };
+});
+ok(
+  ticks && ticks.n === ticks.shelves - 1 && ticks.shown,
+  `полоса типа разбита на деления по полкам (${ticks?.n} делений на ${ticks?.shelves} полок)`
+);
+ok(
+  (await page.textContent('#tab-stats .tl-filter[data-stat-year="all"]')).trim() === "Все годы",
+  "кнопка всех лет подписана так же, как в тир-листе – «Все годы»"
+);
+
 ok(jsErrors.length === 0, `нет ошибок JS на странице (${jsErrors.join("; ")})`);
 
 await browser.close();

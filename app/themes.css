@@ -47,6 +47,89 @@
   :is([data-skin="classic"], [data-skin="classic-light"]) .card-meta { font-size: .66rem; }
 }
 
+/* ── Решения owner'а по макету (ноябрь 2026), только классические темы ──
+   У остальных тем эти элементы оформлены по-своему – их не трогаем. */
+
+/* Кнопки действий и годы – обычными буквами, а не заглавными: рядом
+   стояли «ПОРЯДОК»/«ДОБАВИТЬ» и «Новый тир-лист»/«Подписи». */
+:is([data-skin="classic"], [data-skin="classic-light"]) :is(.admin-add-btn, .tl-filter) {
+  font-size: .8rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Годы в тир-листе – кнопками в рамках, как годы в статистике (.tl-filter);
+   раньше были тихой строкой подчёркнутого текста. */
+:is([data-skin="classic"], [data-skin="classic-light"]) .tl-years { gap: .4rem; }
+:is([data-skin="classic"], [data-skin="classic-light"]) .tl-year {
+  font-weight: 500;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: .4rem .9rem;
+  transition: color .2s, border-color .2s, background .2s;
+}
+:is([data-skin="classic"], [data-skin="classic-light"]) .tl-year:hover { color: var(--text); border-color: var(--border2); }
+:is([data-skin="classic"], [data-skin="classic-light"]) .tl-year.active {
+  color: var(--text-hi);
+  border-color: var(--red-dim);
+  background: var(--surface2);
+}
+
+/* Тир-лист: название полки – полосой над обложками, закреплённой при
+   прокрутке. Раньше оно стояло колонкой слева по центру строки: у длинной
+   полки (50 тайтлов) уезжало за экран, и было непонятно, какую полку
+   смотришь; заодно обложкам достаётся вся ширина. top – высота
+   закреплённой строки вкладок (#tab-tierlist > .tl-mode-toggle).
+   .tl-exporting – снимок тир-листа (tlExport): там полоса не «липнет». */
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-row { flex-direction: column; }
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label {
+  width: auto;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: .65rem;
+  padding: .5rem 1rem;
+  border-right: 0;
+  border-bottom: 1px solid var(--border);
+  overflow: visible;
+  position: sticky;
+  top: calc(var(--app-titlebar, 0px) + 3.4rem);
+  z-index: 6;
+  background: color-mix(in srgb, var(--tl-color, #888) 16%, var(--surface));
+}
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label-name { font-size: 1.3rem; }
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label-count { font-size: .9rem; }
+/* Пустая полка остаётся тонкой строкой «название – прочерк», без полосы. */
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-row.tl-row-empty { flex-direction: row; }
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-row-empty .tl-label {
+  padding-top: .3rem; padding-bottom: .3rem;
+  border-bottom: 0; position: static; background: none;
+}
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-row-empty .tl-label-name { font-size: .95rem; }
+:is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-exporting .tl-label { position: static; }
+@media (max-width: 600px) {
+  :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label { padding: .35rem .6rem; }
+  :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label-name { font-size: 1rem; }
+  :is([data-skin="classic"], [data-skin="classic-light"]) #tab-tierlist .tl-label-count { font-size: .72rem; }
+}
+
+/* Статистика, «Как ты оцениваешь типы»: полоса с делениями по полкам
+   (разметка – .sx-ticks в statsTypesHtml, stats.js). */
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-types .sx-type > .sx-bar { position: relative; border-radius: 2px; }
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-types .sx-type > .sx-bar i { border-radius: 2px; }
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-ticks { display: block; }
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-ticks b {
+  position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
+  background: var(--surface);
+}
+
+/* Статистика, три обложки в шапке – веером. Раньше они перекрывали друг
+   друга почти наполовину, и текст на обложках был срезан посередине. */
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-covers img + img { margin-left: calc(clamp(70px, 7.5cqi, 210px) * -0.16); }
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-covers img:nth-child(1) { transform: rotate(-7deg) translateY(8px); }
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-covers img:nth-child(2) { transform: translateY(-8px); position: relative; z-index: 1; }
+:is([data-skin="classic"], [data-skin="classic-light"]) .sx-covers img:nth-child(3) { transform: rotate(7deg) translateY(8px); }
+
 /* ══ КЛАССИЧЕСКАЯ СВЕТЛАЯ ════════════════════════
    Тот же журнальный визуальный язык, что у тёмной классической —
    тонкие рамки, маленькое скругление, засечковые заголовки курсивом —

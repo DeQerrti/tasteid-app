@@ -872,6 +872,10 @@ async function tlExport(rowsId, label) {
     restoreImages = await proxyImagesToDataUrls(rows);
 
     restoreAnim = disableAnimations(rows);
+    // Полоса с названием полки закреплена при прокрутке (position: sticky,
+    // классические темы) – на снимке она должна стоять на своём месте над
+    // полкой, а не там, куда её сдвинула прокрутка страницы.
+    rows.classList.add("tl-exporting");
     // Неоморфизм иначе вышел бы на снимке плоским – см. bakeNeoShadows()
     // в config.js (та же причина и тот же приём, что у favExport() в
     // favorites.js).
@@ -914,6 +918,7 @@ async function tlExport(rowsId, label) {
     restoreImages();
     restoreAnim();
     restoreShadows();
+    document.getElementById(rowsId)?.classList.remove("tl-exporting");
     if (tip) tip.style.visibility = "";
     restoreBtn();
   }

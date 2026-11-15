@@ -846,7 +846,6 @@ i18nRegister({
   "Введите название": "Enter a name",
   "Внутри файла должен быть объект паспорта.": "The file must contain a passport object.",
   Всё: "Everything",
-  "Всё время": "All time",
   "Все годы": "All years",
   "Все настройки": "All settings",
   всего: "in total",

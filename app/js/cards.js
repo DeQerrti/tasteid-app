@@ -124,20 +124,23 @@ function manualCard(r, index) {
     ? `<a href="#/add?edit=${editId}" class="review-edit-btn" title="${i18n("Редактировать")}" aria-label="${i18n("Редактировать")}">✎</a>`
     : "";
 
-  // Тип и дата – в подписи под обложкой, а не плашками поверх неё:
-  // плашки закрывали углы обложки и были набраны кеглем около 9px.
+  // Тип – плашкой на обложке (.type-tag), как в «Любимом» и «Отзывах»;
+  // в подписи остаются год и дата. Одно время тип стоял в подписи
+  // («Сериал · 1999»), но owner вернул его на обложку (ноябрь 2026):
+  // на узком экране и при длинной подписи строка обрезалась многоточием,
+  // а три вкладки показывали тип по-разному. Дата по-прежнему в подписи.
   // tabindex/role – карточку можно открыть с клавиатуры (Enter/пробел,
   // см. nowBindCardClicks в now.js), как уже сделано в «Отзывах».
   // data-type/data-title – по ним «Статусы» фильтруют уже нарисованные
   // карточки, не пересобирая разметку (см. nowApplyFilter там же).
-  const metaMain = [tagLabel !== "–" ? tagLabel : "", r.year ? String(r.year) : ""]
-    .filter(Boolean)
-    .join(" · ");
+  const metaMain = r.year ? String(r.year) : "";
+  const typeTag = tagLabel !== "–" ? `<span class="type-tag tag-manual">${esc(tagLabel)}</span>` : "";
 
   return `<div class="review-card-wrap" data-review-id="${esc(editId)}" data-type="${esc(r.type || "")}" data-title="${esc(normTitle(r.title))}" tabindex="0" role="button" aria-label="${esc(r.title)}" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${pencil}
     <div class="card" style="animation-delay:0ms${gradeColorStyle(info)}">
       <div class="card-poster">
+        ${typeTag}
         <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
       </div>
       <div class="card-body">

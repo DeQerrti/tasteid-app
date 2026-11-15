@@ -400,6 +400,16 @@ function statsShelvesDetailHtml(shelves) {
 function statsTypesHtml(d) {
   const list = d.types.filter((t) => t.avg !== null).sort((a, b) => b.avg - a.avg);
   const n = GRADE_ORDER.length;
+  // Деления по числу полок: средние у типов близкие, и сплошные полосы
+  // почти одной длины ничего не сообщали – с делениями видно, на какой
+  // полке и в какой её части стоит тип. Настоящими элементами, а не
+  // фоном-градиентом: снимок статистики (html2canvas) градиент с
+  // повтором рисует ненадёжно. Показываются только в классических темах
+  // (.sx-ticks в themes.css) – у остальных свой вид полос.
+  const ticks = `<span class="sx-ticks" aria-hidden="true">${Array.from(
+    { length: n - 1 },
+    (_, k) => `<b style="left:${(((k + 1) / n) * 100).toFixed(2)}%"></b>`
+  ).join("")}</span>`;
   // Строка – кнопка: клик раскрывает под ней, сколько тайтлов этого
   // типа на каждой полке (statsBindAll, data-stat-expand). Подсказки
   // текстом нет – вкладкой делятся снимком; что строка раскрывается,
@@ -410,7 +420,7 @@ function statsTypesHtml(d) {
       return `<div class="sx-expand">
       <div class="sx-type" style="--tc:${esc(typeColor(t.type))}" data-stat-expand role="button" tabindex="0" aria-expanded="false">
         <span class="sx-type-name"><i></i>${esc(statsTypeName(t.type))}</span>
-        <span class="sx-bar" style="--tc:${esc(g.color)}"><i style="width:${Math.round((t.avg / n) * 100)}%"></i></span>
+        <span class="sx-bar" style="--tc:${esc(g.color)}"><i style="width:${Math.round((t.avg / n) * 100)}%"></i>${ticks}</span>
         <span class="sx-type-n">${t.n}<small>${esc(plural(t.n, [i18n("оценка"), i18n("оценки"), i18n("оценок")]))}</small></span>
         ${statsGradeHtml(g)}
       </div>
@@ -699,7 +709,7 @@ function statsFixLoneCards() {
 }
 
 function statsYearFiltersHtml(years) {
-  const allBtn = `<button class="tl-filter${statsState.year === "all" ? " active" : ""}" data-stat-year="all">${i18n("Всё время")}</button>`;
+  const allBtn = `<button class="tl-filter${statsState.year === "all" ? " active" : ""}" data-stat-year="all">${i18n("Все годы")}</button>`;
   const yearBtns = years
     .map(
       (y) =>

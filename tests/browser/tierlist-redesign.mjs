@@ -157,6 +157,26 @@ ok(
   `метки тиров в одну строку${broken.length ? ": рвутся " + broken.map(([t]) => t).join(", ") : ""}`
 );
 
+// Название полки – полосой над обложками (классическая тема), а не
+// колонкой слева: у длинной полки колонка уезжала за экран.
+const bar = await page.$eval("#tl-titles-rows .tl-row:not(.tl-row-empty)", (row) => {
+  const label = row.querySelector(".tl-label").getBoundingClientRect();
+  const cards = row.querySelector(".tl-cards").getBoundingClientRect();
+  return {
+    above: label.bottom <= cards.top + 1,
+    fullWidth: Math.abs(label.width - cards.width) < 2,
+    sticky: getComputedStyle(row.querySelector(".tl-label")).position,
+  };
+});
+ok(bar.above && bar.fullWidth, "название полки – полосой над обложками, на всю ширину");
+ok(bar.sticky === "sticky", "полоса с названием закреплена при прокрутке");
+
+const yearBtn = await page.$eval(
+  "#tab-tierlist .tl-year",
+  (e) => getComputedStyle(e).borderTopStyle
+);
+ok(yearBtn === "solid", "годы в тир-листе – кнопками в рамках");
+
 // Второй «Двойник» – тот, у которого год выхода 2022.
 await page.click('#tl-titles-rows .tl-poster[data-tl-title="Двойник"][data-tl-year="2022"]');
 await page.waitForSelector("#review-modal-overlay:not(.hidden)", { timeout: 5000 });
