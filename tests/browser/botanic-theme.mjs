@@ -58,6 +58,22 @@ writeFileSync(
       year: 2021,
       date_start: "2024-04-01",
     },
+    {
+      id: 4,
+      title: "Любимый",
+      type: "book",
+      status: "completed",
+      year: 2010,
+      grade: "etalon",
+      favorite: true,
+    },
+  ])
+);
+writeFileSync(
+  join(vaultDir, "favorites.json"),
+  JSON.stringify([
+    { id: 1, name: "Садовник", type: "person", subtype: "director" },
+    { id: 2, name: "Ботаник", type: "person", subtype: "author" },
   ])
 );
 
@@ -147,6 +163,49 @@ for (const theme of ["soft-dark", "soft"]) {
   ok(look.chipBorder === "0px", "кнопки типов – без рамок");
   ok(parseFloat(look.cardPad) >= 8, `у обложки поля, как у листа гербария (${look.cardPad})`);
   ok(look.tagBg === look.paperRgb, "тип на карточке – бумажным ярлычком");
+
+  // «Любимое» – в том же языке: ветка под разделами, листы гербария,
+  // роли на ярлычках; при наведении в панели – не прежняя капсула.
+  await page.click('.tab-btn[data-label="nav.favorites"]');
+  await page.waitForSelector("#tab-favorites .review-card-wrap", { timeout: 10000 });
+  const favTitles = await page.evaluate(() => {
+    const css = (el, pseudo) => getComputedStyle(el, pseudo);
+    const head = css(document.querySelector("#tab-favorites > .fav-head"), "::after");
+    const card = document.querySelector("#tab-favorites .review-card-wrap .card");
+    const btn = document.querySelector("#tab-favorites .fav-head .tl-mode-btn.active");
+    const order = document.querySelector("#fav-action-link .admin-add-btn");
+    return {
+      branchMask: head.maskImage || head.webkitMaskImage,
+      cardPad: css(card).paddingLeft,
+      btnCase: css(btn).textTransform,
+      orderBorder: css(order).borderTopWidth,
+      railRadius: css(document.querySelector("#rail .tab-btn:not(.active)")).borderTopLeftRadius,
+    };
+  });
+  ok(/branch\.svg/.test(favTitles.branchMask || ""), "«Любимое»: под разделами – ветка");
+  ok(favTitles.btnCase === "none", "«Любимое»: разделы – без заглавных букв");
+  ok(parseFloat(favTitles.cardPad) >= 8, "«Любимое»: тайтл – лист гербария с полями");
+  ok(favTitles.orderBorder === "0px", "«Любимое»: «Порядок» – строкой, без рамки");
+  ok(favTitles.railRadius === "2px", "боковая панель: при наведении – ярлычок, а не капсула");
+
+  await page.click('#tab-favorites .tl-mode-btn[data-mode="favPersons"]');
+  await page.waitForSelector("#tab-favorites .card-char", { timeout: 10000 });
+  const favPersons = await page.evaluate(() => {
+    const css = (el) => getComputedStyle(el);
+    const paper = css(document.documentElement).getPropertyValue("--paper").trim();
+    const probe = document.createElement("i");
+    probe.style.color = paper;
+    document.body.appendChild(probe);
+    const paperRgb = css(probe).color;
+    probe.remove();
+    return {
+      charPad: css(document.querySelector("#tab-favorites .card-char")).paddingLeft,
+      headBg: css(document.querySelector("#tab-favorites .fav-role-head")).backgroundColor,
+      paperRgb,
+    };
+  });
+  ok(parseFloat(favPersons.charPad) >= 7, "«Любимое»: персона – лист гербария с полями");
+  ok(favPersons.headBg === favPersons.paperRgb, "«Любимое»: название роли – на бумажном ярлычке");
   ok(look.railBg === look.paperRgb, "выбранный раздел панели – на бумажном ярлычке");
 }
 

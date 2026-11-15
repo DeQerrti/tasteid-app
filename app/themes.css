@@ -3021,6 +3021,15 @@ html[data-skin="neomorphism-dark"] * {
   :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn {
     transition: color 0.15s, background 0.15s, transform 0.2s;
   }
+  /* Наведение – бледный бумажный ярлычок той же формы, что у выбранного
+     раздела: раньше при наведении появлялась прежняя зелёная капсула. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn {
+    border-radius: 2px;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn:not(.active):hover {
+    background: color-mix(in srgb, var(--paper) 16%, transparent);
+    color: var(--text-hi);
+  }
   :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn.active {
     background: var(--paper);
     color: var(--paper-ink);
@@ -3050,7 +3059,7 @@ html[data-skin="neomorphism-dark"] * {
     mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
     -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
     position: relative;
     background: none;
     border: 0;
@@ -3064,19 +3073,19 @@ html[data-skin="neomorphism-dark"] * {
     letter-spacing: 0;
     color: var(--text-dim);
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn:hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:hover {
     color: var(--text);
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn.active {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active {
     background: none;
     color: var(--text-hi);
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn .section-count {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn .section-count {
     font-style: normal;
   }
   /* Лист: черешком стоит на ветке (её середина – 0.35rem + 9px от низа
      строки), весь выше неё. */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .tl-mode-btn.active::after {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::after {
     content: "";
     position: absolute;
     left: 50%;
@@ -3149,7 +3158,7 @@ html[data-skin="neomorphism-dark"] * {
 
   /* ── «Статусы»: карточка – лист гербария. Поля вокруг обложки, тонкая
      рамка на ней, подпись под пунктиром, тип – бумажным ярлычком. ── */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap .card {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .card {
     border-radius: 5px;
     padding: 9px 9px 0;
     background: var(--surface);
@@ -3167,20 +3176,20 @@ html[data-skin="neomorphism-dark"] * {
     border-radius: 1px;
     pointer-events: none;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-body {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .card-body {
     padding: 0.6rem 0.15rem 0.65rem;
     background: none;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-title {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .card-title {
     font-style: italic;
     font-size: 1.02rem;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-meta {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .card-meta {
     border-top: 1px dashed var(--border2);
     margin-top: 0.45rem;
     padding-top: 0.4rem;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .type-tag {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap .type-tag {
     top: 10px;
     right: auto;
     left: -4px;
@@ -3202,7 +3211,7 @@ html[data-skin="neomorphism-dark"] * {
   }
 
   /* ── «Статусы»: счётчики и даты – вторым цветом ── */
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .section-count,
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .section-count,
   :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .card-meta-date {
     color: var(--ink2);
   }
@@ -3212,18 +3221,154 @@ html[data-skin="neomorphism-dark"] * {
    заметным поворотом (соседние – в разные стороны). Только там, где
    есть настоящий указатель. */
 @media (min-width: 701px) and (hover: hover) {
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap {
     transition: transform 0.28s ease;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap:hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap:hover {
     transform: translateY(-6px) rotate(-0.7deg);
     z-index: 3;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap:nth-child(2n):hover {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap:nth-child(2n):hover {
     transform: translateY(-6px) rotate(0.7deg);
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now .review-card-wrap:hover .card {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .review-card-wrap:hover .card {
     box-shadow: 0 0 0 1px var(--border2), 0 26px 34px -18px var(--shadow);
+  }
+}
+
+/* ── «Любимое» в том же языке (ноябрь 2026, второй заход по макету) ──
+   Вкладки разделов, карточки тайтлов и счётчики берут правила «Статусов»
+   выше (там селектор :is(#tab-now, #tab-favorites)). Здесь – то, что у
+   «Любимого» устроено иначе: ветка лежит на .fav-head (закреплённая
+   строка здесь она, а не сами вкладки), у карточки тайтла нет обёртки
+   .card-poster (рамка – контуром самой картинки), плюс свои кнопки,
+   карточки персонажей/персон/своих разделов и заголовки ролей.
+   Снимок «Сохранить как картинку» собирается отдельно от вкладки и
+   остаётся в прежнем виде. */
+@media (min-width: 701px) {
+  /* Ветка под строкой разделов. У .fav-head отступ и выравнивание
+     заданы в разметке (style=…), отсюда !important. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites > .fav-head {
+    align-items: center !important;
+    padding-bottom: 2.2rem;
+    margin-bottom: 1.1rem !important;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites > .fav-head::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.35rem;
+    height: 18px;
+    opacity: 0.85;
+    background: var(--border2);
+    mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+    -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
+    gap: 0 2.2rem;
+  }
+
+  /* «Добавить», «Порядок», камера – курсивом без рамок, как надписи на
+     полях; подчёркиваются при наведении. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link {
+    gap: 1.2rem !important;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .admin-add-btn {
+    border: 0;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    background: none;
+    padding: 0.1rem 0;
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.08rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .admin-add-btn:hover {
+    color: var(--text-hi);
+    border-bottom-color: var(--ink2);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .icon-btn {
+    border: 0;
+    background: none;
+    color: var(--text);
+    padding: 0;
+    width: auto;
+    height: auto;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites #fav-action-link .icon-btn:hover {
+    color: var(--ink2);
+  }
+
+  /* Карточка тайтла: рамка на обложке – контуром картинки; ярлычок типа
+     отсчитывается от карточки, а не от обложки. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .review-card-wrap .card > img {
+    border-radius: 2px;
+    outline: 1px solid rgba(233, 226, 200, 0.38);
+    outline-offset: -6px;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .review-card-wrap .type-tag {
+    top: 19px;
+    left: 13px;
+  }
+
+  /* Персонажи, персоны и свои разделы – такие же листы, квадратные. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char {
+    border-radius: 5px;
+    padding: 8px 8px 0;
+    background: var(--surface);
+    box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char > img {
+    border-radius: 2px;
+    outline: 1px solid rgba(233, 226, 200, 0.38);
+    outline-offset: -5px;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char .card-body {
+    padding: 0.55rem 0.15rem 0.6rem;
+    background: none;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char .card-title {
+    font-style: italic;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char .card-meta {
+    border-top: 1px dashed var(--border2);
+    margin-top: 0.4rem;
+    padding-top: 0.35rem;
+  }
+
+  /* Заголовок роли («Сэйю», «Режиссёры») – на бумажном ярлычке. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-role-head {
+    display: inline-flex;
+    justify-self: start;
+    border-bottom: 0;
+    border-radius: 2px;
+    padding: 0.3rem 0.9rem;
+    background: var(--paper);
+    color: var(--paper-ink);
+    box-shadow: 0 6px 12px -7px var(--shadow);
+    transform: rotate(-1.2deg);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-role-head .section-count {
+    color: var(--paper-ink);
+    opacity: 0.65;
+  }
+}
+@media (min-width: 701px) and (hover: hover) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char {
+    transition: transform 0.28s ease, box-shadow 0.28s;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char:hover {
+    transform: translateY(-5px) rotate(-0.8deg);
+    box-shadow: 0 0 0 1px var(--border2), 0 22px 30px -16px var(--shadow);
+    z-index: 3;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .card-char:nth-child(2n):hover {
+    transform: translateY(-5px) rotate(0.8deg);
   }
 }
 
