@@ -4609,7 +4609,7 @@ html[data-skin="neomorphism-dark"] * {
   padding-left: 0.8rem;
   margin-bottom: 0.6rem;
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
   position: relative;
   isolation: isolate;
   background: none;
@@ -4626,32 +4626,32 @@ html[data-skin="neomorphism-dark"] * {
   letter-spacing: 0;
   color: var(--text-dim);
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:hover {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:hover {
   color: var(--text);
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn.active {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active {
   background: none;
   border: 0;
   color: var(--text-hi);
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn .section-count {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn .section-count {
   font-weight: 400;
   font-size: 0.85rem;
   vertical-align: super;
   color: var(--text-dim);
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:nth-child(3n + 1) {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:nth-child(3n + 1) {
   --doodle-swipe: url("/decor/doodle-swipe-1.svg");
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:nth-child(3n + 2) {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:nth-child(3n + 2) {
   --doodle-swipe: url("/decor/doodle-swipe-2.svg");
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:nth-child(3n) {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:nth-child(3n) {
   --doodle-swipe: url("/decor/doodle-swipe-3.svg");
 }
 /* Мазок по нижней половине слова, как маркером по строчке: светлые
    буквы остаются на тёмном фоне сверху и читаются. */
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn.active::after {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::after {
   content: "";
   position: absolute;
   left: -0.35rem;
@@ -4863,11 +4863,11 @@ html[data-skin="neomorphism-dark"] * {
     gap: 0.2rem 1.1rem;
     padding-left: 0.3rem;
   }
-  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn {
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
     font-size: 1.08rem;
     padding: 0.35rem 0.4rem 0.4rem;
   }
-  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn .section-count {
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn .section-count {
     font-size: 0.7rem;
   }
   :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-tools {
@@ -4911,5 +4911,582 @@ html[data-skin="neomorphism-dark"] * {
     left: -0.3rem;
     padding: 0.02rem 0.3rem;
     font-size: 0.56rem;
+  }
+}
+
+/* ══ РИСОВАННАЯ: «Любимое» – полароиды (ноябрь 2026) ═══════════════
+   Второй заход по макету: owner выбрал «полароиды» из трёх вариантов
+   (полароиды, булавки, альбомные уголки). Вкладки разделов – те же, что
+   у «Статусов» (правила выше написаны на :is(#tab-now, #tab-favorites)).
+   – тайтлы – отпечатки на скотче, как в «Статусах»;
+   – персонажи, персоны и СВОИ разделы owner'а («Опенинги» и т. п. –
+     они рисуются той же .card-char) – полароид: квадратный снимок на
+     бумаге с широким краем снизу, имя написано прямо на нём;
+   – заголовок роли («Сэйю», «Режиссёры») – надпись на полоске скотча;
+   – окно записи, редактор записи и редактор порядка – тем же почерком,
+     поля – строкой с линией от руки, биография – на линованном листе.
+
+   Скотч здесь – фоном (/decor/doodle-tape-bg-*.svg с цветом внутри), а
+   не маской, как в «Статусах»: «Сохранить как картинку» (html2canvas)
+   маски не рисует, а фон на ::after рисует. По той же причине наклон
+   карточек – только во вкладке (#tab-favorites), не в .fav-export:
+   повёрнутые блоки снимок рисует плохо. Наклон – свойством rotate, а не
+   transform: у .card-char сама карточка – .card с анимацией появления
+   (fadeUp, transform), и transform из правила темы она бы перебила. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) {
+  --doodle-frame: url("/decor/doodle-frame-dark.svg");
+}
+[data-skin="doodle"] {
+  --doodle-frame: url("/decor/doodle-frame-light.svg");
+}
+
+/* ── Шапка: «Добавить», «Порядок» – словами в рамке от руки ──
+   align-items с !important: у .fav-head выравнивание задано прямо в
+   разметке (style=…, favorites.js), а кнопки в этой теме ниже вкладок. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites > .fav-head {
+  align-items: center !important;
+  padding-left: 0.8rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
+  gap: 0.2rem 2.2rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#fav-action-link, .fe-view) .admin-add-btn,
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(.fe-view, .app-topbar:has(~ .fe-view)) :is(.btn, .btn-new):not(.ed-save) {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  background: var(--doodle-box) 0 0 / 100% 100% no-repeat;
+  padding: 0.38rem 0.8rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#fav-action-link, .fe-view) .admin-add-btn:hover,
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(.fe-view, .app-topbar:has(~ .fe-view)) :is(.btn, .btn-new):not(.ed-save):hover {
+  color: var(--text-hi);
+  background: var(--doodle-box) 0 0 / 100% 100% no-repeat;
+  box-shadow: none;
+  transform: rotate(-1deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#fav-action-link, .fav-modal-actions) .icon-btn {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
+  color: var(--text);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#fav-action-link, .fav-modal-actions) .icon-btn:hover {
+  color: var(--red);
+  background: none;
+  box-shadow: none;
+  transform: rotate(-6deg);
+}
+
+/* ── Карточки: общее для тайтлов и полароидов ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites :is(.grid-now, .grid-chars) {
+  gap: 2.4rem 1.7rem;
+  padding: 0.5rem 0.8rem 2rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fav-export :is(.grid-now, .grid-chars) {
+  gap: 1.6rem 1rem;
+  padding: 0.6rem 0.3rem 1rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card:hover {
+  transform: none;
+  box-shadow: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card img {
+  border-radius: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-poster {
+  padding: 5px;
+  background: var(--doodle-paper);
+  box-shadow:
+    0 10px 18px -8px rgba(0, 0, 0, 0.75),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-poster::after {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 46%;
+  height: 22px;
+  z-index: 3;
+  pointer-events: none;
+  transform: translateX(-50%) rotate(var(--doodle-tape-rot, -3deg));
+  background: var(--doodle-tape-bg, url("/decor/doodle-tape-bg-2.svg")) 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-body {
+  background: none;
+  padding: 0.7rem 0.2rem 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.15;
+  flex: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-meta {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-size: 0.78rem;
+  padding-top: 0.25rem;
+  margin-top: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) .card-grade-inline {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) .type-tag {
+  top: auto;
+  right: auto;
+  bottom: -0.4rem;
+  left: -0.5rem;
+  z-index: 4;
+  padding: 0.1rem 0.5rem;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  background: var(--doodle-paper);
+  color: var(--doodle-paper-ink);
+  border: 0;
+  border-radius: 1px;
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+  transform: rotate(calc(var(--doodle-tape-rot, -3deg) * -0.8));
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .review-edit-btn {
+  z-index: 6;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites :is(.review-card-wrap, .card-char) {
+  rotate: var(--doodle-rot, 0deg);
+  transition:
+    rotate 0.2s ease,
+    translate 0.2s ease;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites :is(.review-card-wrap, .card-char):is(:hover, :focus-visible) {
+  rotate: 0deg;
+  translate: 0 -4px;
+}
+/* У «Статусов» наклон задан на обёртке через transform (раздел выше),
+   здесь – через rotate; transform карточкам «Любимого» не нужен. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) :is(.review-card-wrap, .card-char):nth-child(6n + 1) {
+  --doodle-rot: -2deg;
+  --doodle-tape-rot: -4deg;
+  --doodle-tape-bg: url("/decor/doodle-tape-bg-1.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) :is(.review-card-wrap, .card-char):nth-child(6n + 2) {
+  --doodle-rot: 1.4deg;
+  --doodle-tape-rot: 3deg;
+  --doodle-tape-bg: url("/decor/doodle-tape-bg-2.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) :is(.review-card-wrap, .card-char):nth-child(6n + 3) {
+  --doodle-rot: -0.4deg;
+  --doodle-tape-rot: -1deg;
+  --doodle-tape-bg: url("/decor/doodle-tape-bg-3.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) :is(.review-card-wrap, .card-char):nth-child(6n + 4) {
+  --doodle-rot: 2deg;
+  --doodle-tape-rot: 5deg;
+  --doodle-tape-bg: url("/decor/doodle-tape-bg-1.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) :is(.review-card-wrap, .card-char):nth-child(6n + 5) {
+  --doodle-rot: -1.5deg;
+  --doodle-tape-rot: -6deg;
+  --doodle-tape-bg: url("/decor/doodle-tape-bg-2.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body) :is(.review-card-wrap, .card-char):nth-child(6n) {
+  --doodle-rot: 0.4deg;
+  --doodle-tape-rot: 2deg;
+  --doodle-tape-bg: url("/decor/doodle-tape-bg-3.svg");
+}
+
+/* ── Полароид: персонажи, персоны, свои разделы ──
+   Бумага – на самой карточке, снимок без своих полей, подпись внутри. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-char {
+  background: var(--doodle-paper);
+  padding: 7px 7px 0;
+  box-shadow:
+    0 10px 18px -8px rgba(0, 0, 0, 0.75),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-char:hover {
+  box-shadow:
+    0 14px 22px -8px rgba(0, 0, 0, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-char .card-poster {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-char .card-poster::after {
+  top: -18px;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-char .card-body {
+  padding: 0.55rem 0.2rem 0.7rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-char .card-title {
+  color: var(--doodle-paper-ink);
+  font-size: 1rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, #fav-modal-body, .fe-preview) .card-char .card-meta {
+  color: color-mix(in srgb, var(--doodle-paper-ink) 65%, transparent);
+}
+/* В снимке колонка узкая (900px на 8 полароидов), и почерк рвал имена
+   посреди слова – шесть колонок и кегль мельче. :not(#doodle) – только
+   ради веса селектора: правила выше начинаются с :is(#tab-favorites, …),
+   а :is() весит как самый тяжёлый вариант в скобках, то есть как id. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fav-export:not(#doodle) .grid-chars {
+  grid-template-columns: repeat(6, 1fr);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fav-export:not(#doodle) .card-title {
+  font-size: 0.78rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fav-export:not(#doodle) .card-meta {
+  font-size: 0.7rem;
+}
+
+/* ── Заголовок роли – надпись на полоске скотча ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, .ro-view) .fav-role-head {
+  justify-self: start;
+  margin: 1.6rem 0 0.2rem;
+  padding: 0.15rem 1rem;
+  border-bottom: 0;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--doodle-paper-ink);
+  background: url("/decor/doodle-tape-bg-2.svg") 0 0 / 100% 100% no-repeat;
+  transform: rotate(-1.5deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, .ro-view) .fav-role-head:first-child {
+  margin-top: 0.2rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-favorites, .fav-export, .ro-view) .fav-role-head .section-count {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--doodle-paper-ink) 60%, transparent);
+}
+/* ── Окно записи ──
+   Картинка – отпечаток с полями, имя почерком, «Тайтлы» – маркером.
+   Полоски скотча по верхним углам – внутри листа: у панели своя
+   прокрутка (overflow-y: auto), вынесенное наружу она бы обрезала. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-overlay .review-modal-panel::before,
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-overlay .review-modal-panel::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  width: 92px;
+  height: 22px;
+  z-index: 6;
+  pointer-events: none;
+  background: url("/decor/doodle-tape-bg-1.svg") 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-overlay .review-modal-panel::before {
+  left: -22px;
+  transform: rotate(-38deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-overlay .review-modal-panel::after {
+  right: -22px;
+  transform: rotate(36deg);
+  background-image: url("/decor/doodle-tape-bg-3.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .review-modal-cover {
+  border: 6px solid var(--doodle-paper);
+  border-radius: 0;
+  box-shadow: 0 10px 18px -8px rgba(0, 0, 0, 0.75);
+  transform: rotate(-2deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .review-modal-title {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-weight: 600;
+  font-style: normal;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body :is(.review-meta-row, .review-format, .fav-modal-quote, .fav-modal-fact, .review-modal-fulltext, .fav-empty-profile) {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .fav-modal-titles-title {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  margin-bottom: 1.2rem;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-hi);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .fav-modal-titles-title::after {
+  content: "";
+  position: absolute;
+  left: -0.3rem;
+  right: -0.4rem;
+  top: 50%;
+  bottom: -0.1rem;
+  z-index: -1;
+  background: var(--red);
+  opacity: 0.55;
+  -webkit-mask: url("/decor/doodle-swipe-3.svg") 0 0 / 100% 100% no-repeat;
+  mask: url("/decor/doodle-swipe-3.svg") 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .fav-empty-profile {
+  border: 0;
+  border-radius: 0;
+  background: var(--doodle-frame) 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .fav-empty-profile a {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  background: var(--doodle-paper);
+  color: var(--doodle-paper-ink);
+  border: 0;
+  border-radius: 1px;
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-2deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .fav-modal-titles-grid {
+  gap: 2rem 1.4rem;
+  padding: 0.6rem 0.4rem;
+}
+
+/* ── Редактор записи (#/favorites-edit) и редактор порядка
+   (#/favorites-order): весь текст – почерком. Раньше поля были
+   Cormorant (правило .fe-view input в index.html стоит позже themes.css
+   и перебивало шрифт темы), подписи – заглавными DM Sans. ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(.fe-view, .ro-view, .app-topbar:has(~ :is(.fe-view, .ro-view))) * {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .app-topbar:has(~ :is(.fe-view, .ro-view)) .topbar-title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view :is(label, .fe-side-label) {
+  font-size: 0.82rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view :is(input:not([type="checkbox"]):not([type="color"]):not([type="file"]), select, .src-type-btn) {
+  font-size: 0.95rem;
+  color: var(--text-hi);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  text-align: left;
+  background: var(--doodle-under) 0 100% / 100% 10px no-repeat;
+  padding: 0.5rem 0.2rem 0.6rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view :is(select, .src-type-btn) {
+  background:
+    var(--doodle-caret) right 0.3rem center / 14px 11px no-repeat,
+    var(--doodle-under) 0 100% / 100% 10px no-repeat;
+}
+/* Биография и цитаты – на линованном листе. background-attachment:
+   local – линейки едут вместе с текстом при прокрутке поля. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view textarea {
+  font-size: 0.95rem;
+  line-height: 1.9rem;
+  color: var(--text-hi);
+  border: 0;
+  border-radius: 0;
+  padding: 0.3rem 0.4rem;
+  background-color: transparent;
+  background-image: linear-gradient(
+    transparent calc(1.9rem - 1px),
+    color-mix(in srgb, var(--text-dim) 45%, transparent) calc(1.9rem - 1px)
+  );
+  background-size: 100% 1.9rem;
+  background-position: 0 0.3rem;
+  background-attachment: local;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view :is(input, textarea, select, .src-type-btn):focus,
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view :is(input, textarea, select, .src-type-btn):focus-visible {
+  outline: 1.5px dashed var(--red);
+  outline-offset: 3px;
+  background-color: transparent;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view :is(.fe-lookup, .fe-imgbox) {
+  border: 0;
+  border-radius: 0;
+  background: var(--doodle-frame) 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view .section-title {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  font-size: 1.35rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view .section-title::after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: -0.3rem;
+  right: -0.4rem;
+  top: 50%;
+  bottom: 0.1rem;
+  /* height: 1px и flex: 1 – от черты-засечки базового .section-title. */
+  height: auto;
+  flex: none;
+  z-index: -1;
+  background: var(--red);
+  opacity: 0.55;
+  -webkit-mask: url("/decor/doodle-swipe-1.svg") 0 0 / 100% 100% no-repeat;
+  mask: url("/decor/doodle-swipe-1.svg") 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view .linked-title-chip {
+  background: var(--doodle-paper);
+  color: var(--doodle-paper-ink);
+  border: 0;
+  border-radius: 1px;
+  box-shadow: 1px 3px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-1.5deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view .linked-title-chip :is(button, .linked-title-del) {
+  color: var(--doodle-paper-ink);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view .fe-preview .card {
+  max-width: 230px;
+  margin: 14px 0 0 6px;
+}
+
+/* Редактор порядка: карточки – маленькие отпечатки, номер – в кружке. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .hint {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-grid {
+  gap: 1.8rem 1.3rem;
+  padding-top: 0.8rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item {
+  position: relative;
+  overflow: visible;
+  padding: 5px 5px 0;
+  background: var(--doodle-paper);
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 8px 14px -7px rgba(0, 0, 0, 0.75);
+  rotate: var(--doodle-rot, 0deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item:nth-child(4n + 1) {
+  --doodle-rot: -1.4deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item:nth-child(4n + 2) {
+  --doodle-rot: 1deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item:nth-child(4n + 3) {
+  --doodle-rot: -0.4deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item:nth-child(4n) {
+  --doodle-rot: 1.6deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item:hover {
+  rotate: 0deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item.drag-over {
+  box-shadow: 0 0 0 3px var(--red);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item img {
+  border-radius: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item-body {
+  padding: 0.4rem 0.2rem 0.55rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item-title {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--doodle-paper-ink);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item-type {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.7rem;
+  color: color-mix(in srgb, var(--doodle-paper-ink) 60%, transparent);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ro-view .dnd-item-num {
+  font-weight: 600;
+  background: var(--red);
+  color: #fff;
+  border: 0;
+  border-radius: 50% 45% 55% 48%;
+  transform: rotate(-8deg);
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* ── «Любимое» на телефоне: полароиды втрое уже ── */
+@media (max-width: 700px) {
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites > .fav-head {
+    padding-left: 0.3rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
+    gap: 0.2rem 1.1rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites :is(.grid-now, .grid-chars) {
+    gap: 1.4rem 0.75rem;
+    padding: 0.4rem 0.2rem 1.5rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-poster {
+    padding: 3px;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-char {
+    padding: 4px 4px 0;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-poster::after {
+    top: -7px;
+    width: 52%;
+    height: 14px;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-char .card-poster::after {
+    top: -11px;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites :is(.review-card-wrap, .card-char) {
+    rotate: calc(var(--doodle-rot, 0deg) * 0.6);
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-body,
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-char .card-body {
+    padding: 0.4rem 0.05rem 0.45rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-title,
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-char .card-title {
+    font-size: 0.72rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .card-meta {
+    font-size: 0.6rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .type-tag {
+    bottom: -0.3rem;
+    left: -0.3rem;
+    padding: 0.02rem 0.3rem;
+    font-size: 0.56rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-favorites .fav-role-head {
+    font-size: 0.95rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #fav-modal-body .review-modal-title {
+    font-size: 1.4rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) .fe-view .fe-preview .card {
+    max-width: 180px;
   }
 }

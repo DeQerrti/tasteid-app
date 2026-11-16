@@ -203,6 +203,32 @@ for (const [skin, color] of [
 FILES["doodle-grain.svg"] =
   `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .45 -.2"/></filter><rect width="240" height="240" filter="url(#n)"/></svg>\n`;
 
+// «Любимое»: скотч фоном, а не маской – с цветом прямо в файле. Снимок
+// «Сохранить как картинку» (html2canvas) маски не рисует, а фон на
+// ::after рисует. Цвет один на обе темы: полупрозрачный беж ложится и
+// на тёмный, и на светлый фон.
+for (let k = 1; k <= 3; k++) {
+  FILES[`doodle-tape-bg-${k}.svg`] = shapes(90, 22, tape(rng(100 + k * 17), 90, 22)).replace(
+    'fill="#000" stroke="#000"',
+    'fill="rgb(222,206,164)" fill-opacity=".58" stroke="none"'
+  );
+}
+// Рамка от руки для больших блоков (поиск на AniList, блок картинки в
+// редакторе): штрих не растягивается вместе с блоком (non-scaling-stroke),
+// иначе на широком блоке линии становились бы толстыми и сплюснутыми.
+for (const [skin, color] of [
+  ["dark", "#a19e95"],
+  ["light", "#7a7266"],
+]) {
+  FILES[`doodle-frame-${skin}.svg`] = lines(
+    400,
+    120,
+    roughRect(rng(9), 4, 4, 392, 112, 6),
+    1.5,
+    color
+  ).replace("/></svg>", ' vector-effect="non-scaling-stroke"/></svg>');
+}
+
 for (const [name, body] of Object.entries(FILES)) {
   writeFileSync(path.join(OUT, name), body);
   console.log(`${name}: ${body.length} байт`);

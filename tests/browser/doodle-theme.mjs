@@ -1,5 +1,6 @@
 // Рисованная тема («Рисованный», тёмная и светлая): вид «скотч и маркер»
-// на боковой панели и вкладке «Статусы» и почерк Shantell Sans.
+// на боковой панели, «Статусах» и «Любимом» (полароиды, окно записи, оба
+// редактора) и почерк Shantell Sans.
 //
 // Проверяется (на ширине компьютера, в обеих темах, и на телефоне):
 //   – файлы украшений /decor/doodle-*.svg и шрифт отдаются сервером;
@@ -54,8 +55,23 @@ writeFileSync(
     current(3, "Сохнет", "movie"),
     current(4, "Очень длинное название, которое не влезает в одну строку", "show"),
     { id: 5, title: "Ждёт", type: "manga", status: "planning", year: 2020 },
+    { id: 6, title: "Любимый", type: "book", status: "completed", year: 2010, favorite: true },
   ])
 );
+
+// «Любимое»: персонаж, персоны двух ролей (заголовки ролей) и запись
+// своего раздела owner'а – любая фича «Любимого» обязана работать и для них.
+writeFileSync(
+  join(vaultDir, "favorites.json"),
+  JSON.stringify([
+    { id: 1, name: "Художник", type: "character", from: "Альбом" },
+    { id: 2, name: "Сэйю", type: "person", subtype: "seiyuu" },
+    { id: 3, name: "Режиссёр", type: "person", subtype: "director" },
+    { id: 4, name: "Опенинг", type: "openings", from: "Альбом" },
+  ])
+);
+const settings = (theme) =>
+  JSON.stringify({ theme, favCollections: [{ id: "openings", label: "Опенинги" }] });
 
 const port = await new Promise((resolve) => {
   const probe = http.createServer().listen(0, "127.0.0.1", () => {
@@ -96,6 +112,11 @@ const files = [
   "doodle-under-light.svg",
   "doodle-caret-dark.svg",
   "doodle-caret-light.svg",
+  "doodle-tape-bg-1.svg",
+  "doodle-tape-bg-2.svg",
+  "doodle-tape-bg-3.svg",
+  "doodle-frame-dark.svg",
+  "doodle-frame-light.svg",
 ];
 for (const name of files) {
   const res = await page.request.get(`${base}/decor/${name}`);
@@ -153,7 +174,7 @@ const inspect = () => {
 
 for (const theme of ["doodle-dark", "doodle"]) {
   console.log(`Тема ${theme}`);
-  writeFileSync(join(vaultDir, "site-settings.json"), JSON.stringify({ theme }));
+  writeFileSync(join(vaultDir, "site-settings.json"), settings(theme));
   await page.goto(base + "/", { waitUntil: "domcontentloaded" });
   await page.click('.tab-btn[data-label="nav.now"]');
   await page.waitForSelector("#tab-now .review-card-wrap", { timeout: 10000 });
@@ -189,7 +210,7 @@ for (const theme of ["doodle-dark", "doodle"]) {
 console.log("Телефон");
 const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
 phone.on("pageerror", (e) => jsErrors.push(e.message));
-writeFileSync(join(vaultDir, "site-settings.json"), JSON.stringify({ theme: "doodle-dark" }));
+writeFileSync(join(vaultDir, "site-settings.json"), settings("doodle-dark"));
 await phone.goto(base + "/", { waitUntil: "domcontentloaded" });
 await phone.click('.tab-btn[data-label="nav.now"]');
 await phone.waitForSelector("#tab-now .review-card-wrap", { timeout: 10000 });
@@ -203,6 +224,134 @@ ok(
   "выбранный раздел нижней панели – мазок под словом"
 );
 await phone.close();
+
+console.log("«Любимое»");
+const fav = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+fav.on("pageerror", (e) => jsErrors.push(e.message));
+writeFileSync(join(vaultDir, "site-settings.json"), settings("doodle-dark"));
+await fav.goto(base + "/", { waitUntil: "domcontentloaded" });
+await fav.click('.tab-btn[data-label="nav.favorites"]');
+await fav.waitForSelector("#tab-favorites .tl-mode-btn.active", { timeout: 10000 });
+const favLook = async (mode) => {
+  await fav.click(`#tab-favorites .tl-mode-btn[data-mode="${mode}"]`);
+  await fav.waitForSelector(
+    `#tab-favorites #fav-mode-body > div:not([hidden]) :is(.card, .review-card-wrap)`,
+    {
+      timeout: 10000,
+    }
+  );
+  await fav.waitForTimeout(300);
+  return fav.evaluate(() => {
+    const css = (el, pseudo) => getComputedStyle(el, pseudo);
+    const body = document.querySelector("#fav-mode-body > div:not([hidden])");
+    const btn = document.querySelector("#tab-favorites .tl-mode-btn.active");
+    const card = body.querySelector(".card-char, .review-card-wrap .card");
+    const poster = card.querySelector(".card-poster");
+    const head = body.querySelector(".fav-role-head");
+    const probe = document.createElement("i");
+    probe.style.color = css(document.documentElement).getPropertyValue("--doodle-paper").trim();
+    document.body.appendChild(probe);
+    const paperRgb = css(probe).color;
+    probe.remove();
+    return {
+      swipe: css(btn, "::after").maskImage || css(btn, "::after").webkitMaskImage,
+      polaroid: card.classList.contains("card-char")
+        ? css(card).backgroundColor
+        : css(poster).backgroundColor,
+      tape: css(poster, "::after").backgroundImage,
+      headFont: head ? css(head).fontFamily : "",
+      headTape: head ? css(head).backgroundImage : "",
+      paperRgb,
+    };
+  });
+};
+const titlesLook = await favLook("favTitles");
+ok(
+  /doodle-swipe-\d\.svg/.test(titlesLook.swipe || ""),
+  "вкладка раздела – мазок маркера, как в «Статусах»"
+);
+ok(titlesLook.polaroid === titlesLook.paperRgb, "тайтл – отпечаток с бумажными полями");
+ok(/doodle-tape-bg-\d\.svg/.test(titlesLook.tape), "скотч – фоном (попадёт в снимок)");
+for (const [mode, label] of [
+  ["favCharacters", "персонаж"],
+  ["openings", "запись своего раздела"],
+]) {
+  const look = await favLook(mode);
+  ok(look.polaroid === look.paperRgb, `${label} – полароид на бумаге`);
+  ok(/doodle-tape-bg-\d\.svg/.test(look.tape), `${label} – на скотче`);
+}
+const personsLook = await favLook("favPersons");
+ok(
+  personsLook.headFont.startsWith('"Shantell Sans"') &&
+    /doodle-tape-bg-\d\.svg/.test(personsLook.headTape),
+  "заголовок роли – почерком на полоске скотча"
+);
+
+// Окно записи.
+await favLook("favCharacters");
+await fav.click("#tab-favorites .card-char");
+await fav.waitForSelector("#fav-modal-overlay:not(.hidden) .review-modal-title", {
+  timeout: 10000,
+});
+const modal = await fav.evaluate(() => {
+  const panel = document.querySelector("#fav-modal-overlay .review-modal-panel");
+  return {
+    tape: getComputedStyle(panel, "::before").backgroundImage,
+    font: getComputedStyle(panel.querySelector(".review-modal-title")).fontFamily,
+  };
+});
+ok(/doodle-tape-bg-\d\.svg/.test(modal.tape), "окно записи «приклеено» скотчем");
+ok(modal.font.startsWith('"Shantell Sans"'), "имя в окне записи – почерком");
+
+// Редактор записи: поля были Cormorant (правило .fe-view input позже
+// themes.css перебивало шрифт темы) – теперь почерк темы.
+await fav.goto(base + "/#/favorites-edit?edit=1", { waitUntil: "domcontentloaded" });
+await fav.waitForSelector(".fe-view #f-name, .fe-view input", { timeout: 10000 });
+await fav.waitForTimeout(400);
+const editor = await fav.evaluate(() => {
+  const css = (el, pseudo) => getComputedStyle(el, pseudo);
+  const input = document.querySelector(".fe-view input:not([type=checkbox]):not([type=file])");
+  const title = document.querySelector(".fe-view .section-title");
+  const save = document.querySelector(".app-topbar .ed-save");
+  return {
+    inputFont: css(input).fontFamily,
+    labelCase: css(document.querySelector(".fe-view label")).textTransform,
+    swipe: css(title, "::after").maskImage || css(title, "::after").webkitMaskImage,
+    swipeH: parseFloat(css(title, "::after").height),
+    saveBg: css(save).backgroundImage,
+  };
+});
+ok(
+  editor.inputFont.startsWith('"Shantell Sans"'),
+  `поля редактора – почерком (${editor.inputFont})`
+);
+ok(editor.labelCase === "none", "подписи полей – не заглавными");
+ok(
+  /doodle-swipe-\d\.svg/.test(editor.swipe || "") && editor.swipeH > 5,
+  "заголовок раздела редактора – мазок маркера"
+);
+ok(!/doodle-box/.test(editor.saveBg), "«Сохранить» в шапке – прежняя кнопка, а не рамка");
+
+// Редактор порядка.
+await fav.goto(base + "/#/favorites-order?section=favCharacters", {
+  waitUntil: "domcontentloaded",
+});
+await fav.waitForSelector(".ro-view .dnd-item", { timeout: 10000 });
+const order = await fav.evaluate(() => {
+  const probe = document.createElement("i");
+  probe.style.color = getComputedStyle(document.documentElement)
+    .getPropertyValue("--doodle-paper")
+    .trim();
+  document.body.appendChild(probe);
+  const paperRgb = getComputedStyle(probe).color;
+  probe.remove();
+  return {
+    bg: getComputedStyle(document.querySelector(".ro-view .dnd-item")).backgroundColor,
+    paperRgb,
+  };
+});
+ok(order.bg === order.paperRgb, "редактор порядка – карточки-отпечатки");
+await fav.close();
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
