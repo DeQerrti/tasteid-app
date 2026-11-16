@@ -170,9 +170,26 @@ const shapes = (w, h, body) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none"><g fill="#000" stroke="#000" stroke-linecap="round">${body}</g></svg>\n`;
 
 for (let k = 1; k <= 3; k++) {
-  FILES[`doodle-tape-${k}.svg`] = shapes(90, 22, tape(rng(100 + k * 17), 90, 22));
   FILES[`doodle-swipe-${k}.svg`] = shapes(220, 40, swipe(rng(7 + k * 31), 220, 40));
 }
+// Петля «обвёл от руки» (маска): выбранная оценка в редакторе отзыва.
+// Не замыкается ровно, а заходит на второй круг – так обводят ручкой.
+function loop(r, w, h, turns = 1.18, pad = 4) {
+  const rx = w / 2 - pad;
+  const ry = h / 2 - pad;
+  const a0 = Math.PI * (0.75 + r() * 0.3);
+  const ph = r() * 6;
+  const drift = 0.05 + r() * 0.05;
+  const pts = [];
+  for (let i = 0; i <= 48; i++) {
+    const t = i / 48;
+    const a = a0 + t * turns * 2 * Math.PI;
+    const k = 1 + 0.035 * Math.sin(a * 2 + ph) - drift * (t - 0.5);
+    pts.push([w / 2 + Math.cos(a) * rx * k, h / 2 + Math.sin(a) * ry * k]);
+  }
+  return smooth(pts);
+}
+FILES["doodle-loop.svg"] = lines(120, 50, loop(rng(69), 120, 50), 2.2);
 // Линии боковой панели (маски): край панели, черта под логотипом, волна.
 FILES["doodle-vline.svg"] = lines(
   8,

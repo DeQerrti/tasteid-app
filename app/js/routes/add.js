@@ -751,6 +751,13 @@ function renderEdPreview() {
   else curImg.style.objectPosition = nextImg.style.objectPosition;
   cur.querySelector(".card-body").replaceWith(next.querySelector(".card-body"));
   cur.querySelector(".card").setAttribute("style", next.querySelector(".card").getAttribute("style"));
+  // Плашка типа на обложке – тоже. Раньше обновлялись только картинка и
+  // подпись, а первый раз превью рисуется до того, как в форму подставлен
+  // отзыв: у открытой на правку игры так и оставалась плашка «Аниме»
+  // (тип по умолчанию). Плашки может не быть вовсе (тип не задан).
+  cur.querySelector(".type-tag")?.remove();
+  const nextTag = next.querySelector(".type-tag");
+  if (nextTag) cur.querySelector(".card-poster").prepend(nextTag);
 }
 
 // Обе кнопки сохранения (в шапке и внизу формы) – одна подпись и одно

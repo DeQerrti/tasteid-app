@@ -1,6 +1,6 @@
 // Рисованная тема («Рисованный», тёмная и светлая): вид «скотч и маркер»
-// на боковой панели, «Статусах» и «Любимом» (полароиды, окно записи, оба
-// редактора) и почерк Shantell Sans.
+// на боковой панели, «Статусах», «Любимом» (окно записи, оба редактора) и
+// «Отзывах» (окно и редактор отзыва) и почерк Shantell Sans.
 //
 // Проверяется (на ширине компьютера, в обеих темах, и на телефоне):
 //   – файлы украшений /decor/doodle-*.svg и шрифт отдаются сервером;
@@ -8,7 +8,8 @@
 //     запасным шрифтом – так раньше было с Patrick Hand без кириллицы);
 //   – вкладки статусов – надписи без капсул, у выбранной – мазок маркера;
 //   – типы – словами без рамок, выбранный – бумажной наклейкой;
-//   – карточка – отпечаток с полями на скотче, без коробки вокруг;
+//   – карточка – полароид на скотче, одна на все вкладки; подпись идёт
+//     сразу под названием, без дыры, даже если у соседа название длиннее;
 //   – выбранный раздел боковой панели – мазок под словом;
 //   – на телефоне карточки и вкладки не уезжают за край экрана.
 //
@@ -56,6 +57,33 @@ writeFileSync(
     current(4, "Очень длинное название, которое не влезает в одну строку", "show"),
     { id: 5, title: "Ждёт", type: "manga", status: "planning", year: 2020 },
     { id: 6, title: "Любимый", type: "book", status: "completed", year: 2010, favorite: true },
+    // «Отзывы»: один ряд, у соседа название в две строки, у остальных – в одну.
+    {
+      id: 7,
+      title: "Коротко",
+      type: "game",
+      status: "completed",
+      year: 2024,
+      grade: "etalon",
+      date_end: "2025-03-03",
+      tags: ["Драма"],
+    },
+    {
+      id: 8,
+      title: "Очень длинное название отзыва, которое займёт две строки",
+      type: "anime",
+      status: "completed",
+      year: 2023,
+      date_end: "2025-03-02",
+    },
+    {
+      id: 9,
+      title: "Тоже коротко",
+      type: "movie",
+      status: "completed",
+      year: 2022,
+      date_end: "2025-03-01",
+    },
   ])
 );
 
@@ -96,9 +124,6 @@ page.on("pageerror", (e) => jsErrors.push(e.message));
 
 console.log("Украшения и шрифт");
 const files = [
-  "doodle-tape-1.svg",
-  "doodle-tape-2.svg",
-  "doodle-tape-3.svg",
   "doodle-swipe-1.svg",
   "doodle-swipe-2.svg",
   "doodle-swipe-3.svg",
@@ -117,6 +142,7 @@ const files = [
   "doodle-tape-bg-3.svg",
   "doodle-frame-dark.svg",
   "doodle-frame-light.svg",
+  "doodle-loop.svg",
 ];
 for (const name of files) {
   const res = await page.request.get(`${base}/decor/${name}`);
@@ -158,10 +184,8 @@ const inspect = () => {
     chipBg: css(chip).backgroundColor,
     chipOnBg: css(chipOn).backgroundColor,
     cardBg: css(card).backgroundColor,
-    cardBorder: css(card).borderTopWidth,
-    posterPad: css(poster).paddingTop,
-    posterBg: css(poster).backgroundColor,
-    tape: css(poster, "::after").maskImage || css(poster, "::after").webkitMaskImage,
+    cardPad: css(card).paddingTop,
+    tape: css(poster, "::after").backgroundImage,
     tagBg: css(tag).backgroundColor,
     railSwipe: railLabel
       ? css(railLabel, "::after").maskImage || css(railLabel, "::after").webkitMaskImage
@@ -194,13 +218,15 @@ for (const theme of ["doodle-dark", "doodle"]) {
     "кнопки типов – словами, без рамок"
   );
   ok(look.chipOnBg === look.paperRgb, "выбранный тип – бумажной наклейкой");
-  ok(look.cardBg === "rgba(0, 0, 0, 0)" && look.cardBorder === "0px", "у карточки нет коробки");
   ok(
-    parseFloat(look.posterPad) >= 4 && look.posterBg === look.paperRgb,
-    `обложка – отпечаток с полями (${look.posterPad})`
+    look.cardBg === look.paperRgb && parseFloat(look.cardPad) >= 4,
+    `карточка – полароид на бумаге (${look.cardPad})`
   );
-  ok(/doodle-tape-\d\.svg/.test(look.tape || ""), "обложка приклеена скотчем");
-  ok(look.tagBg === look.paperRgb, "тип на обложке – бумажной наклейкой");
+  ok(/doodle-tape-bg-\d\.svg/.test(look.tape), "полароид приклеен скотчем (фоном)");
+  ok(
+    look.tagBg !== look.paperRgb && look.tagBg !== "rgba(0, 0, 0, 0)",
+    "тип на обложке – наклейкой, отличной от бумаги полароида"
+  );
   ok(
     /doodle-swipe-\d\.svg/.test(look.railSwipe || ""),
     "выбранный раздел панели – мазок под словом"
@@ -218,7 +244,7 @@ await phone.waitForTimeout(400);
 const small = await phone.evaluate(inspect);
 ok(small.gridFits, "карточки не уезжают за край экрана");
 ok(small.toggleFits, "вкладки статусов помещаются или прокручиваются");
-ok(parseFloat(small.posterPad) >= 2, `поля отпечатка есть и на телефоне (${small.posterPad})`);
+ok(parseFloat(small.cardPad) >= 2, `поля полароида есть и на телефоне (${small.cardPad})`);
 ok(
   /doodle-swipe-\d\.svg/.test(small.railSwipe || ""),
   "выбранный раздел нижней панели – мазок под словом"
@@ -255,9 +281,7 @@ const favLook = async (mode) => {
     probe.remove();
     return {
       swipe: css(btn, "::after").maskImage || css(btn, "::after").webkitMaskImage,
-      polaroid: card.classList.contains("card-char")
-        ? css(card).backgroundColor
-        : css(poster).backgroundColor,
+      polaroid: css(card).backgroundColor,
       tape: css(poster, "::after").backgroundImage,
       headFont: head ? css(head).fontFamily : "",
       headTape: head ? css(head).backgroundImage : "",
@@ -270,7 +294,7 @@ ok(
   /doodle-swipe-\d\.svg/.test(titlesLook.swipe || ""),
   "вкладка раздела – мазок маркера, как в «Статусах»"
 );
-ok(titlesLook.polaroid === titlesLook.paperRgb, "тайтл – отпечаток с бумажными полями");
+ok(titlesLook.polaroid === titlesLook.paperRgb, "тайтл – полароид, как во всех вкладках");
 ok(/doodle-tape-bg-\d\.svg/.test(titlesLook.tape), "скотч – фоном (попадёт в снимок)");
 for (const [mode, label] of [
   ["favCharacters", "персонаж"],
@@ -352,6 +376,106 @@ const order = await fav.evaluate(() => {
 });
 ok(order.bg === order.paperRgb, "редактор порядка – карточки-отпечатки");
 await fav.close();
+
+console.log("«Отзывы»");
+const rv = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+rv.on("pageerror", (e) => jsErrors.push(e.message));
+writeFileSync(join(vaultDir, "site-settings.json"), settings("doodle-dark"));
+await rv.goto(base + "/", { waitUntil: "domcontentloaded" });
+await rv.click('.tab-btn[data-label="nav.reviews"]');
+await rv.waitForSelector("#tab-reviews .review-card-wrap", { timeout: 10000 });
+await rv.waitForTimeout(500);
+const reviews = await rv.evaluate(() => {
+  const css = (el, pseudo) => getComputedStyle(el, pseudo);
+  const probe = document.createElement("i");
+  probe.style.color = css(document.documentElement).getPropertyValue("--doodle-paper").trim();
+  document.body.appendChild(probe);
+  const paperRgb = css(probe).color;
+  probe.remove();
+  // Зазор «название → год» у каждой карточки ряда. Раньше у карточки с
+  // названием в одну строку год уезжал к низу: карточки ряда одной
+  // высоты, а у .card-meta было margin-top: auto.
+  const gaps = [...document.querySelectorAll("#tab-reviews .review-card-wrap")].map((w) => {
+    const title = w.querySelector(".card-title").getBoundingClientRect();
+    const meta = w.querySelector(".card-meta").getBoundingClientRect();
+    return Math.round(meta.top - title.bottom);
+  });
+  const card = document.querySelector("#tab-reviews .review-card-wrap .card");
+  const year = document.querySelector("#tab-reviews .year-divider .year-label");
+  const search = document.querySelector("#tab-reviews .rv-bar .rv-search-input");
+  const filter = document.querySelector("#tab-reviews .rv-bar .rv-dd-btn");
+  return {
+    gaps,
+    cardBg: css(card).backgroundColor,
+    paperRgb,
+    yearSwipe: css(year, "::after").maskImage || css(year, "::after").webkitMaskImage,
+    searchBg: css(search).backgroundImage,
+    filterCase: css(filter).textTransform,
+    filterGlyph: css(filter, "::after").content,
+  };
+});
+ok(reviews.cardBg === reviews.paperRgb, "карточка отзыва – тот же полароид");
+ok(
+  reviews.gaps.length >= 3 && reviews.gaps.every((g) => g <= 12),
+  `год сразу под названием, без дыры (зазоры: ${reviews.gaps.join(", ")})`
+);
+ok(/doodle-swipe-\d\.svg/.test(reviews.yearSwipe || ""), "год выделен маркером");
+ok(/doodle-box-/.test(reviews.searchBg), "поиск – в рамке от руки");
+ok(
+  reviews.filterCase === "none" && reviews.filterGlyph === "none",
+  "фильтры – словами, без «▾» (его нет в Shantell Sans – рисовался точкой)"
+);
+
+// Окно отзыва – снимается картинкой, поэтому в нём без масок.
+await rv.click("#tab-reviews .review-card-wrap");
+await rv.waitForSelector("#review-modal-overlay:not(.hidden) .review-modal-title", {
+  timeout: 10000,
+});
+const rvModal = await rv.evaluate(() => {
+  const css = (el, pseudo) => getComputedStyle(el, pseudo);
+  const chip = document.querySelector("#review-modal-body .grade-chip");
+  const panel = document.querySelector("#review-modal-overlay .review-modal-panel");
+  return {
+    titleFont: css(document.querySelector("#review-modal-body .review-modal-title")).fontFamily,
+    chipBorder: chip ? css(chip).borderTopWidth : "",
+    chipDot: chip ? css(chip, "::before").backgroundColor : "",
+    tape: css(panel, "::before").backgroundImage,
+  };
+});
+ok(rvModal.titleFont.startsWith('"Shantell Sans"'), "название в окне отзыва – почерком");
+ok(
+  rvModal.chipBorder === "0px" && rvModal.chipDot !== "rgba(0, 0, 0, 0)",
+  "оценка в окне – словом с кружком цвета полки, без капсулы"
+);
+ok(/doodle-tape-bg-\d\.svg/.test(rvModal.tape), "окно отзыва «приклеено» скотчем");
+
+// Редактор отзыва. Заодно ошибка, найденная по пути: превью рисуется до
+// того, как в форму подставлен отзыв, и плашка типа оставалась «Аниме»
+// (тип по умолчанию) у открытой на правку игры.
+await rv.goto(base + "/#/add?edit=7", { waitUntil: "domcontentloaded" });
+await rv.waitForSelector(".add-view.ed #f-title", { timeout: 10000 });
+await rv.waitForFunction(() => document.getElementById("f-title")?.value === "Коротко", null, {
+  timeout: 10000,
+});
+await rv.waitForTimeout(400);
+const rvEditor = await rv.evaluate(() => {
+  const css = (el, pseudo) => getComputedStyle(el, pseudo);
+  const active = document.querySelector(".add-view.ed .grade-btn.active");
+  return {
+    tag: document.querySelector(".ed-preview .type-tag")?.textContent.trim(),
+    inputFont: css(document.getElementById("f-title")).fontFamily,
+    gradeLoop: active
+      ? css(active, "::after").maskImage || css(active, "::after").webkitMaskImage
+      : "",
+    tagOn: css(document.querySelector(".add-view.ed .tag-toggle.active") || document.body)
+      .backgroundColor,
+  };
+});
+ok(rvEditor.tag === "Игра", `превью в редакторе – с плашкой своего типа (${rvEditor.tag})`);
+ok(rvEditor.inputFont.startsWith('"Shantell Sans"'), "поля редактора отзыва – почерком");
+ok(/doodle-loop\.svg/.test(rvEditor.gradeLoop || ""), "выбранная оценка обведена от руки");
+ok(rvEditor.tagOn === reviews.paperRgb, "выбранный тег – бумажной наклейкой");
+await rv.close();
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
