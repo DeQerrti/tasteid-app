@@ -81,6 +81,128 @@ const FILES = {
   ),
 };
 
+// ── Рисованная тема («скотч и маркер», ноябрь 2026) ──
+// Линии «от руки»: каждый штрих чуть дрожит, изогнут и заходит за угол.
+// Случайность с постоянным зерном – при повторном запуске рисунки те же.
+const rng = (seed) => {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+const f1 = (n) => n.toFixed(1);
+// Один штрих: квадратичная кривая с дрожащими концами и прогибом.
+function stroke(r, x1, y1, x2, y2, j, bow) {
+  const ax = x1 + (r() - 0.5) * j;
+  const ay = y1 + (r() - 0.5) * j;
+  const bx = x2 + (r() - 0.5) * j;
+  const by = y2 + (r() - 0.5) * j;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const L = Math.hypot(dx, dy) || 1;
+  const off = (r() - 0.5) * 2 * bow;
+  const t = 0.35 + r() * 0.3;
+  return `M${f1(ax)} ${f1(ay)}Q${f1(ax + dx * t - (dy / L) * off)} ${f1(ay + dy * t + (dx / L) * off)} ${f1(bx)} ${f1(by)}`;
+}
+// Прямоугольник, обведённый два раза, со штрихами внахлёст на углах.
+function roughRect(r, x, y, w, h, over = 4) {
+  let d = "";
+  for (let p = 0; p < 2; p++) {
+    const o = () => over * (0.2 + r());
+    d += stroke(r, x - o(), y, x + w + o(), y, 1.8, 1.5);
+    d += stroke(r, x + w, y - o(), x + w, y + h + o(), 1.8, 1.5);
+    d += stroke(r, x + w + o(), y + h, x - o(), y + h, 1.8, 1.5);
+    d += stroke(r, x, y + h + o(), x, y - o(), 1.8, 1.5);
+  }
+  return d;
+}
+// Плавная кривая через точки (Catmull-Rom → кубические Безье).
+function smooth(p) {
+  let d = `M${f1(p[0][0])} ${f1(p[0][1])}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[i - 1] || p[i];
+    const p1 = p[i];
+    const p2 = p[i + 1];
+    const p3 = p[i + 2] || p2;
+    d += `C${f1(p1[0] + (p2[0] - p0[0]) / 6)} ${f1(p1[1] + (p2[1] - p0[1]) / 6)} ${f1(p2[0] - (p3[0] - p1[0]) / 6)} ${f1(p2[1] - (p3[1] - p1[1]) / 6)} ${f1(p2[0])} ${f1(p2[1])}`;
+  }
+  return d;
+}
+function wave(r, w, h, amp, step) {
+  const pts = [];
+  const ph = r() * 6;
+  for (let x = 2; x <= w - 2; x += step) {
+    pts.push([x, h / 2 + amp * Math.sin(x / 6 + ph) + (r() - 0.5) * 1.2 + (x / w - 0.5) * 1.5]);
+  }
+  return smooth(pts);
+}
+// Мазок маркера: полоса с рваными краями и полоской «сухого» нажима.
+function swipe(r, w, h) {
+  const top = [];
+  const bot = [];
+  const tilt = (r() - 0.5) * 4;
+  for (let i = 0; i <= 14; i++) {
+    const x = 4 + ((w - 8) * i) / 14;
+    top.push([x, h * 0.18 + (r() - 0.5) * 4 + tilt * (i / 14)]);
+    bot.push([x, h * 0.86 + (r() - 0.5) * 4 + tilt * (i / 14)]);
+  }
+  const outline = [...top, [w - 1, h * 0.5], ...bot.reverse(), [2 + r() * 3, h * 0.55]];
+  return (
+    `<path d="${smooth(outline)}Z" stroke-width="0" opacity=".85"/>` +
+    `<path d="M8 ${f1(h * 0.42)}L${f1(w - 10)} ${f1(h * 0.46 + tilt)}" fill="none" stroke-width="${f1(h * 0.25)}" opacity=".35"/>`
+  );
+}
+// Полоска скотча с «зубчиками» оторванных концов.
+function tape(r, w, h) {
+  const left = [];
+  const right = [];
+  for (let i = 0; i <= 5; i++) left.push([(i % 2 ? 4 : 0) + r() * 2, (h * i) / 5]);
+  for (let i = 5; i >= 0; i--) right.push([w - (i % 2 ? 4 : 0) - r() * 2, (h * i) / 5]);
+  const pts = [...left, ...right].map(([x, y]) => `${f1(x)} ${f1(y)}`);
+  return `<path d="M${pts.join("L")}Z" stroke-width="0"/>`;
+}
+const lines = (w, h, d, sw, color = "#000") =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/></svg>\n`;
+const shapes = (w, h, body) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="none"><g fill="#000" stroke="#000" stroke-linecap="round">${body}</g></svg>\n`;
+
+for (let k = 1; k <= 3; k++) {
+  FILES[`doodle-tape-${k}.svg`] = shapes(90, 22, tape(rng(100 + k * 17), 90, 22));
+  FILES[`doodle-swipe-${k}.svg`] = shapes(220, 40, swipe(rng(7 + k * 31), 220, 40));
+}
+// Линии боковой панели (маски): край панели, черта под логотипом, волна.
+FILES["doodle-vline.svg"] = lines(
+  8,
+  600,
+  stroke(rng(3), 4, 0, 3, 300, 2, 3) + stroke(rng(4), 3, 300, 5, 600, 2, 3),
+  1.5
+);
+FILES["doodle-hline.svg"] = lines(300, 8, stroke(rng(5), 2, 4, 298, 3, 2, 2.5), 1.5);
+FILES["doodle-wave.svg"] = lines(140, 12, wave(rng(6), 140, 12, 2, 10), 2.2);
+// Поле поиска и выпадающий список: у input/select нет ::after, маску на
+// них не повесить – эти три рисунка фоном, с цветом --text-dim каждой
+// из двух тем прямо в файле.
+for (const [skin, color] of [
+  ["dark", "#a19e95"],
+  ["light", "#7a7266"],
+]) {
+  FILES[`doodle-box-${skin}.svg`] = lines(260, 40, roughRect(rng(77), 4, 4, 252, 32), 1.5, color);
+  FILES[`doodle-under-${skin}.svg`] = lines(400, 12, wave(rng(78), 400, 12, 1.4, 14), 1.6, color);
+  FILES[`doodle-caret-${skin}.svg`] = lines(
+    16,
+    12,
+    stroke(rng(79), 3, 3, 8, 9, 1, 0.5) + stroke(rng(80), 8, 9, 13, 2, 1, 0.5),
+    1.8,
+    color
+  );
+}
+// Зерно бумаги: серые крапинки с прозрачностью, ложатся на оба фона.
+FILES["doodle-grain.svg"] =
+  `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .45 -.2"/></filter><rect width="240" height="240" filter="url(#n)"/></svg>\n`;
+
 for (const [name, body] of Object.entries(FILES)) {
   writeFileSync(path.join(OUT, name), body);
   console.log(`${name}: ${body.length} байт`);

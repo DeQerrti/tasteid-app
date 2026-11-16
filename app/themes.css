@@ -2149,12 +2149,15 @@ html[data-skin="neomorphism-dark"] * {
    «Настройки», вводные абзацы и вкладки в settings-edit.html оставались
    в шрифте классической темы, хотя цвета уже были в духе «рисованной». */
 [data-skin="doodle"] body {
-  font-family: "Pangolin", "Patrick Hand", sans-serif;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
 }
 
-/* Заголовки — крупный маркер, остальной интерфейс — разборчивый
-   рукописный: Caveat читается только в больших кеглях, для кнопок и
-   тегов нужен более прямой Patrick Hand, иначе мелкий текст плывёт. */
+/* Почерк темы – Shantell Sans (ноябрь 2026, выбран owner'ом по макету):
+   маркер, который читается и крупно, и мелко, поэтому один на всё –
+   заголовки (600) и мелкий текст (400). Раньше были Caveat для
+   заголовков и Pangolin для остального: Caveat в мелком кегле плыл.
+   Кегли ниже (вкладки, заголовки, «Сохранить») пересчитаны под него:
+   Shantell заметно крупнее и шире Caveat в том же размере. */
 [data-skin="doodle"] .logo,
 [data-skin="doodle"] .section-title,
 [data-skin="doodle"] .modal-title,
@@ -2162,8 +2165,8 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle"] .btn-save,
 [data-skin="doodle"] .card-title,
 [data-skin="doodle"] .review-title {
-  font-family: "Caveat", cursive;
-  font-weight: 700;
+  font-family: "Shantell Sans", "Caveat", cursive;
+  font-weight: 600;
   font-style: normal;
 }
 [data-skin="doodle"] .type-tag,
@@ -2190,7 +2193,7 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle"] textarea,
 [data-skin="doodle"] .side-tab,
 [data-skin="doodle"] #admin-settings-link {
-  font-family: "Pangolin", "Patrick Hand", sans-serif;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
 }
 /* .side-tab и #admin-settings-link жили в группе Caveat выше — тот же
    почерк, что и в рельсе (.tab-btn), но без компенсирующего
@@ -2210,10 +2213,9 @@ html[data-skin="neomorphism-dark"] * {
   border-radius: var(--doodle-wobble-pill);
   margin: 0.5rem 0.25rem;
   padding: 0.5rem 1.15rem;
-  /* Caveat в том же кегле, что и базовый Cormorant Garamond, читается
-     мельче и тоньше — почерк тоньше засечек, поэтому кегль увеличен
-     заметно сильнее обычной компенсации (см. также .side-tab выше). */
-  font-size: 1.32rem;
+  /* При Caveat здесь было 1.32rem; Shantell Sans шире и крупнее, ему
+     хватает почти базового кегля. */
+  font-size: 1.1rem;
   /* Базовый .tab-btn выровнен по левому краю — там уместно, текст сразу
      после ромба-маркера слева. Здесь у каждой вкладки уже своя
      скруглённая форма (border-radius выше) — и активная, и при
@@ -2231,15 +2233,14 @@ html[data-skin="neomorphism-dark"] * {
    вкладкам его хватало впритык, а самая длинная («Статистика») в
    рукописном шрифте всё ещё обрезалась. clamp() и уменьшенные поля —
    тот же приём, что и у остальных тем ниже/выше по файлу; верхняя
-   граница clamp() всё же выше, чем у обычного .tab-btn (0.8rem против
-   0.68rem) — рукописный шрифт в этом кегле читается мельче печатного,
-   та же причина, по которой в базовом правиле кегль вообще увеличен
-   (см. комментарий над font-size: 1.32rem выше). */
+   граница clamp() чуть выше, чем у обычного .tab-btn (0.74rem против
+   0.68rem); при Caveat было 0.8rem, Shantell Sans шире – «Статистика»
+   иначе не влезала. */
 @media (max-width: 700px) {
   [data-skin="doodle"] .tab-btn {
     margin: 0.15rem 0.05rem;
     padding: 0.35rem 0.15rem;
-    font-size: clamp(0.62rem, 2.7vw, 0.8rem);
+    font-size: clamp(0.58rem, 2.4vw, 0.74rem);
   }
 }
 [data-skin="doodle"] .tab-btn.active {
@@ -2254,8 +2255,8 @@ html[data-skin="neomorphism-dark"] * {
 
 /* ── Заголовки разделов и разделители ── */
 [data-skin="doodle"] .section-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: 1.45rem;
+  font-weight: 600;
   gap: 0.5rem;
 }
 [data-skin="doodle"] .section-title::before,
@@ -2485,8 +2486,8 @@ html[data-skin="neomorphism-dark"] * {
   border: 2.5px solid var(--text-hi);
   border-radius: 30px 10px 30px 10px/10px 30px 10px 30px;
   box-shadow: 4px 5px 0 var(--text-hi);
-  font-size: 1.3rem;
-  letter-spacing: 0.02em;
+  font-size: 1.08rem;
+  letter-spacing: 0;
   transform: rotate(-0.4deg);
   transition:
     transform 0.15s ease,
@@ -2574,7 +2575,7 @@ html[data-skin="neomorphism-dark"] * {
 
 /* См. комментарий у [data-skin="doodle"] body чуть выше по файлу. */
 [data-skin="doodle-dark"] body {
-  font-family: "Pangolin", "Patrick Hand", sans-serif;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
 }
 
 [data-skin="doodle-dark"] .logo,
@@ -2584,8 +2585,8 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle-dark"] .btn-save,
 [data-skin="doodle-dark"] .card-title,
 [data-skin="doodle-dark"] .review-title {
-  font-family: "Caveat", cursive;
-  font-weight: 700;
+  font-family: "Shantell Sans", "Caveat", cursive;
+  font-weight: 600;
   font-style: normal;
 }
 [data-skin="doodle-dark"] .type-tag,
@@ -2612,7 +2613,7 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle-dark"] textarea,
 [data-skin="doodle-dark"] .side-tab,
 [data-skin="doodle-dark"] #admin-settings-link {
-  font-family: "Pangolin", "Patrick Hand", sans-serif;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
 }
 /* См. комментарий у [data-skin="doodle"] .side-tab чуть выше по файлу. */
 [data-skin="doodle-dark"] .side-tab,
@@ -2626,7 +2627,7 @@ html[data-skin="neomorphism-dark"] * {
   border-radius: var(--doodle-wobble-pill);
   margin: 0.5rem 0.25rem;
   padding: 0.5rem 1.15rem;
-  font-size: 1.32rem;
+  font-size: 1.1rem;
   text-align: center;
 }
 /* См. её же комментарий у [data-skin="doodle"] .tab-btn выше по файлу. */
@@ -2634,7 +2635,7 @@ html[data-skin="neomorphism-dark"] * {
   [data-skin="doodle-dark"] .tab-btn {
     margin: 0.15rem 0.05rem;
     padding: 0.35rem 0.15rem;
-    font-size: clamp(0.62rem, 2.7vw, 0.8rem);
+    font-size: clamp(0.58rem, 2.4vw, 0.74rem);
   }
 }
 [data-skin="doodle-dark"] .tab-btn.active {
@@ -2648,8 +2649,8 @@ html[data-skin="neomorphism-dark"] * {
 }
 
 [data-skin="doodle-dark"] .section-title {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: 1.45rem;
+  font-weight: 600;
   gap: 0.5rem;
 }
 [data-skin="doodle-dark"] .section-title::before,
@@ -2859,8 +2860,8 @@ html[data-skin="neomorphism-dark"] * {
   border: 2.5px solid var(--text-hi);
   border-radius: 30px 10px 30px 10px/10px 30px 10px 30px;
   box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.7);
-  font-size: 1.3rem;
-  letter-spacing: 0.02em;
+  font-size: 1.08rem;
+  letter-spacing: 0;
   transform: rotate(-0.4deg);
   transition:
     transform 0.15s ease,
@@ -4386,22 +4387,21 @@ html[data-skin="neomorphism-dark"] * {
 }
 
 /* ══ РИСОВАННАЯ: названия, рамки, тир-лист ═══════
-   Названия карточек – Pangolin, а не Caveat: это основной текст сетки,
-   а Caveat в 11–12px рукописным курсивом приходилось разбирать. Caveat
-   остаётся заголовкам и меню, где кегль крупный. */
+   Названия карточек – начертанием 400, а не 600, как у заголовков:
+   это основной текст сетки. */
 /* Заголовок раздела в настройках (голый h1) оставался Playfair из
-   базовых стилей – тем же маркером Caveat, что и заголовки секций. */
+   базовых стилей – тем же маркером, что и заголовки секций. */
 [data-skin="doodle"] h1,
 [data-skin="doodle-dark"] h1 {
-  font-family: "Caveat", cursive;
-  font-weight: 700;
+  font-family: "Shantell Sans", "Caveat", cursive;
+  font-weight: 600;
   font-style: normal;
 }
 [data-skin="doodle"] .card-title,
 [data-skin="doodle-dark"] .card-title {
-  font-family: "Pangolin", "Patrick Hand", sans-serif;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
   font-weight: 400;
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 [data-skin="doodle-dark"] .review-card-wrap:hover .review-card,
 [data-skin="doodle-dark"] .card:hover {
@@ -4427,4 +4427,489 @@ html[data-skin="neomorphism-dark"] * {
 [data-skin="doodle"] .tl-poster img,
 [data-skin="doodle-dark"] .tl-poster img {
   filter: var(--card-img-filter);
+}
+
+/* ══ РИСОВАННАЯ: «скотч и маркер» (ноябрь 2026) ═══════════════════
+   Owner выбрал по макету из трёх вариантов (тушь, скотч и маркер, мел)
+   «альбом-коллаж»: тема как будто сделана руками, а не только нарисована
+   неровными углами. Как и ботаническая, переосмысляется по вкладке за
+   раз – пока сделаны боковая панель и «Статусы» (#tab-now); остальные
+   вкладки пока в прежнем виде, только с новым почерком (Shantell Sans,
+   см. выше в разделе «РИСОВАННЫЙ»).
+
+   Язык темы:
+   – выбранное выделено мазком маркера цвета акцента (вкладка статуса,
+     раздел в боковой панели), а не рамкой-капсулой;
+   – выбранный тип – бумажной наклейкой, остальные – просто словами;
+   – обложка – отпечаток с бумажными полями, приклеенный полоской скотча,
+     карточки чуть наклонены вразнобой и выпрямляются при наведении;
+     коробки-карточки нет, подпись лежит прямо на листе;
+   – фон – бумага с зерном, линии панели – от руки.
+
+   Рисунки – /decor/doodle-*.svg (их рисует scripts/make-decor.mjs): по
+   три варианта скотча и мазка, чтобы соседние карточки и вкладки не
+   выглядели штампованными. Маски одноцветные, цвет берут из палитры;
+   только рамка поиска, подчёркивание и галочка списка – фоном с цветом
+   внутри (у input/select нет ::after), по файлу на каждую из двух тем.
+   Проверка – tests/browser/doodle-theme.mjs. */
+[data-skin="doodle-dark"] {
+  --doodle-paper: #e4ddc9;
+  --doodle-paper-ink: #2a2620;
+  --doodle-tape: rgba(226, 212, 172, 0.55);
+  --doodle-box: url("/decor/doodle-box-dark.svg");
+  --doodle-under: url("/decor/doodle-under-dark.svg");
+  --doodle-caret: url("/decor/doodle-caret-dark.svg");
+}
+[data-skin="doodle"] {
+  --doodle-paper: #fffaf0;
+  --doodle-paper-ink: #2e2a26;
+  --doodle-tape: rgba(214, 196, 140, 0.6);
+  --doodle-box: url("/decor/doodle-box-light.svg");
+  --doodle-under: url("/decor/doodle-under-light.svg");
+  --doodle-caret: url("/decor/doodle-caret-light.svg");
+}
+
+/* ── Бумага с зерном ──
+   Закреплённые строки разделов закрашены тем же фоном (иначе карточки
+   просвечивали бы, уезжая под них) – им то же зерно, «приколоченное» к
+   окну (fixed), иначе на их границе был бы виден шов. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) body,
+:is([data-skin="doodle"], [data-skin="doodle-dark"])
+  :is(#tab-now > .tl-mode-toggle, #tab-tierlist > .tl-mode-toggle, #tab-favorites > .fav-head, #tab-stats > .stat-toolbar, .rv-sticky) {
+  background-color: var(--bg);
+  background-image: url("/decor/doodle-grain.svg");
+  background-attachment: fixed;
+}
+
+/* ── Боковая панель ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn {
+  border: 0;
+  background: none;
+  transform: none;
+  isolation: isolate;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn:hover,
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn.active {
+  border: 0;
+  background: none;
+  transform: none;
+  color: var(--text-hi);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn:nth-child(3n + 1) {
+  --doodle-swipe: url("/decor/doodle-swipe-1.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn:nth-child(3n + 2) {
+  --doodle-swipe: url("/decor/doodle-swipe-2.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn:nth-child(3n) {
+  --doodle-swipe: url("/decor/doodle-swipe-3.svg");
+}
+/* Мазок – под словом, а не под всей кнопкой: кнопка во всю ширину
+   панели, а мазок шире слова выглядел бы плашкой. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn .tab-label {
+  position: relative;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #rail .tab-btn.active .tab-label::after,
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) body.rail-icons #rail .tab-btn.active::after {
+  content: "";
+  position: absolute;
+  left: -0.4rem;
+  right: -0.4rem;
+  top: 48%;
+  bottom: -0.15rem;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--red);
+  opacity: 0.6;
+  -webkit-mask: var(--doodle-swipe) 0 0 / 100% 100% no-repeat;
+  mask: var(--doodle-swipe) 0 0 / 100% 100% no-repeat;
+}
+/* Панель «только значки»: слова скрыты – мазок под значком. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) body.rail-icons #rail .tab-btn.active::after {
+  left: 8px;
+  right: 8px;
+  top: 52%;
+  bottom: 4px;
+}
+@media (min-width: 701px) {
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) nav#rail {
+    border-right: 0;
+  }
+  /* Край панели – линия от руки вместо ровной черты. */
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) nav#rail::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    pointer-events: none;
+    background: var(--text-dim);
+    opacity: 0.7;
+    -webkit-mask: url("/decor/doodle-vline.svg") right top / 8px 600px repeat-y;
+    mask: url("/decor/doodle-vline.svg") right top / 8px 600px repeat-y;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) nav#rail .logo {
+    position: relative;
+    font-size: 1.35rem;
+    padding-bottom: 10px;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) nav#rail .logo::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    bottom: 0;
+    width: 110px;
+    height: 10px;
+    background: var(--text);
+    -webkit-mask: url("/decor/doodle-wave.svg") 0 0 / 100% 100% no-repeat;
+    mask: url("/decor/doodle-wave.svg") 0 0 / 100% 100% no-repeat;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) .rail-sub {
+    position: relative;
+    border-bottom: 0;
+    padding-top: 4px;
+    font-family: "Shantell Sans", "Pangolin", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) .rail-foot {
+    position: relative;
+    border-top: 0;
+  }
+  /* Два селектора, а не :is(.rail-sub::after, …): псевдоэлемент внутри
+     :is() не работает, и правило молча не применялось. */
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) .rail-sub::after,
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) .rail-foot::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    pointer-events: none;
+    background: var(--text-dim);
+    opacity: 0.7;
+    -webkit-mask: url("/decor/doodle-hline.svg") 0 0 / 100% 100% no-repeat;
+    mask: url("/decor/doodle-hline.svg") 0 0 / 100% 100% no-repeat;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) .rail-sub::after {
+    bottom: -4px;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) .rail-foot::before {
+    top: -4px;
+  }
+}
+
+/* ── «Статусы»: вкладки – надписи, выбранная выделена маркером ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now > .tl-mode-toggle {
+  gap: 0.2rem 2.2rem;
+  padding-left: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn {
+  position: relative;
+  isolation: isolate;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+  padding: 0.4rem 0.55rem 0.5rem;
+  font-family: "Shantell Sans", "Caveat", cursive;
+  font-weight: 600;
+  font-size: 1.42rem;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:hover {
+  color: var(--text);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn.active {
+  background: none;
+  border: 0;
+  color: var(--text-hi);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn .section-count {
+  font-weight: 400;
+  font-size: 0.85rem;
+  vertical-align: super;
+  color: var(--text-dim);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:nth-child(3n + 1) {
+  --doodle-swipe: url("/decor/doodle-swipe-1.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:nth-child(3n + 2) {
+  --doodle-swipe: url("/decor/doodle-swipe-2.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn:nth-child(3n) {
+  --doodle-swipe: url("/decor/doodle-swipe-3.svg");
+}
+/* Мазок по нижней половине слова, как маркером по строчке: светлые
+   буквы остаются на тёмном фоне сверху и читаются. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn.active::after {
+  content: "";
+  position: absolute;
+  left: -0.35rem;
+  right: -0.45rem;
+  top: 46%;
+  bottom: 0.05rem;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--red);
+  opacity: 0.6;
+  -webkit-mask: var(--doodle-swipe) 0 0 / 100% 100% no-repeat;
+  mask: var(--doodle-swipe) 0 0 / 100% 100% no-repeat;
+}
+
+/* ── «Статусы»: типы словами, выбранный – бумажной наклейкой ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-tools {
+  margin-bottom: 1.8rem;
+  padding-left: 0.8rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-chips {
+  gap: 0.3rem 0.7rem;
+  align-items: baseline;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-chip {
+  border: 0;
+  border-radius: 1px 3px 2px 1px;
+  background: none;
+  box-shadow: none;
+  padding: 0.22rem 0.55rem;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-size: 0.92rem;
+  color: var(--text-dim);
+  transition:
+    color 0.15s,
+    transform 0.15s;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-chip:hover {
+  color: var(--text-hi);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-chip.active {
+  background: var(--doodle-paper);
+  color: var(--doodle-paper-ink);
+  transform: rotate(-2.5deg);
+  box-shadow: 1px 3px 0 rgba(0, 0, 0, 0.35);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-chip .section-count {
+  font-size: 0.78em;
+  opacity: 0.75;
+}
+
+/* Поиск – рамка от руки, сортировка – подчёркнутая строка с галочкой. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now :is(.now-search, .now-sort) {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-size: 0.88rem;
+  color: var(--text);
+  border: 0;
+  border-radius: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-search {
+  background: var(--doodle-box) 0 0 / 100% 100% no-repeat;
+  padding: 0.45rem 0.65rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-sort {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.35rem 1.5rem 0.45rem 0.2rem;
+  background:
+    var(--doodle-caret) right 0.2rem center / 14px 11px no-repeat,
+    var(--doodle-under) 0 100% / 100% 10px no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-sort option {
+  background: var(--surface);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now :is(.now-search, .now-sort):focus {
+  outline: 1.5px dashed var(--red);
+  outline-offset: 2px;
+}
+
+/* ── «Статусы»: карточка – отпечаток на скотче, подпись на листе ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .grid-now {
+  gap: 2.4rem 1.7rem;
+  padding: 0.5rem 0.8rem 2rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card:hover {
+  transform: none;
+  box-shadow: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-poster {
+  padding: 5px;
+  background: var(--doodle-paper);
+  box-shadow:
+    0 10px 18px -8px rgba(0, 0, 0, 0.75),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card img {
+  border-radius: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-poster::after {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 46%;
+  height: 22px;
+  z-index: 3;
+  pointer-events: none;
+  transform: translateX(-50%) rotate(var(--doodle-tape-rot));
+  background: var(--doodle-tape);
+  -webkit-mask: var(--doodle-tape-img) 0 0 / 100% 100% no-repeat;
+  mask: var(--doodle-tape-img) 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-body {
+  background: none;
+  padding: 0.7rem 0.2rem 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.15;
+  flex: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-meta {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-size: 0.78rem;
+  padding-top: 0.25rem;
+  margin-top: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-grade-inline {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+/* Наклон по кругу из шести, у каждой – свой кусок скотча и свой угол
+   его. При наведении (и фокусе с клавиатуры) карточка выпрямляется. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap {
+  transform: rotate(var(--doodle-rot));
+  transition: transform 0.2s ease;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:hover,
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:focus-visible {
+  transform: rotate(0deg) translateY(-4px);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:nth-child(6n + 1) {
+  --doodle-rot: -2deg;
+  --doodle-tape-rot: -4deg;
+  --doodle-tape-img: url("/decor/doodle-tape-1.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:nth-child(6n + 2) {
+  --doodle-rot: 1.4deg;
+  --doodle-tape-rot: 3deg;
+  --doodle-tape-img: url("/decor/doodle-tape-2.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:nth-child(6n + 3) {
+  --doodle-rot: -0.4deg;
+  --doodle-tape-rot: -1deg;
+  --doodle-tape-img: url("/decor/doodle-tape-3.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:nth-child(6n + 4) {
+  --doodle-rot: 2deg;
+  --doodle-tape-rot: 5deg;
+  --doodle-tape-img: url("/decor/doodle-tape-1.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:nth-child(6n + 5) {
+  --doodle-rot: -1.5deg;
+  --doodle-tape-rot: -6deg;
+  --doodle-tape-img: url("/decor/doodle-tape-2.svg");
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap:nth-child(6n) {
+  --doodle-rot: 0.4deg;
+  --doodle-tape-rot: 2deg;
+  --doodle-tape-img: url("/decor/doodle-tape-3.svg");
+}
+/* Тип – бумажной наклейкой на нижнем углу отпечатка. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .type-tag {
+  top: auto;
+  right: auto;
+  bottom: -0.4rem;
+  left: -0.5rem;
+  z-index: 4;
+  padding: 0.1rem 0.5rem;
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  background: var(--doodle-paper);
+  color: var(--doodle-paper-ink);
+  border: 0;
+  border-radius: 1px;
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+  transform: rotate(calc(var(--doodle-tape-rot) * -0.8));
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-edit-btn {
+  z-index: 6;
+}
+
+/* ── Телефон: то же, мельче – карточка там втрое уже ── */
+@media (max-width: 700px) {
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now > .tl-mode-toggle {
+    gap: 0.2rem 1.1rem;
+    padding-left: 0.3rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn {
+    font-size: 1.08rem;
+    padding: 0.35rem 0.4rem 0.4rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .tl-mode-btn .section-count {
+    font-size: 0.7rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-tools {
+    margin-bottom: 1.2rem;
+    padding-left: 0.3rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-chips {
+    gap: 0.25rem 0.35rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-chip {
+    font-size: 0.78rem;
+    padding: 0.18rem 0.42rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .grid-now {
+    gap: 1.4rem 0.75rem;
+    padding: 0.4rem 0.2rem 1.5rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-poster {
+    padding: 3px;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-poster::after {
+    top: -7px;
+    width: 52%;
+    height: 14px;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .review-card-wrap {
+    transform: rotate(calc(var(--doodle-rot) * 0.6));
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-body {
+    padding: 0.45rem 0.05rem 0;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-title {
+    font-size: 0.72rem;
+    line-height: 1.15;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .card-meta {
+    font-size: 0.6rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .type-tag {
+    bottom: -0.3rem;
+    left: -0.3rem;
+    padding: 0.02rem 0.3rem;
+    font-size: 0.56rem;
+  }
 }
