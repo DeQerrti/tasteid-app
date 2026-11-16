@@ -314,6 +314,63 @@ for (const theme of ["soft-dark", "soft"]) {
     ed.gradeBg === "rgba(0, 0, 0, 0)" && ed.gradeDot === "1",
     "редактор: оценка – строкой с ромбами"
   );
+
+  // «Любимое»: окно записи – тот же лист дневника; редактор порядка –
+  // листы гербария; редактор записи – поля строкой, заголовки ярлычками.
+  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await page.click('.tab-btn[data-label="nav.favorites"]');
+  await page.click('#tab-favorites .tl-mode-btn[data-mode="favPersons"]');
+  await page.waitForSelector("#tab-favorites .card-char", { timeout: 10000 });
+  await page.click("#tab-favorites .card-char");
+  await page.waitForSelector("#fav-modal-overlay:not(.hidden)", { timeout: 5000 });
+  const favWin = await page.evaluate(() => {
+    const css = (sel) => getComputedStyle(document.querySelector(sel));
+    return {
+      radius: css("#fav-modal-overlay .review-modal-panel").borderTopLeftRadius,
+      header: css("#fav-modal-body .review-modal-header").borderBottomStyle,
+      coverPad: css("#fav-modal-body .review-modal-cover").paddingLeft,
+    };
+  });
+  ok(
+    favWin.radius === "5px" && favWin.header === "dashed" && parseFloat(favWin.coverPad) >= 7,
+    "окно «Любимого» – лист дневника, картинка на подложке с полями"
+  );
+  await page.keyboard.press("Escape");
+
+  await page.goto(base + "/#/favorites-order?section=favPersons", {
+    waitUntil: "domcontentloaded",
+  });
+  await page.waitForSelector(".ro-view .dnd-item", { timeout: 10000 });
+  const order = await page.evaluate(() => ({
+    pad: getComputedStyle(document.querySelector(".ro-view .dnd-item")).paddingLeft,
+    num: getComputedStyle(document.querySelector(".ro-view .dnd-item-num")).backgroundColor,
+    paper: (() => {
+      const probe = document.createElement("i");
+      probe.style.color = getComputedStyle(document.documentElement)
+        .getPropertyValue("--paper")
+        .trim();
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).color;
+      probe.remove();
+      return c;
+    })(),
+  }));
+  ok(
+    parseFloat(order.pad) >= 7 && order.num === order.paper,
+    "редактор порядка: листы гербария, номер – бумажным ярлычком"
+  );
+
+  await page.goto(base + "/#/favorites-edit?type=person", { waitUntil: "domcontentloaded" });
+  await page.waitForSelector("#f-name", { timeout: 10000 });
+  const fe = await page.evaluate(() => ({
+    nameBorder: getComputedStyle(document.querySelector("#f-name")).borderTopWidth,
+    headTransform: getComputedStyle(document.querySelector(".fe-view .fe-main > .section-title"))
+      .transform,
+  }));
+  ok(
+    fe.nameBorder === "0px" && fe.headTransform !== "none",
+    "редактор записи «Любимого»: поля строкой, заголовки – ярлычками"
+  );
 }
 
 // ── Телефон: тот же язык, уменьшенный ──

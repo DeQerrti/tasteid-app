@@ -48,7 +48,7 @@
      #/reviews-order (js/routes/reviews-order.js) собственная шапка
      .app-topbar, которая до сих пор жила только там. -->
 <link rel="stylesheet" href="/admin.css?v=19">
-<link rel="stylesheet" href="/themes.css?v=28">
+<link rel="stylesheet" href="/themes.css?v=30">
 <script src="/js/mobile.bundle.js?v=3"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=40"></script>
@@ -1153,6 +1153,11 @@ section.group { margin-bottom: 3.5rem; }
 /* 140px, а не 120: в 120-пиксельной карточке подпись оценки рядом с
    годом обрезалась до «Резона…». */
 .fav-modal-titles-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+/* На телефоне окно уже 300px, и при 140px в ряд помещалась одна карточка –
+   она растягивалась на всю ширину окна и занимала весь экран. */
+@media (max-width: 700px) {
+  .fav-modal-titles-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+}
 /* «Персонажи · в любимом» в модалке отзыва (appendReviewLinkedFavorites). */
 .review-linked-favs { margin: 1.6rem 0 .4rem; }
 .review-linked-favs .fav-modal-titles-grid { margin-bottom: 1.2rem; }
