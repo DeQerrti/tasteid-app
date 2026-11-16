@@ -3000,8 +3000,8 @@ html[data-skin="neomorphism-dark"] * {
    ветка с листьями, бумажные ярлычки, обложки как листы гербария. Темы
    переосмысляются по одной вкладке – пока сделаны боковая панель,
    «Статусы» (#tab-now), «Любимое» (с окном записи и обоими редакторами),
-   «Отзывы», окно и редактор отзыва;
-   «Статистика» и «Тир-лист» ещё в прежнем виде.
+   «Отзывы», окно и редактор отзыва, «Статистика»;
+   «Тир-лист» ещё в прежнем виде.
 
    Правила общие для компьютера и телефона; то, что на телефоне сделано
    иначе (нижняя панель, перенос вкладок, размеры), – отдельным блоком
@@ -3982,6 +3982,151 @@ html[data-skin="neomorphism-dark"] * {
 }
 :is([data-skin="soft"], [data-skin="soft-dark"]) .fe-view :is(.fe-imgbox, .fe-lookup) {
   border-radius: 3px;
+}
+
+/* ── «Статистика» (ноябрь 2026, по макету) ──
+   Годы – тихой строкой с листиком у выбранного; заголовки блоков – на
+   бумажных ярлычках; три обложки в шапке – листы гербария веером;
+   счётчики по типам – графами через пунктир; числа – вторым цветом;
+   облако тегов – прямоугольными рамками. Сами блоки и полосы owner
+   оставил как были. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-year-filters {
+  gap: 0.15rem 1.1rem;
+  align-items: baseline;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-year-filters .tl-filter {
+  position: relative;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0.2rem 0;
+  font-size: 0.9rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-dim);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-year-filters .tl-filter:hover {
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-year-filters .tl-filter.active {
+  background: none;
+  color: var(--text-hi);
+  border-bottom-color: var(--ink2);
+  padding-left: 1.2rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-year-filters .tl-filter.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -8px;
+  background: var(--ink2);
+  mask: url("/decor/leaf.svg") center / contain no-repeat;
+  -webkit-mask: url("/decor/leaf.svg") center / contain no-repeat;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats #stats-export-btn {
+  border: 0;
+  background: none;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats #stats-export-btn:hover {
+  color: var(--ink2);
+}
+
+/* Заголовок блока – бумажный ярлычок по ширине текста. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-card > .section-title {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 2px;
+  padding: 0.15rem 0.9rem;
+  font-size: 1.5rem;
+  box-shadow: 0 6px 12px -7px var(--shadow);
+  transform: rotate(-1deg);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-card > .section-title::before,
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-card > .section-title::after {
+  display: none;
+}
+
+/* Три обложки шапки – листы гербария веером. Поля – толстой рамкой цвета
+   подложки, а не padding: с padding снимок статистики (html2canvas) рисовал
+   на месте обложек пустые прямоугольники. Тонкий край листа – тенью. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-covers img {
+  box-sizing: border-box;
+  border: 6px solid var(--bg2);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--border2), 0 18px 30px -14px rgba(0, 0, 0, 0.85);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-covers img + img {
+  margin-left: calc(clamp(70px, 7.5cqi, 210px) * -0.2);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-covers img:nth-child(1) {
+  transform: rotate(-8deg) translateY(10px);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-covers img:nth-child(2) {
+  position: relative;
+  z-index: 1;
+  transform: translateY(-10px) rotate(1deg);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-covers img:nth-child(3) {
+  transform: rotate(8deg) translateY(10px);
+}
+
+/* Счётчики по типам – графы через пунктир, без рамки и тени. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-counters {
+  border: 0;
+  border-top: 1px dashed var(--border2);
+  border-bottom: 1px dashed var(--border2);
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-counter {
+  background: none;
+  border: 0;
+  border-right: 1px dashed var(--border2);
+  border-radius: 0;
+  box-shadow: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-counter:last-child {
+  border-right: 0;
+}
+
+/* Числа – вторым цветом. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats :is(.sx-rw-n, .sx-grow-n, .sx-type-n, .sx-year-lbl b, .sx-total-big > span) {
+  color: var(--ink2);
+}
+
+/* Облако тегов – прямоугольными рамками. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-tags .rtag {
+  border-radius: 2px;
+}
+
+@media (max-width: 700px) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-year-filters {
+    gap: 0.15rem 0.9rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-year-filters .tl-filter {
+    flex: none;
+  }
+  /* Счётчики на телефоне – в две строки по четыре: граница справа у
+     последней графы строки и пунктир между строками. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-counter:nth-child(4n) {
+    border-right: 0;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .stat-counter:nth-child(-n + 4):not(:nth-last-child(-n + 4)) {
+    border-bottom: 1px dashed var(--border2);
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-stats .sx-card > .section-title {
+    font-size: 1.15rem;
+    padding: 0.12rem 0.7rem;
+  }
 }
 
 /* ── Телефон (до 700px) ──

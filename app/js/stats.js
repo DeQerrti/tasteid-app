@@ -919,6 +919,7 @@ async function statsExport(selectedKeys) {
   let restoreImages = () => {};
   let restoreAnim = () => {};
   let restoreShadows = () => {};
+  let restoreFan = () => {};
   try {
     if (typeof html2canvas === "undefined") await loadHtml2Canvas();
 
@@ -930,6 +931,8 @@ async function statsExport(selectedKeys) {
     await forceLoadImagesForExport(imgs);
 
     restoreImages = await proxyImagesToDataUrls(grid);
+    // Веер обложек в шапке – одной готовой картинкой (см. statsBakeCoverFan).
+    restoreFan = await statsBakeCoverFan(grid);
 
     // html2canvas клонирует grid в отдельный iframe – это перезапускает
     // часы animation: fadeUp у разделов/карточек с нуля, и снимок
@@ -970,10 +973,140 @@ async function statsExport(selectedKeys) {
   } catch (err) {
     alert("Не удалось создать картинку 😢\n" + err.message);
   } finally {
+    restoreFan();
     restoreImages();
     restoreAnim();
     restoreShadows();
     restoreBtn();
     restoreHidden();
+  }
+}
+
+// Три обложки шапки («Твой вкус в трёх словах») на время снимка –
+// одной готовой картинкой. Темы раскладывают их веером: наклон и
+// наложение друг на друга (transform, отрицательный margin). html2canvas
+// это рисует ненадёжно – проверено: стили в его копии страницы те же, но
+// на снимке обложки выходили то вплотную рядом без наложения, то и без
+// наклона. Здесь веер рисуется самим браузером на canvas – по тем же
+// размерам, наклонам, рамке и тени, что на экране, – и на время снимка
+// подменяет три картинки одной. Картинки к этому моменту уже data:-URI
+// (proxyImagesToDataUrls), поэтому canvas не «испорчен» чужим источником.
+// Без наклона и наложения (большинство тем) ничего не делает.
+async function statsBakeCoverFan(grid) {
+  const box = grid.querySelector(".sx-covers");
+  const imgs = box ? [...box.querySelectorAll("img")] : [];
+  if (!imgs.length) return () => {};
+  const fanned = imgs.some((img) => {
+    const cs = getComputedStyle(img);
+    return cs.transform !== "none" || parseFloat(cs.marginLeft) < 0;
+  });
+  if (!fanned) return () => {};
+
+  try {
+    await Promise.all(imgs.map((img) => (img.decode ? img.decode().catch(() => {}) : null)));
+    // Запас вокруг – под наклон и тень, они выходят за рамки обложек.
+    const pad = 40;
+    const boxRect = box.getBoundingClientRect();
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil((boxRect.width + pad * 2) * scale);
+    canvas.height = Math.ceil((boxRect.height + pad * 2) * scale);
+    const ctx = canvas.getContext("2d");
+    ctx.scale(scale, scale);
+
+    // Части box-shadow: «кольцо» (0 0 0 Npx) и обычная тень.
+    const shadowParts = (value) =>
+      value === "none"
+        ? []
+        : value.split(/,(?![^(]*\))/).map((part) => {
+            const color = (part.match(/rgba?\([^)]*\)|#[0-9a-f]+/i) || ["rgba(0,0,0,.5)"])[0];
+            const [x = 0, y = 0, blur = 0, spread = 0] = (part.replace(color, "").match(/-?[\d.]+px/g) || []).map(parseFloat);
+            return { color, x, y, blur, spread };
+          });
+
+    for (const img of imgs) {
+      if (!img.naturalWidth) continue;
+      const cs = getComputedStyle(img);
+      // Размер и место без наклона: offset* не учитывают transform.
+      const w = img.offsetWidth;
+      const h = img.offsetHeight;
+      const x = pad + img.offsetLeft - box.offsetLeft;
+      const y = pad + img.offsetTop - box.offsetTop;
+      const bw = parseFloat(cs.borderTopWidth) || 0;
+      const radius = parseFloat(cs.borderTopLeftRadius) || 0;
+      const parts = shadowParts(cs.boxShadow);
+
+      ctx.save();
+      if (cs.transform !== "none") {
+        const [ox, oy] = cs.transformOrigin.split(" ").map(parseFloat);
+        ctx.translate(x + ox, y + oy);
+        ctx.transform(...new DOMMatrix(cs.transform).toFloat64Array().filter((_, i) => [0, 1, 4, 5, 12, 13].includes(i)));
+        ctx.translate(-(x + ox), -(y + oy));
+      }
+      // Тень – под листом.
+      for (const s of parts.filter((p) => p.blur > 0 || p.y || p.x)) {
+        ctx.save();
+        ctx.shadowColor = s.color;
+        ctx.shadowBlur = s.blur;
+        ctx.shadowOffsetX = s.x;
+        ctx.shadowOffsetY = s.y;
+        ctx.fillStyle = cs.borderTopColor || "#000";
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, radius);
+        ctx.fill();
+        ctx.restore();
+      }
+      // Тонкий край листа («кольцо» box-shadow).
+      for (const s of parts.filter((p) => !p.blur && !p.x && !p.y && p.spread > 0)) {
+        ctx.fillStyle = s.color;
+        ctx.beginPath();
+        ctx.roundRect(x - s.spread, y - s.spread, w + s.spread * 2, h + s.spread * 2, radius + s.spread);
+        ctx.fill();
+      }
+      // Поля листа – рамка цвета подложки.
+      if (bw) {
+        ctx.fillStyle = cs.borderTopColor;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, radius);
+        ctx.fill();
+      }
+      // Сама обложка – как object-fit: cover с её object-position.
+      const iw = w - bw * 2;
+      const ih = h - bw * 2;
+      const k = Math.max(iw / img.naturalWidth, ih / img.naturalHeight);
+      const sw = iw / k;
+      const sh = ih / k;
+      const [px, py] = (cs.objectPosition || "50% 50%").split(" ").map((v) => (parseFloat(v) || 50) / 100);
+      ctx.beginPath();
+      ctx.roundRect(x + bw, y + bw, iw, ih, Math.max(0, radius - bw));
+      ctx.clip();
+      ctx.drawImage(img, (img.naturalWidth - sw) * px, (img.naturalHeight - sh) * py, sw, sh, x + bw, y + bw, iw, ih);
+      ctx.restore();
+    }
+
+    const baked = document.createElement("img");
+    baked.src = canvas.toDataURL("image/png");
+    await baked.decode().catch(() => {});
+    baked.alt = "";
+    baked.style.cssText =
+      `position:absolute;left:${box.offsetLeft - pad}px;top:${box.offsetTop - pad}px;` +
+      `width:${boxRect.width + pad * 2}px;height:${boxRect.height + pad * 2}px;` +
+      "max-width:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;transform:none;pointer-events:none;";
+    const parent = box.offsetParent || box.parentElement;
+    const prevPos = parent.style.position;
+    if (getComputedStyle(parent).position === "static") parent.style.position = "relative";
+    const prevVis = imgs.map((img) => img.style.visibility);
+    imgs.forEach((img) => (img.style.visibility = "hidden"));
+    parent.appendChild(baked);
+    return () => {
+      baked.remove();
+      parent.style.position = prevPos;
+      imgs.forEach((img, i) => (img.style.visibility = prevVis[i]));
+    };
+  } catch (err) {
+    // Не вышло нарисовать – снимок всё равно делается, просто с тем, что
+    // нарисует html2canvas.
+    console.warn("[statsExport] веер обложек не нарисован:", err);
+    return () => {};
   }
 }

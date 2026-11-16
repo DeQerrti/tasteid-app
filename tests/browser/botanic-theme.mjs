@@ -371,6 +371,66 @@ for (const theme of ["soft-dark", "soft"]) {
     fe.nameBorder === "0px" && fe.headTransform !== "none",
     "редактор записи «Любимого»: поля строкой, заголовки – ярлычками"
   );
+
+  // «Статистика»: годы тихой строкой, заголовки блоков – ярлычками,
+  // счётчики – через пунктир.
+  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await page.click('.tab-btn[data-label="nav.stats"]');
+  await page.waitForSelector("#tab-stats .sx-card > .section-title", { timeout: 10000 });
+  const st = await page.evaluate(() => {
+    // В тестовом хранилище одна оценённая запись: части блоков (другие
+    // годы, счётчики по типам) может не быть – тогда и проверять нечего.
+    const css = (sel) => {
+      const el = document.querySelector(sel);
+      return el ? getComputedStyle(el) : {};
+    };
+    const probe = document.createElement("i");
+    probe.style.color = getComputedStyle(document.documentElement)
+      .getPropertyValue("--paper")
+      .trim();
+    document.body.appendChild(probe);
+    const paperRgb = getComputedStyle(probe).color;
+    probe.remove();
+    return {
+      yearBorder: css("#tab-stats .stat-year-filters .tl-filter").borderTopWidth,
+      headBg: css("#tab-stats .sx-card > .section-title").backgroundColor,
+      countersBorder: css("#tab-stats .stat-counters").borderTopStyle,
+      paperRgb,
+    };
+  });
+  ok(st.yearBorder === "0px", "«Статистика»: годы – тихой строкой, без рамок");
+  ok(st.headBg === st.paperRgb, "«Статистика»: заголовки блоков – на бумажных ярлычках");
+  ok(
+    st.countersBorder === undefined || st.countersBorder === "dashed",
+    "«Статистика»: счётчики по типам – через пунктир"
+  );
+
+  // Снимок статистики: веер обложек шапки на время снимка – одной готовой
+  // картинкой (html2canvas сам веер рисовал без наклона и наложения), а
+  // после снимка всё возвращается как было.
+  const fan = await page.evaluate(async () => {
+    const grid = document.querySelector("#tab-stats .stat-grid");
+    const covers = [...grid.querySelectorAll(".sx-covers img")];
+    if (!covers.length) return null;
+    await Promise.all(covers.map((i) => i.decode().catch(() => {})));
+    const before = grid.querySelectorAll("img").length;
+    const restore = await window.statsBakeCoverFan(grid);
+    const during = {
+      added: grid.querySelectorAll("img").length - before,
+      hidden: covers.every((i) => i.style.visibility === "hidden"),
+    };
+    restore();
+    return {
+      ...during,
+      after: grid.querySelectorAll("img").length - before,
+      shown: covers.every((i) => i.style.visibility === ""),
+    };
+  });
+  ok(
+    fan === null || (fan.added === 1 && fan.hidden),
+    "снимок статистики: веер обложек подменён одной готовой картинкой"
+  );
+  ok(fan === null || (fan.after === 0 && fan.shown), "после снимка обложки возвращаются как были");
 }
 
 // ── Телефон: тот же язык, уменьшенный ──
