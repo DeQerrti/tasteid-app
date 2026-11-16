@@ -5906,3 +5906,275 @@ html[data-skin="neomorphism-dark"] * {
     max-width: 180px;
   }
 }
+
+/* ══ РИСОВАННАЯ: «Статистика» – рамки и скотч (ноябрь 2026) ═══════
+   Четвёртый заход по макету: owner выбрал «рамки и скотч» из трёх
+   вариантов (рамки и скотч, тетрадь в клетку, ярлычки без рамок).
+   – годы – словами, выбранный – бумажной наклейкой;
+   – шапка, итог и подписи – почерком; счётчики по типам – графами
+     через пунктир; три обложки – полароиды веером;
+   – блок обведён рамкой от руки и приклеен сверху полоской скотча,
+     заголовок блока выделен маркером; теги – наклейками; «Лицо вкуса» и
+     «Твои персонажи» – маленькими полароидами;
+   – полосы и столбики графиков – прежние (их только чуть скругляем).
+
+   Всю вкладку снимает «Сохранить как картинку» (html2canvas), а он не
+   рисует маски – поэтому здесь их нет ни одной: рамка и скотч – фоном
+   с цветом в файле, маркер под заголовком – фигурой с неровным
+   border-radius. Кегли – через clamp(…cqi…), как в базовых стилях
+   вкладки: она тянется по ширине окна. */
+
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats * {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+}
+
+/* ── Годы и камера ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-year-filters {
+  gap: 0.2rem 0.55rem;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-year-filters .tl-filter {
+  padding: 0.22rem 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim);
+  border: 0;
+  border-radius: 1px 3px 2px 1px;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-year-filters .tl-filter:hover {
+  color: var(--text-hi);
+  background: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-year-filters .tl-filter.active {
+  color: var(--doodle-paper-ink);
+  background: var(--doodle-paper);
+  box-shadow: 1px 3px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-2.5deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats #stats-export-btn {
+  color: var(--text);
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats #stats-export-btn:hover {
+  color: var(--red);
+  transform: rotate(-6deg);
+}
+
+/* ── Блоки: рамка от руки и полоска скотча сверху ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-card {
+  position: relative;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    var(--doodle-frame) 0 0 / 100% 100% no-repeat,
+    var(--surface);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-card::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 110px;
+  height: 22px;
+  margin-left: -55px;
+  z-index: 3;
+  pointer-events: none;
+  background: url("/decor/doodle-tape-bg-2.svg") 0 0 / 100% 100% no-repeat;
+  transform: rotate(-2deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-card:nth-child(odd)::before {
+  background-image: url("/decor/doodle-tape-bg-1.svg");
+  transform: rotate(3deg);
+}
+/* Заголовок блока; маркер – фигурой, а не маской (снимок). */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-card > .section-title {
+  /* z-index: 0, а не isolation: isolate – html2canvas isolation не
+     понимает, и маркер (z-index: -1) уходил на снимке под фон блока. */
+  position: relative;
+  z-index: 0;
+  align-self: flex-start;
+  font-style: normal;
+  font-weight: 600;
+  font-size: clamp(1.05rem, calc(2.8 * var(--sxu)), 1.75rem);
+  text-transform: none;
+  letter-spacing: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-card > .section-title::before {
+  display: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-card > .section-title::after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: -0.3rem;
+  right: -0.4rem;
+  top: 54%;
+  bottom: 0.05rem;
+  height: auto;
+  flex: none;
+  z-index: -1;
+  background: var(--red);
+  opacity: 0.55;
+  border-radius: 40% 14% 45% 12% / 60% 35% 65% 40%;
+  transform: rotate(-1deg) skewX(-10deg);
+}
+
+/* ── Шапка ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-kicker {
+  font-size: clamp(0.75rem, 0.9cqi, 1.05rem);
+  text-transform: none;
+  letter-spacing: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-words {
+  font-style: normal;
+  font-weight: 600;
+  font-size: clamp(1.4rem, 2.6cqi, 3.6rem);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-total-big {
+  font-style: normal;
+  font-weight: 600;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-total-big > span {
+  font-size: clamp(0.85rem, 1.05cqi, 1.3rem);
+  text-transform: none;
+  letter-spacing: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-counters {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-counter {
+  border: 0;
+  border-right: 1.5px dashed color-mix(in srgb, var(--text-dim) 45%, transparent);
+  background: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-counter:last-child {
+  border-right: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-tc-val {
+  font-weight: 600;
+  font-size: clamp(1.2rem, 1.9cqi, 2.8rem);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-tc-lbl {
+  font-size: clamp(0.7rem, 0.85cqi, 1rem);
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* Три обложки – полароиды веером. Поля – толстой рамкой, а не padding:
+   statsBakeCoverFan (stats.js) печёт веер в картинку для снимка и
+   рамку переносит, а padding у img снимок рисовал пустым. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-covers img {
+  border: 6px solid var(--doodle-paper);
+  border-bottom-width: 18px;
+  border-radius: 0;
+  box-shadow: 0 10px 18px -8px rgba(0, 0, 0, 0.75);
+}
+
+/* ── Строки, полосы, теги ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-grade, .sx-grow-n) {
+  font-style: normal;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-bar, .sx-bar-stack, .sx-bar-wrap) {
+  border-radius: 3px 8px 4px 9px / 6px 4px 8px 3px;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-year-stack {
+  border-radius: 4px 7px 2px 3px;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-tags .rtag {
+  padding: 0.15rem 0.55rem;
+  font-size: 0.85rem;
+  color: var(--doodle-paper-ink);
+  border: 0;
+  border-radius: 1px 3px 2px 1px;
+  background: var(--doodle-paper);
+  box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.35);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-tags .rtag:nth-child(3n + 1) {
+  transform: rotate(-2deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-tags .rtag:nth-child(3n + 2) {
+  transform: rotate(1.5deg);
+}
+
+/* ── Обложки в блоках ──
+   «Лицо вкуса» и «Твои персонажи» – маленькие полароиды. У содержимого –
+   position: relative: без этого html2canvas у карточек без наклона
+   (каждая третья) рисовал бумагу ПОВЕРХ обложки и подписи, и на снимке
+   они выходили пустыми листками. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-face, .sx-char) {
+  padding: 5px 5px 7px;
+  color: var(--doodle-paper-ink);
+  background: var(--doodle-paper);
+  border-radius: 0;
+  box-shadow: 0 8px 14px -7px rgba(0, 0, 0, 0.75);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-face, .sx-char) > * {
+  position: relative;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-face, .sx-char):nth-child(3n + 1) {
+  rotate: -1.4deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-face, .sx-char):nth-child(3n + 2) {
+  rotate: 1deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-face, .sx-char):hover {
+  rotate: 0deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-face, .sx-char) img {
+  border-radius: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats :is(.sx-face span, .sx-char-name) {
+  font-weight: 600;
+  color: var(--doodle-paper-ink);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-char-from {
+  color: color-mix(in srgb, var(--doodle-paper-ink) 65%, transparent);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-char :is(.card-grade-inline, .card-grade-text, .sx-grade) {
+  font-style: normal;
+  color: var(--doodle-paper-ink);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-rw img {
+  border: 3px solid var(--doodle-paper);
+  border-radius: 0;
+  box-shadow: 0 6px 10px -5px rgba(0, 0, 0, 0.7);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-rw:nth-child(odd) img {
+  transform: rotate(-3deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-rw:nth-child(even) img {
+  transform: rotate(2deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-rw-n {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--red);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .sx-person img {
+  border: 3px solid var(--doodle-paper);
+  border-radius: 50% 45% 52% 48%;
+}
+
+@media (max-width: 700px) {
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-year-filters .tl-filter {
+    font-size: 0.82rem;
+    padding: 0.18rem 0.4rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-stats .stat-card::before {
+    width: 80px;
+    height: 16px;
+    margin-left: -40px;
+    top: -8px;
+  }
+}

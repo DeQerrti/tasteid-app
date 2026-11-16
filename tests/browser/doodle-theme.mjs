@@ -1,6 +1,6 @@
 // Рисованная тема («Рисованный», тёмная и светлая): вид «скотч и маркер»
 // на боковой панели, «Статусах», «Любимом» (окно записи, оба редактора) и
-// «Отзывах» (окно и редактор отзыва) и почерк Shantell Sans.
+// «Отзывах» (окно и редактор отзыва), «Статистике» и почерк Shantell Sans.
 //
 // Проверяется (на ширине компьютера, в обеих темах, и на телефоне):
 //   – файлы украшений /decor/doodle-*.svg и шрифт отдаются сервером;
@@ -476,6 +476,58 @@ ok(rvEditor.inputFont.startsWith('"Shantell Sans"'), "поля редактор�
 ok(/doodle-loop\.svg/.test(rvEditor.gradeLoop || ""), "выбранная оценка обведена от руки");
 ok(rvEditor.tagOn === reviews.paperRgb, "выбранный тег – бумажной наклейкой");
 await rv.close();
+
+console.log("«Статистика»");
+const st = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+st.on("pageerror", (e) => jsErrors.push(e.message));
+writeFileSync(join(vaultDir, "site-settings.json"), settings("doodle-dark"));
+await st.goto(base + "/", { waitUntil: "domcontentloaded" });
+await st.click('.tab-btn[data-label="nav.stats"]');
+await st.waitForSelector("#tab-stats .sx-card", { timeout: 10000 });
+await st.waitForTimeout(500);
+const stats = await st.evaluate(() => {
+  const css = (el, pseudo) => getComputedStyle(el, pseudo);
+  const probe = document.createElement("i");
+  probe.style.color = css(document.documentElement).getPropertyValue("--doodle-paper").trim();
+  document.body.appendChild(probe);
+  const paperRgb = css(probe).color;
+  probe.remove();
+  const card = document.querySelector("#tab-stats .sx-card");
+  const title = card.querySelector(".section-title");
+  // Вкладку целиком снимает «Сохранить как картинку», а html2canvas маски
+  // не рисует: маска здесь выйдет на снимке сплошным прямоугольником.
+  const masked = [];
+  for (const el of document.querySelectorAll("#tab-stats *")) {
+    for (const pseudo of [null, "::before", "::after"]) {
+      const m = css(el, pseudo).maskImage || css(el, pseudo).webkitMaskImage;
+      if (m && m !== "none") masked.push(el.className + (pseudo || ""));
+    }
+  }
+  return {
+    frame: css(card).backgroundImage,
+    tape: css(card, "::before").backgroundImage,
+    yearOn: css(document.querySelector("#tab-stats .stat-year-filters .tl-filter.active"))
+      .backgroundColor,
+    titleFont: css(title).fontFamily,
+    titleMark: css(title, "::after").backgroundColor,
+    titleStack: css(title).zIndex,
+    masked,
+    paperRgb,
+  };
+});
+ok(/doodle-frame-/.test(stats.frame), "блок обведён рамкой от руки");
+ok(/doodle-tape-bg-\d\.svg/.test(stats.tape), "блок приклеен полоской скотча");
+ok(stats.yearOn === stats.paperRgb, "выбранный год – бумажной наклейкой");
+ok(stats.titleFont.startsWith('"Shantell Sans"'), "заголовки блоков – почерком");
+ok(
+  stats.titleMark !== "rgba(0, 0, 0, 0)" && stats.titleStack === "0",
+  "маркер под заголовком – фигурой; z-index: 0, а не isolation (его не понимает снимок)"
+);
+ok(
+  !stats.masked.length,
+  `во вкладке нет масок (снимок их не рисует)${stats.masked.length ? ": " + stats.masked.slice(0, 5).join(", ") : ""}`
+);
+await st.close();
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
