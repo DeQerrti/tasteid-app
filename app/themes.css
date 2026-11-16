@@ -6178,3 +6178,323 @@ html[data-skin="neomorphism-dark"] * {
     top: -8px;
   }
 }
+
+/* ══ РИСОВАННАЯ: «Тир-лист» – рамка и скотч (ноябрь 2026) ═══════════
+   Пятый заход по макету: owner выбрал «рамку и скотч» из трёх вариантов
+   полок (рамка и скотч, цветной стикер, маркер по краю).
+   – «Тайтлы / Персонажи» – как вкладки «Статусов» (мазок маркера);
+   – типы, годы, списки персонажей – словами, выбранное – наклейкой;
+     «Новый тир-лист», «Подписи», «Редактор», размер – словами в рамке;
+   – полка обведена рамкой от руки и приклеена полоской скотча, название
+     полки выделено маркером её цвета; обложки – отпечатки с полями;
+   – редактор (#/chars-edit) – тем же почерком, полки – в рамке.
+
+   Полки снимает «Сохранить как картинку»: captureTallElement (utils.js)
+   снимает КАЖДУЮ полку отдельно, ровно по её границам. Поэтому всё
+   украшение полки – внутри её рамок (скотч лежит на верхней линии, а
+   не торчит над полкой – иначе его обрезало), и ни одной маски: маркер
+   под названием – фигурой с неровным border-radius, у названия
+   z-index: 0 вместо isolation (её html2canvas не понимает). */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-tierlist, .ce-view, .app-topbar:has(~ .ce-view)) * {
+  font-family: "Shantell Sans", "Pangolin", sans-serif;
+}
+
+/* ── Шапка вкладки ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist > .tl-mode-toggle {
+  gap: 0.2rem 2.2rem;
+  padding-left: 0.8rem;
+  align-items: center;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-mode-btn {
+  position: relative;
+  isolation: isolate;
+  padding: 0.4rem 0.55rem 0.5rem;
+  font-weight: 600;
+  font-size: 1.42rem;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-mode-btn:hover {
+  color: var(--text);
+  background: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-mode-btn.active {
+  color: var(--text-hi);
+  border: 0;
+  background: none;
+}
+/* Строка вкладок в снимок не попадает – здесь маска можно. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-mode-btn.active::after {
+  content: "";
+  position: absolute;
+  left: -0.35rem;
+  right: -0.45rem;
+  top: 46%;
+  bottom: 0.05rem;
+  z-index: -1;
+  background: var(--red);
+  opacity: 0.6;
+  -webkit-mask: url("/decor/doodle-swipe-1.svg") 0 0 / 100% 100% no-repeat;
+  mask: url("/decor/doodle-swipe-1.svg") 0 0 / 100% 100% no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.now-chip, .tl-filter, .tl-year, .tl-list-btn) {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim);
+  border: 0;
+  border-radius: 1px 3px 2px 1px;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.now-chip, .tl-filter, .tl-year, .tl-list-btn):hover {
+  color: var(--text-hi);
+  background: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.now-chip, .tl-filter, .tl-year, .tl-list-btn).active {
+  color: var(--doodle-paper-ink);
+  background: var(--doodle-paper);
+  box-shadow: 1px 3px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-2deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.now-chip, .tl-year) .section-count {
+  opacity: 0.7;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.tl-mode-add-btn, .tl-tool-btn, .tl-captions-btn, .tl-size, .admin-add-btn) {
+  padding: 0.38rem 0.8rem;
+  font-size: 0.88rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  border: 0;
+  border-radius: 0;
+  background: var(--doodle-box) 0 0 / 100% 100% no-repeat;
+  box-shadow: none;
+  transform: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.tl-mode-add-btn, .tl-tool-btn, .tl-captions-btn, .tl-size, .admin-add-btn):hover {
+  color: var(--text-hi);
+  background: var(--doodle-box) 0 0 / 100% 100% no-repeat;
+  transform: rotate(-1deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.tl-tool-btn, .tl-captions-btn).active {
+  color: var(--doodle-paper-ink);
+  background: var(--doodle-paper);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist #tl-export-btn {
+  padding: 0.3rem;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ── Полка: рамка от руки, скотч на верхней линии ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-row {
+  overflow: visible;
+  margin-bottom: 0.9rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    var(--doodle-frame) 0 0 / 100% 100% no-repeat,
+    var(--surface);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-row::before {
+  left: 18px;
+  top: 0;
+  bottom: auto;
+  width: 96px;
+  height: 20px;
+  z-index: 3;
+  opacity: 1;
+  background: url("/decor/doodle-tape-bg-2.svg") 0 0 / 100% 100% no-repeat;
+  transform: rotate(-4deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-row:nth-child(even)::before {
+  background-image: url("/decor/doodle-tape-bg-1.svg");
+  transform: rotate(3deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-label {
+  overflow: visible;
+  background: none;
+  border-right: 1.5px dashed color-mix(in srgb, var(--text-dim) 45%, transparent);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-tierlist, .ce-view) .tl-label-dot {
+  display: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-label-name {
+  position: relative;
+  z-index: 0;
+  padding: 0 0.3rem;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--text-hi);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-label-name::after {
+  content: "";
+  position: absolute;
+  left: -0.2rem;
+  right: -0.3rem;
+  top: 50%;
+  bottom: 0;
+  z-index: -1;
+  background: var(--tl-color);
+  opacity: 0.7;
+  border-radius: 40% 14% 45% 12% / 60% 35% 65% 40%;
+  transform: rotate(-2deg) skewX(-10deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-tierlist, .ce-view) .tl-label-count {
+  font-size: 0.8rem;
+  letter-spacing: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-tierlist, .ce-view) :is(.tl-cards, .tl-editor-cards) {
+  background: none;
+}
+/* Обложки – отпечатки: поля рамкой на обёртке (не padding у img – его
+   снимок рисовал пустым). У содержимого – position: relative: без этого
+   html2canvas у отпечатков без наклона рисовал бумагу поверх картинки. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-tierlist, .ce-view) :is(.tl-poster, .tl-char-poster) {
+  border: 3px solid var(--doodle-paper);
+  border-radius: 0;
+  background: var(--doodle-paper);
+  box-shadow: 0 6px 10px -5px rgba(0, 0, 0, 0.7);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-tierlist, .ce-view) :is(.tl-poster, .tl-char-poster) > * {
+  position: relative;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(#tab-tierlist, .ce-view) :is(.tl-poster, .tl-char-poster) img {
+  border: 0;
+  border-radius: 0;
+}
+/* Уголок цвета полки в углу обложки – приём прямоугольной темы; на
+   отпечатке с полями он выглядывал из-за бумаги чёрточками. */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-poster::before {
+  display: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.tl-poster, .tl-char-poster):nth-child(4n + 1) {
+  rotate: -1.2deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.tl-poster, .tl-char-poster):nth-child(4n + 3) {
+  rotate: 1deg;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist :is(.tl-poster, .tl-char-poster):hover {
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+/* ── Редактор тир-листа (#/chars-edit) ── */
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .app-topbar:has(~ .ce-view) .topbar-title {
+  font-size: 0.9rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(.ce-view, .app-topbar:has(~ .ce-view)) :is(.btn, .btn-ghost, .btn-dashed, .list-tab) {
+  padding: 0.38rem 0.8rem;
+  font-size: 0.88rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  border: 0;
+  border-radius: 0;
+  background: var(--doodle-box) 0 0 / 100% 100% no-repeat;
+  box-shadow: none;
+  transform: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) :is(.ce-view, .app-topbar:has(~ .ce-view)) :is(.btn, .btn-ghost, .btn-dashed, .list-tab):hover {
+  color: var(--text-hi);
+  background: var(--doodle-box) 0 0 / 100% 100% no-repeat;
+  transform: rotate(-1deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .list-tab.active {
+  color: var(--doodle-paper-ink);
+  background: var(--doodle-paper);
+  box-shadow: 1px 3px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-2deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view :is(.section-label, label) {
+  font-size: 0.85rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .title-item {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .title-item.active {
+  background: var(--doodle-paper);
+  box-shadow: 1px 3px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-1.5deg);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .title-item.active * {
+  color: var(--doodle-paper-ink);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .title-item-cover {
+  border: 2px solid var(--doodle-paper);
+  border-radius: 0;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view input:not([type="checkbox"]):not([type="color"]):not([type="range"]):not([type="file"]) {
+  padding: 0.45rem 0.2rem 0.55rem;
+  color: var(--text-hi);
+  border: 0;
+  border-radius: 0;
+  background: var(--doodle-under) 0 100% / 100% 10px no-repeat;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .tl-editor-row {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    var(--doodle-frame) 0 0 / 100% 100% no-repeat,
+    var(--surface);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .tl-editor-row::before {
+  display: none;
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .tl-editor-label {
+  background: none;
+  border-right: 1.5px dashed color-mix(in srgb, var(--text-dim) 45%, transparent);
+}
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) .ce-view .tl-editor-label .tl-label-input {
+  padding: 0;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+  color: var(--tl-color, var(--text-hi));
+  background: none;
+}
+
+@media (max-width: 700px) {
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist > .tl-mode-toggle {
+    gap: 0.2rem 1.1rem;
+    padding-left: 0.3rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-mode-btn {
+    font-size: 1.08rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-label-name {
+    font-size: 0.9rem;
+  }
+  :is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-tierlist .tl-row::before {
+    left: 10px;
+    width: 64px;
+    height: 14px;
+  }
+}

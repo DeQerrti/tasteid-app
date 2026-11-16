@@ -1,6 +1,6 @@
 // Рисованная тема («Рисованный», тёмная и светлая): вид «скотч и маркер»
 // на боковой панели, «Статусах», «Любимом» (окно записи, оба редактора) и
-// «Отзывах» (окно и редактор отзыва), «Статистике» и почерк Shantell Sans.
+// «Отзывах» (окно и редактор отзыва), «Статистике», «Тир-листе» и почерк Shantell Sans.
 //
 // Проверяется (на ширине компьютера, в обеих темах, и на телефоне):
 //   – файлы украшений /decor/doodle-*.svg и шрифт отдаются сервером;
@@ -528,6 +528,52 @@ ok(
   `во вкладке нет масок (снимок их не рисует)${stats.masked.length ? ": " + stats.masked.slice(0, 5).join(", ") : ""}`
 );
 await st.close();
+
+console.log("«Тир-лист»");
+const tl = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+tl.on("pageerror", (e) => jsErrors.push(e.message));
+writeFileSync(join(vaultDir, "site-settings.json"), settings("doodle-dark"));
+await tl.goto(base + "/", { waitUntil: "domcontentloaded" });
+await tl.click('.tab-btn[data-label="nav.tierlist"]');
+await tl.waitForSelector("#tab-tierlist .tl-row:not(.tl-row-empty)", { timeout: 10000 });
+await tl.waitForTimeout(500);
+const tier = await tl.evaluate(() => {
+  const css = (el, pseudo) => getComputedStyle(el, pseudo);
+  const row = document.querySelector("#tab-tierlist .tl-row:not(.tl-row-empty)");
+  const tape = css(row, "::before");
+  const name = row.querySelector(".tl-label-name");
+  // Снимок (captureTallElement) берёт каждую полку строго по её рамке:
+  // торчащий наружу скотч обрезался бы. И ни одной маски – снимок их не рисует.
+  const masked = [];
+  for (const el of document.querySelectorAll("#tab-tierlist .tl-rows *")) {
+    for (const pseudo of [null, "::before", "::after"]) {
+      const m = css(el, pseudo).maskImage || css(el, pseudo).webkitMaskImage;
+      if (m && m !== "none") masked.push(el.className + (pseudo || ""));
+    }
+  }
+  return {
+    frame: css(row).backgroundImage,
+    tape: tape.backgroundImage,
+    tapeTop: parseFloat(tape.top),
+    nameFont: css(name).fontFamily,
+    mark: css(name, "::after").backgroundColor,
+    masked,
+  };
+});
+ok(/doodle-frame-/.test(tier.frame), "полка обведена рамкой от руки");
+ok(
+  /doodle-tape-bg-\d\.svg/.test(tier.tape) && tier.tapeTop >= 0,
+  "скотч – внутри полки (иначе снимок его обрезает)"
+);
+ok(
+  tier.nameFont.startsWith('"Shantell Sans"') && tier.mark !== "rgba(0, 0, 0, 0)",
+  "название полки – почерком, с маркером цвета полки"
+);
+ok(
+  !tier.masked.length,
+  `в полках нет масок${tier.masked.length ? ": " + tier.masked.slice(0, 5).join(", ") : ""}`
+);
+await tl.close();
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
