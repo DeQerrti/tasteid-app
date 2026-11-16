@@ -3000,8 +3000,8 @@ html[data-skin="neomorphism-dark"] * {
    ветка с листьями, бумажные ярлычки, обложки как листы гербария. Темы
    переосмысляются по одной вкладке – пока сделаны боковая панель,
    «Статусы» (#tab-now), «Любимое» (с окном записи и обоими редакторами),
-   «Отзывы», окно и редактор отзыва, «Статистика»;
-   «Тир-лист» ещё в прежнем виде.
+   «Отзывы», окно и редактор отзыва, «Статистика», «Тир-лист»
+   (его полки, обложки и редактор owner оставил прежними).
 
    Правила общие для компьютера и телефона; то, что на телефоне сделано
    иначе (нижняя панель, перенос вкладок, размеры), – отдельным блоком
@@ -3050,12 +3050,12 @@ html[data-skin="neomorphism-dark"] * {
    padding-bottom – место под ветку и под лист, который растёт из неё
    вверх у выбранной вкладки (лист не должен ни выходить за ветку вниз,
    ни задевать нижние выносные букв). */
-:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-tierlist) > .tl-mode-toggle {
   gap: 0 2.2rem;
   padding-bottom: 2.2rem;
   margin-bottom: 1.1rem;
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle::after {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-tierlist) > .tl-mode-toggle::after {
   content: "";
   position: absolute;
   left: 0;
@@ -3067,7 +3067,7 @@ html[data-skin="neomorphism-dark"] * {
   mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
   -webkit-mask: url("/decor/branch.svg") left center / 160px 18px repeat-x;
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn {
   position: relative;
   background: none;
   border: 0;
@@ -3081,19 +3081,19 @@ html[data-skin="neomorphism-dark"] * {
   letter-spacing: 0;
   color: var(--text-dim);
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn:hover {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn:hover {
   color: var(--text);
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn.active {
   background: none;
   color: var(--text-hi);
 }
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn .section-count {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn .section-count {
   font-style: normal;
 }
 /* Лист: черешком стоит на ветке (её середина – 0.35rem + 9px от низа
    строки), весь выше неё. */
-:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::after {
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn.active::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -4129,6 +4129,164 @@ html[data-skin="neomorphism-dark"] * {
   }
 }
 
+/* ── «Тир-лист» (ноябрь 2026, по макету) ──
+   Вкладки «Тайтлы» / «Персонажи» – на ветке (общие правила с «Статусами»
+   выше); кнопки типов и игр, годы и списки персонажей – тихой строкой
+   с листиком у выбранного; «Подписи», «Редактор», «Новый тир-лист» –
+   курсивом без рамок; название полки – бумажным ярлычком с ромбом цвета
+   полки. Сами полки, обложки и редактор персонажей owner оставил как
+   были. Ярлычок без масок и картинок – снимок (tlExport, html2canvas)
+   рисует его так же, как на экране. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-filters {
+  gap: 0.2rem 1.15rem;
+  align-items: baseline;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-years, .tl-char-lists) {
+  gap: 0.15rem 1.1rem;
+  align-items: baseline;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-filters .now-chip, .tl-year, .tl-list-btn) {
+  position: relative;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0.2rem 0;
+  color: var(--text-dim);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-year, .tl-list-btn) {
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-filters .now-chip, .tl-year, .tl-list-btn):hover {
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-filters .now-chip, .tl-year, .tl-list-btn).active {
+  background: none;
+  color: var(--text-hi);
+  border-bottom-color: var(--ink2);
+  padding-left: 1.2rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-filters .now-chip, .tl-year, .tl-list-btn).active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  margin-top: -7px;
+  background: var(--ink2);
+  mask: url("/decor/leaf.svg") center / contain no-repeat;
+  -webkit-mask: url("/decor/leaf.svg") center / contain no-repeat;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-filters .section-count, .tl-label-count) {
+  color: var(--ink2);
+}
+
+/* «Подписи», «Редактор», «Новый тир-лист», камера – строкой. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-head-tools {
+  gap: 1.1rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-tool-btn, .tl-mode-add-btn, .tl-head-tools .admin-add-btn) {
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: 0.1rem 0;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-tool-btn, .tl-mode-add-btn, .tl-head-tools .admin-add-btn):hover,
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-tool-btn.active {
+  color: var(--text-hi);
+  border-bottom-color: var(--ink2);
+  background: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-head-tools .icon-btn {
+  border: 0;
+  background: none;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-head-tools .icon-btn:hover {
+  color: var(--ink2);
+}
+
+/* Название полки – бумажным ярлычком; ромб – цвет полки (вместо точки). */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-row:not(.tl-row-empty) .tl-label {
+  background: var(--surface);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name {
+  position: relative;
+  padding: 0.25rem 0.7rem 0.25rem 1.4rem;
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow: 0 6px 12px -7px var(--shadow);
+  transform: rotate(-2deg);
+  font-size: 1.05rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name::before {
+  content: "";
+  position: absolute;
+  left: 0.55rem;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  transform: rotate(45deg);
+  background: var(--tl-color);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-dot {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-head-tools {
+    gap: 0.9rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-tool-btn, .tl-mode-add-btn, .tl-head-tools .admin-add-btn) {
+    font-size: 0.98rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist :is(.tl-filters, .tl-years, .tl-char-lists) {
+    gap: 0.15rem 0.9rem;
+  }
+  /* Колонка названия на телефоне – 68px: ярлычок мельче и без поворота,
+     а ромб – булавкой над ним, а не слева: слева он съедал ширину, и
+     «Резонанс» рвался посреди слова. Поля колонки – уже по той же
+     причине. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-row:not(.tl-row-empty) .tl-label {
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name {
+    padding: 0.2rem 0.2rem 0.15rem;
+    font-size: 0.68rem;
+    transform: none;
+    /* «Аттракцион» и «Разочарование» шире колонки при любом шрифте –
+       переносом по слогам (lang="ru"), а не в случайном месте слова. */
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name::before {
+    left: 50%;
+    top: 0;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+  }
+}
+
 /* ── Телефон (до 700px) ──
    Тот же язык, уменьшенный под карточку втрое уже и под нижнюю панель
    вкладок. Отличия от компьютера:
@@ -4145,7 +4303,7 @@ html[data-skin="neomorphism-dark"] * {
     box-shadow: none;
   }
 
-  :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now > .tl-mode-toggle {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-tierlist) > .tl-mode-toggle {
     flex-wrap: wrap;
     overflow: visible;
     gap: 0 0.85rem;
@@ -4159,14 +4317,14 @@ html[data-skin="neomorphism-dark"] * {
   :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
     gap: 0 1.1rem;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn {
     font-size: 0.95rem;
     padding: 0.25rem 0 0.3rem;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::after {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn.active::after {
     display: none;
   }
-  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites) .tl-mode-btn.active::before {
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn.active::before {
     content: "";
     display: inline-block;
     width: 0.8em;

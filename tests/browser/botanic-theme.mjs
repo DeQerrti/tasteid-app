@@ -431,6 +431,79 @@ for (const theme of ["soft-dark", "soft"]) {
     "снимок статистики: веер обложек подменён одной готовой картинкой"
   );
   ok(fan === null || (fan.after === 0 && fan.shown), "после снимка обложки возвращаются как были");
+
+  // «Тир-лист»: вкладки на ветке, кнопки типов и годы тихой строкой,
+  // «Подписи» – строкой, название полки – бумажным ярлычком.
+  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await page.click('.tab-btn[data-label="nav.tierlist"]');
+  await page.waitForSelector("#tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name", {
+    timeout: 10000,
+  });
+  await page.waitForTimeout(600);
+  const tl = await page.evaluate(async () => {
+    const css = (sel, pseudo) => {
+      const el = document.querySelector(sel);
+      return el ? getComputedStyle(el, pseudo) : {};
+    };
+    const probe = document.createElement("i");
+    probe.style.color = getComputedStyle(document.documentElement)
+      .getPropertyValue("--paper")
+      .trim();
+    document.body.appendChild(probe);
+    const paperRgb = getComputedStyle(probe).color;
+    probe.remove();
+    const toggle = css("#tab-tierlist > .tl-mode-toggle", "::after");
+    const name = document.querySelector("#tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name");
+    // Снимок (tlExport снимает полки той же html2canvas): ярлычок должен
+    // выйти бумажным и на картинке.
+    if (typeof window.html2canvas === "undefined") await window.loadHtml2Canvas();
+    const rows = name.closest(".tl-rows");
+    const restoreAnim = window.disableAnimations(rows);
+    rows.classList.add("tl-exporting");
+    const canvas = await window.html2canvas(rows, {
+      scale: 1,
+      logging: false,
+      backgroundColor: null,
+    });
+    rows.classList.remove("tl-exporting");
+    restoreAnim();
+    const r = rows.getBoundingClientRect();
+    const n = name.getBoundingClientRect();
+    const px = canvas
+      .getContext("2d")
+      .getImageData(
+        Math.round(n.left - r.left + 19),
+        Math.round(n.top - r.top + n.height / 2),
+        1,
+        1
+      ).data;
+    return {
+      paperRgb,
+      shot: `rgb(${px[0]}, ${px[1]}, ${px[2]})`,
+      tabCase: css("#tab-tierlist .tl-mode-btn").textTransform,
+      branch: toggle.maskImage || toggle.webkitMaskImage,
+      chipBorder: css("#tab-tierlist .tl-filters .now-chip").borderTopWidth,
+      yearLeaf: css("#tab-tierlist .tl-year.active", "::before").maskImage || "",
+      toolBorder: css("#tab-tierlist .tl-tool-btn").borderTopWidth,
+      nameBg: getComputedStyle(name).backgroundColor,
+      dot: css("#tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-dot").display,
+    };
+  });
+  ok(
+    tl.tabCase === "none" && /branch\.svg/.test(tl.branch || ""),
+    "«Тир-лист»: вкладки – текстом на ветке"
+  );
+  ok(
+    [undefined, "0px"].includes(tl.chipBorder) && tl.toolBorder === "0px",
+    "«Тир-лист»: кнопки типов и «Подписи» – без рамок"
+  );
+  ok(
+    tl.yearLeaf === "" || /leaf\.svg/.test(tl.yearLeaf),
+    "«Тир-лист»: годы – с листиком у выбранного"
+  );
+  ok(tl.nameBg === tl.paperRgb, "«Тир-лист»: название полки – на бумажном ярлычке");
+  ok(tl.dot === undefined || tl.dot === "none", "«Тир-лист»: вместо точки – ромб на ярлычке");
+  ok(tl.shot === tl.paperRgb, `снимок тир-листа: ярлычок полки бумажный (${tl.shot})`);
 }
 
 // ── Телефон: тот же язык, уменьшенный ──
@@ -472,6 +545,26 @@ ok(parseFloat(small.cardPad) >= 3, `карточка – лист гербари
 ok(small.tagBg === small.paperRgb, "тип на карточке – бумажным ярлычком");
 ok(small.navBg === small.paperRgb, "выбранный раздел нижней панели – бумажный ярлычок");
 ok(small.navTransform === "none", "и без поворота: в нижней панели ему тесно");
+
+// «Тир-лист» на телефоне: вкладки переносятся, ярлычок полки влезает в
+// узкую колонку названия.
+await phone.click('.tab-btn[data-label="nav.tierlist"]');
+await phone.waitForSelector("#tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name", {
+  timeout: 10000,
+});
+await phone.waitForTimeout(500);
+const tlSmall = await phone.evaluate(() => {
+  const toggle = document.querySelector("#tab-tierlist > .tl-mode-toggle");
+  const name = document.querySelector("#tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name");
+  const col = name.closest(".tl-label").getBoundingClientRect();
+  const r = name.getBoundingClientRect();
+  return {
+    fits: toggle.scrollWidth <= toggle.clientWidth + 1,
+    inCol: r.left >= col.left - 1 && r.right <= col.right + 1,
+  };
+});
+ok(tlSmall.fits, "«Тир-лист»: вкладки не уезжают за край");
+ok(tlSmall.inCol, "«Тир-лист»: ярлычок полки влезает в колонку названия");
 await phone.close();
 
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
