@@ -66,6 +66,8 @@ writeFileSync(
       year: 2010,
       grade: "etalon",
       favorite: true,
+      tags: ["Драма"],
+      review_full: "Текст отзыва.",
     },
   ])
 );
@@ -260,6 +262,58 @@ for (const theme of ["soft-dark", "soft"]) {
   );
   ok(rv.popRadius === "4px", "«Отзывы»: открытый список фильтра – с почти прямыми углами");
   await page.keyboard.press("Escape");
+
+  // Окно отзыва – «лист дневника»: почти прямые углы, шапка под пунктиром,
+  // обложка на подложке с полями, теги прямоугольными рамками.
+  await page.click("#tab-reviews .review-card-wrap");
+  await page.waitForSelector("#review-modal-overlay:not(.hidden)", { timeout: 5000 });
+  const win = await page.evaluate(() => {
+    const css = (sel) => getComputedStyle(document.querySelector(sel));
+    return {
+      radius: css("#review-modal-overlay .review-modal-panel").borderTopLeftRadius,
+      header: css("#review-modal-body .review-modal-header").borderBottomStyle,
+      coverPad: css("#review-modal-body .review-modal-cover").paddingLeft,
+      tagRadius: css("#review-modal-body .rtag").borderTopLeftRadius,
+    };
+  });
+  ok(
+    win.radius === "5px" && win.header === "dashed",
+    "окно отзыва – лист дневника, шапка под пунктиром"
+  );
+  ok(parseFloat(win.coverPad) >= 8, `обложка в окне – на подложке с полями (${win.coverPad})`);
+  ok(win.tagRadius === "2px", "теги в окне – прямоугольными рамками");
+  await page.keyboard.press("Escape");
+
+  // Редактор отзыва: поля строкой, заголовки разделов на ярлычках, оценка
+  // строкой с ромбами.
+  await page.goto(base + "/#/add?edit=4", { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".add-view.ed .grade-btn", { timeout: 10000 });
+  const ed = await page.evaluate(() => {
+    const css = (sel, pseudo) => getComputedStyle(document.querySelector(sel), pseudo);
+    const paper = getComputedStyle(document.documentElement).getPropertyValue("--paper").trim();
+    const probe = document.createElement("i");
+    probe.style.color = paper;
+    document.body.appendChild(probe);
+    const paperRgb = getComputedStyle(probe).color;
+    probe.remove();
+    return {
+      titleBorder: css("#f-title").borderTopWidth,
+      titleLine: css("#f-title").borderBottomStyle,
+      headBg: css(".add-view.ed .ed-h").backgroundColor,
+      gradeBg: css(".add-view.ed .grade-btn").backgroundColor,
+      gradeDot: css(".add-view.ed .grade-btn", "::before").opacity,
+      paperRgb,
+    };
+  });
+  ok(
+    ed.titleBorder === "0px" && ed.titleLine === "solid",
+    "редактор: поля – строкой с линией снизу"
+  );
+  ok(ed.headBg === ed.paperRgb, "редактор: заголовки разделов – на бумажных ярлычках");
+  ok(
+    ed.gradeBg === "rgba(0, 0, 0, 0)" && ed.gradeDot === "1",
+    "редактор: оценка – строкой с ромбами"
+  );
 }
 
 // ── Телефон: тот же язык, уменьшенный ──

@@ -2999,8 +2999,8 @@ html[data-skin="neomorphism-dark"] * {
    лианой. Owner выбрал по макету свой язык для неё: тонкие линии, курсив,
    ветка с листьями, бумажные ярлычки, обложки как листы гербария. Темы
    переосмысляются по одной вкладке – пока сделаны боковая панель,
-   «Статусы» (#tab-now), «Любимое» и «Отзывы»; «Статистика» и «Тир-лист»
-   ещё в прежнем виде.
+   «Статусы» (#tab-now), «Любимое», «Отзывы», окно и редактор отзыва;
+   «Статистика» и «Тир-лист» ещё в прежнем виде.
 
    Правила общие для компьютера и телефона; то, что на телефоне сделано
    иначе (нижняя панель, перенос вкладок, размеры), – отдельным блоком
@@ -3501,6 +3501,264 @@ html[data-skin="neomorphism-dark"] * {
   :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .review-card-wrap .rewatch-badge {
     right: 4px;
   }
+}
+
+/* ── Окно отзыва, редактор отзыва, списки фильтров (ноябрь 2026, четвёртый
+   заход по макету) ──
+   Окно отзыва – «лист дневника»: почти прямые углы, двойная тонкая рамка,
+   шапка отделена пунктиром; обложка – вложенный лист гербария с наклоном.
+   Текст отзыва оставлен как был (буквицу owner не выбрал).
+   Редактор – поля строкой, оценка строкой с ромбами, теги строкой с
+   листиком, заголовки разделов на бумажных ярлычках; поле текста и кнопки
+   редактора оставлены как были. Окно «Любимого» (#fav-modal-overlay) – в
+   прежнем виде. */
+
+/* Окно отзыва. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-overlay .review-modal-panel {
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  box-shadow: 0 0 0 7px var(--surface), 0 0 0 8px var(--border), 0 44px 70px -28px rgba(0, 0, 0, 0.9);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-body .review-modal-header {
+  border-bottom: 1px dashed var(--border2);
+  padding-bottom: 1.3rem;
+  margin-bottom: 1.3rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-body .review-modal-title {
+  font-style: italic;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-body :is(.review-dates-arrow, .review-dates-note, .review-nav-count) {
+  color: var(--ink2);
+}
+/* Обложка – на подложке с полями, чуть повёрнута. Внутренняя рамка –
+   тенью внутрь самой подложки, а не контуром картинки: контур не попадает
+   в снимок окна («Сохранить как картинку»). */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-body .review-modal-cover {
+  box-sizing: border-box;
+  padding: 9px;
+  border-radius: 3px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  box-shadow: 0 18px 34px -16px rgba(0, 0, 0, 0.85);
+  transform: rotate(-1.4deg);
+}
+/* Теги – тонкими прямоугольными рамками, как в открытом списке фильтра. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-body .rtag {
+  border-radius: 2px;
+  background: none;
+  border: 1px solid var(--border2);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.6rem;
+}
+/* Кнопки окна – только значки. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-body .review-modal-actions .icon-btn {
+  border: 0;
+  background: none;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-body .review-modal-actions .icon-btn:hover {
+  background: none;
+  color: var(--ink2);
+}
+/* Стрелки листания – крупные тонкие, без подложки. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-overlay .review-side-arrow {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  font-family: "Playfair Display", serif;
+  font-size: 3.2rem;
+  color: var(--text-dim);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #review-modal-overlay .review-side-arrow:hover {
+  background: none;
+  color: var(--ink2);
+}
+
+/* Редактор отзыва: превью карточки – тот же лист гербария, что на
+   вкладках. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view #ed-preview .review-card-wrap .card {
+  border-radius: 5px;
+  padding: 9px 9px 0;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border), var(--card-shadow);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view #ed-preview .card-poster {
+  border-radius: 2px;
+  overflow: hidden;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view #ed-preview .card-poster::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(233, 226, 200, 0.38);
+  pointer-events: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view #ed-preview .card-body {
+  padding: 0.6rem 0.15rem 0.65rem;
+  background: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view #ed-preview .card-title {
+  font-style: italic;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view #ed-preview .card-meta {
+  border-top: 1px dashed var(--border2);
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view #ed-preview .type-tag {
+  top: 10px;
+  right: auto;
+  left: 4px;
+  border-radius: 2px;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  transform: rotate(-3deg);
+  box-shadow: 0 4px 10px -5px var(--shadow);
+}
+
+/* Редактор: поля и списки «Тип»/«Статус» – строкой с линией снизу,
+   подписи полей – курсивом. Поле текста отзыва (textarea) – как было. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed :is(input[type="text"], input[type="number"], input[type="date"], input[type="url"], input[type="search"], input:not([type])),
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed :is(.src-type-btn, .src-add-btn) {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border2);
+  border-radius: 0;
+  padding-left: 0.15rem;
+  box-shadow: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed :is(input, .src-type-btn):focus {
+  background: transparent;
+  border-bottom-color: var(--ink2);
+  outline: none;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .ed-lookup {
+  border-radius: 3px;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .field > label {
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 0.98rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-dim);
+}
+
+/* Редактор: оценка – строкой. Название полки светлым курсивом, цвет
+   полки – ромбом перед ним (цвет кнопке ставит add.js в style="color:…",
+   ромб берёт его через currentColor, а текст перекрашен fill-color'ом). */
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .grades-grid {
+  gap: 0.5rem 1.1rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .grade-btn {
+  position: relative;
+  padding: 0.25rem 0.1rem 0.25rem 1.25rem;
+  border: 0;
+  border-bottom: 1px solid transparent !important;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.12rem;
+  -webkit-text-fill-color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .grade-btn::before {
+  left: 0.2rem;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border: 0;
+  background: currentColor;
+  transform: rotate(45deg);
+  opacity: 1;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .grade-btn.active {
+  -webkit-text-fill-color: var(--text-hi);
+  border-bottom-color: var(--ink2) !important;
+}
+
+/* Редактор: теги – строкой без рамок; выбранный – светлым, с листиком и
+   линией снизу. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .ed-cat-tags {
+  gap: 0.25rem 1rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .tag-toggle {
+  position: relative;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 0.15rem 0;
+  color: var(--text-dim);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .tag-toggle:hover {
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .tag-toggle.active {
+  background: none;
+  color: var(--text-hi);
+  border-bottom-color: var(--ink2);
+  padding-left: 1.15rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .tag-toggle.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  margin-top: -7px;
+  background: var(--ink2);
+  mask: url("/decor/leaf.svg") center / contain no-repeat;
+  -webkit-mask: url("/decor/leaf.svg") center / contain no-repeat;
+}
+
+/* Редактор: заголовки разделов – на бумажных ярлычках. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .ed-h {
+  display: inline-block;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 2px;
+  padding: 0.2rem 0.9rem;
+  box-shadow: 0 6px 12px -7px var(--shadow);
+  transform: rotate(-1deg);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) .add-view.ed .ed-h :is(.ed-h-note, .ed-count) {
+  color: var(--paper-ink);
+  opacity: 0.65;
+}
+
+/* «Отзывы», список сортировки: годы «Перейти к году» – в тонких рамках.
+   Раньше общее правило для фильтров (курсив без рамок) склеивало их в
+   одну строку курсива. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .rv-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.35rem;
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .rv-jump .rv-filter-btn {
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  padding: 0.16rem 0.5rem;
+  background: none;
+  font-family: "DM Sans", sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.76rem;
+  color: var(--text);
+}
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-reviews .rv-pop .rv-jump .rv-filter-btn:hover {
+  border-color: var(--ink2);
+  color: var(--text-hi);
 }
 
 /* ── Телефон (до 700px) ──
