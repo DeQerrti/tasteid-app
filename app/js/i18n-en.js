@@ -352,8 +352,8 @@ i18nRegister({
 i18nRegister({
   Классический: "Classic",
   "Классический светлый": "Classic light",
-  "Мягкий ботанический": "Soft botanical",
-  "Мягкий ботанический тёмный": "Soft botanical dark",
+  Ботанический: "Botanical",
+  "Ботанический тёмный": "Botanical dark",
   Рисованный: "Hand-drawn",
   "Рисованный тёмный": "Hand-drawn dark",
 });

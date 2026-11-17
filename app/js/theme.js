@@ -27,8 +27,8 @@
 const THEME_PRESETS = {
   classic: { label: i18n("Классический") },
   "classic-light": { label: i18n("Классический светлый") },
-  soft: { label: i18n("Мягкий ботанический"), defaultAccent: "#6b7f4a" },
-  "soft-dark": { label: i18n("Мягкий ботанический тёмный"), defaultAccent: "#7fae5a" },
+  soft: { label: i18n("Ботанический"), defaultAccent: "#6b7f4a" },
+  "soft-dark": { label: i18n("Ботанический тёмный"), defaultAccent: "#7fae5a" },
   doodle: { label: i18n("Рисованный"), defaultAccent: "#ef6a52" },
   "doodle-dark": { label: i18n("Рисованный тёмный"), defaultAccent: "#ff8a5c" },
 };
