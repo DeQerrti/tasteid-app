@@ -18,16 +18,17 @@
 // тоже трогать не нужно.
 //
 // defaultAccent подставляется, только если человек не выбрал свой
-// акцент вручную.
+/// акцент вручную.
+//
+// «Брутализм» и «Неоморфизм» удалены (ноябрь 2026, решение owner'а: у них
+// не было своего характера рядом с остальными тремя). У кого в настройках
+// сохранён их id, получает классическую тему – см. applyTheme ниже и
+// loadCurrentSettings в settings-shortcuts.js.
 const THEME_PRESETS = {
   classic: { label: i18n("Классический") },
   "classic-light": { label: i18n("Классический светлый") },
   soft: { label: i18n("Мягкий ботанический"), defaultAccent: "#6b7f4a" },
   "soft-dark": { label: i18n("Мягкий ботанический тёмный"), defaultAccent: "#7fae5a" },
-  brutal: { label: i18n("Брутализм"), defaultAccent: "#ff4d00" },
-  "brutal-dark": { label: i18n("Брутализм тёмный"), defaultAccent: "#ff4d00" },
-  neomorphism: { label: i18n("Неоморфизм"), defaultAccent: "#7c6fe0" },
-  "neomorphism-dark": { label: i18n("Неоморфизм тёмный"), defaultAccent: "#8a7bf0" },
   doodle: { label: i18n("Рисованный"), defaultAccent: "#ef6a52" },
   "doodle-dark": { label: i18n("Рисованный тёмный"), defaultAccent: "#ff8a5c" },
 };

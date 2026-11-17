@@ -80,7 +80,9 @@ async function loadCurrentSettings() {
 
   applyTextScale(Number(settings.textScale) || 100, false);
 
-  selectedTheme = settings.theme || "classic";
+  // Удалённая тема («Брутализм», «Неоморфизм») или пусто – классическая,
+  // как и на самой странице (theme.js), иначе в сетке ничего не выбрано.
+  selectedTheme = THEME_PRESETS[settings.theme] ? settings.theme : "classic";
   themeColors = JSON.parse(JSON.stringify(settings.themeColors || {}));
   // Раньше акцент был один на весь сайт (customAccent) и тянулся за
   // человеком во все темы – в том числе в те, у которых есть свой

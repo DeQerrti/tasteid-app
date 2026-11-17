@@ -6,7 +6,8 @@
 //     «посередине» (aria-checked="mixed"); клик из «посередине» показывает
 //     теги у всех, а не прячет;
 //   – тема выбирается одним кликом по половине карточки (светлая/тёмная),
-//     без попапа;
+//     без попапа; тем три («Брутализм» и «Неоморфизм» удалены), и
+//     сохранённая удалённая тема открывается классической;
 //   – палитра разложена по группам, а справа – образец настоящими
 //     карточками отзывов.
 //
@@ -55,6 +56,9 @@ writeFileSync(
     { ...base, title: "Три", grade: "fon", tags: ["Топ визуал"] },
   ])
 );
+// Тема, которой больше нет: у кого она была сохранена, должен получить
+// классическую, а не страницу без стилей темы.
+writeFileSync(join(vaultDir, "site-settings.json"), JSON.stringify({ theme: "brutal-dark" }));
 
 const port = await new Promise((resolve) => {
   const probe = http.createServer().listen(0, "127.0.0.1", () => {
@@ -102,7 +106,19 @@ ok((await hiddenCount()) === 3, "клик из «включён» скрывае
 ok(!(await page.$(".hide-tags-toggle")), "старой кнопки на всю ширину нет");
 
 console.log("Темы");
-ok((await page.$$(".theme-card")).length === 5, "пять карточек тем");
+ok((await page.$$(".theme-card")).length === 3, "три карточки тем");
+ok(
+  !(await page.$('.theme-half[data-theme^="brutal"], .theme-half[data-theme^="neomorphism"]')),
+  "удалённых тем в сетке нет"
+);
+ok(
+  (await page.getAttribute("html", "data-skin")) === "classic",
+  "сохранённая удалённая тема открывается классической"
+);
+ok(
+  (await page.getAttribute('.theme-half[data-theme="classic"]', "aria-pressed")) === "true",
+  "в сетке тогда отмечена классическая"
+);
 ok(!(await page.$(".theme-popover")), "попапа «светлая/тёмная» больше нет");
 await page.click('.theme-half[data-theme="soft"]');
 ok(

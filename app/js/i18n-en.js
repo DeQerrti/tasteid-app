@@ -354,10 +354,6 @@ i18nRegister({
   "Классический светлый": "Classic light",
   "Мягкий ботанический": "Soft botanical",
   "Мягкий ботанический тёмный": "Soft botanical dark",
-  Брутализм: "Brutalist",
-  "Брутализм тёмный": "Brutalist dark",
-  Неоморфизм: "Neumorphism",
-  "Неоморфизм тёмный": "Neumorphism dark",
   Рисованный: "Hand-drawn",
   "Рисованный тёмный": "Hand-drawn dark",
 });

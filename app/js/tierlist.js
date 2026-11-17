@@ -876,7 +876,7 @@ async function tlExport(rowsId, label) {
     // классические темы) – на снимке она должна стоять на своём месте над
     // полкой, а не там, куда её сдвинула прокрутка страницы.
     rows.classList.add("tl-exporting");
-    // Неоморфизм иначе вышел бы на снимке плоским – см. bakeNeoShadows()
+    // Тени карточек иначе пропали бы на снимке – см. bakeNeoShadows()
     // в config.js (та же причина и тот же приём, что у favExport() в
     // favorites.js).
     restoreShadows = bakeNeoShadows(rows);

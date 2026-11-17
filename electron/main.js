@@ -830,9 +830,7 @@ async function createWindow({ compact = false } = {}) {
       if (currentSkin !== config.skin) await saveConfig({ skin: currentSkin });
       if (isHexColor(bg) && isHexColor(symbol)) applyTitleBarColors(bg, symbol);
       else applyTitleBarColors(overlayColors(currentSkin).bg, overlayColors(currentSkin).symbol);
-      nativeTheme.themeSource = /light|^soft$|^neomorphism$|^doodle$|^brutal$/.test(currentSkin)
-        ? "light"
-        : "dark";
+      nativeTheme.themeSource = /light|^soft$|^doodle$/.test(currentSkin) ? "light" : "dark";
     } catch {
       // Страница ещё не дочитала тему – рамка останется прежней, и это
       // не повод падать.

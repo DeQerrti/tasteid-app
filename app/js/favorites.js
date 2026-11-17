@@ -817,8 +817,8 @@ async function favExport(sectionIds) {
 
     restoreImages = await proxyImagesToDataUrls(wrap);
     restoreAnim = disableAnimations(wrap);
-    // Неоморфизм (и любая другая тема с рельефными карточками) иначе
-    // вышел бы на снимке плоским – см. bakeNeoShadows() в config.js.
+    // Тени карточек иначе пропали бы на снимке – см. bakeNeoShadows()
+    // в config.js.
     restoreShadows = bakeNeoShadows(wrap);
     await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
 

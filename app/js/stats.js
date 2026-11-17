@@ -940,7 +940,7 @@ async function statsExport(selectedKeys) {
     // ещё не успели проявиться полностью). См. её же комментарий у
     // disableAnimations() в js/utils.js.
     restoreAnim = disableAnimations(grid);
-    // Неоморфизм иначе вышел бы на снимке плоским – см. bakeNeoShadows()
+    // Тени карточек иначе пропали бы на снимке – см. bakeNeoShadows()
     // в config.js (та же причина и тот же приём, что у favExport() в
     // favorites.js).
     restoreShadows = bakeNeoShadows(grid);
