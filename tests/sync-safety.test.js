@@ -29,10 +29,14 @@ const b64 = (o) => Buffer.from(JSON.stringify(o, null, 2), "utf8").toString("bas
 const fromB64 = (b) => JSON.parse(Buffer.from(b, "base64").toString("utf8"));
 const CFG = { token: "t", owner: "o", repo: "r", branch: "main" };
 
-function makeWorld({ localFiles, localImages = {}, remote, state }) {
+function makeWorld({ localFiles, localImages = {}, remote, state, history = [] }) {
   const ls = new Map();
   const log = { deleted: [], puts: [] };
   const remoteFiles = new Map(Object.entries(remote));
+  // Все версии, когда-либо лежавшие в репозитории, – как в настоящем git:
+  // по sha прошлой версии GitHub отдаёт её содержимое («база» слияния).
+  const blobs = new Map();
+  for (const b of [...remoteFiles.values(), ...history]) blobs.set(gitSha(b), b);
   const json = (o, status = 200) => ({ ok: status < 300, status, json: async () => o });
   const fetchStub = async (url, init = {}) => {
     const method = (init.method || "GET").toUpperCase();
@@ -45,8 +49,7 @@ function makeWorld({ localFiles, localImages = {}, remote, state }) {
       }
       let m;
       if ((m = /\/git\/blobs\/(\w+)/.exec(p))) {
-        for (const b of remoteFiles.values()) if (gitSha(b) === m[1]) return json({ content: b });
-        return json({}, 404);
+        return blobs.has(m[1]) ? json({ content: blobs.get(m[1]) }) : json({}, 404);
       }
       if ((m = /\/contents\/(.+)$/.exec(p))) {
         const filePath = decodeURIComponent(m[1]);
@@ -57,6 +60,7 @@ function makeWorld({ localFiles, localImages = {}, remote, state }) {
         if (method === "PUT") {
           const body = JSON.parse(init.body);
           remoteFiles.set(filePath, body.content);
+          blobs.set(gitSha(body.content), body.content);
           log.puts.push(filePath);
           return json({ content: { sha: gitSha(body.content) } });
         }
@@ -230,4 +234,144 @@ test("удаление одной картинки на другом устро�
   const r = await w.run();
   assert.equal(r.deletedLocally, 1);
   assert.deepEqual(w.log.deleted, ["covers-backup/7.webp"]);
+});
+
+// ── Слияние правок с двух устройств ─────────────
+// base – общее состояние прошлой синхронизации; local/remote – правки
+// после неё здесь и на другом устройстве.
+function mergeWorld(file, base, local, remote) {
+  return makeWorld({
+    localFiles: { [file]: local },
+    remote: { [file]: b64(remote) },
+    history: [b64(base)],
+    state: { files: { [file]: { hash: "старый", sha: gitSha(b64(base)) } }, images: {} },
+  });
+}
+const titles = (list) => list.map((r) => r.title).sort();
+
+test("новые отзывы с двух устройств сливаются, а не выбирается одна сторона", async () => {
+  const base = [{ id: 1, title: "Общий" }];
+  const w = mergeWorld(
+    "reviews.json",
+    base,
+    [...base, { id: 1794000000001, title: "Добавлен на ПК" }],
+    [...base, { id: 1794000000002, title: "Добавлен на телефоне" }]
+  );
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 0, "конфликта нет");
+  assert.equal(r.merged, 1);
+  const expected = ["Добавлен на ПК", "Добавлен на телефоне", "Общий"];
+  assert.deepEqual(titles(w.localFiles["reviews.json"]), expected, "здесь – все три");
+  assert.deepEqual(
+    titles(fromB64(w.remoteFiles.get("reviews.json"))),
+    expected,
+    "и в облаке все три"
+  );
+});
+
+test("разные поля одного отзыва с двух устройств сливаются по полям", async () => {
+  const base = [{ id: 1, title: "A", grade: "fon", review_full: "старый текст" }];
+  const w = mergeWorld(
+    "reviews.json",
+    base,
+    [{ ...base[0], grade: "etalon" }],
+    [{ ...base[0], review_full: "новый текст" }]
+  );
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(w.localFiles["reviews.json"], [
+    { id: 1, title: "A", grade: "etalon", review_full: "новый текст" },
+  ]);
+});
+
+test("одно и то же поле по-разному – не угадываем, спрашиваем", async () => {
+  const base = [{ id: 1, title: "A", grade: "fon" }];
+  const w = mergeWorld(
+    "reviews.json",
+    base,
+    [{ ...base[0], grade: "etalon" }],
+    [{ ...base[0], grade: "brak" }]
+  );
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 1, "остался выбор человека");
+  assert.equal(r.merged, 0);
+  assert.equal(w.localFiles["reviews.json"][0].grade, "etalon", "здесь ничего не тронуто");
+});
+
+test("удалённое с одной стороны и нетронутое с другой – удаляется", async () => {
+  const base = [
+    { id: 1, title: "Оставить" },
+    { id: 2, title: "Удалить" },
+  ];
+  const w = mergeWorld("reviews.json", base, [base[0]], [...base, { id: 3, title: "Новый там" }]);
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(titles(w.localFiles["reviews.json"]), ["Новый там", "Оставить"]);
+});
+
+test("удалили здесь, а там правили – спрашиваем", async () => {
+  const base = [{ id: 1, title: "A", grade: "fon" }];
+  const w = mergeWorld("reviews.json", base, [], [{ ...base[0], grade: "etalon" }]);
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 1);
+});
+
+test("две разные новые записи с одним id – спрашиваем, а не склеиваем", async () => {
+  const base = [{ id: 1, title: "A" }];
+  const w = mergeWorld(
+    "reviews.json",
+    base,
+    [...base, { id: 2, title: "Здесь" }],
+    [...base, { id: 2, title: "Там" }]
+  );
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 1);
+});
+
+test("настройки сливаются по ключам", async () => {
+  const base = { theme: "classic", textScale: 100 };
+  const w = mergeWorld(
+    "site-settings.json",
+    base,
+    { ...base, theme: "doodle" },
+    { ...base, textScale: 120 }
+  );
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(w.localFiles["site-settings.json"], { theme: "doodle", textScale: 120 });
+});
+
+test("«Любимое»: порядок, переставленный здесь, сохраняется, новое оттуда встаёт рядом", async () => {
+  const base = [
+    { id: 1, name: "A" },
+    { id: 2, name: "B" },
+    { id: 3, name: "C" },
+  ];
+  const w = mergeWorld(
+    "favorites.json",
+    base,
+    [base[2], base[0], base[1]],
+    [base[0], { id: 9, name: "Новый" }, base[1], base[2]]
+  );
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 0);
+  assert.deepEqual(
+    w.localFiles["favorites.json"].map((e) => e.name),
+    ["C", "A", "Новый", "B"]
+  );
+});
+
+test("тир-листы (строковые id) сливаются по тайтлам", async () => {
+  const base = [{ id: "r1999", title: "Reverse", tierlists: [] }];
+  const w = mergeWorld(
+    "characters-tier.json",
+    base,
+    [...base, { id: "hsr", title: "Star Rail", tierlists: [] }],
+    [{ ...base[0], tierlists: [{ id: "x", tiers: [] }] }]
+  );
+  const r = await w.run();
+  assert.equal(r.conflicts.length, 0);
+  const merged = w.localFiles["characters-tier.json"];
+  assert.equal(merged.length, 2);
+  assert.equal(merged.find((t) => t.id === "r1999").tierlists.length, 1);
 });

@@ -66,7 +66,9 @@ test("запись переживает перезапуск и попадает
     const onDisk = JSON.parse(await fs.readFile(path.join(root, "reviews.json"), "utf8"));
     assert.equal(onDisk.length, 1);
     assert.equal(onDisk[0].title, "Death Note");
-    assert.equal(onDisk[0].id, 1);
+    // id – не «1, 2, 3», а неповторимый между устройствами (newRecordId в
+    // core/api.js): два устройства не выдают двум разным записям один id.
+    assert.ok(Number.isSafeInteger(onDisk[0].id) && onDisk[0].id > 0);
   });
 });
 

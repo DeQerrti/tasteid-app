@@ -31,6 +31,17 @@ const str = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
 const date = (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 const num = (v) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : undefined);
 
+// Новый id записи (отзыв, «Любимое»). Раньше – «самый большой + 1», и два
+// устройства, добавившие по записи между синхронизациями, выдавали им
+// один и тот же id: слить такие записи нельзя (mergeRecordLists в
+// app/js/sync.js), и правки двух устройств снова становились выбором
+// «моё или оттуда». Время в миллисекундах на двух устройствах почти
+// наверняка разное и всегда больше старых маленьких id.
+function newRecordId(list) {
+  const max = list.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0);
+  return Math.max(max + 1, Date.now());
+}
+
 // Порядок отзывов – тот же, что был на сайте: свежее сверху.
 function sortReviews(list) {
   return list.sort((a, b) => {
@@ -172,7 +183,7 @@ async function saveReview({ vault, body }) {
     list[idx] = merged;
     review.id = merged.id;
   } else {
-    review.id = list.reduce((m, r) => Math.max(m, r.id ?? 0), 0) + 1;
+    review.id = newRecordId(list);
     list.unshift(review);
   }
 
@@ -229,7 +240,8 @@ async function importReviews({ vault, body }) {
   }
   for (const key of ambiguous) index.delete(key);
 
-  let maxId = list.reduce((m, r) => Math.max(m, r.id ?? 0), 0);
+  // Следующий id – как у newRecordId, дальше по одному на запись.
+  let maxId = newRecordId(list) - 1;
   let added = 0;
   const addedIds = []; // для резервных копий обложек после переноса (setCoverBackups)
   let updated = 0;
@@ -411,7 +423,7 @@ async function saveFavorite({ vault, body }) {
     entry.id = list[idx].id;
     list[idx] = entry;
   } else {
-    entry.id = list.reduce((m, r) => Math.max(m, r.id ?? 0), 0) + 1;
+    entry.id = newRecordId(list);
     list.push(entry);
   }
 

@@ -684,6 +684,169 @@ async function syncEmptyLocalFile(config, path, localBase64, entry, remoteTree) 
   return { action: "conflict", localBase64, remote, localHash, localEmpty: true };
 }
 
+// ── Слияние правок с двух устройств ─────────────
+// Раньше файл, изменённый и здесь, и в репозитории, всегда становился
+// конфликтом «Оставить моё / Взять оттуда» – файлом целиком. Добавил
+// два отзыва в метро на телефоне и один вечером на ПК – любой выбор
+// выбрасывал отзывы другого устройства.
+//
+// Теперь – слияние трёх версий: «база» (то, что было общим при прошлой
+// синхронизации: её sha лежит в состоянии, и GitHub отдаёт содержимое
+// по нему), «моё» и «оттуда». Списки записей с id (отзывы, «Любимое»,
+// тир-листы) сливаются по записям, объект (настройки) – по ключам, а
+// внутри записи – по полям. Что поменяли только с одной стороны,
+// берётся оттуда; новое с обеих сторон сохраняется всё; удалённое с
+// одной стороны и нетронутое с другой – удаляется. Настоящее
+// противоречие (одно и то же поле по-разному, запись удалили там, где
+// её правили, две разные новые записи с одним id) – не угадываем:
+// остаётся прежний выбор человека.
+
+// Сравнение по содержимому, без учёта порядка ключей.
+function stableJson(value) {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableJson(value[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+const sameJson = (a, b) => stableJson(a) === stableJson(b);
+const isPlainObject = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+
+// Три версии одного значения: undefined – «нет». Возвращает
+// { ok, value }; ok: false – настоящее противоречие.
+function mergeValue(base, local, remote) {
+  if (sameJson(local, remote)) return { ok: true, value: local };
+  if (sameJson(local, base)) return { ok: true, value: remote };
+  if (sameJson(remote, base)) return { ok: true, value: local };
+  return { ok: false };
+}
+
+// Объект – по ключам (а значение ключа – целиком, без углубления:
+// внутри поля «правка с двух сторон» почти всегда и есть противоречие).
+function mergeObjects(base, local, remote) {
+  const b = isPlainObject(base) ? base : {};
+  const keys = [...new Set([...Object.keys(remote), ...Object.keys(local)])];
+  const out = {};
+  for (const k of keys) {
+    const m = mergeValue(b[k], local[k], remote[k]);
+    if (!m.ok) return { ok: false };
+    if (m.value !== undefined) out[k] = m.value;
+  }
+  return { ok: true, value: out };
+}
+
+// Список записей с id: id есть у каждой и нигде не повторяется.
+function idListOf(list) {
+  if (!Array.isArray(list)) return null;
+  const map = new Map();
+  for (const r of list) {
+    if (!isPlainObject(r) || r.id === undefined || r.id === null) return null;
+    const key = String(r.id);
+    if (map.has(key)) return null;
+    map.set(key, r);
+  }
+  return map;
+}
+
+function mergeRecordLists(base, local, remote) {
+  const b = idListOf(base);
+  const l = idListOf(local);
+  const r = idListOf(remote);
+  if (!b || !l || !r) return { ok: false };
+
+  const merged = new Map();
+  for (const id of new Set([...b.keys(), ...l.keys(), ...r.keys()])) {
+    const lb = b.get(id);
+    const ll = l.get(id);
+    const lr = r.get(id);
+    if (sameJson(ll, lr)) {
+      if (ll !== undefined) merged.set(id, ll);
+      continue;
+    }
+    if (lb === undefined) {
+      // Новая запись. С двух сторон одновременно и разная – одинаковый id
+      // у двух разных записей: склеивать их нельзя.
+      if (ll !== undefined && lr !== undefined) return { ok: false };
+      merged.set(id, ll ?? lr);
+      continue;
+    }
+    if (ll === undefined || lr === undefined) {
+      // Удалили с одной стороны. Если другую сторону не трогали – удаляем;
+      // если её там правили – противоречие.
+      const other = ll === undefined ? lr : ll;
+      if (sameJson(other, lb)) continue;
+      return { ok: false };
+    }
+    const m = mergeObjects(lb, ll, lr);
+    if (!m.ok) return { ok: false };
+    merged.set(id, m.value);
+  }
+
+  // Порядок: если переставляли только с одной стороны – её порядок
+  // («Любимое» хранит порядок самим списком), иначе – порядок
+  // репозитория. Записи, которых в выбранном порядке нет (новые с другой
+  // стороны), встают после той, за которой стояли у себя.
+  const orderOf = (map) => [...map.keys()].filter((id) => b.has(id) && merged.has(id));
+  const localMoved = !sameJson(orderOf(l), orderOf(b));
+  const remoteMoved = !sameJson(orderOf(r), orderOf(b));
+  const [primary, secondary] = localMoved && !remoteMoved ? [l, r] : [r, l];
+  const ids = [...primary.keys()].filter((id) => merged.has(id));
+  const secondaryIds = [...secondary.keys()];
+  secondaryIds.forEach((id, i) => {
+    if (!merged.has(id) || ids.includes(id)) return;
+    let at = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const pos = ids.indexOf(secondaryIds[j]);
+      if (pos !== -1) {
+        at = pos + 1;
+        break;
+      }
+    }
+    ids.splice(at, 0, id);
+  });
+  return { ok: true, value: ids.map((id) => merged.get(id)) };
+}
+
+function mergeJson(base, local, remote) {
+  if (Array.isArray(local) && Array.isArray(remote)) {
+    return mergeRecordLists(Array.isArray(base) ? base : [], local, remote);
+  }
+  if (isPlainObject(local) && isPlainObject(remote)) return mergeObjects(base, local, remote);
+  return { ok: false };
+}
+
+// Попытка слить спорный файл данных. Нужна «база» – версия прошлой
+// синхронизации (entry.sha). Получилось – слитое сразу уезжает в
+// репозиторий, а сюда возвращается как обычный забор (pull): дальше его
+// запишет на диск тот же путь, что и любой забранный файл, с той же
+// проверкой «не поменяли ли здесь за время синхронизации».
+async function tryMergeConflict(config, path, conflict, entry) {
+  if (!entry?.sha || conflict.localEmpty) return null;
+  let base;
+  let local;
+  let remote;
+  try {
+    const baseFile = await getRemoteFile(config, path, entry.sha);
+    if (!baseFile) return null;
+    base = JSON.parse(base64ToText(baseFile.base64));
+    local = JSON.parse(base64ToText(conflict.localBase64));
+    remote = JSON.parse(base64ToText(conflict.remote.base64));
+  } catch {
+    return null;
+  }
+  const m = mergeJson(base, local, remote);
+  if (!m.ok) return null;
+  const mergedBase64 = textToBase64(JSON.stringify(m.value, null, 2));
+  if (sameJson(m.value, remote)) {
+    return { action: "pull", base64: conflict.remote.base64, sha: conflict.remote.sha, merged: true };
+  }
+  const sha = await putRemoteFile(config, path, mergedBase64, conflict.remote.sha);
+  return { action: "pull", base64: mergedBase64, sha, merged: true };
+}
+
 // Сколько картинок синхронизация может удалить «как удалённые на другом
 // устройстве» за один раз без вопроса. Больше – почти наверняка не
 // удаление, а сбой: пересоздали репозиторий, сменили ветку, GitHub
@@ -947,6 +1110,8 @@ async function runSync(config, onProgress) {
     pulled: 0,
     skipped: 0,
     deletedLocally: 0,
+    // Файлы, изменённые с двух сторон и слитые по записям без вопроса.
+    merged: 0,
     conflicts: [],
     pulledFiles: {},
     pulledImages: {},
@@ -1083,6 +1248,16 @@ async function runSync(config, onProgress) {
           item.kind === "files" && item.empty
             ? await syncEmptyLocalFile(config, item.path, base64, entry, remoteTree)
             : await syncOne(config, item.path, base64, entry, remoteTree);
+      }
+
+      // Изменили и здесь, и там – сперва пробуем слить по записям (см.
+      // tryMergeConflict); не вышло – остаётся выбор человека.
+      if (outcome.action === "conflict" && item.kind === "files") {
+        const merged = await tryMergeConflict(config, item.path, outcome, entry);
+        if (merged) {
+          outcome = merged;
+          result.merged++;
+        }
       }
 
       if (outcome.action === "none") {
