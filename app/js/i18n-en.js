@@ -1933,6 +1933,8 @@ i18nRegister({
     "“{path}” is empty on this device, but the repository has data in it. Keeping the empty one will erase that data on all devices. Keep the empty one anyway?",
   "Оставить пустой": "Keep empty",
   "Правки с двух устройств объединены: {n}.": "Changes from two devices merged: {n}.",
+  "Сохранено и объединено с правками, пришедшими с другого устройства. Откройте редактор заново, чтобы их увидеть.":
+    "Saved and merged with changes that came from another device. Reopen the editor to see them.",
   "Репозиторий был пуст – данные этого устройства отправлены в него заново.":
     "The repository was empty – this device's data was uploaded to it again.",
 });

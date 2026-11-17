@@ -1671,7 +1671,8 @@ async function runImportFavourites(status) {
     const toHeart = importFavReviewsFor(fav.titles, reviews).filter((r) => !r.favorite && r.id !== undefined);
     for (const r of toHeart) {
       try {
-        await postRecordOrThrow("/api/save-review", { ...r, favorite: true, _editId: r.id });
+        // Только ♥ – запись целиком не нужна, см. progressSave в progress.js.
+        await postRecordOrThrow("/api/save-review", { _editId: r.id, title: r.title, favorite: true });
         result.hearts++;
       } catch {
         result.failed++;

@@ -263,6 +263,52 @@ test("пропавшая папка хранилища – ошибка, а не
   });
 });
 
+// Экран, открытый давно, сохраняет файл целиком – а синхронизация тем
+// временем записала правки с другого устройства. С _base (что экран
+// загрузил) сервер сливает, а не затирает; слить нельзя – отказ.
+test("давно открытый экран не затирает правки, пришедшие синхронизацией", async () => {
+  await withServer(async ({ api, base, vault }) => {
+    const loaded = { theme: "classic", textScale: 100 };
+    await vault.writeJson("site-settings.json", loaded);
+    // Пока окно настроек было открыто, синхронизация записала новое поле.
+    await vault.writeJson("site-settings.json", { ...loaded, tierCollections: ["игры"] });
+    const { status, data } = await api("POST", "/api/save-site-settings", {
+      ...loaded,
+      theme: "doodle",
+      _base: loaded,
+    });
+    assert.equal(status, 200);
+    assert.ok(data.merged);
+    const onDisk = await (await fetch(`${base}/site-settings.json`)).json();
+    assert.deepEqual(onDisk, { theme: "doodle", textScale: 100, tierCollections: ["игры"] });
+    assert.ok(!("_base" in onDisk), "служебное поле в файл не попало");
+
+    // То же поле поменяли и там, и здесь – отказ, файл не тронут.
+    await vault.writeJson("site-settings.json", { theme: "soft" });
+    const clash = await api("POST", "/api/save-site-settings", {
+      theme: "classic-light",
+      _base: { theme: "doodle" },
+    });
+    assert.equal(clash.status, 409);
+    assert.deepEqual(await (await fetch(`${base}/site-settings.json`)).json(), { theme: "soft" });
+
+    // Тир-лист: тайтл, добавленный синхронизацией, переживает сохранение редактора.
+    const tierBase = [{ id: "a", title: "A", tierlists: [] }];
+    await vault.writeJson("characters-tier.json", [...tierBase, { id: "b", title: "С телефона" }]);
+    const tier = await api("POST", "/api/save-chars-tier", {
+      collection: "characters",
+      data: [{ ...tierBase[0], title: "A (правка)" }],
+      _base: tierBase,
+    });
+    assert.equal(tier.status, 200);
+    const tierOnDisk = await (await fetch(`${base}/characters-tier.json`)).json();
+    assert.deepEqual(
+      tierOnDisk.map((t) => t.title),
+      ["A (правка)", "С телефона"]
+    );
+  });
+});
+
 test("удаление убирает запись, повторное сообщает об этом", async () => {
   await withServer(async ({ api }) => {
     const { data: added } = await api("POST", "/api/save-review", {

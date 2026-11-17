@@ -475,6 +475,9 @@ async function currentSiteSettings() {
 
 async function patchSiteSettings(mutator) {
   let settings = await currentSiteSettings();
+  // Прочитанное – «база» (см. mergeWithDisk в core/api.js): между чтением
+  // и записью синхронизация могла успеть записать свои правки.
+  const base = JSON.parse(JSON.stringify(settings));
 
   settings = mutator(settings) || settings;
 
@@ -482,7 +485,7 @@ async function patchSiteSettings(mutator) {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(settings),
+    body: JSON.stringify({ ...settings, _base: base }),
   });
 
   if (!res.ok) {

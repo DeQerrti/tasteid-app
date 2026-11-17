@@ -44,6 +44,10 @@ async function resetShortcutsToDefault() {
 // страницей не управляется – без базового объекта они терялись бы при
 // любом сохранении отсюда.
 let rawSettings = {};
+// Настройки, какими окно их загрузило (или последний раз сохранило), –
+// «база» для сервера, см. mergeWithDisk в core/api.js: окно настроек
+// бывает открыто долго, а синхронизация тем временем пишет на диск.
+let rawSettingsBase = null;
 // Настройки не прочитались (файл испорчен или недоступен) – текст ошибки.
 // Пока он стоит, saveSettings() (settings-labels.js) ничего не пишет:
 // форма в этот момент заполнена умолчаниями, а rawSettings пуст, и
@@ -77,6 +81,7 @@ async function loadCurrentSettings() {
   if (stale()) return;
   settingsLoadError = null;
   rawSettings = settings;
+  rawSettingsBase = JSON.parse(JSON.stringify(settings));
 
   applyTextScale(Number(settings.textScale) || 100, false);
 

@@ -41,6 +41,11 @@
 // ══════════════════════════════════════════════
 
 let data = [];
+// То, что редактор загрузил (или последний раз сохранил), – «база» для
+// сервера: пока редактор открыт, синхронизация могла записать на диск
+// правки с другого устройства, и сохранение целиком их затёрло бы (см.
+// mergeWithDisk в core/api.js).
+let ceBase = null;
 let activeId = null;
 let activeListId = null;
 let pendingTier = null;
@@ -441,8 +446,10 @@ async function initCharsEdit() {
     const loaded = await res.json();
     if (!Array.isArray(loaded)) throw new Error("JSON");
     data = loaded;
+    ceBase = JSON.parse(JSON.stringify(loaded));
   } catch {
     data = [];
+    ceBase = null;
     ceLoadError = i18n("Файл {file} не читается – сохранение выключено, чтобы не стереть его. Прошлые версии лежат в «Истории версий».", { file: DATA_FILE });
     const status = document.getElementById("status-msg");
     if (status) {
@@ -2130,13 +2137,16 @@ async function saveAll() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ collection: COLLECTION, data }),
+      body: JSON.stringify({ collection: COLLECTION, data, _base: ceBase ?? undefined }),
     });
     const resp = await res.json();
     if (res.ok) {
       ceDirty = false;
+      ceBase = JSON.parse(JSON.stringify(data));
       status.className = "status-msg ok";
-      status.textContent = i18n("Сохранено.");
+      status.textContent = resp.merged
+        ? i18n("Сохранено и объединено с правками, пришедшими с другого устройства. Откройте редактор заново, чтобы их увидеть.")
+        : i18n("Сохранено.");
       // Только теперь подтверждено, что диск больше не ссылается на
       // старые копии обложек – раньше этого момента удалять их было
       // нельзя (см. pendingBackupCleanup выше).

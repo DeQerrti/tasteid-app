@@ -19,6 +19,7 @@ import vm from "node:vm";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { ROUTES } from "../core/api.js";
 
 const SRC = readFileSync(path.join(import.meta.dirname, "..", "app", "js", "sync.js"), "utf8");
 const gitSha = (b64) => {
@@ -72,6 +73,10 @@ function makeWorld({ localFiles, localImages = {}, remote, state, history = [] }
         ? {}
         : Object.fromEntries(Object.keys(localImages).map((k) => [k, { size: 1, mtime: 1 }]));
       return json({ ok: true, files: localFiles, images });
+    }
+    if (url === "/api/merge-json") {
+      // Настоящий маршрут сервера – то самое правило из core/merge.js.
+      return json(await ROUTES["POST /api/merge-json"]({ body: JSON.parse(init.body) }));
     }
     if (url.startsWith("/api/read-media")) {
       const p = new URL("http://x" + url).searchParams.get("path");

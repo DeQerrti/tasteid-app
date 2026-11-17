@@ -341,9 +341,10 @@ async function saveSettings() {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, _base: rawSettingsBase ?? undefined }),
     });
     const data = await res.json();
+    if (data.ok) rawSettingsBase = JSON.parse(JSON.stringify(payload));
     // Приложение – не сайт: страница и есть само хранилище, никакой
     // отдельно выложенной копии со своей задержкой публикации нет.
     //

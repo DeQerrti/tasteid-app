@@ -1021,13 +1021,19 @@ function openReviewCoverGallery() {
 
 const REVIEW_GALLERY_FIELDS = { gallery: "cover_gallery", active: "cover_backup", external: "cover" };
 
-// Пересохраняет весь отзыв целиком (тот же приём, что и полный редактор –
-// add-save.js: saveReview) сразу же, без захода в редактор – смена
+// Сохраняет поля обложки отзыва сразу же, без захода в редактор – смена
 // картинки в галерее не должна требовать открыть форму ради одной этой
 // правки. r – сам объект из cache.reviews, уже с обновлёнными полями.
 // Бросает исключение, если сервер не записал (postRecordOrThrow в utils.js).
 async function persistReviewCoverChange(r) {
-  await postRecordOrThrow("/api/save-review", { ...r, _editId: r.id });
+  // Только поля обложки – см. тот же приём в progressSave (progress.js).
+  await postRecordOrThrow("/api/save-review", {
+    _editId: r.id,
+    title: r.title,
+    cover: r.cover ?? null,
+    cover_backup: r.cover_backup ?? null,
+    cover_gallery: r.cover_gallery ?? null,
+  });
   cache.reviews = null;
   document.getElementById("review-modal-body").innerHTML = reviewModalBodyHtml(r);
   appendReviewLinkedFavorites(r);

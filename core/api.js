@@ -17,6 +17,7 @@
 // ══════════════════════════════════════════════
 
 import { isAllowedFile, isDotSegment } from "./files.js";
+import { mergeJson, sameJson } from "./merge.js";
 
 // ── Общее ──────────────────────────────────────
 
@@ -433,6 +434,26 @@ async function saveFavorite({ vault, body }) {
 
 // ── Тир-листы ──────────────────────────────────
 
+// Экран, открытый давно (редактор тир-листа, окно настроек), сохраняет
+// файл целиком – а пока он был открыт, синхронизация могла записать на
+// диск правки с другого устройства, и сохранение их молча затирало. Такой
+// экран присылает _base – то, что он загрузил. Файл с тех пор не менялся –
+// пишем как есть; менялся – сливаем три версии (core/merge.js): правки
+// экрана поверх пришедшего. Слить нельзя – отказ, ничего не тронуто.
+async function mergeWithDisk(vault, file, fallback, base, next) {
+  if (base === undefined) return { value: next, merged: false };
+  const current = await vault.readJson(file, fallback);
+  if (sameJson(current, base)) return { value: next, merged: false };
+  const m = mergeJson(base, next, current);
+  if (!m.ok) {
+    throw new ApiError(
+      "Пока этот экран был открыт, эти же данные изменились (пришла синхронизация или правка из другого окна), и объединить правки не получилось. Чтобы ничего не затереть, сохранение отменено: откройте экран заново и повторите правку.",
+      409
+    );
+  }
+  return { value: m.value, merged: true };
+}
+
 async function saveCharsTier({ vault, body }) {
   // Обратная совместимость: раньше телом был просто массив (всегда
   // коллекция "characters"), теперь ждём { collection, data }.
@@ -442,8 +463,11 @@ async function saveCharsTier({ vault, body }) {
   if (!isSafeName(collection)) throw new ApiError("Недопустимое название коллекции");
   if (!Array.isArray(data)) throw new ApiError("Ожидается массив тайтлов");
 
-  await vault.writeJson(collectionFile(collection), data);
-  return { ok: true };
+  const file = collectionFile(collection);
+  const base = Array.isArray(body) ? undefined : body._base;
+  const { value, merged } = await mergeWithDisk(vault, file, [], base, data);
+  await vault.writeJson(file, value);
+  return { ok: true, merged };
 }
 
 // Удаление своего раздела тир-листа целиком – сам файл (tier-<id>.json)
@@ -1250,8 +1274,20 @@ async function saveSiteSettings({ vault, body }) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw new ApiError("Ожидается объект настроек");
   }
-  await vault.writeJson("site-settings.json", body);
-  return { ok: true };
+  // _base – см. mergeWithDisk выше; в сам файл не пишется.
+  const { _base, ...settings } = body;
+  const { value, merged } = await mergeWithDisk(vault, "site-settings.json", {}, _base, settings);
+  await vault.writeJson("site-settings.json", value);
+  return { ok: true, merged };
+}
+
+// Слияние трёх версий для синхронизации (app/js/sync.js, tryMergeConflict):
+// само правило – одно, в core/merge.js, а синхронизация живёт в
+// браузерном скрипте без модулей и достаёт его отсюда.
+async function mergeJsonRoute({ body }) {
+  const m = mergeJson(body?.base, body?.local, body?.remote);
+  if (!m.ok) return { ok: false };
+  return { ok: true, value: m.value, sameAsRemote: sameJson(m.value, body?.remote) };
 }
 
 // ── Резервная копия ─────────────────────────────
@@ -1633,6 +1669,7 @@ export const ROUTES = {
   "POST /api/save-chars-tier": saveCharsTier,
   "POST /api/delete-tier-collection": deleteTierCollection,
   "POST /api/save-site-settings": saveSiteSettings,
+  "POST /api/merge-json": mergeJsonRoute,
   "GET /api/export-backup": exportBackup,
   "POST /api/restore-backup": restoreBackup,
   "GET /api/sync-manifest": syncManifest,

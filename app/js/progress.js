@@ -170,7 +170,16 @@ function progressSchedule(r) {
 
 async function progressSave(r) {
   try {
-    await postRecordOrThrow("/api/save-review", { ...r, _editId: r.id ?? r.title });
+    // Только изменённые поля, а не запись целиком: сервер дополняет запись
+    // (saveReview в core/api.js), и правки той же записи, пришедшие
+    // синхронизацией, пока окно было открыто, так не затираются.
+    await postRecordOrThrow("/api/save-review", {
+      _editId: r.id ?? r.title,
+      title: r.title,
+      progress: r.progress ?? null,
+      status: r.status,
+      date_end: r.date_end ?? null,
+    });
   } catch (err) {
     alert(i18n("Счётчик не сохранился: {msg}", { msg: err.message }));
   }
