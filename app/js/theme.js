@@ -18,19 +18,22 @@
 // тоже трогать не нужно.
 //
 // defaultAccent подставляется, только если человек не выбрал свой
-/// акцент вручную.
+/// акцент вручную. Названия – в женском роде («тема»).
 //
 // «Брутализм» и «Неоморфизм» удалены (ноябрь 2026, решение owner'а: у них
 // не было своего характера рядом с остальными тремя). У кого в настройках
 // сохранён их id, получает классическую тему – см. applyTheme ниже и
 // loadCurrentSettings в settings-shortcuts.js.
 const THEME_PRESETS = {
-  classic: { label: i18n("Классический") },
-  "classic-light": { label: i18n("Классический светлый") },
-  soft: { label: i18n("Ботанический"), defaultAccent: "#6b7f4a" },
-  "soft-dark": { label: i18n("Ботанический тёмный"), defaultAccent: "#7fae5a" },
-  doodle: { label: i18n("Рисованный"), defaultAccent: "#ef6a52" },
-  "doodle-dark": { label: i18n("Рисованный тёмный"), defaultAccent: "#ff8a5c" },
+  classic: { label: i18n("Классическая") },
+  "classic-light": { label: i18n("Классическая светлая") },
+  soft: { label: i18n("Ботаническая"), defaultAccent: "#6b7f4a" },
+  "soft-dark": { label: i18n("Ботаническая тёмная"), defaultAccent: "#7fae5a" },
+  // «Альбомная» – бывшая «Рисованная» (ноябрь 2026): после «скотча и
+  // маркера» тема стала про полароиды и наклейки, а не про рисунок.
+  // id «doodle» не меняли – он сохранён в настройках у owner'а.
+  doodle: { label: i18n("Альбомная"), defaultAccent: "#ef6a52" },
+  "doodle-dark": { label: i18n("Альбомная тёмная"), defaultAccent: "#ff8a5c" },
 };
 
 // Для выпадающих списков и сеток выбора: [{ id, label }]
