@@ -36,29 +36,73 @@ function renderSyncPanel() {
   if (config && !syncInFlight && localStorage.getItem(AUTOSYNC_CONFLICTS_KEY) === "1") startSync();
 }
 
-// Не подключено: вступление в одну строку, поля и кнопка «Подключить» сразу,
-// а все объяснения (что такое GitHub, как завести токен, чем отличается
-// fine-grained-токен, зачем название репозитория) – под сворачиваемым
-// «Как это работает и как получить токен». Раньше вся эта стена текста
-// шла до полей, и сама форма была внизу экрана. Сами тексты не менялись.
+// Страница создания репозитория на github.com с уже подставленными
+// названием и «Private» (GitHub это умеет по параметрам адреса).
+function syncNewRepoUrl(repo) {
+  const params = new URLSearchParams({
+    name: repo || "tasteid-vault",
+    visibility: "private",
+    description: "TasteID sync",
+  });
+  return `https://github.com/new?${params}`;
+}
+
+// Узкий (fine-grained) токен: имя, «без срока» и право на запись в
+// содержимое репозитория GitHub подставляет сам. Сам репозиторий ссылкой
+// выбрать нельзя (такого параметра у GitHub нет) – это человек отмечает
+// руками, шаг 3 в инструкции.
+const SYNC_TOKEN_URL =
+  "https://github.com/settings/personal-access-tokens/new?name=TasteID&description=TasteID+sync&expires_in=none&contents=write";
+
+function syncUpdateRepoLink() {
+  const link = document.getElementById("sync-new-repo-link");
+  const repo = document.getElementById("sync-repo")?.value.trim();
+  if (link) link.href = syncNewRepoUrl(repo);
+}
+
+// Не подключено: короткие шаги – сразу, над полями (раньше всё было под
+// свёрнутым «Как это работает», и новичок видел поля «Токен» и
+// «Репозиторий» раньше, чем узнавал, откуда их взять). Токен –
+// узкий, только на один репозиторий (ноябрь 2026, по аудиту): прежний
+// классический с галочкой «repo» давал доступ ко ВСЕМ репозиториям
+// человека, и утечка токена открывала их все. Узкий не умеет создавать
+// репозитории – поэтому репозиторий человек создаёт сам (шаг 2), а
+// приложение к нему подключается. Классический остался запасным путём
+// в «Как это работает».
 function syncSetupHtml() {
   return `
       <p class="panel-intro" data-i18n>
         Синхронизация между вашими устройствами через приватный репозиторий
         на GitHub – бесплатно и без своего сервера.
       </p>
+      <ol class="sync-intro sync-steps">
+        <li data-i18n>Если аккаунта на github.com ещё нет – заведите, это бесплатно и нужна только почта.</li>
+        <li>
+          <span data-i18n>Создайте приватный репозиторий – общую папку для ваших устройств:</span>
+          <a id="sync-new-repo-link" href="${esc(syncNewRepoUrl("tasteid-vault"))}" target="_blank" rel="noopener" data-i18n>открыть страницу создания</a><span data-i18n>. Название и «Private» уже подставлены – нажмите зелёную кнопку «Create repository». Если синхронизация уже подключена на другом устройстве, этот шаг пропустите: репозиторий уже есть.</span>
+        </li>
+        <li>
+          <span data-i18n>Создайте токен – пропуск только к этому репозиторию:</span>
+          <a href="${esc(SYNC_TOKEN_URL)}" target="_blank" rel="noopener" data-i18n>открыть страницу токена</a><span data-i18n>. Имя, срок «без срока» и право на запись уже подставлены. Одно нужно выбрать руками: в разделе «Repository access» отметьте «Only select repositories» и выберите в списке репозиторий из шага 2. Потом внизу страницы – зелёная кнопка «Generate token».</span>
+        </li>
+        <li data-i18n>
+          GitHub покажет длинную строку, начинающуюся на «github_pat_», – это
+          и есть токен. Он показывается только один раз: сразу скопируйте его
+          и вставьте в поле ниже.
+        </li>
+      </ol>
       <div class="field">
         <label data-i18n>Токен доступа</label>
-        <input type="password" id="sync-token" placeholder="ghp_…" autocomplete="off">
+        <input type="password" id="sync-token" placeholder="github_pat_…" autocomplete="off">
       </div>
       <div class="field">
         <label data-i18n>Название репозитория</label>
-        <input type="text" id="sync-repo" value="tasteid-vault">
+        <input type="text" id="sync-repo" value="tasteid-vault" oninput="syncUpdateRepoLink()">
       </div>
       <button class="btn btn-primary" onclick="connectSync()" id="sync-connect-btn" data-i18n>Подключить</button>
       <div class="status-msg" id="status-sync"></div>
       <details class="sync-how">
-        <summary data-i18n>Как это работает и как получить токен</summary>
+        <summary data-i18n>Как это работает и что делать, если не получилось</summary>
         <div class="sync-how-body">
       <p class="sync-intro" data-i18n>
         GitHub – бесплатный сайт, на котором разработчики хранят код;
@@ -76,46 +120,16 @@ function syncSetupHtml() {
         приложения. Кнопка «Синхронизировать сейчас» останется – на
         случай, если не хочется ждать.
       </p>
-      <ol class="sync-intro" style="padding-left:1.2em;display:flex;flex-direction:column;gap:.5em;">
-        <li data-i18n>Если аккаунта на github.com ещё нет – заведите, это бесплатно и нужна только почта.</li>
-        <li>
-          <span data-i18n>Заведите токен – это как пароль, но не от всего аккаунта, а только на одно конкретное разрешение (в данном случае – работать с репозиториями от вашего имени). Откройте</span>
-          <a href="https://github.com/settings/tokens/new?scopes=repo&description=TasteID" target="_blank" rel="noopener" data-i18n>эту ссылку</a><span data-i18n>: откроется страница на github.com, где галочка «repo» уже отмечена – ничего менять не нужно, только пролистать вниз страницы и нажать зелёную кнопку «Generate token».</span>
-        </li>
-        <li data-i18n>
-          На той же странице, чуть выше кнопки, есть поле «Expiration»
-          («Срок действия») – если хочется, чтобы синхронизация работала
-          постоянно, выберите там «No expiration» («Без срока»). Любой
-          конкретный срок (7/30/60/90 дней) означает, что через него
-          токен перестанет действовать и синхронизация молча остановится
-          – придётся завести новый токен и подключаться заново.
-        </li>
-        <li data-i18n>
-          GitHub покажет длинную строку, начинающуюся на «ghp_» или
-          «github_pat_», – это и есть токен. Он показывается только
-          один раз, поэтому сразу скопируйте его (кнопка со значком
-          копирования рядом с ним на странице github.com) и вставьте в
-          поле ниже.
-        </li>
-      </ol>
       <p class="panel-intro" data-i18n>
-        Галочка «repo» даёт токену доступ ко всем вашим репозиториям на
-        GitHub, не только к этому. Если репозиторий для синка уже
-        создан и хочется ограничить токен только им – заведите вместо
-        этого fine-grained-токен (Settings → Developer settings →
-        Personal access tokens → Fine-grained tokens на github.com) с
-        доступом к одному этому репозиторию и правом Contents: Read and write.
+        Название репозитория – техническое имя папки-хранилища на GitHub.
+        На всех устройствах оно должно быть одним и тем же, иначе они
+        будут синхронизировать разные хранилища и не увидят данные друг
+        друга. Если не уверены – оставьте «tasteid-vault».
       </p>
-        <p class="panel-intro" data-i18n>
-          Просто оставьте как есть, если не уверены, что означает это
-          название, – это техническое имя папки-хранилища на GitHub,
-          самим внешним видом приложения оно никак не пользуется. Если
-          такого репозитория ещё нет на вашем GitHub – создадим сами,
-          приватным. Если уже есть (например, второе устройство его уже
-          завело) – подключимся к нему: на всех устройствах должно быть
-          одно и то же название, иначе они будут синхронизировать
-          разные хранилища и не увидят данные друг друга.
-        </p>
+      <p class="panel-intro">
+        <span data-i18n>Если с токеном на один репозиторий не получается, можно завести классический токен:</span>
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=TasteID" target="_blank" rel="noopener" data-i18n>эта ссылка</a><span data-i18n> откроет страницу, где галочка «repo» уже отмечена. С ним репозиторий из шага 2 можно не создавать – приложение заведёт его само. Но такой токен даёт доступ ко всем вашим репозиториям на GitHub, а не к одному, – поэтому он только запасной вариант.</span>
+      </p>
         </div>
       </details>
     `;
@@ -216,8 +230,22 @@ async function connectSync() {
     flashStatus("status-sync", true, i18n("Проверяем репозиторий…"));
     let repoInfo = await getRepoInfo(config);
     if (!repoInfo) {
+      // Узкий токен (шаг 3 инструкции) создавать репозитории не умеет, а
+      // репозиторий, к которому его не допустили, GitHub для него
+      // показывает как несуществующий. Пробуем создать (получится с
+      // классическим токеном), а не вышло – объясняем, что сделать, вместо
+      // голого «Resource not accessible by personal access token».
       flashStatus("status-sync", true, i18n("Репозитория ещё нет – создаём…"));
-      repoInfo = await createRepo(config);
+      try {
+        repoInfo = await createRepo(config);
+      } catch {
+        throw new Error(
+          i18n(
+            "Репозиторий «{repo}» не найден, или токен к нему не допущен. Если репозиторий ещё не создан – создайте его (шаг 2) и нажмите «Подключить» снова. Если создан – проверьте, что при создании токена в «Repository access» был выбран именно он, и что название здесь совпадает с названием на GitHub.",
+            { repo }
+          )
+        );
+      }
     }
     // default_branch нужен Git Trees API при синхронизации (см. её же
     // комментарий у ensureBranch в sync.js) – раз уж он и так пришёл

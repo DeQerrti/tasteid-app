@@ -1941,3 +1941,28 @@ i18nRegister({
   "Репозиторий был пуст – данные этого устройства отправлены в него заново.":
     "The repository was empty – this device's data was uploaded to it again.",
 });
+
+// ── Подключение синхронизации узким токеном (settings-sync.js) ──
+i18nRegister({
+  ". Имя, срок «без срока» и право на запись уже подставлены. Одно нужно выбрать руками: в разделе «Repository access» отметьте «Only select repositories» и выберите в списке репозиторий из шага 2. Потом внизу страницы – зелёная кнопка «Generate token».":
+    ". The name, “no expiration” and write access are already filled in. One thing you need to pick by hand: under “Repository access” choose “Only select repositories” and pick the repository from step 2 in the list. Then press the green “Generate token” button at the bottom of the page.",
+  ". Название и «Private» уже подставлены – нажмите зелёную кнопку «Create repository». Если синхронизация уже подключена на другом устройстве, этот шаг пропустите: репозиторий уже есть.":
+    ". The name and “Private” are already filled in – press the green “Create repository” button. If sync is already set up on another device, skip this step: the repository already exists.",
+  "Если с токеном на один репозиторий не получается, можно завести классический токен:":
+    "If the single-repository token doesn't work out, you can create a classic token:",
+  "Как это работает и что делать, если не получилось": "How it works and what to do if it didn't work",
+  "Название репозитория – техническое имя папки-хранилища на GitHub. На всех устройствах оно должно быть одним и тем же, иначе они будут синхронизировать разные хранилища и не увидят данные друг друга. Если не уверены – оставьте «tasteid-vault».":
+    "The repository name is the technical name of the storage folder on GitHub. It must be the same on all your devices, otherwise they'll sync different storages and won't see each other's data. If unsure, leave “tasteid-vault”.",
+  "откроет страницу, где галочка «repo» уже отмечена. С ним репозиторий из шага 2 можно не создавать – приложение заведёт его само. Но такой токен даёт доступ ко всем вашим репозиториям на GitHub, а не к одному, – поэтому он только запасной вариант.":
+    "opens a page with the “repo” box already ticked. With it you can skip creating the repository in step 2 – the app creates it itself. But such a token grants access to all your GitHub repositories, not just one, so it's only a fallback.",
+  "открыть страницу создания": "open the creation page",
+  "открыть страницу токена": "open the token page",
+  "Репозиторий «{repo}» не найден, или токен к нему не допущен. Если репозиторий ещё не создан – создайте его (шаг 2) и нажмите «Подключить» снова. Если создан – проверьте, что при создании токена в «Repository access» был выбран именно он, и что название здесь совпадает с названием на GitHub.":
+    "Repository “{repo}” wasn't found, or the token has no access to it. If it isn't created yet, create it (step 2) and press “Connect” again. If it is, check that this exact repository was selected under “Repository access” when creating the token, and that the name here matches the one on GitHub.",
+  "Создайте приватный репозиторий – общую папку для ваших устройств:":
+    "Create a private repository – a shared folder for your devices:",
+  "Создайте токен – пропуск только к этому репозиторию:": "Create a token – a pass to this repository only:",
+  "эта ссылка": "this link",
+  "GitHub покажет длинную строку, начинающуюся на «github_pat_», – это и есть токен. Он показывается только один раз: сразу скопируйте его и вставьте в поле ниже.":
+    "GitHub will show a long string starting with “github_pat_” – that's the token. It's shown only once: copy it right away and paste it into the field below.",
+});

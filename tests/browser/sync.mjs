@@ -86,6 +86,10 @@ async function handleGithub(route) {
   }
 
   if (p === "/user/repos" && method === "POST") {
+    // Узкий (fine-grained) токен создавать репозитории не умеет.
+    if (gh.cannotCreate) {
+      return respond(403, { message: "Resource not accessible by personal access token" });
+    }
     gh.repoExists = true;
     return respond(201, { default_branch: "main" });
   }
@@ -493,6 +497,35 @@ ok(
 ok(
   await page.evaluate(() => !!document.getElementById("sync-token")),
   "после отключения снова показана форма настройки"
+);
+
+console.log("Узкий токен: репозиторий создаёт человек");
+const tokenHref = await page.getAttribute('a[href*="personal-access-tokens/new"]', "href");
+ok(
+  /contents=write/.test(tokenHref) && /expires_in=none/.test(tokenHref),
+  "ссылка на узкий токен с правом записи и без срока"
+);
+await page.fill("#sync-repo", "моё-хранилище");
+const repoHref = await page.getAttribute("#sync-new-repo-link", "href");
+ok(
+  repoHref.includes("visibility=private") &&
+    new URL(repoHref).searchParams.get("name") === "моё-хранилище",
+  "ссылка на создание репозитория следует за названием и делает его приватным"
+);
+gh.repoExists = false;
+gh.cannotCreate = true;
+await page.fill("#sync-token", "github_pat_narrow");
+await page.click("#sync-connect-btn");
+await page.waitForFunction(() =>
+  /шаг 2/.test(document.getElementById("status-sync")?.textContent || "")
+);
+ok(true, "нет репозитория и токен не может его создать – объяснение «создайте его (шаг 2)»");
+gh.repoExists = true;
+await page.click("#sync-connect-btn");
+await page.waitForTimeout(500);
+ok(
+  await page.evaluate(() => !!document.getElementById("sync-now-btn")),
+  "репозиторий создан руками – узкий токен подключается"
 );
 
 await browser.close();

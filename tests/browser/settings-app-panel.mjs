@@ -159,10 +159,22 @@ ok(
   !!(await setup.$("#sync-connect-btn")) && !!(await setup.$("#sync-token")),
   "поля и кнопка «Подключить» на месте"
 );
+// Шаги подключения (репозиторий, затем узкий токен) – сразу, над полями:
+// раньше всё было под свёрнутым заголовком, и новичок видел поля раньше,
+// чем узнавал, откуда их взять. Длинные объяснения и запасной
+// классический токен – по-прежнему под сворачиваемым заголовком.
+ok(
+  (await setup.$$eval("ol.sync-steps > li", (els) => els.length)) === 4 &&
+    (await setup.$eval("ol.sync-steps", (ol) => {
+      const field = document.getElementById("sync-token");
+      return !!(ol.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING);
+    })),
+  "четыре шага подключения – сразу, над полями"
+);
 ok(
   (await setup.$eval("details.sync-how summary", (e) => e.textContent.trim())) ===
-    "Как это работает и как получить токен",
-  "объяснения и шаги про токен – под сворачиваемым заголовком"
+    "Как это работает и что делать, если не получилось",
+  "объяснения и запасной путь – под сворачиваемым заголовком"
 );
 ok(!(await setup.$eval("details.sync-how", (e) => e.open)), "по умолчанию они свёрнуты");
 ok(
