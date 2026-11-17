@@ -26,7 +26,7 @@
 // ══════════════════════════════════════════════
 
 import http from "node:http";
-import { promises as fs, createReadStream } from "node:fs";
+import fsSync, { promises as fs, createReadStream } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROUTES, ApiError } from "../core/api.js";
@@ -55,6 +55,36 @@ export const MIME = {
 // [a-z0-9-] такая папка не отдавалась – картинки загружались и
 // пропадали. Тот же набор запретов, что у TIER_ID в vault.js.
 export const VAULT_DIRS = /^\/(covers|chars|[^\s/\\.:*?"<>|\x00-\x1f]{1,60})\//i;
+
+// Из папок хранилища отдаём ТОЛЬКО картинки и никогда – из папки, имя
+// которой совпадает с папкой самого приложения (js, fonts, decor, icons…).
+// Раньше подходил любой файл любой папки, и хранилище отдавалось раньше
+// приложения: файл js/config.js, подложенный в хранилище (чужой
+// резервной копией или чужой папкой, открытой «как существующее
+// хранилище»), подменял настоящий скрипт – и чужой код получал токен
+// синхронизации и весь API. Проверка в одном месте – и для protocol.js.
+const VAULT_MEDIA_EXT = /\.(png|jpe?g|webp|gif)$/i;
+const appTopDirsCache = new Map();
+function appTopDirs(appDir) {
+  if (!appTopDirsCache.has(appDir)) {
+    let names = [];
+    try {
+      names = fsSync
+        .readdirSync(appDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name.toLowerCase());
+    } catch {
+      // Папки приложения нет – значит, и подменять нечего.
+    }
+    appTopDirsCache.set(appDir, new Set(names));
+  }
+  return appTopDirsCache.get(appDir);
+}
+export function isVaultMediaPath(pathname, appDir) {
+  if (!VAULT_DIRS.test(pathname) || !VAULT_MEDIA_EXT.test(pathname)) return false;
+  const top = pathname.split("/")[1]?.toLowerCase() || "";
+  return !appTopDirs(appDir).has(top);
+}
 
 // Файлы данных фронтенд читает напрямую, как читал их на сайте:
 // fetch("/reviews.json"). Отдаём из хранилища.
@@ -199,11 +229,15 @@ export function createServer({ appDir, getVault, appRoutes = {}, getLang }) {
       const vault = getVault();
 
       // ── Данные и картинки – из хранилища ──
-      if (vault && (VAULT_FILES.test(pathname) || VAULT_DIRS.test(pathname))) {
+      if (vault && (VAULT_FILES.test(pathname) || isVaultMediaPath(pathname, appDir))) {
         const target = resolveInside(vault.root, pathname);
         if (target && (await serveFile(res, target, { store: false }))) return;
         // Файла нет – для данных это первый запуск, а не ошибка.
         if (VAULT_FILES.test(pathname)) {
+          // См. тот же случай в protocol.js: нет самой папки – не «пусто».
+          if (vault.rootExists && !(await vault.rootExists())) {
+            return sendJson(res, { error: "Папка с данными не найдена" }, 503);
+          }
           return sendJson(res, pathname.includes("site-settings") ? {} : []);
         }
       }

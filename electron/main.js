@@ -19,6 +19,7 @@ import {
   nativeTheme,
   protocol,
   safeStorage,
+  session,
 } from "electron";
 import { promises as fs, appendFileSync as fsAppendFileSync } from "node:fs";
 import path from "node:path";
@@ -1070,6 +1071,15 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(async () => {
+  // Разрешения браузера (камера, микрофон, геолокация, уведомления…) по
+  // умолчанию Electron выдаёт молча. Приложению из них нужен только
+  // буфер обмена («Скопировать» у кода паспорта и токена) – остальное
+  // запрещаем, чтобы чужой код, если он когда-нибудь окажется в окне,
+  // не получил устройство без единого вопроса.
+  const ALLOWED_PERMISSIONS = new Set(["clipboard-sanitized-write"]);
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) =>
+    callback(ALLOWED_PERMISSIONS.has(permission))
+  );
   // Заставка сразу, до всего остального асинхронного – см. её же
   // комментарий выше про то, какую тишину она закрывает собой. `win`
   // указывает на неё с этого момента, поэтому second-instance тоже

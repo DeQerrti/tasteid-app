@@ -91,6 +91,23 @@ ok(saved.ok === true, "отзыв сохраняется тем же /api, чт�
 const back = await page.evaluate(async () => (await fetch("/reviews.json")).json());
 ok(back.length === 1 && back[0].title === "Берсерк", "и читается обратно");
 
+// Записи на телефоне – в очередь, как на компьютере: три сохранения
+// внахлёст раньше читали один и тот же файл, и выживало только последнее.
+const together = await page.evaluate(async () => {
+  const post = (title) =>
+    fetch("/api/save-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, type: "anime" }),
+    });
+  await Promise.all([post("Один"), post("Два"), post("Три")]);
+  return (await (await fetch("/reviews.json")).json()).map((r) => r.title);
+});
+ok(
+  ["Один", "Два", "Три", "Берсерк"].every((t) => together.includes(t)),
+  `одновременные сохранения не затирают друг друга (${together.join(", ")})`
+);
+
 const onDisk = await page.evaluate(() => [...window.__fakeFiles.keys()]);
 ok(onDisk.includes("TasteID/reviews.json"), "файл лежит под тем же именем, что на компьютере");
 

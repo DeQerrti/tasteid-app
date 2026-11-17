@@ -81,8 +81,8 @@ function renderFavSectionsList() {
           ${eyeButton(hiddenFavSectionsState.has(key), `hiddenFavSectionsState.has('${key}') ? hiddenFavSectionsState.delete('${key}') : hiddenFavSectionsState.add('${key}'); renderFavSectionsList(); settingsDirty = true;`)}
           <span class="tab-name" id="favsecname-${key}">${esc(label)}</span>
           <input type="text" id="favsecinput-${key}" value="${esc(label)}" onkeydown="if(event.key==='Enter')this.blur();">
-          <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit('${key}')">✎</button>
-          <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection('${key}')">✕</button>
+          <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavSecEdit(${jsArg(key)})">✎</button>
+          <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavSection(${jsArg(key)})">✕</button>
         </div>`;
       }
       const c = favCollections.find((x) => x.id === key);
@@ -93,8 +93,8 @@ function renderFavSectionsList() {
         ${eyeButton(hiddenFavSectionsState.has(c.id), `hiddenFavSectionsState.has('${c.id}') ? hiddenFavSectionsState.delete('${c.id}') : hiddenFavSectionsState.add('${c.id}'); renderFavSectionsList(); settingsDirty = true;`)}
         <span class="tab-name" id="favcollname-${c.id}">${esc(c.label)}</span>
         <input type="text" id="favcollinput-${c.id}" value="${esc(c.label)}" onkeydown="if(event.key==='Enter')this.blur();">
-        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavCollectionEdit('${c.id}')">✎</button>
-        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavCollection('${c.id}')">✕</button>
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleFavCollectionEdit(${jsArg(c.id)})">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeFavCollection(${jsArg(c.id)})">✕</button>
       </div>`;
     })
     .join("");
@@ -107,7 +107,7 @@ function renderFavSectionsList() {
         ${gone
           .map(
             (s) => `<button type="button" class="fav-restore-btn"
-            onclick="restoreFavSection('${s.key}')">${esc(favSectionLabels[s.key] || s.def)} ↺</button>`
+            onclick="restoreFavSection(${jsArg(s.key)})">${esc(favSectionLabels[s.key] || s.def)} ↺</button>`
           )
           .join("")}
       </div>`
@@ -527,8 +527,8 @@ function renderStatusesList() {
         ${eyeButton(hiddenStatusesState.has(b.key), `hiddenStatusesState.has('${b.key}') ? hiddenStatusesState.delete('${b.key}') : hiddenStatusesState.add('${b.key}'); renderStatusesList(); settingsDirty = true;`)}
         <span class="tab-name" id="statusname-${b.key}">${b.label}</span>
         <input type="text" id="statusinput-${b.key}" value="${b.label}" onkeydown="if(event.key==='Enter')this.blur();">
-        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit('${b.key}')">✎</button>
-        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeStatusBucket('${b.key}')">✕</button>
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleStatusEdit(${jsArg(b.key)})">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeStatusBucket(${jsArg(b.key)})">✕</button>
       </div>`;
     })
     .join("");

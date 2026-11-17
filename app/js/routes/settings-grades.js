@@ -467,8 +467,8 @@ function renderShelvesList(containerId, withRange) {
           `
               : ""
           }
-          ${s.desc || shelfDescOpen.has(s.key) ? "" : `<button type="button" class="shelf-desc-link" onclick="openShelfDesc(${i}, '${containerId}', ${withRange})">${i18n("+ описание")}</button>`}
-          <button class="icon-btn" onclick="removeShelfRow(${i}, '${containerId}', ${withRange})">✕</button>
+          ${s.desc || shelfDescOpen.has(s.key) ? "" : `<button type="button" class="shelf-desc-link" onclick="openShelfDesc(${i}, ${jsArg(containerId)}, ${withRange})">${i18n("+ описание")}</button>`}
+          <button class="icon-btn" onclick="removeShelfRow(${i}, ${jsArg(containerId)}, ${withRange})">✕</button>
         </div>
         ${
           s.desc || shelfDescOpen.has(s.key)
@@ -654,8 +654,8 @@ function renderTierModesList() {
         ${eyeButton(hiddenTierModesState.has(c.id), `hiddenTierModesState.has('${c.id}') ? hiddenTierModesState.delete('${c.id}') : hiddenTierModesState.add('${c.id}'); renderTierModesList(); settingsDirty = true;`)}
         <span class="tab-name" id="tiermodename-${esc(c.id)}">${esc(c.label || c.id)}</span>
         <input type="text" id="tiermodeinput-${esc(c.id)}" value="${esc(c.label || c.id)}" onkeydown="if(event.key==='Enter')this.blur();">
-        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTierModeEdit('${c.id}')">✎</button>
-        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeTierCollectionSetting('${c.id}')">✕</button>
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleTierModeEdit(${jsArg(c.id)})">✎</button>
+        <button class="icon-btn" title="${i18n("Удалить")}" onclick="removeTierCollectionSetting(${jsArg(c.id)})">✕</button>
       </div>`;
     })
     .join("");

@@ -33,10 +33,10 @@ function renderTypePickerDropdown() {
   const options = Object.entries(TYPE_LABELS)
     .map(
       ([key, label]) => `
-    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectTypePicker('${key}')">
+    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectTypePicker(${jsArg(key)})">
       <span class="src-type-option-label">${esc(label)}</span>
-      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameTypePicker('${key}')">✎</span>
-      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeTypePicker('${key}')">✕</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameTypePicker(${jsArg(key)})">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeTypePicker(${jsArg(key)})">✕</span>
     </div>`
     )
     .join("");

@@ -78,6 +78,30 @@ export class Vault {
     return path.join(this.root, name);
   }
 
+  // Папка хранилища на месте? Её могли переименовать или перенести в
+  // проводнике, отключить флешку или сетевой диск, OneDrive мог выгрузить
+  // файлы – пока приложение открыто. Раньше отсутствующий reviews.json
+  // молча читался как «отзывов нет», а первая же запись создавала по
+  // старому пути новое пустое хранилище, и синхронизация разносила эту
+  // пустоту по всем устройствам. Теперь – понятная ошибка, и ничего не
+  // создаётся. Сам корень создаёт только ensure() при заведении
+  // хранилища (main.js).
+  async rootExists() {
+    try {
+      return (await fs.stat(this.root)).isDirectory();
+    } catch {
+      return false;
+    }
+  }
+
+  async assertRoot() {
+    if (!(await this.rootExists())) {
+      throw new Error(
+        `Папка с данными не найдена: ${this.root}. Её переименовали, переместили или отключили диск. Верните папку на место или выберите её заново в настройках («Приложение» → «Хранилища»).`
+      );
+    }
+  }
+
   async ensure() {
     for (const dir of ["", "covers", "covers-backup", "chars", ".history"]) {
       await fs.mkdir(path.join(this.root, dir), { recursive: true });
@@ -92,7 +116,10 @@ export class Vault {
       const raw = await fs.readFile(this.file(name), "utf8");
       return JSON.parse(raw);
     } catch (e) {
-      if (e.code === "ENOENT") return fallback;
+      if (e.code === "ENOENT") {
+        await this.assertRoot();
+        return fallback;
+      }
       // Битый JSON – отдельный случай, и молчать о нём нельзя: подсунуть
       // взамен пустой список значит предложить записать его поверх.
       if (e instanceof SyntaxError) {
@@ -105,6 +132,7 @@ export class Vault {
   }
 
   async writeJson(name, data) {
+    await this.assertRoot();
     await this.ensure();
     const target = this.file(name);
     await this.#archive(name, target);
@@ -254,6 +282,7 @@ export class Vault {
   // пор не видна ни в проводнике, ни в диалоге "Папка (источник)"
   // (тот читает список папок с диска, listImages() ниже).
   async ensureMediaFolder(base, sub) {
+    await this.assertRoot();
     await fs.mkdir(this.mediaDir(base, sub), { recursive: true });
     return true;
   }
@@ -267,6 +296,7 @@ export class Vault {
     // в имени файла: разделители пути и управляющие символы.
     const safeName = filename.replace(/[/\\:*?"<>|\x00-\x1f]/g, "_").slice(-80);
     const dir = this.mediaDir(base, sub);
+    await this.assertRoot();
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, safeName), buffer);
     return sub ? `/${base}/${sub}/${safeName}` : `/${base}/${safeName}`;
@@ -414,7 +444,13 @@ export class Vault {
       .filter(Boolean)
       .map((p) => this.#safeSegment(p));
     if (!parts.length) throw new Error("Пустой путь");
+    // Вторая линия защиты после restoreBackup (core/api.js): сюда пишутся
+    // только картинки и только внутри папки, не в корень хранилища.
+    if (parts.length < 2 || !/\.(png|jpe?g|webp|gif)$/i.test(parts[parts.length - 1])) {
+      throw new Error("Сюда можно записать только картинку в папке картинок");
+    }
     const target = path.join(this.root, ...parts);
+    await this.assertRoot();
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, Buffer.from(base64, "base64"));
   }

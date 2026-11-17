@@ -149,7 +149,7 @@
     const container = document.getElementById("fileTabs");
     if (!container) return;
     container.innerHTML = FILES.map(f => `
-      <button class="file-tab${f.path === currentPath ? " active" : ""}" onclick="selectBackupFile('${f.path}')">${f.label}</button>
+      <button class="file-tab${f.path === currentPath ? " active" : ""}" onclick="selectBackupFile(${jsArg(f.path)})">${esc(f.label)}</button>
     `).join("");
   }
 
@@ -195,7 +195,7 @@
     const head = `
       <div class="version-list-head">
         <span class="version-list-count">${i18n("Версий: {n}", { n: pastCount })}</span>
-        ${pastCount ? `<button class="btn-mini danger" onclick="clearFileHistory('${path}')" title="${esc(i18n("Стереть все прошлые версии этого файла целиком, независимо от возраста – не только старые"))}">${i18n("Удалить всю историю")}</button>` : ""}
+        ${pastCount ? `<button class="btn-mini danger" onclick="clearFileHistory(${jsArg(path)})" title="${esc(i18n("Стереть все прошлые версии этого файла целиком, независимо от возраста – не только старые"))}">${i18n("Удалить всю историю")}</button>` : ""}
       </div>`;
     // По дням: заголовок «13 ноября 2026» и в строках только время – раньше в
     // каждой из десятков строк повторялась дата целиком и одна и та же подпись
@@ -228,8 +228,8 @@
           ${msgHtml}
         </div>
         <div class="version-actions">
-          <button class="btn-mini" onclick="downloadBackupVersion('${path}','${v.sha}')">${i18n("⤓ Скачать")}</button>
-          ${isCurrent ? "" : `<button class="btn-mini danger" onclick="restoreBackupVersion('${path}','${v.sha}','${esc(dateStr).replace(/'/g, "\\'")}')">${i18n("↺ Восстановить")}</button>`}
+          <button class="btn-mini" onclick="downloadBackupVersion(${jsArg(path)},${jsArg(v.sha)})">${i18n("⤓ Скачать")}</button>
+          ${isCurrent ? "" : `<button class="btn-mini danger" onclick="restoreBackupVersion(${jsArg(path)},${jsArg(v.sha)},${jsArg(dateStr)})">${i18n("↺ Восстановить")}</button>`}
         </div>
       </div>`;
     }).join("");

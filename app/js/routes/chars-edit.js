@@ -463,11 +463,11 @@ function renderSidebar() {
   list.innerHTML = data
     .map(
       (t) => `
-    <div class="title-item${t.id === activeId ? " active" : ""}" draggable="true" data-title-id="${esc(t.id)}" onclick="selectTitle('${esc(t.id)}')">
+    <div class="title-item${t.id === activeId ? " active" : ""}" draggable="true" data-title-id="${esc(t.id)}" onclick="selectTitle(${jsArg(t.id)})">
       <img class="title-item-cover" src="${esc(t.cover || t.cover_backup || "")}" alt="" data-hide-on-error>
       <div class="title-item-name">${esc(t.title)}</div>
-      <button class="title-item-edit" onclick="openEditTitleForm(event,'${esc(t.id)}')" title="${i18n("Редактировать")}">✎</button>
-      <button class="title-item-del" onclick="deleteTitle(event,'${esc(t.id)}')" title="${i18n("Удалить")}">✕</button>
+      <button class="title-item-edit" onclick="openEditTitleForm(event,${jsArg(t.id)})" title="${i18n("Редактировать")}">✎</button>
+      <button class="title-item-del" onclick="deleteTitle(event,${jsArg(t.id)})" title="${i18n("Удалить")}">✕</button>
     </div>
   `
     )
@@ -888,13 +888,13 @@ function renderEditor() {
     title.tierlists
       .map(
         (l) =>
-          `<button class="list-tab${l.id === list?.id ? " active" : ""}" onclick="selectList('${esc(l.id)}')">${esc(l.label)}</button>`
+          `<button class="list-tab${l.id === list?.id ? " active" : ""}" onclick="selectList(${jsArg(l.id)})">${esc(l.label)}</button>`
       )
       .join("") +
     `<button class="list-tab list-tab-add" onclick="addList()">${i18n("Создать список")}</button>` +
     (list
-      ? `<button class="list-tab list-tab-edit" onclick="renameList('${esc(list.id)}')" title="${i18n("Переименовать список")}">✎</button>
-         <button class="list-tab list-tab-del" onclick="deleteList('${esc(list.id)}')" title="${i18n("Удалить список")}">✕</button>`
+      ? `<button class="list-tab list-tab-edit" onclick="renameList(${jsArg(list.id)})" title="${i18n("Переименовать список")}">✎</button>
+         <button class="list-tab list-tab-del" onclick="deleteList(${jsArg(list.id)})" title="${i18n("Удалить список")}">✕</button>`
       : "");
 
   const rows = (list?.tiers || []).map((tier, ti) => renderTierRow(title, list, tier, ti)).join("");
@@ -903,7 +903,7 @@ function renderEditor() {
     <div class="editor-top">
       <button class="editor-back-btn" onclick="closeMobileEditor()" title="${i18n("Назад к списку")}"><span class="arrow">&larr;</span></button>
       <div class="editor-title">${esc(title.title)}</div>
-      <button class="editor-edit-btn" onclick="openEditTitleForm(event,'${esc(title.id)}')" title="${i18n("Редактировать")}">✎</button>
+      <button class="editor-edit-btn" onclick="openEditTitleForm(event,${jsArg(title.id)})" title="${i18n("Редактировать")}">✎</button>
     </div>
     <div class="list-tabs">${tabs}</div>
     ${ceSizeSliderHtml()}
@@ -983,7 +983,7 @@ function renderTierRow(title, list, tier, ti) {
       data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}" data-char="${ci}">
       <img src="${esc(ch.img || ch.img_backup || "")}" alt="${esc(ch.name)}" style="height:${ceCharHeight}px" ${imgFallbackAttrs(ch.img, ch.img_backup, CHAR_PLACEHOLDER)}>
       <div class="char-card-name">${esc(ch.name)}</div>
-      <button class="char-card-del" onclick="deleteChar('${esc(title.id)}','${esc(list.id)}',${ti},${ci})">✕</button>
+      <button class="char-card-del" onclick="deleteChar(${jsArg(title.id)},${jsArg(list.id)},${ti},${ci})">✕</button>
     </div>
   `
     )
@@ -991,18 +991,18 @@ function renderTierRow(title, list, tier, ti) {
 
   return `
     <div class="tl-editor-row" data-list="${esc(list.id)}" data-tier="${ti}" style="--tl-color:${esc(tier.color)}">
-      <button class="tl-row-del" onclick="deleteTier('${esc(list.id)}',${ti})">✕</button>
+      <button class="tl-row-del" onclick="deleteTier(${jsArg(list.id)},${ti})">✕</button>
       <div class="tl-editor-label" draggable="true">
         <div class="tl-label-dot"></div>
         <input class="tl-label-input" type="text" value="${esc(tier.name)}"
           style="color:${esc(tier.color)}"
-          onchange="renameTier('${esc(list.id)}',${ti},this.value)">
+          onchange="renameTier(${jsArg(list.id)},${ti},this.value)">
         <input class="tl-color-input" type="color" value="${esc(tier.color)}"
-          oninput="recolorTier('${esc(list.id)}',${ti},this.value)">
+          oninput="recolorTier(${jsArg(list.id)},${ti},this.value)">
       </div>
       <div class="tl-editor-cards" data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}">
         ${chars}
-        <button class="add-char-btn" style="height:${ceCharHeight}px;width:${Math.round((ceCharHeight * 72) / 108)}px" onclick="openModal('${esc(title.id)}','${esc(list.id)}',${ti})">${i18n("Добавить")}</button>
+        <button class="add-char-btn" style="height:${ceCharHeight}px;width:${Math.round((ceCharHeight * 72) / 108)}px" onclick="openModal(${jsArg(title.id)},${jsArg(list.id)},${ti})">${i18n("Добавить")}</button>
       </div>
     </div>`;
 }

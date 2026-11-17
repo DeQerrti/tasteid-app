@@ -182,8 +182,8 @@ async function renderVaultsTrashList() {
             d: plural(daysLeft, [i18n("день"), i18n("дня"), i18n("дней")]),
           })
         )}</span>
-        <button class="btn btn-ghost" onclick="restoreVaultFromTrash('${v.id}')" data-i18n>Восстановить</button>
-        <button class="icon-btn" title="${i18n("Стереть навсегда")}" onclick="purgeVaultFromTrash('${v.id}')">✕</button>
+        <button class="btn btn-ghost" onclick="restoreVaultFromTrash(${jsArg(v.id)})" data-i18n>Восстановить</button>
+        <button class="icon-btn" title="${i18n("Стереть навсегда")}" onclick="purgeVaultFromTrash(${jsArg(v.id)})">✕</button>
       </div>`;
       })
       .join("");
@@ -236,12 +236,12 @@ function renderVaultsList() {
         ${
           v.id === currentId
             ? `<span class="vault-current"><span class="sync-dot" aria-hidden="true"></span><span data-i18n>текущее</span></span>`
-            : `<button class="btn btn-ghost" onclick="switchVault('${v.id}')" data-i18n>Открыть</button>`
+            : `<button class="btn btn-ghost" onclick="switchVault(${jsArg(v.id)})" data-i18n>Открыть</button>`
         }
-        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleVaultEdit('${v.id}')">✎</button>
+        <button class="icon-btn" title="${i18n("Переименовать")}" onclick="toggleVaultEdit(${jsArg(v.id)})">✎</button>
         ${
           v.id !== currentId
-            ? `<button class="icon-btn" title="${i18n("Удалить хранилище")}" onclick="removeVault('${v.id}')">✕</button>`
+            ? `<button class="icon-btn" title="${i18n("Удалить хранилище")}" onclick="removeVault(${jsArg(v.id)})">✕</button>`
             : ""
         }
       </div>

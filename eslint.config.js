@@ -134,6 +134,8 @@ const sharedBrowserGlobals = [
   "I18N_EN",
   "I18N_LANGS",
   "applyI18n",
+
+  "jsArg",
   "keyboardShortcutsHtml",
   "makeResizablePanel",
   "onAddFromPassportModalKey",

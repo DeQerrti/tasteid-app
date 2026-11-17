@@ -95,7 +95,11 @@ async function saveReview() {
     no_tags_on_card: noTagsOnCard,
   };
 
-  if (Object.keys(ids).length) review.ids = ids;
+  // null, а не «не присылать»: сервер теперь дополняет запись, а не
+  // заменяет её (saveReview в core/api.js), и отсутствующее поле значило
+  // бы «оставить старые номера» – номер, снятый новым поиском тайтла
+  // (edLookupLastIds в add-lookup.js), вернулся бы обратно.
+  review.ids = Object.keys(ids).length ? ids : null;
 
   if (editingId !== null) review._editId = editingId;
 

@@ -210,6 +210,57 @@ test("сохранение без поля progress не стирает счёт
   });
 });
 
+// Правка дополняет запись: поля, которых не знает присылающий экран
+// (старая версия приложения на телефоне, полный редактор), не пропадают.
+test("правка не стирает поля, о которых экран не знает; null стирает явно", async () => {
+  await withServer(async ({ api, base }) => {
+    const { data: added } = await api("POST", "/api/save-review", {
+      title: "Old",
+      type: "movie",
+      favorites: "Персонаж",
+      future_field: { a: 1 },
+      grade: "etalon",
+    });
+    await api("POST", "/api/save-review", {
+      title: "Old",
+      type: "movie",
+      grade: "fon",
+      _editId: added.id,
+    });
+    let [r] = await (await fetch(`${base}/reviews.json`)).json();
+    assert.equal(r.grade, "fon", "присланное поле обновилось");
+    assert.equal(r.favorites, "Персонаж", "незнакомое поле осталось");
+    assert.deepEqual(r.future_field, { a: 1 }, "поле новой версии осталось");
+    assert.equal(r.id, added.id);
+
+    await api("POST", "/api/save-review", { title: "Old", future_field: null, _editId: added.id });
+    [r] = await (await fetch(`${base}/reviews.json`)).json();
+    assert.equal(r.future_field, null, "явный null стирает");
+  });
+});
+
+// Папку хранилища переименовали или отключили диск, пока приложение
+// открыто: не «отзывов нет» и не новое пустое хранилище на старом месте.
+test("пропавшая папка хранилища – ошибка, а не пустой список и не новая папка", async () => {
+  await withServer(async ({ api, base, root }) => {
+    await api("POST", "/api/save-review", { title: "Dune", type: "movie" });
+    const moved = root + "-moved";
+    await fs.rename(root, moved);
+    try {
+      const get = await fetch(`${base}/reviews.json`);
+      assert.equal(get.status, 503, "чтение говорит, что папки нет");
+      const { status } = await api("POST", "/api/save-review", { title: "New", type: "movie" });
+      assert.ok(status >= 400, "запись отказывает");
+      await assert.rejects(fs.access(root), "папка по старому пути не создана заново");
+      const manifest = await api("GET", "/api/sync-manifest");
+      assert.ok(manifest.status >= 400, "синхронизация не получает пустые файлы");
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+      await fs.rename(moved, root);
+    }
+  });
+});
+
 test("удаление убирает запись, повторное сообщает об этом", async () => {
   await withServer(async ({ api }) => {
     const { data: added } = await api("POST", "/api/save-review", {
@@ -1453,6 +1504,42 @@ test("восстановление называет картинки, котор
     assert.equal(status, 200);
     assert.equal(data.images, 1);
     assert.deepEqual(data.failedImages, ["../наружу.webp"]);
+  });
+});
+
+// Подложенный в хранилище скрипт не должен подменять скрипт приложения:
+// раньше копия с «js/config.js» ложилась в хранилище, а хранилище
+// отдавалось раньше приложения – чужой код получал токен и весь API.
+test("резервная копия не может подложить скрипт или программу, хранилище отдаёт только картинки", async () => {
+  await withServer(async ({ api, base, root }) => {
+    const evilJs = Buffer.from("window.__evil = 1;").toString("base64");
+    const { status, data } = await api("POST", "/api/restore-backup", {
+      format: "tasteid-backup",
+      files: {},
+      images: {
+        "js/config.js": evilJs,
+        "evil.bat": evilJs,
+        "covers/page.html": evilJs,
+        "covers/ok.webp": "UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAA==",
+      },
+    });
+    assert.equal(status, 200);
+    assert.equal(data.images, 1, "записалась только картинка");
+    assert.deepEqual(data.failedImages.sort(), ["covers/page.html", "evil.bat", "js/config.js"]);
+    await assert.rejects(fs.access(path.join(root, "js", "config.js")));
+    await assert.rejects(fs.access(path.join(root, "evil.bat")));
+
+    // Даже если файл в хранилище оказался другим путём (чужая папка,
+    // открытая как хранилище), отдаётся настоящий скрипт приложения.
+    await fs.mkdir(path.join(root, "js"), { recursive: true });
+    await fs.writeFile(path.join(root, "js", "config.js"), "window.__evil = 1;");
+    const served = await (await fetch(`${base}/js/config.js`)).text();
+    assert.ok(!served.includes("__evil"), "отдан скрипт приложения, а не из хранилища");
+    await fs.writeFile(path.join(root, "covers", "page.html"), "<script>evil()</script>");
+    const page = await fetch(`${base}/covers/page.html`);
+    assert.ok(!(await page.text()).includes("evil()"), "не-картинка из хранилища не отдаётся");
+    const img = await fetch(`${base}/covers/ok.webp`);
+    assert.equal(img.status, 200, "картинка из хранилища по-прежнему отдаётся");
   });
 });
 

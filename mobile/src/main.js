@@ -433,6 +433,17 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+// Очередь записей – та же, что в electron/protocol.js (inQueue).
+let writeQueue = Promise.resolve();
+function inQueue(task) {
+  const result = writeQueue.then(task, task);
+  writeQueue = result.then(
+    () => {},
+    () => {}
+  );
+  return result;
+}
+
 async function handle(pathname, search, init) {
   const method = (init?.method || "GET").toUpperCase();
   const body = init?.body ? JSON.parse(init.body) : {};
@@ -451,9 +462,14 @@ async function handle(pathname, search, init) {
     if (!handler) return jsonResponse({ error: "Not Found" }, 404);
     try {
       const query = new URLSearchParams(search || "");
-      return jsonResponse(
-        (await handler({ vault, body, query, compressImage, malHttpGet })) || { ok: true }
-      );
+      const run = () => handler({ vault, body, query, compressImage, malHttpGet });
+      // Записи – строго по одной, как на компьютере (inQueue в
+      // electron/protocol.js). Каждая читает файл, правит и пишет обратно;
+      // две внахлёст читали одно и то же, и правка первой молча терялась:
+      // счётчик серий, дописанный при закрытии окна, + ♥ на другой
+      // карточке + забор синхронизации в ту же секунду – оставалась одна.
+      const result = method === "POST" ? await inQueue(run) : await run();
+      return jsonResponse(result || { ok: true });
     } catch (e) {
       return jsonResponse({ error: e.message }, e instanceof ApiError ? e.status : 500);
     }

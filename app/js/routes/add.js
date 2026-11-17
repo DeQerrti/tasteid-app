@@ -1014,7 +1014,7 @@ function renderCardTagsList() {
       const featured = featuredCardTags.has(tag);
       const disabled = atCap && !featured;
       return `<div class="card-tag-row ${featured ? "selected" : ""} ${disabled ? "disabled" : ""}"
-        onclick="toggleCardTagFeatured('${esc(tag)}')">
+        onclick="toggleCardTagFeatured(${jsArg(tag)})">
       <span class="tm-row-check"></span>
       <span class="card-tag-row-name">${esc(tag)}</span>
     </div>`;

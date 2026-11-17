@@ -73,10 +73,10 @@ function renderTypeDropdown(n) {
   const options = Object.entries(SOURCE_LABELS)
     .map(([key, label]) => {
       return `
-    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSourceType(${n}, '${key}')">
+    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSourceType(${n}, ${jsArg(key)})">
       <span class="src-type-option-label">${esc(label)}</span>
-      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSourceType(${n}, '${key}')">✎</span>
-      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType('${key}')">✕</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSourceType(${n}, ${jsArg(key)})">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSourceType(${jsArg(key)})">✕</span>
     </div>`;
     })
     .join("");

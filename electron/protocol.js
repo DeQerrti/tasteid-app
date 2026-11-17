@@ -38,7 +38,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ROUTES, ApiError } from "../core/api.js";
-import { MIME, VAULT_FILES, VAULT_DIRS, resolveInside } from "./server.js";
+import { MIME, VAULT_FILES, isVaultMediaPath, resolveInside } from "./server.js";
 import { compressImage } from "./image.js";
 
 export const SCHEME = "app";
@@ -199,13 +199,19 @@ export function createHandler({
       const vault = getVault();
 
       // ── Данные и картинки – из хранилища ──
-      if (vault && (VAULT_FILES.test(pathname) || VAULT_DIRS.test(pathname))) {
+      if (vault && (VAULT_FILES.test(pathname) || isVaultMediaPath(pathname, appDir))) {
         const target = resolveInside(vault.root, pathname);
         if (target) {
           const res = await serveFile(target, { store: false, lang });
           if (res) return res;
         }
         if (VAULT_FILES.test(pathname)) {
+          // Файла нет – это первый запуск, а не ошибка. Но если нет самой
+          // папки хранилища, пустой список – неправда, которую потом
+          // запишут поверх (см. assertRoot в vault.js).
+          if (vault.rootExists && !(await vault.rootExists())) {
+            return json({ error: "Папка с данными не найдена" }, { status: 503 });
+          }
           return json(pathname.includes("site-settings") ? {} : []);
         }
       }

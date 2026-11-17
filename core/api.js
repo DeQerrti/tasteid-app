@@ -160,22 +160,17 @@ async function saveReview({ vault, body }) {
   if (editId !== undefined && editId !== null) {
     const idx = list.findIndex((r) => String(r.id) === String(editId) || r.title === editId);
     if (idx === -1) throw new ApiError(`Отзыв с id «${editId}» не найден`, 404);
-    if (list[idx].fav_order !== undefined && review.fav_order === undefined) {
-      review.fav_order = list[idx].fav_order;
-    }
-    // Счётчик сезонов/серий и томов/глав (app/js/progress.js) правится
-    // прямо в окне отзыва, а полный редактор (routes/add-save.js) собирает
-    // запись заново из полей формы и этого поля не знает – без переноса
-    // любое сохранение в редакторе молча обнуляло бы счётчик. Стереть его
-    // по-прежнему можно: прислать progress: null.
-    if (
-      list[idx].progress !== undefined &&
-      !Object.prototype.hasOwnProperty.call(review, "progress")
-    ) {
-      review.progress = list[idx].progress;
-    }
-    if (list[idx].id !== undefined) review.id = list[idx].id;
-    list[idx] = review;
+    // Правка ДОПОЛНЯЕТ запись, а не заменяет её целиком: поле, которого нет
+    // в запросе, остаётся как было. Раньше запись заменялась, и всё, чего
+    // не знал присылающий экран, молча пропадало: полный редактор
+    // (routes/add-save.js) собирает запись из полей формы и не знает ни
+    // счётчика серий (progress), ни порядка в «Любимом» (fav_order), ни
+    // старого поля favorites; старая версия приложения на телефоне не знает
+    // полей новой. Стереть поле можно явно – прислать его со значением null.
+    const merged = { ...list[idx], ...review };
+    if (list[idx].id !== undefined) merged.id = list[idx].id;
+    list[idx] = merged;
+    review.id = merged.id;
   } else {
     review.id = list.reduce((m, r) => Math.max(m, r.id ?? 0), 0) + 1;
     list.unshift(review);
@@ -1368,12 +1363,19 @@ async function restoreBackup({ vault, body }) {
   const failedImages = [];
   if (hasImages) {
     for (const [relPath, base64] of Object.entries(images)) {
-      if (typeof base64 !== "string" || !base64) {
+      // Только картинка и только в папке картинок – тот же шаблон, что у
+      // чтения (READABLE_MEDIA_PATH ниже). Раньше записывался любой путь
+      // с любым расширением: копия с «js/config.js» подменяла скрипт
+      // приложения (см. isVaultMediaPath в electron/server.js), с «x.bat» –
+      // клала программу в папку. Через этот же маршрут пишет и
+      // синхронизация, так что она тоже под этой проверкой.
+      const cleanPath = String(relPath).replace(/^\/+/, "");
+      if (typeof base64 !== "string" || !base64 || !READABLE_MEDIA_PATH.test(cleanPath)) {
         failedImages.push(relPath);
         continue;
       }
       try {
-        await vault.writeMedia(relPath, base64);
+        await vault.writeMedia(cleanPath, base64);
         restoredImages++;
       } catch {
         // см. комментарий выше

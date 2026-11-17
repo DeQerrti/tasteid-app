@@ -45,10 +45,10 @@ function renderStatusPickerDropdown() {
   const options = statusOptions()
     .map(
       (o) => `
-    <div class="src-type-option${o.key === current ? " active" : ""}" data-status-key="${esc(o.key)}" onclick="selectStatusPicker('${esc(o.key)}')">
+    <div class="src-type-option${o.key === current ? " active" : ""}" data-status-key="${esc(o.key)}" onclick="selectStatusPicker(${jsArg(o.key)})">
       <span class="src-type-option-label">${esc(o.label)}</span>
-      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameStatusPicker('${esc(o.key)}')">✎</span>
-      ${o.key !== "completed" ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeStatusPicker('${esc(o.key)}')">✕</span>` : ""}
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameStatusPicker(${jsArg(o.key)})">✎</span>
+      ${o.key !== "completed" ? `<span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeStatusPicker(${jsArg(o.key)})">✕</span>` : ""}
     </div>`
     )
     .join("");

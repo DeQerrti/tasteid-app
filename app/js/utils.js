@@ -19,6 +19,18 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+// Значение как аргумент функции внутри onclick="…" / onchange="…".
+// esc() здесь НЕ защищает: браузер раскодирует &#39; обратно в ' ДО того,
+// как выполнить код атрибута, – и onclick="f(${jsArg(x)})" с тегом
+// «Rock'n'roll» ломал клик, а со специально составленным (из чужой
+// резервной копии или синхронизации) выполнял чужой код. JSON.stringify
+// даёт настоящую строку JS со своими экранами, esc поверх – чтобы она
+// не вырвалась из самого атрибута. Писать без кавычек вокруг:
+// onclick="f(${jsArg(x)})".
+function jsArg(value) {
+  return esc(JSON.stringify(String(value ?? "")));
+}
+
 // ── Даты без сдвига на часовой пояс ────────────
 // Даты в отзывах – просто «ГГГГ-ММ-ДД», без времени. Две грабли:
 //
@@ -1090,7 +1102,7 @@ function keyboardShortcutsHtml(editable) {
         ? `<span class="kbd">${esc(s.keys[0])}</span>–<span class="kbd">${esc(s.keys[1])}</span>`
         : s.keys.map((k) => `<span class="kbd">${esc(k)}</span>`).join("");
       const editBtn = editable && s.action
-        ? `<button type="button" class="btn-mini" data-rebind="${s.action}" onclick="startRebindShortcut('${s.action}', this)">${i18n("Изменить")}</button>`
+        ? `<button type="button" class="btn-mini" data-rebind="${s.action}" onclick="startRebindShortcut(${jsArg(s.action)}, this)">${i18n("Изменить")}</button>`
         : "";
       return `<div class="shortcut-row${s.fixed ? " shortcut-fixed" : ""}"><span class="shortcut-keys">${keys}</span><span class="shortcut-desc">${esc(s.desc)}</span>${editBtn}</div>`;
     })
@@ -1206,13 +1218,13 @@ function tabSwitchBindingsHtml() {
         ? `<span class="shortcut-note">${esc(i18n("по умолчанию"))}</span>`
         : `<span class="shortcut-note">${esc(i18n(pos < 0 && visible.length ? "вкладка скрыта" : "не задано"))}</span>`;
     const clearBtn = b
-      ? `<button type="button" class="btn-mini" onclick="clearTabKeyBinding('${id}')">${i18n("Очистить")}</button>`
+      ? `<button type="button" class="btn-mini" onclick="clearTabKeyBinding(${jsArg(id)})">${i18n("Очистить")}</button>`
       : "";
     return `<div class="shortcut-row">
       <span class="shortcut-keys">${current}</span>
       <span class="shortcut-desc">${esc(label)}</span>
       ${note}
-      <button type="button" class="btn-mini" data-rebind-tab="${id}" onclick="startRebindTabKey('${id}', this)">${i18n("Изменить")}</button>
+      <button type="button" class="btn-mini" data-rebind-tab="${id}" onclick="startRebindTabKey(${jsArg(id)}, this)">${i18n("Изменить")}</button>
       ${clearBtn}
     </div>`;
   }).join("");

@@ -344,10 +344,10 @@ function renderSubtypePickerDropdown() {
   const options = Object.entries(SUBTYPE_LABELS)
     .map(
       ([key, label]) => `
-    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSubtypePicker('${key}')">
+    <div class="src-type-option${key === current ? " active" : ""}" data-type-key="${esc(key)}" onclick="selectSubtypePicker(${jsArg(key)})">
       <span class="src-type-option-label">${esc(label)}</span>
-      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSubtypePicker('${key}')">✎</span>
-      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSubtypePicker('${key}')">✕</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameSubtypePicker(${jsArg(key)})">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeSubtypePicker(${jsArg(key)})">✕</span>
     </div>`
     )
     .join("");
@@ -579,10 +579,10 @@ function renderFavTypePickerDropdown() {
   const options = items
     .map(
       ({ id, label }) => `
-    <div class="src-type-option${id === current ? " active" : ""}" data-type-key="${esc(id)}" onclick="selectFavTypePicker('${id}')">
+    <div class="src-type-option${id === current ? " active" : ""}" data-type-key="${esc(id)}" onclick="selectFavTypePicker(${jsArg(id)})">
       <span class="src-type-option-label">${esc(label)}</span>
-      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameFavTypePicker('${id}')">✎</span>
-      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeFavTypePicker('${id}')">✕</span>
+      <span class="icon-btn src-type-rename" title="${i18n("Переименовать")}" onclick="event.stopPropagation(); startRenameFavTypePicker(${jsArg(id)})">✎</span>
+      <span class="icon-btn src-type-remove" title="${i18n("Удалить")}" onclick="event.stopPropagation(); removeFavTypePicker(${jsArg(id)})">✕</span>
     </div>`
     )
     .join("");
@@ -1095,7 +1095,7 @@ function renderLinkedFavoriteGroups() {
       (g) => `
     <h2 class="section-title">${esc(g.label)}</h2>
     <div id="linked-fav-list-${esc(g.id)}" class="linked-titles-list"></div>
-    <button type="button" class="btn btn-ghost" onclick="openFavoriteLinkSearch('${esc(g.id)}')">${esc(g.addLabel)}</button>
+    <button type="button" class="btn btn-ghost" onclick="openFavoriteLinkSearch(${jsArg(g.id)})">${esc(g.addLabel)}</button>
   `
     )
     .join("");

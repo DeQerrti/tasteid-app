@@ -420,6 +420,11 @@ export class MobileVault {
       .filter(Boolean)
       .map((p) => this.#safeSegment(p));
     if (!parts.length) throw new Error("Пустой путь");
+    // Только картинки и только в папке – как и на компьютере (см.
+    // writeMedia в electron/vault.js и restoreBackup в core/api.js).
+    if (parts.length < 2 || !/\.(png|jpe?g|webp|gif)$/i.test(parts[parts.length - 1])) {
+      throw new Error("Сюда можно записать только картинку в папке картинок");
+    }
     const dir = parts.slice(0, -1).join("/");
     if (dir) await mkdirp(this.#path(dir));
     await Filesystem.writeFile({
