@@ -637,6 +637,61 @@ function parsePulledJson(path, base64) {
   }
 }
 
+// Пустой ли файл данных: [] / {} / ничего. Пустота – самое опасное, что
+// синхронизация может разнести по устройствам: так выглядит и файл,
+// которого на этом устройстве ещё нет (новый телефон, раздел тир-листа,
+// заведённый на другом устройстве), и файл, который здесь потеряли.
+function isEmptyJsonValue(v) {
+  if (v === null || v === undefined) return true;
+  if (Array.isArray(v)) return v.length === 0;
+  return typeof v === "object" && Object.keys(v).length === 0;
+}
+
+function isEmptyRemoteJson(base64) {
+  try {
+    return isEmptyJsonValue(JSON.parse(base64ToText(base64)));
+  } catch {
+    return false; // не разобрался – не считаем пустым, пусть решает человек
+  }
+}
+
+// Файл данных здесь пустой. Обычная логика (syncOne) отправила бы эту
+// пустоту в репозиторий – и затёрла бы данные на всех устройствах:
+//   – первое подключение нового устройства: записи о файле ещё нет, и
+//     обе стороны считались «изменёнными» – выходил конфликт, где
+//     «Оставить моё» отправляло [] в облако;
+//   – reviews.json пропал с диска (удалили, антивирус, OneDrive): он
+//     читался как [], считался «изменённым только здесь» и через
+//     несколько секунд автосинхронизация отправляла пустоту без вопроса.
+// Правило: пустое с этой стороны никогда не уезжает само поверх
+// непустого. Файл здесь ни разу не синхронизировался – молча берём
+// версию из репозитория. Синхронизировался, а теперь пуст – это
+// конфликт, решает человек (и подтверждает, если выбирает «моё»).
+async function syncEmptyLocalFile(config, path, localBase64, entry, remoteTree) {
+  const localHash = await contentHash(localBase64);
+  const remoteSha = remoteTree ? remoteTree.get(path) : undefined;
+  const remote = remoteTree && remoteSha === undefined ? null : await getRemoteFile(config, path, remoteSha);
+  if (!remote || isEmptyRemoteJson(remote.base64)) {
+    // В репозитории тоже пусто или файла нет – терять нечего.
+    return syncOne(config, path, localBase64, entry, remoteTree);
+  }
+  if (!entry) return { action: "pull", base64: remote.base64, sha: remote.sha };
+  if (entry.hash === localHash) {
+    // Здесь не менялось с прошлого раза (было пусто и тогда) – значит,
+    // поменялось там: обычный забор.
+    return { action: "pull", base64: remote.base64, sha: remote.sha };
+  }
+  return { action: "conflict", localBase64, remote, localHash, localEmpty: true };
+}
+
+// Сколько картинок синхронизация может удалить «как удалённые на другом
+// устройстве» за один раз без вопроса. Больше – почти наверняка не
+// удаление, а сбой: пересоздали репозиторий, сменили ветку, GitHub
+// отдал неполный ответ. Раньше в таком случае удалялись все картинки
+// устройства (на телефоне – навсегда, мимо корзины).
+const SYNC_MASS_DELETE_MIN = 10;
+const SYNC_MASS_DELETE_SHARE = 0.25;
+
 // Забранные картинки пишутся пачками примерно такого размера (в
 // символах base64), а не одним запросом на всё: у сервера на компьютере
 // предел тела запроса 64 МБ (electron/protocol.js), и первая
@@ -899,12 +954,26 @@ async function runSync(config, onProgress) {
     unreadable: [],
   };
 
+  // В репозитории нет НИ ОДНОГО файла из тех, что это устройство с ним
+  // уже синхронизировало: его пересоздали (пустым или с одним README),
+  // очистили или подключили другой. По старым записям всё выглядело бы
+  // «удалённым на другом устройстве» – и картинки удалились бы здесь
+  // (на телефоне – навсегда). Вместо этого забываем прошлое состояние:
+  // данные этого устройства просто уедут в репозиторий заново.
+  const knownPaths = [...Object.keys(state.files), ...Object.keys(state.images)];
+  if (remoteTree && knownPaths.length && !knownPaths.some((p) => remoteTree.has(p))) {
+    state.files = {};
+    state.images = {};
+    result.repoReset = true;
+  }
+
   const localImages = manifest.images || {};
   const items = [
     ...Object.entries(manifest.files || {}).map(([path, value]) => ({
       kind: "files",
       path,
       base64: textToBase64(JSON.stringify(value, null, 2)),
+      empty: isEmptyJsonValue(value),
     })),
     ...Object.entries(localImages).map(([path, stat]) => ({ kind: "images", path, stat })),
   ];
@@ -963,6 +1032,8 @@ async function runSync(config, onProgress) {
 
   // Забранные файлы данных – отдельно и в самом конце, см. ниже.
   const pulledFilesPending = [];
+  // Удаления «удалённого на другом устройстве» – см. проверку после цикла.
+  const pendingDeletes = [];
 
   try {
     let done = 0;
@@ -1008,7 +1079,10 @@ async function runSync(config, onProgress) {
             continue;
           }
         }
-        outcome = await syncOne(config, item.path, base64, entry, remoteTree);
+        outcome =
+          item.kind === "files" && item.empty
+            ? await syncEmptyLocalFile(config, item.path, base64, entry, remoteTree)
+            : await syncOne(config, item.path, base64, entry, remoteTree);
       }
 
       if (outcome.action === "none") {
@@ -1042,6 +1116,21 @@ async function runSync(config, onProgress) {
       } else if (outcome.action === "delete") {
         // См. её же комментарий у syncOne/syncOneByFetch выше – удалили
         // на другом устройстве, а здесь файл ещё физически лежал.
+        // Удаляем после цикла – сперва проверить, не массовое ли это.
+        pendingDeletes.push(item);
+      }
+    }
+
+    const knownImages = Object.keys(state.images).length;
+    if (
+      pendingDeletes.length >= SYNC_MASS_DELETE_MIN &&
+      pendingDeletes.length > knownImages * SYNC_MASS_DELETE_SHARE
+    ) {
+      // Состояние не трогаем: в следующий раз проверка повторится, а
+      // человек увидит предупреждение и сможет разобраться.
+      result.blockedDeletes = pendingDeletes.length;
+    } else {
+      for (const item of pendingDeletes) {
         await deleteLocalMedia(item.path);
         delete state[item.kind][item.path];
         result.deletedLocally++;
@@ -1254,6 +1343,10 @@ if (typeof document !== "undefined") {
 // телефоне у Android нет надёжного «перед закрытием», это только для
 // компьютера.
 window.__syncBeforeQuit = async () => {
+  // Счётчик серий/глав пишется с задержкой в секунду (progress.js) –
+  // закрыли приложение сразу после «+1», и правка не успевала ни на
+  // диск, ни в синхронизацию ниже.
+  if (typeof progressFlush === "function") await progressFlush();
   clearTimeout(autoSyncTimer);
   await runAutoSync();
 };

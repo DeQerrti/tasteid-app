@@ -285,7 +285,10 @@ async function importReviews({ vault, body }) {
       // оценку.
       if (item.status) existing.status = item.status;
       if (item.grade) existing.grade = item.grade;
-      existing.rewatch_count = item.rewatch_count;
+      // Пересмотры – тоже только когда выгрузка их правда знает (больше 0):
+      // у Letterboxd/IMDb/StoryGraph такого поля нет вовсе, приходил 0,
+      // и «перезаписать» обнуляло свои пересмотры у всех совпавших записей.
+      if (item.rewatch_count > 0) existing.rewatch_count = item.rewatch_count;
       if (item.date_start) existing.date_start = item.date_start;
       if (item.date_end) existing.date_end = item.date_end;
       existing.ids = { ...(existing.ids || {}), ...item.ids };

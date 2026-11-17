@@ -1551,14 +1551,16 @@ test("импорт с перезаписью не стирает свою оце
       year: "2021",
       status: "completed",
       grade: "etalon",
+      rewatch_count: 3,
     });
     await api("POST", "/api/import-reviews", {
       overwrite: true,
-      items: [{ title: "Dune", type: "movie", year: "2021" }],
+      items: [{ title: "Dune", type: "movie", year: "2021", rewatch_count: 0 }],
     });
     const list = await (await fetch(`${base}/reviews.json`)).json();
     assert.equal(list[0].grade, "etalon", "оценка осталась");
     assert.equal(list[0].status, "completed", "статус остался");
+    assert.equal(list[0].rewatch_count, 3, "пересмотры не обнулились");
   });
 });
 

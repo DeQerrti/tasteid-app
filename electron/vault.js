@@ -32,12 +32,17 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { isAllowedFile, historyDate, isDotSegment } from "../core/files.js";
+import {
+  isAllowedFile,
+  historyDate,
+  isDotSegment,
+  compareHistoryNames,
+  historyToRemove,
+} from "../core/files.js";
 
 // Сколько версий держим на файл. Пятьдесят сохранений – это заведомо
 // больше, чем успеваешь наделать за один заход, а места они занимают
 // столько же, сколько сам файл, то есть считанные мегабайты.
-const HISTORY_LIMIT = 50;
 
 // Счётчик для имён временных файлов – см. writeJson.
 let writeCounter = 0;
@@ -135,9 +140,9 @@ export class Vault {
     await this.assertRoot();
     await this.ensure();
     const target = this.file(name);
-    await this.#archive(name, target);
-
     const body = JSON.stringify(data, null, 2) + "\n";
+    const slot = await this.#archive(name, target, body);
+
     // Имя временного файла уникально на каждую запись. Раньше оно
     // складывалось из имени файла и номера процесса, то есть у двух
     // одновременных сохранений совпадало: обе писали в один и тот же
@@ -149,19 +154,28 @@ export class Vault {
       await fs.rename(tmp, target);
     } catch (e) {
       await fs.rm(tmp, { force: true });
+      // Запись не удалась (нет прав, диск полон, файл занят) – версия,
+      // положенная в историю перед ней, ничего не сохраняет, а место в
+      // истории занимает: пятьдесят неудачных попыток вытеснили бы её всю.
+      if (slot) await fs.rm(slot, { force: true });
       throw e;
     }
     return data;
   }
 
-  // Прошлая версия – в .history/<файл>/<время>.json, старые подчищаются.
-  async #archive(name, target) {
+  // Прошлая версия – в .history/<файл>/<время>.json, старые подчищаются
+  // (какие оставить – historyToRemove в core/files.js). Возвращает путь
+  // положенной версии – чтобы убрать её, если сама запись не удастся.
+  async #archive(name, target, nextBody) {
     let previous;
     try {
       previous = await fs.readFile(target);
     } catch {
-      return; // первого сохранения архивировать нечего
+      return null; // первого сохранения архивировать нечего
     }
+    // Содержимое не меняется – новая версия была бы копией текущей и
+    // только вытесняла бы из истории настоящие прошлые состояния.
+    if (nextBody !== undefined && previous.toString("utf8") === nextBody) return null;
     const dir = path.join(this.root, ".history", name);
     await fs.mkdir(dir, { recursive: true });
 
@@ -182,10 +196,10 @@ export class Vault {
       }
     }
 
-    const kept = (await fs.readdir(dir)).sort();
-    for (const old of kept.slice(0, Math.max(0, kept.length - HISTORY_LIMIT))) {
+    for (const old of historyToRemove(await fs.readdir(dir))) {
       await fs.rm(path.join(dir, old), { force: true });
     }
+    return slot;
   }
 
   async history(name) {
@@ -199,7 +213,7 @@ export class Vault {
     }
     return entries
       .filter((f) => f.endsWith(".json"))
-      .sort()
+      .sort(compareHistoryNames)
       .reverse()
       .map((f) => ({
         id: f.replace(/\.json$/, ""),
@@ -226,6 +240,7 @@ export class Vault {
   // Имя файла версии – и есть её дата (см. history()), читать stat()
   // незачем и на телефоне так же надёжно не вышло бы.
   async pruneHistoryByAge(maxAgeDays) {
+    const HISTORY_KEEP_BY_AGE = 10;
     if (!maxAgeDays) return { removed: 0 };
     const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
     const root = path.join(this.root, ".history");
@@ -239,7 +254,10 @@ export class Vault {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const versions = await this.history(entry.name).catch(() => []);
-      for (const v of versions) {
+      // Последние HISTORY_KEEP_BY_AGE версий не трогаем при любом возрасте:
+      // не открывали приложение месяц при «хранить неделю» – и раньше
+      // история файла пустела целиком.
+      for (const v of versions.slice(HISTORY_KEEP_BY_AGE)) {
         const t = Date.parse(v.date);
         if (Number.isNaN(t) || t >= cutoff) continue;
         await fs.rm(path.join(root, entry.name, `${v.id}.json`), { force: true }).catch(() => {});

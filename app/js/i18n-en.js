@@ -1924,3 +1924,14 @@ i18nRegister({
   "Последнее на сегодня": "Latest so far",
   "Не удалось создать картинку 😢": "Couldn't create the image 😢",
 });
+
+// ── Защита синхронизации (sync.js, settings-sync.js) ──
+i18nRegister({
+  "В репозитории не хватает {n} картинок, которые есть здесь. Удалять их отсюда не стали – похоже на сбой, а не на удаление. Если вы правда удаляли их на другом устройстве, удалите и здесь вручную.":
+    "{n} images that exist here are missing from the repository. They were not deleted here – it looks like a glitch rather than a deletion. If you really deleted them on another device, delete them here manually.",
+  "На этом устройстве «{path}» пустой, а в репозитории в нём есть данные. Если оставить пустой, данные пропадут на всех устройствах. Точно оставить пустой?":
+    "“{path}” is empty on this device, but the repository has data in it. Keeping the empty one will erase that data on all devices. Keep the empty one anyway?",
+  "Оставить пустой": "Keep empty",
+  "Репозиторий был пуст – данные этого устройства отправлены в него заново.":
+    "The repository was empty – this device's data was uploaded to it again.",
+});

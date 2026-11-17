@@ -23,10 +23,15 @@
 // ══════════════════════════════════════════════
 
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
-import { isAllowedFile, historyDate, isDotSegment } from "../../core/files.js";
+import {
+  isAllowedFile,
+  historyDate,
+  isDotSegment,
+  compareHistoryNames,
+  historyToRemove,
+} from "../../core/files.js";
 
 const DIR = Directory.Data;
-const HISTORY_LIMIT = 50;
 
 // Папка внутри данных приложения. Не корень: рядом лежит служебное
 // хозяйство самого Capacitor, и мешать с ним хранилища незачем.
@@ -171,7 +176,7 @@ export class MobileVault {
   async writeJson(name, data) {
     await this.ensure();
     const target = this.#file(name);
-    await this.#archive(name, target);
+    await this.#archive(name, target, JSON.stringify(data, null, 2) + "\n");
 
     await Filesystem.writeFile({
       path: target,
@@ -184,7 +189,7 @@ export class MobileVault {
   }
 
   // Прошлая версия – в .history/<файл>/<время>.json, старые подчищаются.
-  async #archive(name, target) {
+  async #archive(name, target, nextBody) {
     let previous;
     try {
       const res = await Filesystem.readFile({
@@ -196,6 +201,10 @@ export class MobileVault {
     } catch {
       return; // первого сохранения архивировать нечего
     }
+
+    // Содержимое не меняется – копия текущей в истории не нужна (см. то
+    // же место в electron/vault.js).
+    if (nextBody !== undefined && previous === nextBody) return;
 
     const dir = this.#path(".history", name);
     await mkdirp(dir);
@@ -216,8 +225,7 @@ export class MobileVault {
       recursive: true,
     });
 
-    const kept = [...taken, slot].sort();
-    for (const old of kept.slice(0, Math.max(0, kept.length - HISTORY_LIMIT))) {
+    for (const old of historyToRemove([...taken, slot])) {
       await Filesystem.deleteFile({ path: `${dir}/${old}`, directory: DIR }).catch(() => {});
     }
   }
@@ -236,7 +244,7 @@ export class MobileVault {
     const entries = await this.#list(this.#path(".history", name));
     return entries
       .filter((f) => f.endsWith(".json"))
-      .sort()
+      .sort(compareHistoryNames)
       .reverse()
       .map((f) => ({
         id: f.replace(/\.json$/, ""),
@@ -286,7 +294,9 @@ export class MobileVault {
     let removed = 0;
     for (const name of dirs) {
       const versions = await this.history(name).catch(() => []);
-      for (const v of versions) {
+      // Последние 10 версий – при любом возрасте (см. то же место в
+      // electron/vault.js).
+      for (const v of versions.slice(10)) {
         const t = Date.parse(v.date);
         if (Number.isNaN(t) || t >= cutoff) continue;
         await Filesystem.deleteFile({ path: `${root}/${name}/${v.id}.json`, directory: DIR }).catch(

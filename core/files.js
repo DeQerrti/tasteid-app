@@ -68,3 +68,44 @@ export function historyDate(fileName) {
 export function isDotSegment(name) {
   return String(name).replace(/[. ]+$/, "") === "";
 }
+
+// ── Какие версии истории оставить ───────────────
+// Порядок версий: по времени из имени, а при совпадении – по номеру
+// «-1», «-2». Простая сортировка строк ставила «…Z-1.json» РАНЬШЕ
+// «…Z.json» (дефис меньше точки), и при чистке удалялась не та.
+function historyKey(fileName) {
+  const m = /^(.*?)(?:-(\d+))?\.json$/.exec(fileName);
+  const stamp = m ? m[1] : fileName;
+  return { time: Date.parse(historyDate(fileName)) || 0, n: m && m[2] ? Number(m[2]) : 0, stamp };
+}
+
+export function compareHistoryNames(a, b) {
+  const ka = historyKey(a);
+  const kb = historyKey(b);
+  return ka.time - kb.time || ka.n - kb.n || (a < b ? -1 : a > b ? 1 : 0);
+}
+
+// Сколько версий держать и какие. Раньше – просто 50 последних, и любая
+// серия быстрых сохранений их вытесняла: импорт с AniList (по записи на
+// каждого персонажа и каждое ♥), вечер с «+1» на счётчике серий. Версия
+// «до импорта» пропадала, и откатить неудачный импорт было нечем.
+//
+// Теперь: последние HISTORY_RECENT – всегда; из более старых – только
+// «устоявшиеся» состояния, после которых HISTORY_SETTLE_MS ничего не
+// менялось (то есть то, что было перед очередной серией правок), пока
+// всего не наберётся HISTORY_LIMIT. Места на диске столько же, но в
+// истории остаются точки, к которым правда хочется вернуться.
+export const HISTORY_LIMIT = 50;
+const HISTORY_RECENT = 30;
+const HISTORY_SETTLE_MS = 10 * 60 * 1000;
+
+export function historyToRemove(names, limit = HISTORY_LIMIT) {
+  const sorted = names.filter((n) => n.endsWith(".json")).sort(compareHistoryNames);
+  if (sorted.length <= limit) return [];
+  const keep = new Set(sorted.slice(-Math.min(HISTORY_RECENT, limit)));
+  for (let i = sorted.length - keep.size - 1; i >= 0 && keep.size < limit; i--) {
+    const gap = historyKey(sorted[i + 1]).time - historyKey(sorted[i]).time;
+    if (gap >= HISTORY_SETTLE_MS) keep.add(sorted[i]);
+  }
+  return sorted.filter((n) => !keep.has(n));
+}
