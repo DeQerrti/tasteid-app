@@ -448,6 +448,10 @@ async function exportBackup() {
   }
 }
 
+// Сколько base64 картинок отправлять одним запросом при восстановлении –
+// с большим запасом до предела 64 МБ (см. комментарий в restoreBackup).
+const RESTORE_IMAGE_BATCH_CHARS = 8 * 1024 * 1024;
+
 async function restoreBackup(input) {
   const file = input.files?.[0];
   input.value = ""; // тот же файл ещё раз выбрать иначе не получится – onchange не сработает
@@ -472,14 +476,67 @@ async function restoreBackup(input) {
     } catch {
       throw new Error(i18n("Это не похоже на файл резервной копии – внутри не JSON."));
     }
-    const res = await fetch("/api/restore-backup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const result = await res.json();
-    if (!res.ok || result.error) throw new Error(result.error || `Ошибка ${res.status}`);
+    // По частям: сперва файлы данных, потом картинки пачками примерно по
+    // RESTORE_IMAGE_BATCH_CHARS. Раньше вся копия уходила одним запросом,
+    // а у приложения на компьютере предел тела запроса 64 МБ
+    // (electron/protocol.js) – копию с картинками крупнее (а это обычный
+    // перенос с телефона на ПК) восстановить было нельзя вовсе. Тот же
+    // приём уже у синхронизации (SYNC_IMAGE_BATCH_CHARS в js/sync.js).
+    const post = async (body) => {
+      const res = await fetch("/api/restore-backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || `Ошибка ${res.status}`);
+      return result;
+    };
+    const format = data?.format;
+    const images = data?.images && typeof data.images === "object" ? data.images : {};
+    const imagePaths = Object.keys(images);
+    if (data?.files && Object.keys(data.files).length) {
+      await post({ format, files: data.files });
+    } else if (!imagePaths.length) {
+      await post(data); // пустая или чужая копия – пусть сервер скажет, что с ней не так
+    }
+    const failed = [];
+    let batch = {};
+    let chars = 0;
+    let done = 0;
+    const flush = async () => {
+      if (!Object.keys(batch).length) return;
+      const result = await post({ format, files: {}, images: batch });
+      failed.push(...(result.failedImages || []));
+      done += Object.keys(batch).length;
+      flashStatus(
+        "status-backup",
+        true,
+        i18n("Восстанавливаем картинки: {done} из {total}…", { done, total: imagePaths.length })
+      );
+      batch = {};
+      chars = 0;
+    };
+    for (const path of imagePaths) {
+      batch[path] = images[path];
+      chars += String(images[path] || "").length;
+      if (chars >= RESTORE_IMAGE_BATCH_CHARS) await flush();
+    }
+    await flush();
 
+    if (failed.length) {
+      // Имена – иначе с «не записалось» ничего не сделать.
+      flashStatus(
+        "status-backup",
+        false,
+        i18n("Восстановлено, но не записались картинки ({n}): {list}. Обновляем страницу…", {
+          n: failed.length,
+          list: failed.slice(0, 3).join(", ") + (failed.length > 3 ? "…" : ""),
+        })
+      );
+      setTimeout(() => location.reload(), 4000);
+      return;
+    }
     flashStatus("status-backup", true, i18n("Восстановлено. Обновляем страницу…"));
     setTimeout(() => location.reload(), 900);
   } catch (e) {

@@ -1932,6 +1932,9 @@ i18nRegister({
   "На этом устройстве «{path}» пустой, а в репозитории в нём есть данные. Если оставить пустой, данные пропадут на всех устройствах. Точно оставить пустой?":
     "“{path}” is empty on this device, but the repository has data in it. Keeping the empty one will erase that data on all devices. Keep the empty one anyway?",
   "Оставить пустой": "Keep empty",
+  "Восстанавливаем картинки: {done} из {total}…": "Restoring images: {done} of {total}…",
+  "Восстановлено, но не записались картинки ({n}): {list}. Обновляем страницу…":
+    "Restored, but some images were not written ({n}): {list}. Reloading the page…",
   "Правки с двух устройств объединены: {n}.": "Changes from two devices merged: {n}.",
   "Сохранено и объединено с правками, пришедшими с другого устройства. Откройте редактор заново, чтобы их увидеть.":
     "Saved and merged with changes that came from another device. Reopen the editor to see them.",
