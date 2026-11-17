@@ -171,6 +171,45 @@ test("правка меняет запись, а не заводит новую"
   });
 });
 
+// Полный редактор отзыва собирает запись из полей формы и про счётчик
+// серий/глав (progress) не знает – сохранение из него не должно стирать
+// то, что натыкано в окне отзыва. А явный progress: null стирает.
+test("сохранение без поля progress не стирает счётчик, а progress: null стирает", async () => {
+  await withServer(async ({ api, base }) => {
+    const progress = {
+      outer: 2,
+      outer_total: 6,
+      inner: 10,
+      inner_total: 13,
+      updated: "2026-11-17",
+    };
+    const { data: added } = await api("POST", "/api/save-review", {
+      title: "Клан Сопрано",
+      type: "show",
+      status: "current",
+      progress,
+    });
+    await api("POST", "/api/save-review", {
+      title: "Клан Сопрано",
+      type: "show",
+      status: "current",
+      _editId: added.id,
+    });
+    let list = await (await fetch(`${base}/reviews.json`)).json();
+    assert.deepEqual(list[0].progress, progress);
+
+    await api("POST", "/api/save-review", {
+      title: "Клан Сопрано",
+      type: "show",
+      status: "current",
+      progress: null,
+      _editId: added.id,
+    });
+    list = await (await fetch(`${base}/reviews.json`)).json();
+    assert.equal(list[0].progress, null);
+  });
+});
+
 test("удаление убирает запись, повторное сообщает об этом", async () => {
   await withServer(async ({ api }) => {
     const { data: added } = await api("POST", "/api/save-review", {

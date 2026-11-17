@@ -6,6 +6,8 @@ import globals from "globals";
 // явно, иначе no-undef ругался бы на каждое обращение.
 // Список сгенерирован из объявлений верхнего уровня в js/*.js.
 const sharedBrowserGlobals = [
+  // Отзыв, открытый сейчас в окне (reviews.js) – его правит счётчик в progress.js.
+  "_reviewModalReview",
   "accentVariants",
   "activeStatusBuckets",
   "activeTierCollections",
@@ -244,6 +246,8 @@ const sharedBrowserGlobals = [
   "ppPoster",
   "ppSection",
   "ppStat",
+  "progressBlockHtml",
+  "progressFlush",
   "proxyImagesToDataUrls",
   "rebuildGradesFromScale",
   "refreshOpenReviewsTab",
@@ -285,6 +289,7 @@ const sharedBrowserGlobals = [
   "stripFrozenLabelDefaults",
   "statsBindAll",
   "statsCompletedYear",
+  "statsIsCompleted",
   "statsRender",
   "statsState",
   "statsTopTitlesOfYear",

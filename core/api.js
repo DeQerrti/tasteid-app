@@ -163,6 +163,17 @@ async function saveReview({ vault, body }) {
     if (list[idx].fav_order !== undefined && review.fav_order === undefined) {
       review.fav_order = list[idx].fav_order;
     }
+    // Счётчик сезонов/серий и томов/глав (app/js/progress.js) правится
+    // прямо в окне отзыва, а полный редактор (routes/add-save.js) собирает
+    // запись заново из полей формы и этого поля не знает – без переноса
+    // любое сохранение в редакторе молча обнуляло бы счётчик. Стереть его
+    // по-прежнему можно: прислать progress: null.
+    if (
+      list[idx].progress !== undefined &&
+      !Object.prototype.hasOwnProperty.call(review, "progress")
+    ) {
+      review.progress = list[idx].progress;
+    }
     if (list[idx].id !== undefined) review.id = list[idx].id;
     list[idx] = review;
   } else {

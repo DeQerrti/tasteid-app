@@ -49,9 +49,9 @@
      .app-topbar, которая до сих пор жила только там. -->
 <link rel="stylesheet" href="/admin.css?v=20">
 <link rel="stylesheet" href="/themes.css?v=39">
-<script src="/js/mobile.bundle.js?v=3"></script>
+<script src="/js/mobile.bundle.js?v=4"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=43"></script>
+<script src="/js/i18n-en.js?v=44"></script>
 <script src="/js/sync.js?v=3"></script>
 <script src="/js/utils.js?v=31"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -1044,6 +1044,48 @@ section.group { margin-bottom: 3.5rem; }
 }
 #review-modal-body .review-dates { margin-top: .7rem; }
 .review-modal-notext { margin-bottom: .6rem; }
+/* Счётчик сезонов/серий и томов/глав (js/progress.js) – только у
+   записей «В процессе», только в окне. Шрифт – тот же гротеск, что у
+   дат над ним: цифры в засечках темы читались хуже. */
+.rv-progress {
+  margin: .8rem 0 .2rem; padding: .65rem .8rem; max-width: 26rem;
+  border: 1px solid var(--border); border-radius: var(--card-radius, 8px);
+  background: color-mix(in srgb, var(--surface2) 70%, transparent);
+  font-family: 'DM Sans', sans-serif; font-size: .85rem; color: var(--text);
+}
+.rv-progress-row { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
+.rv-progress-outer { margin-bottom: .5rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); font-size: .8rem; }
+.rv-progress-label { min-width: 3.6em; color: var(--text-dim); }
+.rv-progress-of { color: var(--text-dim); font-size: .8rem; }
+.rv-progress-step {
+  font: inherit; font-weight: 600; line-height: 1.4; cursor: pointer;
+  min-width: 2.2em; padding: .1em .55em;
+  color: var(--text-hi); background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: var(--radius-btn, 6px);
+}
+.rv-progress-step.small { min-width: 1.8em; padding: 0 .4em; }
+.rv-progress-step:hover { border-color: var(--red); }
+.rv-progress-step.plus { background: var(--red); border-color: var(--red); color: #fff; }
+.rv-progress-step.plus:hover { filter: brightness(1.12); }
+.rv-progress-step:focus-visible, .rv-progress-link:focus-visible { outline: 2px solid var(--red-hi); outline-offset: 2px; }
+.rv-progress-num {
+  width: 3.4ch; padding: 0; text-align: center;
+  font: inherit; color: var(--text-hi); background: transparent;
+  border: 0; border-bottom: 1px dashed var(--border2); border-radius: 0;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.rv-progress-num::-webkit-inner-spin-button, .rv-progress-num::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.rv-progress-num:focus { outline: none; border-bottom: 1px solid var(--red); }
+.rv-progress-num.big { width: 3.6ch; font-size: 1.35rem; font-weight: 700; }
+.rv-progress-num.bump { animation: rvProgressBump .35s ease; }
+@keyframes rvProgressBump { 40% { transform: scale(1.3); color: var(--red-hi); } }
+.rv-progress-bar { height: 4px; margin-top: .55rem; border-radius: 4px; background: var(--border); overflow: hidden; }
+.rv-progress-bar i { display: block; height: 100%; background: var(--red); }
+.rv-progress-note { margin-top: .4rem; font-size: .78rem; color: var(--text-dim); }
+.rv-progress-link {
+  font: inherit; padding: 0; cursor: pointer;
+  color: var(--red-hi); background: none; border: 0; text-decoration: underline;
+}
 /* «В любимом» – в правой колонке шапки, под тегами: маленький круглый
    портрет, имя и подпись в ряд (раньше – большие карточки отдельным блоком
    под текстом). Те же .card-char, поэтому клик по ним открывает окно
@@ -1291,6 +1333,164 @@ section.group { margin-bottom: 3.5rem; }
 
 .stat-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: clamp(1.4rem, 2cqi, 2.6rem); }
 .stat-year-filters { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 0; }
+/* «Итоги ✦» – справа, рядом с камерой, а не посередине строки. */
+.stat-recap-btn { margin-left: auto; flex-shrink: 0; font-weight: 600; }
+
+/* ── «Итоги» (js/recap.js) ──
+   Окно поверх приложения: шапка (вид, камера, годы) и открытка
+   .recap-card – её и снимает «Сохранить как картинку». Всё на
+   переменных темы; украшения тем сюда не тянем – снимок (html2canvas)
+   не рисует маски и наклоны (см. docs/frontend-styles.md). */
+.recap-overlay {
+  position: fixed; inset: 0; z-index: 900; overflow-y: auto;
+  padding: calc(var(--app-titlebar, 0px) + 22px) 16px 60px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(6px);
+}
+.recap-overlay.hidden { display: none; }
+.recap-wrap { max-width: 880px; margin: 0 auto; outline: none; }
+.recap-overlay:has(.recap-card[data-view="poster"]) .recap-wrap { max-width: 480px; }
+.recap-overlay:has(.recap-card[data-view="chronicle"]) .recap-wrap { max-width: 1120px; }
+.recap-top { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .7rem 1rem; margin-bottom: 1rem; }
+.recap-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; color: var(--text-hi); }
+.recap-views {
+  justify-self: center; display: inline-flex; gap: 2px; padding: 3px;
+  border: 1px solid var(--border2); border-radius: var(--radius-btn, 8px); background: var(--surface);
+}
+.recap-view {
+  font-family: 'DM Sans', sans-serif; font-size: .88rem; cursor: pointer;
+  padding: .3rem .9rem; border: 0; border-radius: var(--radius-btn, 6px);
+  color: var(--text-dim); background: none;
+}
+.recap-view:hover { color: var(--text-hi); }
+.recap-view.active { background: var(--red); color: #fff; }
+.recap-view:focus-visible { outline: 2px solid var(--red-hi); outline-offset: 2px; }
+.recap-actions { display: flex; gap: .4rem; }
+.recap-years { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; }
+
+.recap-card {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--card-radius, 12px);
+  padding: clamp(18px, 4vw, 40px);
+  font-family: 'DM Sans', sans-serif;
+}
+.recap-head { text-align: center; margin-bottom: 1.6rem; }
+.recap-kicker { color: var(--text-dim); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; }
+.recap-year { font-family: 'Playfair Display', serif; font-size: clamp(4rem, 13vw, 7rem); line-height: 1; font-weight: 700; color: var(--text-hi); margin: .4rem 0 .5rem; }
+.recap-year::after { content: ""; display: block; width: 3.2ch; height: .08em; margin: .1em auto 0; border-radius: 999px; background: var(--red); }
+.recap-lead { font-size: 1.05rem; }
+.recap-lead strong { font-size: 1.3em; color: var(--text-hi); }
+.recap-k { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+.recap-big { font-size: 1.45rem; font-weight: 700; line-height: 1.2; color: var(--text-hi); }
+.recap-t { font-weight: 600; color: var(--text); }
+.recap-s { font-size: .8rem; color: var(--text-dim); margin-top: 2px; }
+.recap-sec { margin-top: 1.6rem; }
+.recap-sec h3 { margin: 0 0 .75rem; font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--text-hi); }
+.recap-card .card-grade-dot { display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+.recap-counters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
+.recap-counters > div { padding: .75rem .6rem; text-align: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; }
+.recap-counters b { display: block; font-size: 1.55rem; line-height: 1.15; color: var(--text-hi); }
+.recap-counters span { font-size: .76rem; color: var(--text-dim); }
+
+.recap-img { aspect-ratio: 2 / 3; overflow: hidden; border-radius: 6px; background: var(--bg2); }
+.recap-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.recap-row { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .75rem; }
+.recap-row.small { grid-template-columns: repeat(auto-fill, minmax(72px, 110px)); }
+.recap-cover { margin: 0; }
+.recap-cover figcaption { margin-top: 5px; font-size: .72rem; line-height: 1.25; color: var(--text-dim); }
+.recap-cover figcaption strong { font-weight: 600; color: var(--text); }
+
+.recap-typebar { display: flex; gap: 2px; height: 16px; overflow: hidden; border-radius: 999px; }
+.recap-typebar i { display: block; }
+.recap-legends { display: flex; flex-wrap: wrap; gap: .35rem 1rem; margin-top: .6rem; font-size: .85rem; }
+.recap-legend b { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; }
+.recap-legend em, .recap-tag em { font-style: normal; color: var(--text-dim); }
+
+.recap-months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 130px; align-items: end; }
+.recap-m { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; height: 100%; }
+.recap-mbar { width: 70%; min-height: 2px; border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--text) 35%, transparent); }
+.recap-m.peak .recap-mbar { background: var(--red); }
+.recap-m em { font-style: normal; font-size: .75rem; }
+.recap-m small { font-size: .68rem; color: var(--text-dim); }
+
+.recap-tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
+.recap-sec > .recap-tags { margin-top: 0; }
+.recap-tag { padding: .25rem .65rem; font-size: .86rem; border-radius: 999px; background: var(--surface2); border: 1px solid var(--border); }
+.recap-tag:first-child { border-color: var(--red); }
+.recap-tag.up { border-color: #4caf7a; }
+.recap-tag.down { border-color: var(--border); opacity: .8; }
+
+.recap-facts { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+.recap-fact { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem; border-radius: 10px; background: var(--surface2); }
+.recap-fact-img { flex: 0 0 64px; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 5px; }
+.recap-fact-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* Постер */
+.recap-poster { text-align: center; padding: 28px 26px 26px; }
+.recap-poster-num { margin-top: .6rem; font-family: 'Playfair Display', serif; font-size: 6rem; line-height: .95; font-weight: 700; color: var(--text-hi); }
+.recap-poster-label { margin: .9rem 0 1.2rem; }
+.recap-poster-label::after { content: ""; display: block; width: 48px; height: 3px; margin: .75rem auto 0; background: var(--red); }
+.recap-poster-hero { display: flex; align-items: center; gap: .9rem; text-align: left; }
+.recap-poster-hero-img { flex: 0 0 120px; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 6px; }
+.recap-poster-hero-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.recap-poster-title { margin: 3px 0 4px; font-family: 'Playfair Display', serif; font-size: 1.3rem; line-height: 1.2; font-weight: 700; color: var(--text-hi); }
+.recap-poster-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin: .75rem 0 1.1rem; }
+.recap-poster-strip .recap-img { border-radius: 4px; }
+.recap-poster-facts { margin: 0; text-align: left; border-top: 1px solid var(--border); }
+.recap-poster-facts > div { display: flex; justify-content: space-between; gap: .75rem; padding: .55rem 0; border-bottom: 1px solid var(--border); }
+.recap-poster-facts dt { flex: 0 0 auto; font-size: .8rem; color: var(--text-dim); }
+.recap-poster-facts dd { margin: 0; text-align: right; font-size: .9rem; color: var(--text-hi); }
+
+/* Хроника */
+.recap-chron { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.recap-chron-m { min-height: 150px; padding: .65rem; border: 1px solid var(--border); border-radius: 8px; background: color-mix(in srgb, var(--surface2) 60%, transparent); }
+.recap-chron-m.empty { opacity: .55; }
+.recap-chron-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .5rem; }
+.recap-chron-head span { font-weight: 700; color: var(--text-hi); text-transform: capitalize; }
+.recap-chron-head em { font-style: normal; font-size: .85rem; color: var(--text-dim); }
+.recap-chron-top { display: flex; align-items: flex-end; gap: .6rem; }
+.recap-chron-top .recap-img { flex: 0 0 74px; box-shadow: 0 0 0 2px var(--gc, transparent); }
+.recap-chron-t { font-size: .82rem; line-height: 1.25; }
+.recap-chron-t small { display: block; margin-top: 3px; color: var(--text-dim); }
+.recap-chron-rest { display: flex; align-items: center; gap: 5px; margin-top: .5rem; }
+.recap-chron-rest .recap-img { width: 30px; border-radius: 3px; }
+.recap-chron-rest span { font-size: .75rem; color: var(--text-dim); }
+.recap-chron-none { font-size: .85rem; font-style: italic; color: var(--text-dim); }
+
+/* Перемены */
+.recap-verdict { text-align: center; }
+.recap-verdict-t { margin-top: 4px; font-size: 1.2rem; color: var(--text-hi); }
+.recap-cmp-row { display: grid; grid-template-columns: 90px 1fr 2.5ch 3.5ch; align-items: center; gap: .6rem; margin: 6px 0; font-size: .9rem; }
+.recap-cmp-bars { position: relative; height: 14px; }
+.recap-cmp-bars i { position: absolute; left: 0; display: block; border-radius: 3px; }
+.recap-cmp-bars i.prev { top: 0; bottom: 0; background: color-mix(in srgb, var(--text) 18%, transparent); }
+.recap-cmp-bars i.cur { top: 3px; bottom: 3px; }
+.recap-cmp-n { text-align: right; font-weight: 700; color: var(--text-hi); }
+.recap-cmp-d { font-size: .8rem; color: var(--text-dim); }
+.recap-cmp-d.up { color: #4caf7a; }
+.recap-cmp-d.down { color: #d16a5a; }
+.recap-cmp-legend { margin-top: .5rem; }
+.recap-cmp-legend i { display: inline-block; width: 18px; height: 8px; margin: 0 4px 0 10px; border-radius: 2px; vertical-align: middle; }
+.recap-cmp-legend i.prev { background: color-mix(in srgb, var(--text) 18%, transparent); }
+.recap-cmp-legend i.cur { background: var(--red); }
+.recap-cmp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.recap-cmp-cols h3 { margin-bottom: 2px; }
+
+@media (max-width: 900px) {
+  .recap-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .recap-overlay { padding: calc(var(--app-titlebar, 0px) + 12px) 10px 90px; }
+  .recap-top { grid-template-columns: 1fr auto; }
+  .recap-views { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; }
+  .recap-view { flex: 1; padding: .4rem .2rem; }
+  .recap-counters { grid-template-columns: repeat(2, 1fr); }
+  .recap-facts, .recap-cmp-cols { grid-template-columns: 1fr; }
+  .recap-months { height: 100px; gap: 3px; }
+  .recap-chron { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .recap-cmp-row { grid-template-columns: 70px 1fr 2.5ch 3.5ch; }
+}
 
 .stat-grid.sx {
   --sxu: .55cqi;
@@ -4226,8 +4426,10 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/cards.js?v=20"></script>
 <script src="/js/now.js?v=17"></script>
 <script src="/js/favorites.js?v=22"></script>
-<script src="/js/reviews.js?v=30"></script>
-<script src="/js/stats.js?v=26"></script>
+<script src="/js/progress.js?v=1"></script>
+<script src="/js/reviews.js?v=31"></script>
+<script src="/js/stats.js?v=27"></script>
+<script src="/js/recap.js?v=1"></script>
 <script src="/js/tierlist.js?v=17"></script>
 <script src="/js/backup-history.js?v=3"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и

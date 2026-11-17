@@ -81,6 +81,7 @@ function statsRender() {
 
   const toolbar = `<div class="stat-toolbar">
     ${statsYearFiltersHtml(years)}
+    ${years.length ? `<button type="button" class="tl-filter stat-recap-btn" onclick="openRecap()">${i18n("Итоги")} ✦</button>` : ""}
     ${cameraButton("openStatsExportModal()", "stats-export-btn")}
   </div>`;
 

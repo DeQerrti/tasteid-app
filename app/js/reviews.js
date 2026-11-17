@@ -744,6 +744,7 @@ function reviewModalBodyHtml(r) {
           ${metaLine ? `<div class="review-meta-row"><span class="review-format">${metaLine}</span></div>` : ""}
           ${grade ? `<div class="grade-chip" style="--gc:${grade.color}" data-tip="${esc(grade.desc)}">${esc(gradeValueLabel(r.grade))}</div>` : ""}
           ${datesHtml ? `<div class="review-dates">${datesHtml}</div>` : ""}
+          ${progressBlockHtml(r)}
         </div>
         ${tagsHtml}
       </div>
@@ -796,6 +797,8 @@ async function reviewExport() {
         useCORS: true,
         allowTaint: false,
         logging: false,
+        // Счётчик серий/глав (progress.js) – с кнопками, на картинке ни к чему.
+        ignoreElements: (node) => node.hasAttribute?.("data-no-export"),
         onclone: (clonedDoc) => {
           clonedDoc.documentElement.setAttribute("data-skin", document.documentElement.getAttribute("data-skin") || "");
         },
@@ -901,6 +904,9 @@ function reviewModalStep(dir) {
 function openReviewModal(r, list) {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
+  // Листают к другому отзыву, пока счётчик прошлого ещё ждёт записи
+  // (см. progressFlush в progress.js), – дописать его сейчас.
+  progressFlush();
   // Повторное открытие при листании: фокус вернуть надо на карточку, с
   // которой окно открыли впервые, а не на уже скрытый элемент.
   if (overlay.classList.contains("hidden")) _reviewModalOpener = document.activeElement;
@@ -980,6 +986,7 @@ let reviewLinkedFavData = [];
 function closeReviewModal() {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
+  progressFlush();
   overlay.classList.add("hidden");
   document.body.style.overflow = "";
   _reviewModalOpener?.focus?.();
