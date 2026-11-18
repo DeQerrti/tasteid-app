@@ -917,7 +917,7 @@ function renderGradeInput() {
 // в справочнике уже нет (удалили, а в отзыве он остался), всё равно
 // виден среди выбранных – раньше снять его отсюда было нечем.
 function tagToggleHtml(tag, active) {
-  return `<span class="tag-toggle${active ? " active" : ""}" role="button" tabindex="0" aria-pressed="${active}" data-tag="${esc(tag)}" title="${esc(TAGS_MAP[tag]?.tip || "")}">${esc(tag)}</span>`;
+  return `<span class="tag-toggle${active ? " active" : ""}" role="button" tabindex="0" aria-pressed="${active}" data-tag="${esc(tag)}" title="${esc(TAGS_MAP[tag]?.tip || "")}">${esc(tagLabel(tag))}</span>`;
 }
 
 function renderTagsGrid() {
@@ -935,7 +935,8 @@ function renderTagsGrid() {
   const q = normTagQuery(document.getElementById("tag-q")?.value);
   const byCat = new Map();
   for (const [tag, meta] of Object.entries(TAGS_MAP)) {
-    if (q && !normTagQuery(tag).includes(q)) continue;
+    // И по ключу, и по видимому названию (tagLabel – перевод в английском интерфейсе).
+    if (q && !normTagQuery(tag).includes(q) && !normTagQuery(tagLabel(tag)).includes(q)) continue;
     const cat = meta.cat || "";
     if (!byCat.has(cat)) byCat.set(cat, []);
     byCat.get(cat).push(tag);
@@ -1016,7 +1017,7 @@ function renderCardTagsList() {
       return `<div class="card-tag-row ${featured ? "selected" : ""} ${disabled ? "disabled" : ""}"
         onclick="toggleCardTagFeatured(${jsArg(tag)})">
       <span class="tm-row-check"></span>
-      <span class="card-tag-row-name">${esc(tag)}</span>
+      <span class="card-tag-row-name">${esc(tagLabel(tag))}</span>
     </div>`;
     })
     .join("");

@@ -190,7 +190,7 @@ function recapSummaryHtml(d) {
     .join("");
   const tags = d.tags
     .slice(0, 8)
-    .map(([t, n]) => `<span class="recap-tag">${esc(t)} <em>${n}</em></span>`)
+    .map(([t, n]) => `<span class="recap-tag">${esc(tagLabel(t))} <em>${n}</em></span>`)
     .join("");
   const L = d.longest;
   const facts = [
@@ -224,7 +224,7 @@ function recapSummaryHtml(d) {
 
 function recapPosterHtml(d) {
   const total = d.list.length;
-  const words = d.tags.slice(0, 3).map(([t]) => t);
+  const words = d.tags.slice(0, 3).map(([t]) => tagLabel(t));
   const [topType, topN] = d.types[0] || [];
   const hero = d.graded[0] || d.list[0];
   const g = hero && recapGrade(hero);
@@ -349,7 +349,7 @@ function recapChangesHtml(d) {
 
   const tagList = (arr, cls, arrow, empty, count) =>
     arr.length
-      ? arr.map(([t, n]) => `<span class="recap-tag ${cls}">${arrow} ${esc(t)} <em>${count ? count(t) : n}</em></span>`).join("")
+      ? arr.map(([t, n]) => `<span class="recap-tag ${cls}">${arrow} ${esc(tagLabel(t))} <em>${count ? count(t) : n}</em></span>`).join("")
       : `<span class="recap-s">${esc(empty)}</span>`;
 
   return `<article class="recap-card" data-view="changes">

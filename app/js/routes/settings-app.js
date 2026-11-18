@@ -424,6 +424,16 @@ async function changeVault() {
   }
 }
 
+// Журнал ошибок приложения (errors.log, см. logError в electron/main.js) –
+// открыть папку с ним, чтобы приложить файл к сообщению о проблеме.
+async function openErrorLog() {
+  try {
+    await fetch("/api/app/open-error-log", { method: "POST" });
+  } catch {
+    // Не в Electron – кнопки и так не видно (раздел «Приложение» только там).
+  }
+}
+
 // ── Резервная копия ─────────────────────────────
 // Не путать с «Паспортом»: тот – урезанный слепок для показа чужим,
 // этот – всё целиком и только для себя (core/api.js: exportBackup /

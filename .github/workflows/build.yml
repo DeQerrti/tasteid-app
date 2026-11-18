@@ -17,9 +17,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Версия для релиза (например 0.1.1)"
+        # Без значения по умолчанию: раньше стояло "0.1.1", и случайный
+        # запуск создавал тег v0.1.1 с файлами текущей версии.
+        description: "Версия для релиза – та же, что в package.json (например 0.7.16)"
         required: true
-        default: "0.1.1"
 
 jobs:
   check:
@@ -42,8 +43,9 @@ jobs:
     # Поднимать вместе с версией Playwright, когда та научится Ubuntu 26.
     runs-on: ubuntu-24.04
     # Не в общем check: это Playwright и настоящий Chromium, а не только
-    # Node — отдельный джоб не тормозит остальные проверки на каждый push
-    # и не блокирует сборку (build/android ниже не зависят от него).
+    # Node — отдельный джоб не тормозит остальные проверки на каждый push.
+    # Сборка (build/android ниже) его ждёт: раньше не ждала, и релиз мог
+    # уйти людям с упавшими проверками в браузере.
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -56,7 +58,7 @@ jobs:
 
   build:
     name: Установщики
-    needs: check
+    needs: [check, browser]
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     # Без этого шаг с релизом падает на 403: по умолчанию токен рабочего
     # процесса умеет только читать, а ему нужно создать релиз и залить
@@ -87,6 +89,11 @@ jobs:
           # и всё равно не убирает предупреждение Windows целиком.
           # Без этой переменной electron-builder попробует подписать сам
           # и упадёт на отсутствующем сертификате.
+          # Mac всё же подписывается бесплатной ad-hoc подписью
+          # ("identity": "-" в package.json → build.mac): без всякой
+          # подписи Mac на чипах M1 и новее показывает «приложение
+          # повреждено» и не даёт его открыть вовсе, а с ad-hoc – обычное
+          # «не удалось проверить разработчика» с кнопкой «Всё равно открыть».
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # GH_TOKEN сюда больше не передаём. С ним electron-builder
           # считал, что публиковать релиз — его работа, и лез туда же,
@@ -95,7 +102,7 @@ jobs:
           # релиза, сборка — только собирает (--publish never).
       - uses: softprops/action-gh-release@v3
         with:
-          # Черновик здесь, в закрытом tasteid-app — для собственной
+          # Черновик здесь, в tasteid-app — для собственной
           # проверки перед выпуском. В публичный DeQerrti/TasteID версия
           # переносится отдельно, только когда её уже проверили руками
           # (см. README) — не автоматически на каждый тег.
@@ -109,11 +116,15 @@ jobs:
             dist/*.blockmap
             dist/latest*.yml
           draft: true
+          # Заметки к релизу – список коммитов с прошлого тега. Раньше
+          # описание было пустым, и человек получал «доступно обновление»
+          # без единого слова о том, что изменилось.
+          generate_release_notes: true
           fail_on_unmatched_files: false
 
   android:
     name: Приложение для телефона
-    needs: check
+    needs: [check, browser]
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write

@@ -325,7 +325,7 @@ function statsHeroHtml(d, year) {
   if (showTaste) {
     const words = d.up
       .slice(0, 3)
-      .map((t) => `<span>${esc(t.name)}</span>`)
+      .map((t) => `<span>${esc(tagLabel(t.name))}</span>`)
       .join("");
     const overallG = d.graded.length ? statsShelfFor(d.overall) : null;
     const soft = d.rated[0];
@@ -462,7 +462,7 @@ function statsReasonRows(list) {
     .map((t) => {
       const g = statsShelfFor(t.avg);
       return `<div class="sx-row" data-tip="${esc(TAGS_MAP[t.name]?.tip || t.name)}">
-        <span class="sx-row-name">${esc(t.name)}</span>
+        <span class="sx-row-name">${esc(tagLabel(t.name))}</span>
         <span class="sx-bar" style="--tc:${esc(g.color)}"><i style="width:${Math.round((t.avg / n) * 100)}%"></i></span>
         ${statsGradeHtml(g, ` <small>· ${t.n}</small>`)}
       </div>`;
@@ -586,7 +586,7 @@ function statsTagsHtml(d) {
       const customColor = info && CAT_COLORS[info.cat];
       const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
       const style = customColor ? ` style="--tag-color:${customColor}"` : "";
-      return `<span class="rtag ${cls} sx-tag stat-tag"${style} data-tip="${esc(info?.tip || "")}">${esc(t)}<small>${n}</small></span>`;
+      return `<span class="rtag ${cls} sx-tag stat-tag"${style} data-tip="${esc(info?.tip || "")}">${esc(tagLabel(t))}<small>${n}</small></span>`;
     })
     .join("")}</div>`;
   return statsCard(

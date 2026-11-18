@@ -119,7 +119,7 @@ const ED_SHIKI_KIND = { manhwa: "manhwa", manhua: "manhua", light_novel: "novel"
 async function edLookupShikimori(src, q, type) {
   const section = src.id === "anilist-anime" ? "animes" : type === "novel" ? "ranobe" : "mangas";
   const params = new URLSearchParams({ search: q, limit: "10" });
-  const res = await fetch(`${ED_LOOKUP_SHIKI}/api/${section}?${params}`, { headers: { Accept: "application/json" } });
+  const res = await fetchExternal(`${ED_LOOKUP_SHIKI}/api/${section}?${params}`, { headers: { Accept: "application/json" } });
   const data = await res.json().catch(() => null);
   if (!res.ok || !Array.isArray(data)) throw new Error(i18n("Сервер ответил {status}", { status: res.status }));
   return data.map((m) => {
@@ -181,7 +181,7 @@ async function edLookupFetch(src, q) {
     return edLookupShikimori(src, q, document.getElementById("f-type")?.value);
   }
   if (src.id.startsWith("anilist")) {
-    const res = await fetch(ED_LOOKUP_ANILIST, {
+    const res = await fetchExternal(ED_LOOKUP_ANILIST, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ query: ED_ANILIST_QUERY, variables: { q, type: src.id === "anilist-anime" ? "ANIME" : "MANGA" } }),
@@ -216,7 +216,7 @@ async function edLookupFetch(src, q) {
   if (src.id.startsWith("tmdb")) {
     const kind = src.id === "tmdb-movie" ? "movie" : "tv";
     const params = new URLSearchParams({ api_key: edLookupTmdbKey(), query: q, language: "ru-RU" });
-    const res = await fetch(`${ED_LOOKUP_TMDB}/search/${kind}?${params}`);
+    const res = await fetchExternal(`${ED_LOOKUP_TMDB}/search/${kind}?${params}`);
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) throw new Error(i18n("TMDB не принял ключ – проверьте его в Настройки → Импорт."));
     if (!res.ok) throw new Error(data.status_message || i18n("Сервер ответил {status}", { status: res.status }));
@@ -238,7 +238,7 @@ async function edLookupFetch(src, q) {
   }
   // Open Library
   const params = new URLSearchParams({ q, limit: "10", fields: "key,title,author_name,first_publish_year,cover_i,isbn" });
-  const res = await fetch(`https://openlibrary.org/search.json?${params}`);
+  const res = await fetchExternal(`https://openlibrary.org/search.json?${params}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(i18n("Сервер ответил {status}", { status: res.status }));
   return (data.docs || []).map((d) => {

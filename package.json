@@ -93,7 +93,8 @@
         }
       ],
       "icon": "app/icons/icon-512.png",
-      "category": "public.app-category.lifestyle"
+      "category": "public.app-category.lifestyle",
+      "identity": "-"
     },
     "linux": {
       "target": [

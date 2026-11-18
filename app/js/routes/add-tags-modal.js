@@ -404,7 +404,7 @@ function tmTagChip(name) {
     .join(" ");
   return `<button type="button" class="${cls}" data-tm-tag="${esc(name)}" title="${esc(TAGS_MAP[name]?.tip || "")}" aria-pressed="${tmState.bulk ? tmState.picked.has(name) : tmState.editTag === name}">${
     tmState.bulk ? `<span class="tm-check"></span>` : ""
-  }${esc(name)}<span class="tm-n">${n}</span></button>`;
+  }${esc(tagLabel(name))}<span class="tm-n">${n}</span></button>`;
 }
 
 function tmTagEditorHtml(name) {
@@ -481,7 +481,8 @@ function renderTagModal() {
   const q = normTagQuery(tmState.q);
   const groups = new Map(Object.keys(CAT_LABELS).map((k) => [k, []]));
   for (const name of Object.keys(TAGS_MAP).sort((a, b) => a.localeCompare(b, "ru"))) {
-    if (q && !normTagQuery(name).includes(q)) continue;
+    // И по ключу, и по видимому названию (tagLabel – перевод в английском интерфейсе).
+    if (q && !normTagQuery(name).includes(q) && !normTagQuery(tagLabel(name)).includes(q)) continue;
     // Тег смотрит на удалённую категорию – показываем его отдельной
     // группой, чтобы он не пропал из списка.
     const cat = TAGS_MAP[name].cat || "";

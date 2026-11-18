@@ -1423,8 +1423,8 @@ i18nRegister({
     "The app forgets the token and repository on this device. The data itself – here and in the repository – stays put; you can reconnect any time.",
   "Синхронизация уже идёт в фоне – подождите немного.": "Sync is already running in the background – give it a moment.",
   "Синхронизируем…": "Syncing…",
-  "Готово, но {n} файл(ов) изменились и здесь, и в репозитории – выберите, что оставить.":
-    "Done, but {n} file(s) changed both here and in the repository – pick what to keep.",
+  "Готово, но изменились и здесь, и в репозитории файлы: {n} – выберите, что оставить.":
+    "Done, but files changed both here and in the repository: {n} – pick what to keep.",
   "Готово: отправлено {pushed}, забрано {pulled}, без изменений {skipped}.":
     "Done: sent {pushed}, pulled {pulled}, unchanged {skipped}.",
   "Убрано отсюда как удалённое на другом устройстве: {n}.":
@@ -1965,4 +1965,59 @@ i18nRegister({
   "эта ссылка": "this link",
   "GitHub покажет длинную строку, начинающуюся на «github_pat_», – это и есть токен. Он показывается только один раз: сразу скопируйте его и вставьте в поле ниже.":
     "GitHub will show a long string starting with “github_pat_” – that's the token. It's shown only once: copy it right away and paste it into the field below.",
+});
+
+// ── «О приложении» (settings-edit.js) ──
+i18nRegister({
+  "– опишите, что делали и что произошло; скриншот очень помогает.":
+    "– describe what you did and what happened; a screenshot helps a lot.",
+  "Готовое приложение можно бесплатно скачивать и пользоваться им для себя. Исходный код открыт для просмотра, но копировать и распространять его, в том числе под другим именем, нельзя. Полный текст –":
+    "The finished app is free to download and use for yourself. The source code is open to read, but copying or redistributing it, including under another name, is not allowed. Full text –",
+  Ещё: "More",
+  "Источники данных": "Data sources",
+  "Ключи TMDB и Steam и токен синхронизации хранятся только на этом устройстве и никуда, кроме самого сервиса, не отправляются.":
+    "TMDB and Steam keys and the sync token are stored only on this device and are sent nowhere except to that service itself.",
+  "Куда приложение обращается в сеть": "Where the app connects to",
+  Лицензия: "License",
+  "на GitHub": "on GitHub",
+  "Названия, годы и обложки при поиске и импорте приходят из AniList, Шикимори, MyAnimeList, TMDB, Steam и Open Library. Обложки и постеры принадлежат их правообладателям.":
+    "Titles, years and covers in search and import come from AniList, Shikimori, MyAnimeList, TMDB, Steam and Open Library. Covers and posters belong to their respective owners.",
+  "Напишите на GitHub": "Write on GitHub",
+  "Нашли ошибку или есть идея?": "Found a bug or have an idea?",
+  "Никакой статистики использования, рекламы и слежки – ни автору, ни кому-либо ещё.":
+    "No usage statistics, ads or tracking – not for the author, not for anyone.",
+  "Обложки по ссылкам загружаются с сайтов, где они лежат. Если обложка не загрузилась напрямую, приложение пробует открытый сервис картинок wsrv.nl – он видит адрес этой обложки.":
+    "Covers from links are loaded from the sites that host them. If a cover fails to load directly, the app tries the open image service wsrv.nl – it sees that cover's address.",
+  "Шрифты (Playfair Display, Cormorant Garamond, DM Sans, Manrope, Caveat, Patrick Hand, Pangolin, Shantell Sans) распространяются по лицензии SIL Open Font License 1.1 – её текст лежит рядом со шрифтами, в файле fonts/OFL.txt. Внутри приложения также Electron, Capacitor, sharp и html2canvas – каждый под своей открытой лицензией.":
+    "The fonts (Playfair Display, Cormorant Garamond, DM Sans, Manrope, Caveat, Patrick Hand, Pangolin, Shantell Sans) are licensed under the SIL Open Font License 1.1 – its text is next to the fonts, in fonts/OFL.txt. The app also includes Electron, Capacitor, sharp and html2canvas – each under its own open-source license.",
+  "AniList, Шикимори, MyAnimeList, TMDB, Steam, Open Library – только когда вы ищете тайтл или импортируете список: туда уходят поисковый запрос или ваш ник на этом сервисе.":
+    "AniList, Shikimori, MyAnimeList, TMDB, Steam, Open Library – only when you search for a title or import a list: they receive the search query or your username on that service.",
+  "GitHub – проверка обновлений; синхронизация (ваш приватный репозиторий) и «Обмен по коду» (секретная ссылка: её может открыть любой, у кого она есть), только если вы их включили.":
+    "GitHub – update checks; sync (your private repository) and “Share by code” (a secret link: anyone who has it can open it), only if you turned them on.",
+  "TasteID – личный каталог просмотренного, прочитанного и пройденного. Все данные лежат у вас: в папке на компьютере или во внутренней памяти телефона. Своего сервера у приложения нет.":
+    "TasteID is a personal catalog of what you've watched, read and played. All data stays with you: in a folder on your computer or in your phone's internal storage. The app has no server of its own.",
+});
+
+// ── Надёжность: сеть и журнал ошибок (utils.js, settings-edit.js) ──
+i18nRegister({
+  "Нет соединения с сервисом – проверьте интернет и попробуйте ещё раз.":
+    "Can’t reach the service – check your internet connection and try again.",
+  "Сервис долго не отвечает – проверьте интернет и попробуйте ещё раз.":
+    "The service is taking too long to respond – check your internet connection and try again.",
+  "Открыть журнал ошибок": "Open error log",
+  "О приложении": "About",
+  "Файл с ошибками приложения – его можно приложить к сообщению о проблеме":
+    "A file with the app’s errors – you can attach it to a problem report",
+});
+
+// ── Встроенные теги «Визуал / звук», которым не хватало перевода ──
+// (до tagLabel в utils.js переводы тегов не применялись вовсе, и пропуск
+// был не виден).
+i18nRegister({
+  "Топ рисовка": "Top-tier art",
+  "Топ визуал": "Top-tier visuals",
+  "Специфичный стиль": "Acquired-taste style",
+  "Слабая картинка": "Weak visuals",
+  "Осты в тему": "Fitting soundtrack",
+  "Один дубль": "One-take feel",
 });

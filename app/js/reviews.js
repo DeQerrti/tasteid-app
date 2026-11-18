@@ -228,10 +228,17 @@ function renderReviews(reviews) {
     </section>`;
 
   const searchInput = document.getElementById("rv-search");
+  // С паузой после последней буквы: каждая перерисовка – это вся сетка,
+  // и на импортированной библиотеке в тысячи тайтлов (замер: 5000
+  // отзывов) поиск съедал около секунды на КАЖДУЮ нажатую клавишу.
+  let rvSearchTimer = null;
   searchInput.addEventListener("input", () => {
-    rvState.search = searchInput.value.trim().toLowerCase();
-    rvPersistFilters();
-    applyRvFilters(reviews);
+    clearTimeout(rvSearchTimer);
+    rvSearchTimer = setTimeout(() => {
+      rvState.search = searchInput.value.trim().toLowerCase();
+      rvPersistFilters();
+      applyRvFilters(reviews);
+    }, 180);
   });
 
   box.querySelectorAll(".rv-dd-btn").forEach((btn) => {
@@ -330,6 +337,7 @@ function fillRvPop(which) {
       const y = e.target.closest("[data-jump]");
       if (y) {
         closeRvPops();
+        rvFlushRender();
         document
           .querySelector(`#rv-grid .year-divider[data-year="${CSS.escape(y.dataset.jump)}"]`)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -350,6 +358,7 @@ function fillRvPop(which) {
 // и так плотная. Только когда список сейчас разбит по годам и их больше
 // одного (после фильтра – по тем годам, что остались на экране).
 function rvYearJumpHtml() {
+  rvFlushRender();
   const years = [...document.querySelectorAll("#rv-grid .year-divider")].map((d) => d.dataset.year);
   if (years.length < 2) return "";
   return `<div class="rv-pop-sep"></div>
@@ -397,7 +406,7 @@ function rvFillTagsPop(pop) {
             <div class="rv-cloud">${names
               .map(
                 (t) =>
-                  `<button type="button" class="tag-toggle${rvState.tags.includes(t) ? " active" : ""}" data-tag="${esc(t)}" title="${esc(TAGS_MAP[t].tip || "")}">${esc(t)}<i class="rv-tag-n">${counts[t]}</i></button>`
+                  `<button type="button" class="tag-toggle${rvState.tags.includes(t) ? " active" : ""}" data-tag="${esc(t)}" title="${esc(TAGS_MAP[t].tip || "")}">${esc(tagLabel(t))}<i class="rv-tag-n">${counts[t]}</i></button>`
               )
               .join("")}</div>`;
         })
@@ -494,7 +503,7 @@ function rvChipsHtml() {
   return [
     ...rvState.types.map((v) => chip("types", v, TYPE_LABELS[v] || v)),
     ...rvState.grades.map((v) => chip("grades", v, GRADES[v]?.name || v)),
-    ...rvState.tags.map((v) => chip("tags", v, v)),
+    ...rvState.tags.map((v) => chip("tags", v, tagLabel(v))),
     ...rvState.sources.map((v) => chip("sources", v, SOURCE_LABELS[v] || v)),
   ].join("");
 }
@@ -558,32 +567,65 @@ function applyRvFilters(reviews) {
   // каждого года был бы свой порядок, и найти что-то стало бы нельзя.
   const grouped = rvState.years && ["date", "date-asc", "year"].includes(rvState.sort);
   const yearOf = rvState.sort === "year" ? rvReleaseYearOf : rvDateYearOf;
-  let html = "";
+  // Кусочки разметки по одной карточке (с заголовком года перед ней, если
+  // он начинается здесь) – чтобы ниже рисовать их порциями.
+  const pieces = [];
   if (grouped) {
     const counts = {};
     for (const r of list) counts[yearOf(r)] = (counts[yearOf(r)] || 0) + 1;
     let cur = null;
     list.forEach((r, i) => {
       const y = String(yearOf(r));
+      let head = "";
       if (y !== cur) {
         cur = y;
-        html += `<h3 class="year-divider rv-year" data-year="${esc(y)}">
+        head = `<h3 class="year-divider rv-year" data-year="${esc(y)}">
           <span class="year-label">${esc(y === "–" ? i18n("Без года") : y)}</span>
           <span class="year-count">${counts[y]}</span>
         </h3>`;
       }
-      html += reviewCard(r, i);
+      pieces.push(head + reviewCard(r, i));
     });
   } else {
-    html = list.map((r, i) => reviewCard(r, i)).join("");
+    list.forEach((r, i) => pieces.push(reviewCard(r, i)));
   }
   // Анимация появления карточек – только при первой отрисовке. На каждый
   // клик по фильтру она запускалась заново, и вся сетка мигала.
   grid.classList.toggle("rv-noanim", !!grid.dataset.drawn);
   grid.dataset.drawn = "1";
-  grid.innerHTML = html;
   rvLastFiltered = list;
+  // Сначала первые RV_FIRST_CHUNK карточек (экран и чуть ниже), остаток –
+  // следом, одним куском, после того как первый экран уже нарисован.
+  // Раньше вся сетка ставилась сразу: на 5000 отзывов вкладка открывалась
+  // ~3 с пустым подвисшим окном. Мелкими порциями дорисовывать хуже:
+  // каждая заново раскладывает всю растущую сетку, и в сумме дольше.
+  // Новая отрисовка отменяет недорисованную.
+  const token = ++rvRenderToken;
+  grid.innerHTML = pieces.slice(0, RV_FIRST_CHUNK).join("");
+  rvPendingPieces = pieces.slice(RV_FIRST_CHUNK);
+  if (rvPendingPieces.length) {
+    requestAnimationFrame(() =>
+      setTimeout(() => {
+        if (token === rvRenderToken) rvFlushRender();
+      }, 0)
+    );
+  }
   rvBindCardClicks();
+}
+
+// Порционная отрисовка сетки (см. applyRvFilters).
+const RV_FIRST_CHUNK = 300;
+let rvRenderToken = 0;
+let rvPendingPieces = [];
+
+// Дорисовать остаток сразу – тем, кому нужна вся сетка целиком (список
+// годов для «Перейти к году» и сам переход).
+function rvFlushRender() {
+  const grid = document.getElementById("rv-grid");
+  if (!grid || !rvPendingPieces.length) return;
+  rvRenderToken++;
+  grid.insertAdjacentHTML("beforeend", rvPendingPieces.join(""));
+  rvPendingPieces = [];
 }
 
 function rvBindCardClicks() {

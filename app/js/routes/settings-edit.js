@@ -107,6 +107,7 @@ const SIDE_TAB_ICON_PATHS = {
   vaults: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/>',
   app: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
   backup: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  about: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="11"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
 };
 
 function sideTabIcon(panel) {
@@ -159,6 +160,8 @@ function settingsViewHtml() {
       <div class="side-group" data-i18n>Перенос</div>
       <button class="side-tab" data-panel="import">${sideTabIcon("import")}${sideTabLabel("Импорт")}</button>
       <button class="side-tab" data-panel="passports">${sideTabIcon("passports")}${sideTabLabel("Обмен")}</button>
+      <div class="side-group" data-i18n>Ещё</div>
+      <button class="side-tab" data-panel="about">${sideTabIcon("about")}${sideTabLabel("О приложении")}</button>
       <div class="sidebar-resize" id="sidebar-resize" aria-hidden="true"></div>
     </nav>
 
@@ -419,14 +422,17 @@ function settingsViewHtml() {
           </div>
           <div class="set-row-ctl">
             <button class="btn btn-ghost" id="btn-check-update" onclick="checkForUpdateNow()" data-i18n>Проверить обновления</button>
+            <button class="btn btn-ghost" onclick="openErrorLog()" title="Файл с ошибками приложения – его можно приложить к сообщению о проблеме" data-i18n data-i18n-title="Файл с ошибками приложения – его можно приложить к сообщению о проблеме">Открыть журнал ошибок</button>
           </div>
         </div>
         <div class="status-msg" id="status-update"></div>
         <div class="status-msg" id="status-app"></div>
 
-        <!-- Только на телефоне: на компьютере установщик подписан и
-             обновляется тем же способом, что и любая другая программа,
-             без единого предупреждения системы. На телефоне же apk не
+        <!-- Только на телефоне: на компьютере обновление ставится само
+             (Windows, Linux) или открывается страница загрузки (Mac) – и
+             объяснять там нечего. (Установщик для ПК при этом НЕ подписан
+             платным сертификатом – предупреждение при первой установке
+             описано в README.) На телефоне же apk не
              из Play Store, и почти на каждом шаге – скачивание,
              установка – телефон или Play Защита может встать поперёк
              дороги, каждый раз по-своему и без объяснений от самой
@@ -543,6 +549,57 @@ function settingsViewHtml() {
         <div id="content"><div class="state-box"><div class="spinner"></div>Загружаем…</div></div>
       </div>
 
+      <!-- «О приложении» (аудит, ноябрь 2026): лицензия, источники данных и
+           обязательная строка TMDB (условие их API – «This product uses the
+           TMDB API but is not endorsed or certified by TMDB»), куда
+           приложение ходит в сеть (то, что обычно называют политикой
+           конфиденциальности), лицензия шрифтов (SIL OFL требует
+           прикладывать её – текст лежит в app/fonts/OFL.txt) и куда писать
+           о проблемах. Только текст и ссылки: открываются во внешнем
+           браузере, как и все внешние ссылки приложения. -->
+      <div class="panel" id="panel-about">
+        <p class="panel-intro" data-i18n>
+          TasteID – личный каталог просмотренного, прочитанного и пройденного.
+          Все данные лежат у вас: в папке на компьютере или во внутренней
+          памяти телефона. Своего сервера у приложения нет.
+        </p>
+
+        <h3 class="about-h" data-i18n>Куда приложение обращается в сеть</h3>
+        <ul class="sync-intro about-list">
+          <li data-i18n>Никакой статистики использования, рекламы и слежки – ни автору, ни кому-либо ещё.</li>
+          <li data-i18n>GitHub – проверка обновлений; синхронизация (ваш приватный репозиторий) и «Обмен по коду» (секретная ссылка: её может открыть любой, у кого она есть), только если вы их включили.</li>
+          <li data-i18n>AniList, Шикимори, MyAnimeList, TMDB, Steam, Open Library – только когда вы ищете тайтл или импортируете список: туда уходят поисковый запрос или ваш ник на этом сервисе.</li>
+          <li data-i18n>Обложки по ссылкам загружаются с сайтов, где они лежат. Если обложка не загрузилась напрямую, приложение пробует открытый сервис картинок wsrv.nl – он видит адрес этой обложки.</li>
+          <li data-i18n>Ключи TMDB и Steam и токен синхронизации хранятся только на этом устройстве и никуда, кроме самого сервиса, не отправляются.</li>
+        </ul>
+
+        <h3 class="about-h" data-i18n>Источники данных</h3>
+        <p class="sync-intro" data-i18n>
+          Названия, годы и обложки при поиске и импорте приходят из AniList,
+          Шикимори, MyAnimeList, TMDB, Steam и Open Library. Обложки и
+          постеры принадлежат их правообладателям.
+        </p>
+        <p class="sync-intro about-tmdb">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+
+        <h3 class="about-h" data-i18n>Лицензия</h3>
+        <p class="sync-intro">
+          <span data-i18n>Готовое приложение можно бесплатно скачивать и пользоваться им для себя. Исходный код открыт для просмотра, но копировать и распространять его, в том числе под другим именем, нельзя. Полный текст –</span>
+          <a href="https://github.com/DeQerrti/tasteid-app/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n>на GitHub</a>.
+        </p>
+        <p class="sync-intro" data-i18n>
+          Шрифты (Playfair Display, Cormorant Garamond, DM Sans, Manrope,
+          Caveat, Patrick Hand, Pangolin, Shantell Sans) распространяются по
+          лицензии SIL Open Font License 1.1 – её текст лежит рядом со
+          шрифтами, в файле fonts/OFL.txt. Внутри приложения также Electron,
+          Capacitor, sharp и html2canvas – каждый под своей открытой лицензией.
+        </p>
+
+        <h3 class="about-h" data-i18n>Нашли ошибку или есть идея?</h3>
+        <p class="sync-intro">
+          <a href="https://github.com/DeQerrti/tasteid-app/issues" target="_blank" rel="noopener" data-i18n>Напишите на GitHub</a> <span data-i18n> – опишите, что делали и что произошло; скриншот очень помогает.</span>
+        </p>
+      </div>
+
       <!-- Одна полоса «Сохранить» вместо пяти одинаковых кнопок по
            панелям: все они звали ту же saveSettings(), которая сохраняет
            всё разом. Видна, только пока есть несохранённое
@@ -627,6 +684,35 @@ async function mount(container, params) {
   }
 
   const mainEl = container.querySelector("#main");
+
+  // Фокус – в окно настроек и держится в нём, как у окна отзыва
+  // (trapReviewModalFocus в reviews.js). Раньше он оставался на странице
+  // позади, и Tab ходил по скрытым под затемнением фильтрам и карточкам
+  // (аудит, ноябрь 2026). При уходе с маршрута – обратно, откуда открыли.
+  const seOpener = document.activeElement;
+  setTimeout(() => (container.querySelector("#sidebar .side-tab.active") || appEl).focus?.(), 0);
+  const trapFocus = (e) => {
+    if (e.key !== "Tab" || appEl.classList.contains("hidden")) return;
+    const focusable = [
+      ...appEl.querySelectorAll('a[href], button:not([disabled]), input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'),
+    ].filter((el) => el.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const inside = appEl.contains(document.activeElement);
+    if (!inside || (e.shiftKey && document.activeElement === first)) {
+      e.preventDefault();
+      (e.shiftKey ? last : first).focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  document.addEventListener("keydown", trapFocus);
+  seCleanupFns.push(() => {
+    document.removeEventListener("keydown", trapFocus);
+    if (seOpener && document.contains(seOpener)) seOpener.focus?.();
+  });
 
   const sidebar = container.querySelector("#sidebar");
   seCleanupFns.push(

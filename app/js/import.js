@@ -535,7 +535,7 @@ function saveTmdbKey(value) {
 // Ключ проверяем сразу, а не в момент импорта: узнать об опечатке через
 // двести запросов и список без обложек – худший из возможных вариантов.
 async function checkTmdbKey(key) {
-  const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/configuration?api_key=${encodeURIComponent(key)}`);
+  const res = await fetchExternal(`${IMPORT_TMDB_ENDPOINT}/configuration?api_key=${encodeURIComponent(key)}`);
   if (res.status === 401) throw new Error(i18n("TMDB не узнал этот ключ. Проверьте, что скопирован он целиком."));
   if (!res.ok) {
     throw new Error(i18n("TMDB ответил {status}. Попробуйте ещё раз через минуту.", { status: res.status }));
@@ -867,7 +867,7 @@ async function fetchTmdbMeta(items, onProgress) {
         let hit;
         if (item.ids?.imdb) {
           const params = new URLSearchParams({ api_key: key, external_source: "imdb_id", language: "ru-RU" });
-          const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/find/${encodeURIComponent(item.ids.imdb)}?${params}`);
+          const res = await fetchExternal(`${IMPORT_TMDB_ENDPOINT}/find/${encodeURIComponent(item.ids.imdb)}?${params}`);
           if (!res.ok) return;
           const body = await res.json();
           hit = body?.movie_results?.[0] || body?.tv_results?.[0];
@@ -875,7 +875,7 @@ async function fetchTmdbMeta(items, onProgress) {
           const params = new URLSearchParams({ api_key: key, query: item.title, language: "ru-RU" });
           const year = item.year ? String(item.year).slice(0, 4) : "";
           if (year) params.set("year", year);
-          const res = await fetch(`${IMPORT_TMDB_ENDPOINT}/search/movie?${params}`);
+          const res = await fetchExternal(`${IMPORT_TMDB_ENDPOINT}/search/movie?${params}`);
           if (!res.ok) return;
           const body = await res.json();
           hit = body?.results?.[0];
@@ -911,7 +911,7 @@ async function fetchAnilistMeta(malIds, onProgress) {
     const chunk = malIds.slice(i, i + IMPORT_BATCH);
     onProgress?.(Math.min(i + chunk.length, malIds.length), malIds.length);
     try {
-      const res = await fetch(IMPORT_ANILIST_ENDPOINT, {
+      const res = await fetchExternal(IMPORT_ANILIST_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, variables: { ids: chunk } }),
@@ -969,7 +969,7 @@ async function fetchAnilistUserList(userName, onProgress) {
     onProgress?.(type);
     let res;
     try {
-      res = await fetch(IMPORT_ANILIST_ENDPOINT, {
+      res = await fetchExternal(IMPORT_ANILIST_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ query: ANILIST_LIST_QUERY, variables: { userName, type } }),
@@ -1032,7 +1032,7 @@ async function shikimoriGet(path) {
   for (let attempt = 0; ; attempt++) {
     let res;
     try {
-      res = await fetch(`${SHIKIMORI_API}${path}`, { headers: { Accept: "application/json" } });
+      res = await fetchExternal(`${SHIKIMORI_API}${path}`, { headers: { Accept: "application/json" } });
     } catch {
       // Как и у AniList: обрыв сети и сбой на их стороне (ответ без
       // заголовков CORS) отсюда неразличимы – говорим честно про оба.
@@ -1389,7 +1389,7 @@ function importFavNameKey(name) {
 }
 
 async function fetchAnilistFavourites(userName) {
-  const res = await fetch(IMPORT_ANILIST_ENDPOINT, {
+  const res = await fetchExternal(IMPORT_ANILIST_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ query: IMPORT_ANILIST_FAV_QUERY, variables: { userName } }),

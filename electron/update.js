@@ -47,6 +47,11 @@ function getJson(url) {
           });
         }
       )
+      // Без предела по времени зависшее соединение держало проверку
+      // обновлений вечно (и ручную кнопку «Проверить» – тоже).
+      .setTimeout(15000, function () {
+        this.destroy(new Error("timeout"));
+      })
       .on("error", reject);
   });
 }

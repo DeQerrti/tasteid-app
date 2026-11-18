@@ -218,6 +218,34 @@ function debugLog(msg) {
   fs.writeFile(file, quitLog.join("\n") + "\n").catch(() => {});
 }
 
+// ── Журнал ошибок ──────────────────────────────
+// Раньше ошибки окна уходили только в консоль, которой человек не видит,
+// и разбирать «у меня что-то сломалось» было не по чему (аудит, ноябрь
+// 2026). Теперь – файл errors.log в папке данных приложения (не в
+// хранилище: туда он попал бы в синхронизацию). Кнопка «Открыть журнал
+// ошибок» в настройках («Приложение») открывает эту папку – файл можно
+// приложить к сообщению о проблеме. Ограничен по размеру: при переполнении
+// остаётся вторая половина.
+const ERROR_LOG_MAX = 512 * 1024;
+const errorLogFile = () => path.join(app.getPath("userData"), "errors.log");
+let errorLogQueue = Promise.resolve();
+function logError(source, message) {
+  const line = `${new Date().toISOString()} [${source}] ${String(message).slice(0, 4000)}\n`;
+  errorLogQueue = errorLogQueue
+    .then(async () => {
+      const file = errorLogFile();
+      await fs.appendFile(file, line);
+      const { size } = await fs.stat(file);
+      if (size > ERROR_LOG_MAX) {
+        const text = await fs.readFile(file, "utf8");
+        await fs.writeFile(file, text.slice(text.length - ERROR_LOG_MAX / 2));
+      }
+    })
+    .catch(() => {});
+}
+process.on("uncaughtException", (e) => logError("main", e?.stack || e));
+process.on("unhandledRejection", (e) => logError("main", e?.stack || e));
+
 // ── Язык ───────────────────────────────────────
 // Выбранный язык живёт в конфиге приложения, а не в хранилище: его надо
 // знать на экране приветствия, когда папки ещё нет. Пока человек не
@@ -373,6 +401,24 @@ function appRoutes() {
     }),
 
     "POST /api/app/check-update": async () => checkForUpdatesManual(),
+
+    // Ошибка из окна (window.onerror / unhandledrejection, js/utils.js) – в
+    // журнал. Текст обрезается: страница могла бы прислать что угодно.
+    "POST /api/app/log-error": async ({ body }) => {
+      logError("окно", [body?.message, body?.where, body?.stack].filter(Boolean).join(" | "));
+      return { ok: true };
+    },
+
+    "POST /api/app/open-error-log": async () => {
+      const file = errorLogFile();
+      try {
+        await fs.access(file);
+        shell.showItemInFolder(file);
+      } catch {
+        await shell.openPath(app.getPath("userData"));
+      }
+      return { ok: true };
+    },
 
     "POST /api/app/pick-vault": async ({ body }) => ({
       path: await askForVault({ mode: body.mode, previous: vault?.root }),
@@ -799,6 +845,14 @@ async function createWindow({ compact = false } = {}) {
   // самому краю окна, а потом обратно вниз. dom-ready наступает сразу
   // после построения DOM, до отрисовки, – CSS успевает встать на место
   // раньше первого кадра.
+  // Окно упало (процесс страницы убит, не хватило памяти) – раньше
+  // человек видел белое окно без объяснений. Записать и перезагрузить.
+  win.webContents.on("render-process-gone", (_e, details) => {
+    logError("окно", `процесс страницы завершился: ${details?.reason || "?"}`);
+    if (details?.reason !== "clean-exit" && win && !win.isDestroyed()) win.webContents.reload();
+  });
+  win.webContents.on("unresponsive", () => logError("окно", "окно не отвечает"));
+
   win.webContents.on("dom-ready", () => {
     win.webContents.insertCSS(titleBarCss()).catch(() => {});
   });
@@ -1118,6 +1172,9 @@ app.whenReady().then(async () => {
   if (known) openMain();
   else openWelcome();
   checkForUpdates();
+  // И раз в сутки – как обещает README: кто держит приложение открытым
+  // неделями, иначе узнавал бы об обновлении только после перезапуска.
+  setInterval(checkForUpdates, 24 * 60 * 60 * 1000);
 
   // Возрастная чистка .history – по желанию, необязательна (см. её же
   // комментарий в vault.js), не блокирует показ окна: это фоновая

@@ -293,6 +293,17 @@ await page.evaluate(() =>
 await page.waitForTimeout(150);
 ok((await page.evaluate(() => document.activeElement?.id)) === "rv-search", "поле поиска в фокусе");
 await page.fill("#rv-search", "дельт");
+// Поиск срабатывает после короткой паузы в наборе (applyRvFilters в
+// reviews.js), а не на каждую букву – ждём, пока сетка обновится.
+await page
+  .waitForFunction(
+    () => document.querySelectorAll("#rv-grid .review-card-wrap").length === 1,
+    null,
+    {
+      timeout: 3000,
+    }
+  )
+  .catch(() => {});
 t = await titles(page);
 ok(t.length === 1 && t[0] === "Дельта", "поиск по названию работает");
 await page.close();

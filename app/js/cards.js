@@ -61,6 +61,15 @@ function fmtDateStr(str, short = false) {
   // ни при какой ширине бейджа, потому что "short" раньше игнорировался
   // для текущего года и там всё равно писалось полное название месяца.
   if (short) {
+    // В английском интерфейсе – месяц словом («1 Oct»): «01.10» там
+    // неоднозначно (в США это 10 января). Русский вид – как был.
+    if (I18N_CURRENT !== "ru") {
+      return d.toLocaleDateString(locale, {
+        day: "numeric",
+        month: "short",
+        ...(d.getFullYear() === currentYear ? {} : { year: "2-digit" }),
+      });
+    }
     const dd = String(d.getDate()).padStart(2, "0");
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     if (d.getFullYear() === currentYear) return `${dd}.${mm}`;
@@ -88,7 +97,7 @@ function tagHtml(tag) {
   const cls = customColor ? "rtag-custom" : TAG_CAT_CLASS[info?.cat] || "rtag-special";
   const style = customColor ? ` style="--tag-color:${customColor}"` : "";
   const tip  = info?.tip || "";
-  return `<span class="rtag ${cls}"${style} data-tip="${esc(tip)}">${esc(tag)}</span>`;
+  return `<span class="rtag ${cls}"${style} data-tip="${esc(tip)}">${esc(tagLabel(tag))}</span>`;
 }
 
 // Карточка из reviews.json (главная, архив)

@@ -403,6 +403,20 @@ select option { background: var(--bg2); }
 .src-type-option:focus-visible {
   outline: none;
 }
+/* …но при настоящей навигации Tab'ом (html.kb-nav, см. ниже и
+   js/utils.js) рамка нужна: без неё вкладки, фильтры, разделы настроек и
+   чипы тегов фокус не показывали вовсе, и с клавиатуры было не понять,
+   где ты (WCAG 2.4.7, аудит, ноябрь 2026). Голый Shift после клика
+   мышью kb-nav не включает – исходная причина правила выше не
+   возвращается. */
+html.kb-nav .tab-btn:focus-visible, html.kb-nav .side-tab:focus-visible,
+html.kb-nav .file-tab:focus-visible, html.kb-nav .tl-filter:focus-visible,
+html.kb-nav .rv-filter-btn:focus-visible, html.kb-nav .tl-mode-btn:focus-visible,
+html.kb-nav .tl-list-btn:focus-visible, html.kb-nav .list-tab:focus-visible,
+html.kb-nav .tag-toggle:focus-visible, html.kb-nav .src-type-option:focus-visible {
+  outline: 2px solid var(--red-dim);
+  outline-offset: 2px;
+}
 
 /* Общая заплатка поверх всего перечисленного выше: у панелей вкладок
    (#tab-now и т.д.) тоже есть tabindex — для скринридера, и та же

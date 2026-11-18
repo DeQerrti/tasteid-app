@@ -19,6 +19,60 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
+// ── Журнал ошибок ──────────────────────────────
+// Ошибки страницы – в журнал приложения (errors.log, см. logError в
+// electron/main.js), а не только в консоль, которой человек не видит. На
+// телефоне и в браузере такого маршрута нет – запрос тихо не удастся.
+// Не больше 20 за запуск: одна ошибка в цикле не должна забить журнал.
+let errorReportsLeft = 20;
+function reportPageError(message, where, stack) {
+  if (errorReportsLeft-- <= 0) return;
+  fetch("/api/app/log-error", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: String(message || "").slice(0, 1000),
+      where: String(where || location.hash || "").slice(0, 300),
+      stack: String(stack || "").slice(0, 3000),
+    }),
+  }).catch(() => {});
+}
+window.addEventListener("error", (e) => {
+  reportPageError(e.message, `${e.filename || ""}:${e.lineno || ""}`, e.error?.stack);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  reportPageError(e.reason?.message || e.reason, "promise", e.reason?.stack);
+});
+
+// Запрос к внешнему сервису (AniList, Шикимори, TMDB, Open Library…) с
+// пределом по времени. У fetch() своего нет: на «полуживой» сети поиск
+// тайтла висел с надписью «Ищем…» бесконечно, а импорт – на полпути.
+// Заодно понятный текст вместо «Failed to fetch» / «AbortError».
+async function fetchExternal(url, init = {}, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (e?.name === "AbortError") {
+      throw new Error(i18n("Сервис долго не отвечает – проверьте интернет и попробуйте ещё раз."));
+    }
+    throw new Error(i18n("Нет соединения с сервисом – проверьте интернет и попробуйте ещё раз."));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Название тега для показа. Встроенные теги хранятся в отзывах русскими
+// строками (это их ключ: по нему тег находят, считают, фильтруют), а
+// переводы для них лежат в i18n-en.js – раньше их никто не применял, и в
+// английском интерфейсе все 80 встроенных тегов оставались русскими.
+// Показываем перевод, храним по-прежнему ключ. Свой тег человека
+// перевода не имеет – i18n вернёт его как есть.
+function tagLabel(tag) {
+  return i18n(String(tag ?? ""));
+}
+
 // Значение как аргумент функции внутри onclick="…" / onchange="…".
 // esc() здесь НЕ защищает: браузер раскодирует &#39; обратно в ' ДО того,
 // как выполнить код атрибута, – и onclick="f(${jsArg(x)})" с тегом
