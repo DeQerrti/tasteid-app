@@ -81,6 +81,7 @@ function statsRender() {
 
   const toolbar = `<div class="stat-toolbar">
     ${statsYearFiltersHtml(years)}
+    <button type="button" class="tl-filter stat-goals-btn" onclick="openGoals()">${i18n("Цели")}</button>
     ${years.length ? `<button type="button" class="tl-filter stat-recap-btn" onclick="openRecap()">${i18n("Итоги")} ✦</button>` : ""}
     ${cameraButton("openStatsExportModal()", "stats-export-btn")}
   </div>`;
@@ -790,6 +791,23 @@ function statsBindAll() {
       }
     });
   });
+  // Годы – одной строкой с прокруткой (owner, ноябрь 2026: при многих
+  // годах кнопки шли в 3–4 ряда, а строка ещё и прилипает сверху).
+  // Колесо мыши листает её вбок; выбранный год – в видимой части.
+  const yearRow = box.querySelector(".stat-year-filters");
+  if (yearRow) {
+    yearRow.addEventListener(
+      "wheel",
+      (e) => {
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || yearRow.scrollWidth <= yearRow.clientWidth) return;
+        yearRow.scrollLeft += e.deltaY;
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+    const active = yearRow.querySelector(".tl-filter.active");
+    if (active) yearRow.scrollLeft = Math.max(0, active.offsetLeft - yearRow.offsetLeft - yearRow.clientWidth / 2);
+  }
   box.querySelectorAll(".tl-filter[data-stat-year]").forEach((btn) => {
     btn.addEventListener("click", () => {
       statsState.year = btn.dataset.statYear === "all" ? "all" : parseInt(btn.dataset.statYear);

@@ -2064,4 +2064,23 @@ i18nRegister({
   "Цвет полки": "Shelf colour",
   "Название полки": "Shelf name",
   "Удалить полку": "Delete shelf",
+
+  // «Цели» (goals.js)
+  Цели: "Goals",
+  "Все цели": "All goals",
+  "Выполнено, и ещё {n} сверху.": "Done, plus {n} extra.",
+  "Выполнено!": "Done!",
+  "Для ориентира: в {year} вы закончили {n}": "For reference: in {year} you finished {n}",
+  "До цели осталось {n}.": "{n} to go.",
+  "Добавить цель": "Add a goal",
+  "из {n}": "of {n}",
+  "На этот год целей не было.": "There were no goals for this year.",
+  "Не хватило {n}.": "{n} short.",
+  "Поставить цель": "Set a goal",
+  "Поставьте себе цель – например, 12 книг или 20 фильмов за год, – и здесь будет видно, сколько уже сделано.":
+    "Set yourself a goal – say, 12 books or 20 movies a year – and you'll see here how far along you are.",
+  Сколько: "How many",
+  "Убрать цель: {type}": "Remove goal: {type}",
+  "Уже закончено": "Finished so far",
+  "Цель: {type}": "Goal: {type}",
 });
