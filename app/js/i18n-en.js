@@ -2028,4 +2028,37 @@ i18nRegister({
     "This is a short tag set. The TasteID author has more – with slang and gaming ones.",
   "Добавить набор автора": "Add the author’s set",
   "Набор автора добавлен": "Author’s set added",
+
+  // Первый экран пустого хранилища (firstRunHtml в now.js)
+  "Паспорт пока пуст": "Your passport is empty",
+  "Если вы уже ведёте список на другом сайте – перенесите его: статусы, оценки и даты подтянутся сами, обложки тоже. Или начните с первого отзыва.":
+    "If you already keep a list on another site, bring it over: statuses, scores, dates and covers come along. Or start with your first review.",
+  "Добавить первый отзыв": "Add your first review",
+  "Перенести список": "Bring your list over",
+  файлом: "by file",
+  "по профилю": "by profile",
+  "таблица, CSV": "spreadsheet, CSV",
+  "Потом перенос всегда тут: Настройки → Перенос → Импорт.":
+    "You can always import later: Settings → Transfer → Import.",
+
+  // Мастер первого запуска (electron/ui/welcome.html): тема и шкала
+  тёмная: "dark",
+  светлая: "light",
+  "Как будет выглядеть паспорт. Тему можно сменить в любой момент в настройках.":
+    "How your passport will look. You can change the theme any time in settings.",
+  "Как вы будете оценивать?": "How will you rate things?",
+  "Каждая оценка – это <b>полка</b>: у неё есть название и цвет. По полкам строятся статистика и тир-лист. Всё можно поменять потом в «Настройки → Оценки».":
+    "Every rating is a <b>shelf</b> with a name and a colour. Statistics and the tier list are built from shelves. You can change all of it later in Settings → Ratings.",
+  "от 1 до 5 – как в большинстве приложений": "1 to 5 – like most apps",
+  "от 1 до 10 – как на MyAnimeList и Шикимори": "1 to 10 – like MyAnimeList and Shikimori",
+  "Свои названия": "Your own names",
+  "словами вместо чисел – например, шкала автора TasteID":
+    "words instead of numbers – for example, the TasteID author’s scale",
+  "Полки этой шкалы": "Shelves of this scale",
+  "Полки этой шкалы и какие оценки на них попадут": "Shelves of this scale and which scores land on them",
+  "Переименовать полки, поменять цвета и границы": "Rename shelves, change colours and ranges",
+  "Готово – свернуть": "Done – collapse",
+  "Цвет полки": "Shelf colour",
+  "Название полки": "Shelf name",
+  "Удалить полку": "Delete shelf",
 });

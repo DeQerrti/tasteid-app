@@ -410,11 +410,79 @@ function nowBindCardClicks() {
   });
 }
 
+// ── Первый экран нового хранилища ──────────────
+// Новичок после мастера попадал сюда и видел только «Список пуст»: что
+// список можно перенести с AniList, Шикимори, Letterboxd и т.д., нигде не
+// говорилось – импорт спрятан в «Настройки → Перенос → Импорт» (находка
+// аудита, ноябрь 2026; вариант «А» owner выбрал по макету). Тот же блок –
+// на пустых «Отзывах» (reviews.js). Только пока в хранилище нет ни одной
+// записи: у кого записи есть, пустой статус – это просто пустой статус.
+// Ссылка источника открывает его карточку в импорте сразу
+// (#/settings-edit?panel=import&open=<id>, importPreselect в import.js).
+const FIRST_RUN_SOURCES = [
+  {
+    group: "Аниме и манга",
+    items: [
+      { id: "anilist", name: "AniList", how: "по нику" },
+      { id: "shiki", name: "Шикимори", how: "по нику" },
+      { id: "mal", name: "MyAnimeList", how: "по нику" },
+    ],
+  },
+  {
+    group: "Фильмы и сериалы",
+    items: [
+      { id: "letterboxd", name: "Letterboxd", how: "файлом" },
+      { id: "imdb", name: "IMDb", how: "файлом" },
+    ],
+  },
+  { group: "Игры", items: [{ id: "steam", name: "Steam", how: "по профилю" }] },
+  { group: "Книги", items: [{ id: "goodreads", name: "Goodreads", how: "файлом" }] },
+  {
+    group: "Другое",
+    items: [{ id: "anyfile", name: "Файл из любого приложения", how: "таблица, CSV" }],
+  },
+];
+
+function isVaultEmpty() {
+  return isAdmin() && Array.isArray(cache.reviews) && cache.reviews.length === 0;
+}
+
+function firstRunHtml() {
+  const arrow = `<svg class="fr-src-go" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+  return `<section class="fr">
+    <h2 class="fr-title">${i18n("Паспорт пока пуст")}</h2>
+    <p class="fr-sub">${i18n("Если вы уже ведёте список на другом сайте – перенесите его: статусы, оценки и даты подтянутся сами, обложки тоже. Или начните с первого отзыва.")}</p>
+    <div class="fr-actions"><a href="#/add" class="admin-add-btn">${i18n("Добавить первый отзыв")}</a></div>
+    <div class="fr-h">${i18n("Перенести список")}</div>
+    <div class="fr-groups">
+      ${FIRST_RUN_SOURCES.map(
+        (g) => `<div class="fr-group">
+          <div class="fr-group-name">${i18n(g.group)}</div>
+          ${g.items
+            .map(
+              (s) => `<a class="fr-src" href="#/settings-edit?panel=import&open=${s.id}">
+                <span class="fr-src-name">${esc(i18n(s.name))}</span>
+                <span class="fr-src-how">${i18n(s.how)}</span>${arrow}
+              </a>`
+            )
+            .join("")}
+        </div>`
+      ).join("")}
+    </div>
+    <p class="fr-foot">${i18n("Потом перенос всегда тут: Настройки → Перенос → Импорт.")}</p>
+  </section>`;
+}
+
 function renderNow({ buckets }) {
   const box = document.getElementById("tab-now");
   nowState.buckets = buckets;
   nowEnsureMode();
   nowModeBodies = {};
+
+  if (isVaultEmpty()) {
+    box.innerHTML = firstRunHtml();
+    return;
+  }
 
   if (!nowState.mode) {
     box.innerHTML = `<div class="state-box">${esc(siteLabel("empty", "list", i18n("Список пуст")))}</div>`;

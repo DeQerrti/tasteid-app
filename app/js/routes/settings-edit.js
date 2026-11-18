@@ -945,6 +945,10 @@ async function mount(container, params) {
   detectApp().then(() => {
     if (!openPanel) return;
     const panel = SETTINGS_PANEL_ALIASES[openPanel] || openPanel;
+    // &open=<id> – сразу открыть карточку источника в импорте (ссылки
+    // с первого экрана пустого хранилища, firstRunHtml в now.js).
+    const openCard = params?.get("open");
+    if (panel === "import" && openCard) importPreselect(openCard);
     const btn = container.querySelector(`.side-tab[data-panel="${panel}"]`);
     if (btn && !btn.classList.contains("hidden")) btn.click();
   });

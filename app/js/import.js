@@ -109,9 +109,31 @@ async function loadImport() {
     // с понятной ошибкой на startMapping(), который читает их заново.
     await fetchReviews().catch(() => {});
     renderImport();
+    if (importFocusPending) {
+      importFocusPending = false;
+      focusImportCard();
+    }
   } finally {
     importBusy = false;
   }
+}
+
+// Переход сразу к карточке источника – с первого экрана пустого
+// хранилища (firstRunHtml в now.js): #/settings-edit?panel=import&open=<id>.
+// Зовётся до loadImport(), который и нарисует карточку открытой.
+let importFocusPending = false;
+function importPreselect(id) {
+  if (importStep !== "file") return; // посреди переноса – его не сбиваем
+  importOpenCard = id;
+  importFocusPending = true;
+}
+
+// Открытая карточка: поле ника – в фокус, сама карточка – в видимую часть.
+function focusImportCard() {
+  const card = importOpenCard && document.querySelector(`[data-imp-card="${importOpenCard}"]`);
+  if (!card) return;
+  card.querySelector('input[type="text"], input[type="password"]:placeholder-shown')?.focus({ preventScroll: true });
+  card.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function renderImport() {
@@ -1698,10 +1720,7 @@ function bindImport() {
       if (importBusy) return;
       importOpenCard = importOpenCard === btn.dataset.impOpen ? null : btn.dataset.impOpen;
       renderImport();
-      const card = importOpenCard && document.querySelector(`[data-imp-card="${importOpenCard}"]`);
-      if (!card) return;
-      card.querySelector('input[type="text"], input[type="password"]:placeholder-shown')?.focus({ preventScroll: true });
-      card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      focusImportCard();
     });
   });
 

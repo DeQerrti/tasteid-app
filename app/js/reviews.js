@@ -101,6 +101,10 @@ async function loadReviews() {
   reviewsLastSnapshot = snapshot;
   if (withReview.length) {
     renderReviews(withReview);
+  } else if (isVaultEmpty()) {
+    // Хранилище совсем пустое – тот же первый экран, что и в «Статусах»
+    // (firstRunHtml в now.js).
+    document.getElementById("tab-reviews").innerHTML = firstRunHtml();
   } else {
     document.getElementById("tab-reviews").innerHTML =
       `<div class="state-box">

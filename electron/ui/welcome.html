@@ -41,10 +41,10 @@
   перед работой, а не сама работа.
 -->
 <link rel="stylesheet" href="/fonts.css?v=7">
-<link rel="stylesheet" href="/style.css?v=22">
-<link rel="stylesheet" href="/themes.css?v=40">
+<link rel="stylesheet" href="/style.css?v=24">
+<link rel="stylesheet" href="/themes.css?v=41">
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=29"></script>
+<script src="/js/i18n-en.js?v=30"></script>
 <script src="/js/utils.js?v=24"></script>
 <script>
 // config.js и theme.js зовут vaultScopedKey() из sync.js. Здесь sync.js не
@@ -65,7 +65,7 @@ function vaultScopedKey(base) { return base; }
     display: flex; align-items: center; justify-content: center;
     padding: calc(var(--app-titlebar, 0px) + 1.2rem) 1.6rem 1.6rem;
   }
-  .card { width: 100%; max-width: 460px; }
+  .card { width: 100%; max-width: 520px; }
 
   /* Бренд – крупный, по центру и на своей строке: единственное, что
      видно первым секунду до перехода к делу, и единственное место, где
@@ -139,17 +139,83 @@ function vaultScopedKey(base) { return base; }
     border: 1px dashed var(--border2); border-radius: 2px; padding: .5rem .65rem;
   }
 
-  /* Редактор полок – то же самое, что в настройках, только без
-     подсказок и лишних вводных: тут выбирают форму шкалы, а не изучают
-     интерфейс. */
+  /* Одна строка пояснения под заголовком шага: что это и что всё можно
+     поменять потом. Без неё «полка» и «Резонанс» новичку ничего не
+     говорили (аудит, ноябрь 2026). */
+  .step-lead {
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .8rem; line-height: 1.55;
+    color: var(--text-dim); margin: -.3rem 0 1rem;
+  }
+  .step-lead b { color: var(--text-hi); font-weight: 600; }
+
+  /* Тема: под названием – светлая она или тёмная. */
+  .pill { display: flex; flex-direction: column; gap: .15rem; }
+  .pill-tone { font-size: .66rem; color: var(--text-dim); }
+
+  /* Шкала: три строки-варианта с пояснением и примером справа. */
+  .scale-kind {
+    display: flex; align-items: center; gap: .9rem; width: 100%;
+    background: none; border: none; border-bottom: 1px solid var(--border);
+    padding: .75rem .2rem; cursor: pointer; text-align: left; color: inherit;
+  }
+  .scale-kind .setup-row-name, .scale-kind .setup-row-note { display: block; }
+  .scale-kind:hover .setup-row-name { color: var(--text-hi); }
+  .scale-kind.active { background: var(--accent-fill); }
+  .scale-radio {
+    width: 14px; height: 14px; flex: none; border-radius: 50%;
+    border: 1.5px solid var(--border2); box-sizing: border-box;
+  }
+  .scale-kind.active .scale-radio {
+    border-color: var(--text-hi);
+    box-shadow: inset 0 0 0 3px var(--bg), inset 0 0 0 8px var(--text-hi);
+  }
+  .scale-sample {
+    font-family: 'Cormorant Garamond', Georgia, serif; font-size: .95rem;
+    color: var(--text-dim); flex: none;
+  }
+
+  /* Полки выбранной шкалы – сначала просто списком (название, цвет,
+     описание или диапазон), редактор – по ссылке. */
   #shelvesEditor { margin-top: 1rem; }
+  .shelves-h {
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .64rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); margin: 1.2rem 0 .3rem;
+  }
+  .shelf-view {
+    display: flex; align-items: baseline; gap: .6rem; padding: .38rem 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .shelf-dot { width: 8px; height: 8px; transform: rotate(45deg); flex: none; align-self: center; }
+  .shelf-view-name { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1rem; color: var(--text-hi); flex: none; }
+  .shelf-view-note {
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .72rem; color: var(--text-dim);
+    margin-left: auto; text-align: right;
+  }
+  .text-link {
+    background: none; border: none; padding: 0; margin-top: .7rem; cursor: pointer;
+    font-family: 'DM Sans', system-ui, sans-serif; font-size: .74rem; color: var(--text-dim);
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .text-link:hover { color: var(--text-hi); }
+
+  /* Редактор полок – то же самое, что в настройках. Поля оформлены здесь
+     же: в настройках их стили лежат в app/index.html под .set-view, и
+     мастер их не получал – были серые системные поля, будто страница не
+     догрузилась. Список не обрезается: раньше max-height резал последнюю
+     полку посередине, теперь прокручивается само окно. */
   .shelf-row { padding: 7px 0; border-bottom: 1px solid var(--border); }
   .shelf-row-main { display: flex; align-items: center; gap: 8px; }
-  .shelf-row input[type="text"] { flex: 1.4; }
+  #shelvesEditor input {
+    background: var(--surface2); border: 1px solid var(--border2); color: var(--text-hi);
+    border-radius: 2px; padding: 7px 9px; font-size: .9rem; font-family: 'Cormorant Garamond', serif;
+    font-weight: 400; outline: none; box-sizing: border-box;
+  }
+  #shelvesEditor input:focus { border-color: var(--red); background: var(--bg2); }
+  .shelf-row input[type="text"] { flex: 1.4; min-width: 0; }
   .shelf-row input[type="number"] { width: 58px; flex: none; }
-  .shelf-row input[type="color"] { width: 30px; height: 30px; flex: none; padding: 2px; }
+  #shelvesEditor .shelf-row input[type="color"] { width: 32px; height: 32px; flex: none; padding: 2px; cursor: pointer; }
   .shelf-row .rng { color: var(--text-dim); font-size: .74rem; }
-  .shelves-list { max-height: 34vh; overflow-y: auto; margin-top: .6rem; }
+  .shelves-list { margin-top: .6rem; }
   .numeric-max { display: flex; align-items: center; gap: .6rem; margin-top: .8rem; }
   .numeric-max label { font-family: 'DM Sans', sans-serif; font-size: .74rem; color: var(--text-dim); }
   .numeric-max input { width: 5rem; }
@@ -294,14 +360,32 @@ async function pickFolder(mode) {
 
 // ── Шаг 2: тема ──────────────────────────────────
 
+// Светлая или тёмная – подписью под названием: по одному названию
+// («Ботаническая», «Классическая») этого не понять (аудит, ноябрь 2026).
+// Тема, которой здесь нет, показывается как есть, своим названием.
+const THEME_FACES = {
+  classic: { name: "Классическая", tone: "тёмная" },
+  "classic-light": { name: "Классическая", tone: "светлая" },
+  soft: { name: "Ботаническая", tone: "светлая" },
+  "soft-dark": { name: "Ботаническая", tone: "тёмная" },
+  doodle: { name: "Альбомная", tone: "светлая" },
+  "doodle-dark": { name: "Альбомная", tone: "тёмная" },
+};
+
 function renderTheme() {
   const options = typeof themeOptions === "function" ? themeOptions() : [];
   $("step-body").innerHTML = `
     <div class="step-title">${i18n("Выбор темы")}</div>
+    <p class="step-lead">${i18n("Как будет выглядеть паспорт. Тему можно сменить в любой момент в настройках.")}</p>
     <div class="pill-grid">
-      ${options.map((t) => `
-        <button class="pill${chosen.theme === t.id ? " active" : ""}" data-theme="${t.id}" type="button">${t.label}</button>
-      `).join("")}
+      ${options.map((t) => {
+        const face = THEME_FACES[t.id];
+        return `
+        <button class="pill${chosen.theme === t.id ? " active" : ""}" data-theme="${t.id}" type="button" aria-pressed="${chosen.theme === t.id}">
+          ${face ? i18n(face.name) : t.label}
+          ${face ? `<span class="pill-tone">${i18n(face.tone)}</span>` : ""}
+        </button>`;
+      }).join("")}
     </div>`;
 
   for (const btn of document.querySelectorAll("[data-theme]")) {
@@ -351,11 +435,20 @@ function previewTheme(id) {
 // что есть в /settings-edit, специально не общий код: тот завязан на
 // разметку целой страницы настроек, здесь нужна только эта часть.
 
+// Три понятных варианта с пояснением и примером справа (макет, одобрен
+// owner'ом в ноябре 2026). Порядок – от привычного к своему.
 const SCALE_TYPES = [
-  { id: "categorical", name: i18n("Названия") },
-  { id: "numeric", name: i18n("Числа") },
-  { id: "stars", name: i18n("Звёзды") },
+  { id: "stars", name: i18n("Звёзды"), note: i18n("от 1 до 5 – как в большинстве приложений"), sample: "★★★★☆" },
+  { id: "numeric", name: i18n("Числа"), note: i18n("от 1 до 10 – как на MyAnimeList и Шикимори"), sample: "7 / 10" },
+  {
+    id: "categorical",
+    name: i18n("Свои названия"),
+    note: i18n("словами вместо чисел – например, шкала автора TasteID"),
+    sample: i18n("Эталон"),
+  },
 ];
+// Редактор полок открыт? Сначала полки показываются просто списком.
+let shelvesEditing = false;
 const DEFAULT_SHELF_COLORS = ["#7c3aed", "#2563a8", "#2d8a4e", "#d4a017", "#6b7280", "#c0392b", "#8B6914"];
 
 function seedShelves(type) {
@@ -379,16 +472,26 @@ function seedShelves(type) {
 
 function renderScale() {
   $("step-body").innerHTML = `
-    <div class="step-title">${i18n("Система оценивания")}</div>
-    <div class="pill-grid">
+    <div class="step-title">${i18n("Как вы будете оценивать?")}</div>
+    <p class="step-lead">${i18n("Каждая оценка – это <b>полка</b>: у неё есть название и цвет. По полкам строятся статистика и тир-лист. Всё можно поменять потом в «Настройки → Оценки».")}</p>
+    <div class="rows" role="radiogroup" aria-label="${esc(i18n("Система оценивания"))}">
       ${SCALE_TYPES.map((t) => `
-        <button class="pill${chosen.scaleType === t.id ? " active" : ""}" data-scaletype="${t.id}" type="button">${t.name}</button>
-      `).join("")}
+        <button type="button" class="scale-kind${chosen.scaleType === t.id ? " active" : ""}" data-scaletype="${t.id}" role="radio" aria-checked="${chosen.scaleType === t.id}">
+          <span class="scale-radio" aria-hidden="true"></span>
+          <span class="setup-row-text">
+            <span class="setup-row-name">${t.name}</span>
+            <span class="setup-row-note">${t.note}</span>
+          </span>
+          <span class="scale-sample" aria-hidden="true">${t.sample}</span>
+        </button>`).join("")}
     </div>
     <div id="shelvesEditor"></div>`;
 
   for (const btn of document.querySelectorAll("[data-scaletype]")) {
-    btn.addEventListener("click", () => selectScaleType(btn.dataset.scaletype));
+    btn.addEventListener("click", () => {
+      shelvesEditing = false;
+      selectScaleType(btn.dataset.scaletype);
+    });
   }
   renderShelvesEditor();
 }
@@ -419,6 +522,32 @@ function renderShelvesEditor() {
   if (!chosen.scaleType) { box.innerHTML = ""; return; }
 
   const withRange = chosen.scaleType !== "categorical";
+
+  // Сначала – просто какие полки будут: цвет, название и описание (или
+  // какие оценки на неё попадут). Поля с цветами и границами пугали на
+  // первом же экране; кому надо – откроет ссылкой.
+  if (!shelvesEditing) {
+    const unit = chosen.scaleType === "stars" ? "★" : "";
+    const range = (s) => (s.min === s.max ? `${s.max}${unit}` : `${s.min}–${s.max}${unit}`);
+    const descOf = (s) =>
+      (typeof GRADES_DEF !== "undefined" && GRADES_DEF.find((g) => g.key === s.key)?.desc) || "";
+    box.innerHTML = `
+      <div class="shelves-h">${withRange ? i18n("Полки этой шкалы и какие оценки на них попадут") : i18n("Полки этой шкалы")}</div>
+      <div id="shelvesView">
+        ${shelves.map((s) => `
+          <div class="shelf-view">
+            <span class="shelf-dot" style="background:${esc(s.color)}" aria-hidden="true"></span>
+            <span class="shelf-view-name">${esc(s.name)}</span>
+            <span class="shelf-view-note">${withRange ? range(s) : esc(descOf(s))}</span>
+          </div>`).join("")}
+      </div>
+      <button type="button" class="text-link" id="btn-edit-shelves">${i18n("Переименовать полки, поменять цвета и границы")}</button>`;
+    $("btn-edit-shelves").addEventListener("click", () => {
+      shelvesEditing = true;
+      renderShelvesEditor();
+    });
+    return;
+  }
   const maxRow = withRange ? `
     <div class="numeric-max">
       <label>${chosen.scaleType === "stars" ? i18n("Сколько звёзд") : i18n("Максимум")}</label>
@@ -426,9 +555,15 @@ function renderShelvesEditor() {
     </div>` : "";
 
   box.innerHTML = `
+    <button type="button" class="text-link" id="btn-done-shelves">${i18n("Готово – свернуть")}</button>
     ${maxRow}
     <div class="shelves-list" id="shelvesList"></div>
     <button class="btn btn-ghost add-shelf" id="btn-add-shelf" type="button">${i18n("Добавить полку")}</button>`;
+
+  $("btn-done-shelves").addEventListener("click", () => {
+    shelvesEditing = false;
+    renderShelvesEditor();
+  });
 
   // Меняет число – и сразу пересевает полки под него: иначе счётчик
   // наверху говорит одно, а диапазоны внизу показывают прежнее (с
@@ -457,15 +592,15 @@ function renderShelvesList() {
   $("shelvesList").innerHTML = shelves.map((s, i) => `
     <div class="shelf-row">
       <div class="shelf-row-main">
-        <input type="color" value="${esc(s.color)}" data-i="${i}" data-f="color">
-        <input type="text" value="${esc(s.name)}" data-i="${i}" data-f="name" placeholder="${i18n("Название")}">
+        <input type="color" value="${esc(s.color)}" data-i="${i}" data-f="color" aria-label="${esc(i18n("Цвет полки"))}">
+        <input type="text" value="${esc(s.name)}" data-i="${i}" data-f="name" placeholder="${i18n("Название")}" aria-label="${esc(i18n("Название полки"))}">
         ${withRange ? `
           <span class="rng">${i18n("от")}</span>
-          <input type="number" value="${s.min}" data-i="${i}" data-f="min">
+          <input type="number" value="${s.min}" data-i="${i}" data-f="min" aria-label="${esc(i18n("от"))}">
           <span class="rng">${i18n("до")}</span>
-          <input type="number" value="${s.max}" data-i="${i}" data-f="max">
+          <input type="number" value="${s.max}" data-i="${i}" data-f="max" aria-label="${esc(i18n("до"))}">
         ` : ""}
-        <button class="icon-btn" data-remove="${i}" type="button">✕</button>
+        <button class="icon-btn" data-remove="${i}" type="button" aria-label="${esc(i18n("Удалить полку"))}">✕</button>
       </div>
     </div>`).join("");
 

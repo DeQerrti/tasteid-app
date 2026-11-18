@@ -1076,3 +1076,49 @@ html:not(.kb-nav) *:focus {
 @media (pointer: coarse) {
   .original-quality-toggle input[type="checkbox"] { width: 42px; height: 42px; }
 }
+
+/* ── Первый экран пустого хранилища (firstRunHtml в js/now.js) ──
+   Вариант «А» из макета (ноябрь 2026): заголовок, «Добавить первый
+   отзыв» и источники импорта строками по видам – как строки выбора в
+   мастере (electron/ui/welcome.html), а не карточками. */
+.fr { max-width: 760px; margin: 2.2rem auto 3rem; padding: 0 1rem; }
+.fr-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem; color: var(--text-hi); line-height: 1.15; margin: 0 0 .5rem;
+}
+.fr-sub {
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: .92rem;
+  color: var(--text-dim); line-height: 1.55; max-width: 36rem; margin: 0 0 1.6rem;
+}
+.fr-actions { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; margin-bottom: 2rem; }
+.fr-h {
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: .66rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim);
+  margin: 0 0 .5rem;
+}
+.fr-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0 2rem; }
+.fr-group { margin-bottom: 1.2rem; min-width: 0; }
+.fr-group-name {
+  font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.05rem;
+  color: var(--text-hi); padding: .3rem 0; border-bottom: 1px solid var(--border);
+}
+.fr-src {
+  display: flex; align-items: center; gap: .8rem;
+  border-bottom: 1px solid var(--border); padding: .6rem 0;
+  color: var(--text); text-decoration: none;
+}
+.fr-src-name { flex: 1; min-width: 0; font-family: 'DM Sans', system-ui, sans-serif; font-size: .88rem; }
+.fr-src-how { font-family: 'DM Sans', system-ui, sans-serif; font-size: .72rem; color: var(--text-dim); }
+.fr-src-go { flex: none; color: var(--text-dim); transition: transform .15s, color .15s; }
+.fr-src:hover .fr-src-name, .fr-src:focus-visible .fr-src-name { color: var(--text-hi); }
+.fr-src:hover .fr-src-go, .fr-src:focus-visible .fr-src-go { color: var(--accent-line); transform: translateX(2px); }
+.fr-foot {
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: .74rem; color: var(--text-dim);
+  margin: .8rem 0 0;
+}
+@media (max-width: 640px) {
+  .fr { margin-top: 1.2rem; }
+  .fr-title { font-size: 1.6rem; }
+  /* Под палец – не меньше 44px (tests/browser/mobile-layout.mjs). */
+  .fr-src { min-height: 44px; box-sizing: border-box; }
+}
