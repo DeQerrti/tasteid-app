@@ -419,6 +419,10 @@ function settingsViewHtml() {
           <div class="set-row-main">
             <div class="set-row-title" data-i18n>О программе</div>
             <div class="app-path" id="app-version">–</div>
+            <div class="app-path">
+              <span data-i18n>Новости и ошибки –</span>
+              <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a><span data-i18n>; журнал ошибок можно приложить к сообщению.</span>
+            </div>
           </div>
           <div class="set-row-ctl">
             <button class="btn btn-ghost" id="btn-check-update" onclick="checkForUpdateNow()" data-i18n>Проверить обновления</button>
@@ -594,9 +598,17 @@ function settingsViewHtml() {
           Capacitor, sharp и html2canvas – каждый под своей открытой лицензией.
         </p>
 
+        <!-- Канал в Telegram – основное место: оттуда приложение и
+             скачивают, там же чат для ошибок и жалоб (owner, ноябрь 2026).
+             GitHub – запасной путь. -->
         <h3 class="about-h" data-i18n>Нашли ошибку или есть идея?</h3>
         <p class="sync-intro">
-          <a href="https://github.com/DeQerrti/tasteid-app/issues" target="_blank" rel="noopener" data-i18n>Напишите на GitHub</a> <span data-i18n> – опишите, что делали и что произошло; скриншот очень помогает.</span>
+          <span data-i18n>Пишите в канал TasteID в Telegram –</span>
+          <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a><span data-i18n>. Там же выходят новые версии. Опишите, что делали и что произошло; скриншот и журнал ошибок («Приложение» → «Открыть журнал ошибок») очень помогают.</span>
+        </p>
+        <p class="sync-intro">
+          <span data-i18n>Можно и</span>
+          <a href="https://github.com/DeQerrti/tasteid-app/issues" target="_blank" rel="noopener" data-i18n>на GitHub</a>.
         </p>
       </div>
 
