@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Автобэкап Android 12+ (облако Google и перенос на новый телефон).
+     Хранилище с отзывами (files/TasteID) сохраняется как раньше, а данные
+     WebView (app_webview: localStorage страницы) – нет: там токен
+     синхронизации GitHub и ключи TMDB/Steam в открытом виде, и в облачную
+     копию им незачем. После восстановления на новом телефоне токен просто
+     вводится заново (аудит, решение owner'а, ноябрь 2026). -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="app_webview/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="app_webview/" />
+    </device-transfer>
+</data-extraction-rules>
