@@ -1393,91 +1393,96 @@ test("зависший источник картинки не вешает за�
 // HTTP-слой сервера целиком: withServer её подставить не даст
 // (electron/server.js своего malHttpGet не передаёт, как и на
 // компьютере), а сам обработчик достаётся из ROUTES напрямую.
-test("список с MyAnimeList по нику листает страницы и не падает на закрытой манге", async () => {
+// Ответы – в форме официального API MAL (data[].node, paging.next).
+const malPage = (n, more) =>
+  JSON.stringify({
+    data: Array.from({ length: n }, (_, i) => ({
+      node: { id: i + 1, title: `T${i}` },
+      list_status: { status: "completed", score: 7 },
+    })),
+    paging: more ? { next: "https://api.myanimelist.net/next" } : {},
+  });
+
+test("список с MyAnimeList по нику: официальный API с ключом приложения, листает страницы, закрытая манга не мешает", async () => {
   const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
   const calls = [];
-  const page = (n) =>
-    Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
-
-  const malHttpGet = async (url) => {
-    calls.push(url);
-    if (url.includes("/mangalist/"))
-      return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
+  const malHttpGet = async (url, headers) => {
+    calls.push({ url, headers });
+    if (url.includes("/mangalist")) return { status: 403, text: '{"error":"forbidden"}' };
     const offset = Number(new URL(url).searchParams.get("offset"));
-    // Первая страница анимного списка полная (300), вторая – неполная:
-    // признак того, что дальше страниц больше нет.
-    return { status: 200, text: JSON.stringify(offset === 0 ? page(300) : page(40)) };
+    // Первая страница – «дальше есть ещё», вторая – последняя.
+    return { status: 200, text: offset === 0 ? malPage(1000, true) : malPage(40, false) };
   };
 
   const result = await fetchMalUserList({ body: { username: "someone" }, malHttpGet });
   assert.equal(result.ok, true);
-  assert.equal(result.anime.length, 340);
+  assert.equal(result.anime.length, 1040);
   assert.equal(result.manga.length, 0);
-  // Ровно две страницы аниме (300 + неполные 40, дальше не пошли) и
-  // одна манги (сразу 400 – список закрыт/пуст, вторую страницу не
-  // спрашивали).
-  assert.equal(calls.filter((u) => u.includes("/animelist/")).length, 2);
-  assert.equal(calls.filter((u) => u.includes("/mangalist/")).length, 1);
+  assert.equal(calls.filter((c) => c.url.includes("/animelist")).length, 2);
+  assert.equal(calls.filter((c) => c.url.includes("/mangalist")).length, 1);
+  assert.ok(
+    calls.every((c) => c.url.startsWith("https://api.myanimelist.net/v2/users/someone/")),
+    "официальный API, а не внутренняя страница списка"
+  );
+  assert.ok(
+    calls.every((c) => /^[0-9a-f]{32}$/.test(c.headers?.["X-MAL-CLIENT-ID"] || "")),
+    "с ключом приложения"
+  );
+  assert.ok(calls.every((c) => c.headers?.["User-Agent"] === "TasteID"));
 });
 
-test("список с MyAnimeList по нику отказывает, если и аниме, и манга оказались пустыми", async () => {
+test("список с MyAnimeList по нику: нет такого ника – понятная ошибка", async () => {
   const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
-  const malHttpGet = async () => ({
-    status: 400,
-    text: '{"errors":[{"message":"invalid request"}]}',
-  });
-
+  const malHttpGet = async () => ({ status: 404, text: '{"error":"not_found"}' });
   await assert.rejects(
     () => fetchMalUserList({ body: { username: "nobody" }, malHttpGet }),
-    /не знает пользователя.*nobody/
+    /нет пользователя «nobody»/
+  );
+});
+
+test("список с MyAnimeList по нику отказывает, если и аниме, и манга закрыты", async () => {
+  const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
+  const malHttpGet = async () => ({ status: 403, text: '{"error":"forbidden"}' });
+  await assert.rejects(
+    () => fetchMalUserList({ body: { username: "hidden" }, malHttpGet }),
+    /пуст или закрыт/
   );
 });
 
 test("список с MyAnimeList по нику: реальная ошибка на середине пагинации помечает список как неполный, но не выбрасывает уже собранное", async () => {
   const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
-  const page = (n) =>
-    Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
-
   const malHttpGet = async (url) => {
-    if (url.includes("/mangalist/"))
-      return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
+    if (url.includes("/mangalist")) return { status: 403, text: "" };
     const offset = Number(new URL(url).searchParams.get("offset"));
-    // Первая страница успешная и полная, вторая – настоящая ошибка
-    // сервера (не 400 "список закрыт", а 500), причём не на первой
-    // странице – значит список только что успешно листался и вдруг
-    // перестал, это не штатный конец.
-    if (offset === 0) return { status: 200, text: JSON.stringify(page(300)) };
+    // Первая страница успешная, вторая – настоящая ошибка сервера, причём
+    // не на первой странице: список только что листался и вдруг перестал.
+    if (offset === 0) return { status: 200, text: malPage(1000, true) };
     return { status: 500, text: "" };
   };
 
   const result = await fetchMalUserList({ body: { username: "someone" }, malHttpGet });
   assert.equal(result.ok, true);
-  assert.equal(result.anime.length, 300, "то, что успели собрать до ошибки, не выброшено");
+  assert.equal(result.anime.length, 1000, "то, что успели собрать до ошибки, не выброшено");
   assert.equal(result.truncated.anime, true);
   assert.equal(result.truncated.manga, false);
 });
 
 test("список с MyAnimeList по нику: упирается в свой потолок страниц, если список длиннее ожидаемого", async () => {
   const fetchMalUserList = ROUTES["POST /api/fetch-mal-list"];
-  const page = (n) =>
-    Array.from({ length: n }, (_, i) => ({ anime_id: i + 1, anime_title: `T${i}` }));
-
   const malHttpGet = async (url) => {
-    if (url.includes("/mangalist/"))
-      return { status: 400, text: '{"errors":[{"message":"invalid request"}]}' };
-    // Каждая страница аниме полная – настоящего конца списка (короткой
-    // страницы) так никогда и не будет, только собственный потолок.
-    return { status: 200, text: JSON.stringify(page(300)) };
+    if (url.includes("/mangalist")) return { status: 403, text: "" };
+    // API всё время говорит «дальше есть ещё» – конца так и не будет.
+    return { status: 200, text: malPage(1000, true) };
   };
 
   const result = await fetchMalUserList({ body: { username: "someone" }, malHttpGet });
   assert.equal(result.ok, true);
+  assert.equal(result.truncated.anime, true, "API обещал ещё – список наверняка длиннее");
   assert.equal(
-    result.truncated.anime,
-    true,
-    "полные страницы до самого потолка – список наверняка длиннее"
+    result.anime.length,
+    10 * 1000,
+    "потолок в 10 страниц (MAL_MAX_PAGES в core/api.js)"
   );
-  assert.equal(result.anime.length, 20 * 300, "потолок в 20 страниц (MAL_MAX_PAGES в core/api.js)");
 });
 
 // ── Синхронизация: список вместо полной копии ──

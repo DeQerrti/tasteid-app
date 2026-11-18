@@ -782,19 +782,27 @@ async function backupCover({ vault, body, compressImage }) {
 }
 
 // Список с MyAnimeList по нику – так же, как список с AniList по нику
-// (js/import.js, fetchAnilistUserList): открытый список отдаётся кому
-// угодно, ключ не нужен. Но, в отличие от AniList, у этого эндпоинта
-// нет заголовков CORS – это тот же JSON, которым сама страница списка
-// подгружает следующую порцию при прокрутке, а не публичное API для
-// сторонних приложений. Прямой fetch из браузера такой ответ увидеть
-// не даст, поэтому запрос идёт отсюда, а не из js/import.js напрямую.
-//
-// Официальный API MAL (api.myanimelist.net) для этого не подходит: он
-// требует OAuth-регистрацию приложения и вход пользователя, то есть
-// то же самое усложнение, которого мы хотели избежать, добавляя вход
-// по одному нику, как у AniList.
-const MAL_LIST_PAGE = 300; // размер страницы у самого MAL, не наш выбор
-const MAL_MAX_PAGES = 20; // с запасом – 6000 записей на список
+// (js/import.js, fetchAnilistUserList): открытый список, вход человека
+// не нужен. Идёт через официальный API MAL (api.myanimelist.net/v2) с
+// ключом приложения: owner зарегистрировал на MAL приложение «TasteID»
+// (тип other – без секрета, ноябрь 2026). Client ID – не секрет: это
+// номер приложения, он и задуман лежать внутри распространяемой
+// программы (секрет MAL выдаёт только веб-приложениям, нам он не нужен).
+// Раньше читали внутренний JSON страницы списка (…/load.json) – правила
+// MAL этого не одобряют, и формат там мог поменяться без предупреждения.
+// У API нет заголовков CORS – запрос идёт отсюда, а не из окна.
+const MAL_API = "https://api.myanimelist.net/v2/users";
+const MAL_CLIENT_ID = "d107b204a4b0114e4d6ba9acf38edc7d";
+const MAL_LIST_PAGE = 1000; // наибольшая страница, которую отдаёт API MAL
+const MAL_MAX_PAGES = 10; // с запасом – 10 000 записей на список
+// Что спросить у каждой записи. list_status{…} – свои поля списка:
+// без явного перечисления API не отдаёт число пересмотров.
+const MAL_FIELDS = {
+  anime:
+    "list_status{status,score,is_rewatching,num_times_rewatched,start_date,finish_date},media_type",
+  manga:
+    "list_status{status,score,is_rereading,num_times_reread,start_date,finish_date},media_type",
+};
 
 // Сам HTTP-запрос вынесен наружу, как и compressImage чуть выше:
 // на компьютере это обычный fetch (electron/server.js работает в
@@ -828,22 +836,30 @@ async function defaultMalHttpGet(url, headers = {}) {
   }
 }
 
-// Возвращает { batch, fatal } вместо того, чтобы просто бросать или
-// отдавать null: страница 0 у каждого из двух списков (аниме/манга) –
-// частый и совершенно штатный случай 400 (список закрыт или пуст с
-// этой стороны, см. ниже), но 400/429/сетевая ошибка НЕ на первой
-// странице, когда предыдущие уже отдали данные, ведёт себя иначе –
-// список только что успешно листался и вдруг перестал, и списывать
-// это на «закрытый профиль» нечестно: профиль не закрывают на
-// середине запроса. fatal здесь – сигнал наверх остановиться и
-// пометить список как возможно неполный, а не тихо решить, что он
-// на этом кончился.
+// Возвращает { batch, more, fatal, missing } вместо того, чтобы просто
+// бросать: 403 на первой странице у одного из двух списков (аниме/манга) –
+// штатный случай (список закрыт настройками профиля), а 404 – такого ника
+// нет вовсе. Ошибка НЕ на первой странице, когда предыдущие уже отдали
+// данные, ведёт себя иначе – список только что успешно листался и вдруг
+// перестал, и списывать это на «закрытый профиль» нечестно. fatal – сигнал
+// наверх остановиться и пометить список как возможно неполный, а не тихо
+// решить, что он на этом кончился.
 async function fetchMalListPage(kind, username, offset, malHttpGet) {
-  const url = `https://myanimelist.net/${kind}list/${encodeURIComponent(username)}/load.json?status=7&offset=${offset}`;
+  const params = new URLSearchParams({
+    limit: String(MAL_LIST_PAGE),
+    offset: String(offset),
+    nsfw: "true", // иначе API молча выкидывает часть тайтлов из списка
+    fields: MAL_FIELDS[kind],
+  });
+  const url = `${MAL_API}/${encodeURIComponent(username)}/${kind}list?${params}`;
   const firstPage = offset === 0;
   let status, text;
   try {
-    ({ status, text } = await malHttpGet(url));
+    ({ status, text } = await malHttpGet(url, {
+      "X-MAL-CLIENT-ID": MAL_CLIENT_ID,
+      // Честное имя, а не «браузер» – как и у Шикимори ниже.
+      "User-Agent": "TasteID",
+    }));
   } catch {
     if (firstPage) {
       throw new ApiError(
@@ -852,13 +868,8 @@ async function fetchMalListPage(kind, username, offset, malHttpGet) {
     }
     return { batch: null, fatal: true };
   }
-  // MAL отвечает тем же 400 "invalid request" и на несуществующего/чужого
-  // закрытого пользователя, и на существующего, но с пустым списком этого
-  // вида (например, только мангу кто-то и не вёл) – различить эти два
-  // случая по ответу нечем, поэтому на первой странице это не ошибка,
-  // а просто пустая страница; собрать список хотя бы частично важнее
-  // точного диагноза.
-  if (status === 400) return { batch: null, fatal: !firstPage };
+  if (status === 404 && firstPage) return { batch: null, missing: true };
+  if (status === 403 && firstPage) return { batch: null };
   if (status === 429) {
     if (firstPage) {
       throw new ApiError(
@@ -876,9 +887,10 @@ async function fetchMalListPage(kind, username, offset, malHttpGet) {
   try {
     data = JSON.parse(text);
   } catch {
-    return { batch: null, fatal: false };
+    return { batch: null, fatal: !firstPage };
   }
-  return { batch: Array.isArray(data) ? data : null, fatal: false };
+  const batch = Array.isArray(data?.data) ? data.data : null;
+  return { batch, more: !!data?.paging?.next };
 }
 
 // ── Шикимори ──
@@ -923,33 +935,35 @@ async function fetchMalUserList({ body, malHttpGet }) {
   const result = { anime: [], manga: [] };
   // truncated[kind] – список этого вида мог оказаться неполным: либо
   // страница где-то за первой всё-таки отказала (см. fatal выше),
-  // либо упёрлись в MAL_MAX_PAGES, а последняя забранная страница
-  // была ещё полной (значит за ней наверняка есть ещё). Настоящий
-  // конец списка – страница короче MAL_LIST_PAGE – сюда не попадает.
+  // либо упёрлись в MAL_MAX_PAGES, а API говорил, что дальше есть ещё.
+  // Настоящий конец списка (нет paging.next) сюда не попадает.
   const truncated = { anime: false, manga: false };
   for (const kind of ["anime", "manga"]) {
     let page = 0;
     for (; page < MAL_MAX_PAGES; page++) {
-      const { batch, fatal } = await fetchMalListPage(
+      const { batch, more, fatal, missing } = await fetchMalListPage(
         kind,
         username,
         page * MAL_LIST_PAGE,
         httpGet
       );
+      if (missing) {
+        throw new ApiError(`На MyAnimeList нет пользователя «${username}». Проверьте ник.`);
+      }
       if (fatal) {
         truncated[kind] = true;
         break;
       }
-      if (!batch) break; // штатный конец/пустой список с этой стороны
+      if (!batch) break; // список закрыт или пуст с этой стороны
       result[kind].push(...batch);
-      if (batch.length < MAL_LIST_PAGE) break;
+      if (!more) break;
     }
     if (page === MAL_MAX_PAGES) truncated[kind] = true;
   }
 
   if (!result.anime.length && !result.manga.length) {
     throw new ApiError(
-      `MyAnimeList не знает пользователя «${username}», либо его список закрыт настройками профиля.`
+      `У «${username}» на MyAnimeList список пуст или закрыт настройками профиля.`
     );
   }
   return { ok: true, ...result, truncated };
