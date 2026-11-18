@@ -65,10 +65,28 @@ writeFileSync(
   JSON.stringify([{ id: 1, type: "person", subtype: "author", name: "Gen Urobuchi" }])
 );
 
+// Подставной Шикимори – отдельным сервером: запросы к Шикимори идут из
+// программы (shikimoriGet в core/api.js, свой User-Agent), а не из
+// браузера, и page.route их не видит. Адрес передаётся программе через
+// TASTEID_SHIKIMORI_ORIGIN.
+const shikiAgents = [];
+const shikiServer = http.createServer((req, res) => {
+  shikiAgents.push(req.headers["user-agent"]);
+  const url = new URL(req.url, "http://x");
+  const { status = 200, body } = shikiRespond(url);
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body ?? {}));
+});
+const shikiPort = await new Promise((resolve) =>
+  shikiServer.listen(0, "127.0.0.1", () => resolve(shikiServer.address().port))
+);
+process.on("exit", () => shikiServer.close());
+
 const port = 8100 + ((process.pid + 37) % 90);
 const base = `http://127.0.0.1:${port}`;
 const server = spawn("node", ["scripts/serve.js", vaultDir, String(port)], {
   stdio: ["ignore", "pipe", "inherit"],
+  env: { ...process.env, TASTEID_SHIKIMORI_ORIGIN: `http://127.0.0.1:${shikiPort}` },
 });
 process.on("exit", () => server.kill());
 await new Promise((done, fail) => {
@@ -158,20 +176,14 @@ const asked = [];
 await page.route("https://graphql.anilist.co/**", (route) =>
   route.fulfill({ contentType: "application/json", body: '{"data":{"Page":{"media":[]}}}' })
 );
-await page.route("https://shikimori.io/api/**", (route) => {
-  const url = new URL(route.request().url());
+// Ответы подставного Шикимори (сам сервер – выше, до запуска программы).
+function shikiRespond(url) {
   asked.push(url.pathname + url.search);
   const key = url.pathname.endsWith("_rates") ? url.pathname : url.pathname + url.search;
   // Вторая страница списка – пусто (на первой меньше предела).
   const body = url.searchParams.get("page") > 1 ? [] : API[key];
-  if (body === undefined)
-    return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
-  route.fulfill({
-    contentType: "application/json",
-    headers: { "access-control-allow-origin": "*" },
-    body: JSON.stringify(body),
-  });
-});
+  return body === undefined ? { status: 404, body: {} } : { body };
+}
 
 await page.goto(`${base}/#/settings-edit`, { waitUntil: "domcontentloaded" });
 await page.click('[data-panel="import"]');
@@ -193,6 +205,10 @@ await page.fill("#imp-shiki-user", "https://shikimori.io/someone/list/anime");
 await page.click("#imp-shiki-go");
 await page.waitForSelector(".imp-fav-grid", { timeout: 30000 });
 ok(asked.includes("/api/users/someone?is_nickname=1"), "ник взят из вставленной ссылки");
+ok(
+  shikiAgents.length > 0 && shikiAgents.every((ua) => ua === "TasteID"),
+  "запросы к Шикимори – с User-Agent приложения TasteID, а не браузера"
+);
 ok(
   (await page.textContent(".imp-source-line")).includes("someone"),
   "в строке источника – Шикимори и ник"
@@ -259,3 +275,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log("\nВсе проверки прошли");
+// Подставной Шикимори держит процесс живым – выходим явно.
+process.exit(0);

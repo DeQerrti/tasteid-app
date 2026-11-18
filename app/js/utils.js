@@ -63,6 +63,26 @@ async function fetchExternal(url, init = {}, timeoutMs = 20000) {
   }
 }
 
+// Запрос к API Шикимори через программу, а не из окна: так он уходит с
+// User-Agent зарегистрированного приложения TasteID, как просят правила
+// Шикимори (shikimoriGet в core/api.js). path – «/api/…?…». Возвращает
+// обычный Response – вызывающему коду всё равно, откуда он пришёл.
+async function shikimoriFetch(path) {
+  const res = await fetchExternal("/api/shikimori", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || i18n("Нет соединения с сервисом – проверьте интернет и попробуйте ещё раз."));
+  }
+  return new Response(data.text, {
+    status: data.status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 // Название тега для показа. Встроенные теги хранятся в отзывах русскими
 // строками (это их ключ: по нему тег находят, считают, фильтруют), а
 // переводы для них лежат в i18n-en.js – раньше их никто не применял, и в

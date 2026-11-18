@@ -119,7 +119,8 @@ const ED_SHIKI_KIND = { manhwa: "manhwa", manhua: "manhua", light_novel: "novel"
 async function edLookupShikimori(src, q, type) {
   const section = src.id === "anilist-anime" ? "animes" : type === "novel" ? "ranobe" : "mangas";
   const params = new URLSearchParams({ search: q, limit: "10" });
-  const res = await fetchExternal(`${ED_LOOKUP_SHIKI}/api/${section}?${params}`, { headers: { Accept: "application/json" } });
+  // Через программу – со своим User-Agent (shikimoriFetch в utils.js).
+  const res = await shikimoriFetch(`/api/${section}?${params}`);
   const data = await res.json().catch(() => null);
   if (!res.ok || !Array.isArray(data)) throw new Error(i18n("Сервер ответил {status}", { status: res.status }));
   return data.map((m) => {

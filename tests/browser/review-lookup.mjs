@@ -11,6 +11,7 @@ import { createRequire } from "node:module";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import http from "node:http";
 
 const require = createRequire(import.meta.url);
 const { chromium } = (() => {
@@ -28,10 +29,28 @@ const ok = (cond, msg) => {
 };
 
 const vaultDir = mkdtempSync(join(tmpdir(), "tasteid-lookup-"));
+// Подставной Шикимори – отдельным сервером: запросы к Шикимори идут из
+// программы (shikimoriGet в core/api.js, свой User-Agent), а не из
+// браузера, и page.route их не видит. Адрес передаётся программе через
+// TASTEID_SHIKIMORI_ORIGIN.
+const shikiAgents = [];
+const shikiServer = http.createServer((req, res) => {
+  shikiAgents.push(req.headers["user-agent"]);
+  const url = new URL(req.url, "http://x");
+  const { status = 200, body } = shikiRespond(url);
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(body ?? {}));
+});
+const shikiPort = await new Promise((resolve) =>
+  shikiServer.listen(0, "127.0.0.1", () => resolve(shikiServer.address().port))
+);
+process.on("exit", () => shikiServer.close());
+
 const port = 8200 + (process.pid % 90);
 const base = `http://127.0.0.1:${port}`;
 const server = spawn("node", ["scripts/serve.js", vaultDir, String(port)], {
   stdio: ["ignore", "pipe", "inherit"],
+  env: { ...process.env, TASTEID_SHIKIMORI_ORIGIN: `http://127.0.0.1:${shikiPort}` },
 });
 process.on("exit", () => server.kill());
 await new Promise((done, fail) => {
@@ -178,12 +197,11 @@ await page.route("https://graphql.anilist.co/**", (route) => {
     body: JSON.stringify({ data: { Page: { media: [] } } }),
   });
 });
-await page.route("https://shikimori.io/api/**", (route) =>
-  route.fulfill({
-    contentType: "application/json",
-    headers: { "access-control-allow-origin": "*" },
-    body: JSON.stringify(
-      new URL(route.request().url()).pathname === "/api/animes"
+// Ответы подставного Шикимори (сам сервер – выше, до запуска программы).
+function shikiRespond(url) {
+  return {
+    body:
+      url.pathname === "/api/animes"
         ? [
             {
               id: 33,
@@ -195,10 +213,9 @@ await page.route("https://shikimori.io/api/**", (route) =>
               image: { original: "/system/animes/original/33.jpg" },
             },
           ]
-        : []
-    ),
-  })
-);
+        : [],
+  };
+}
 await page.route("https://shikimori.io/system/**", (r) => r.fulfill({ status: 404, body: "" }));
 await pick("anime");
 await search("берсерк");
@@ -278,3 +295,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log("\nВсе проверки прошли");
+// Подставной Шикимори держит процесс живым – выходим явно.
+process.exit(0);

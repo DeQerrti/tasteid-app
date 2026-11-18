@@ -404,13 +404,16 @@ async function compressImage(bytes, contentType) {
 // ответа MAL нет Access-Control-Allow-Origin. CapacitorHttp делает
 // запрос не из WebView, а с телефона напрямую – для него CORS не
 // существует, как и для обычного fetch на компьютере.
-async function malHttpGet(url) {
+async function malHttpGet(url, headers = {}) {
   const res = await CapacitorHttp.get({
     url,
     headers: {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       Accept: "application/json",
+      // Поверх умолчаний – Шикимори просит своё имя приложения
+      // (shikimoriGet в core/api.js).
+      ...headers,
     },
     responseType: "text",
     // Та же граница, что и у обычного fetch по умолчанию на компьютере

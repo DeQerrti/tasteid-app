@@ -1021,7 +1021,6 @@ async function fetchAnilistUserList(userName, onProgress) {
 // них не к чему привязывать). Поэтому между запросами пауза, а на 429
 // – подождать и повторить, а не сдаться.
 
-const SHIKIMORI_API = `${SHIKIMORI_ORIGIN}/api`;
 const SHIKIMORI_PAGE = 5000; // больше за страницу Шикимори не отдаёт
 const SHIKIMORI_MAX_PAGES = 10; // 50 тысяч записей – живому человеку хватит
 const SHIKIMORI_GAP_MS = 700; // ≈85 запросов в минуту – под пределом в 90
@@ -1032,7 +1031,8 @@ async function shikimoriGet(path) {
   for (let attempt = 0; ; attempt++) {
     let res;
     try {
-      res = await fetchExternal(`${SHIKIMORI_API}${path}`, { headers: { Accept: "application/json" } });
+      // Через программу – со своим User-Agent (shikimoriFetch в utils.js).
+      res = await shikimoriFetch(`/api${path}`);
     } catch {
       // Как и у AniList: обрыв сети и сбой на их стороне (ответ без
       // заголовков CORS) отсюда неразличимы – говорим честно про оба.

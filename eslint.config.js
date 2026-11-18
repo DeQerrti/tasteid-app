@@ -284,6 +284,7 @@ const sharedBrowserGlobals = [
   "siteLabel",
   "slugify",
   "sortByOrder",
+  "shikimoriFetch",
   "SOURCE_FILTER_ORDER",
   "SOURCE_LABELS",
   "sourceBtnHtml",

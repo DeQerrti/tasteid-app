@@ -807,7 +807,9 @@ const MAL_MAX_PAGES = 20; // с запасом – 6000 записей на сп
 // напрямую.
 const MAL_HTTP_TIMEOUT = 8000; // тот же запас, что и у backupCover() ниже
 
-async function defaultMalHttpGet(url) {
+// headers – дополнительные заголовки поверх умолчаний (Шикимори просит
+// User-Agent с именем зарегистрированного приложения, см. shikimoriGet).
+async function defaultMalHttpGet(url, headers = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MAL_HTTP_TIMEOUT);
   try {
@@ -816,6 +818,7 @@ async function defaultMalHttpGet(url) {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         Accept: "application/json",
+        ...headers,
       },
       signal: controller.signal,
     });
@@ -876,6 +879,40 @@ async function fetchMalListPage(kind, username, offset, malHttpGet) {
     return { batch: null, fatal: false };
   }
   return { batch: Array.isArray(data) ? data : null, fatal: false };
+}
+
+// ── Шикимори ──
+// Их правила API: в User-Agent – имя зарегистрированного OAuth-приложения,
+// не выдавать себя за браузер, иначе IP могут забанить. Приложение
+// «TasteID» owner зарегистрировал на shikimori.io (ноябрь 2026); права
+// (scopes) ему не нужны – только открытые запросы. Из окна приложения
+// (браузерный fetch) User-Agent поставить нельзя – запрос идёт отсюда:
+// на компьютере из Node, на телефоне через CapacitorHttp (тот же
+// malHttpGet, что у MyAnimeList и Steam). Только пути /api/… на
+// shikimori.io – дорога сюда не годится для запросов куда-то ещё.
+// Переменная окружения – только для тестов (tests/browser/import-shikimori.mjs,
+// review-lookup.mjs поднимают подставной Шикимори): запрос теперь идёт из
+// программы, и подменить его в браузере, как раньше, нельзя. На телефоне
+// process нет – там всегда настоящий адрес.
+const SHIKIMORI_ORIGIN =
+  (typeof process !== "undefined" && process.env?.TASTEID_SHIKIMORI_ORIGIN) ||
+  "https://shikimori.io";
+const SHIKIMORI_USER_AGENT = "TasteID";
+// % – и в пути: ник с кириллицей приходит закодированным (/users/%D0%…).
+const SHIKIMORI_PATH = /^\/api\/[\w\-/.%]{1,300}(\?[\w\-.=&%+,:]{0,800})?$/;
+
+async function shikimoriGet({ body, malHttpGet }) {
+  const p = String(body?.path || "");
+  if (!SHIKIMORI_PATH.test(p)) throw new ApiError("Недопустимый адрес Шикимори");
+  const httpGet = malHttpGet || defaultMalHttpGet;
+  try {
+    const { status, text } = await httpGet(SHIKIMORI_ORIGIN + p, {
+      "User-Agent": SHIKIMORI_USER_AGENT,
+    });
+    return { ok: true, status, text };
+  } catch {
+    throw new ApiError("Не получилось достучаться до Шикимори", 502);
+  }
 }
 
 async function fetchMalUserList({ body, malHttpGet }) {
@@ -1679,6 +1716,7 @@ export const ROUTES = {
   "POST /api/compress-folder": compressFolder,
   "POST /api/backup-cover": backupCover,
   "POST /api/fetch-mal-list": fetchMalUserList,
+  "POST /api/shikimori": shikimoriGet,
   "POST /api/steam-search": steamSearch,
   "POST /api/steam-library": steamLibrary,
   "POST /api/delete-media": deleteMedia,
