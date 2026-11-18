@@ -147,8 +147,38 @@ function hslToHex(h, s, l) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+// Какой набор встроенных тегов у хранилища: "neutral" или "author" (см.
+// NEUTRAL_TAG_NAMES в config.js). Решается один раз и запоминается в
+// настройках: в хранилище уже есть отзывы – авторский (так было у всех до
+// этого решения, и их теги не должны потерять категории и подсказки);
+// пустое новое хранилище – нейтральный. Без запоминания новый человек,
+// добавив первый отзыв, при следующем запуске получил бы авторский набор.
+// Настройки не прочитались – ничего не решаем и не пишем (там может быть
+// ошибка, а не «пусто»).
+async function resolveTagSet(settings, settingsLoaded) {
+  if (settings.tagSet === "neutral" || settings.tagSet === "author") return settings.tagSet;
+  if (!settingsLoaded) return "author";
+  let tagSet = "author";
+  try {
+    const res = await fetch("/reviews.json");
+    if (!res.ok) return "author";
+    const list = await res.json();
+    tagSet = Array.isArray(list) && list.length === 0 ? "neutral" : "author";
+    await fetch("/api/save-site-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ ...settings, tagSet, _base: settings }),
+    });
+  } catch {
+    // Не записалось – решим так же в следующий раз.
+  }
+  return tagSet;
+}
+
 async function applyTheme() {
   let settings = {};
+  let settingsLoaded = false;
   try {
     // Абсолютный путь обязателен: перехватчик fetch на телефоне
     // (mobile/src/main.js, installFetch) ловит только запросы,
@@ -157,7 +187,10 @@ async function applyTheme() {
     // такого адреса) и падал в catch ниже. Тема и все настройки сайта
     // из-за этого молча оставались на умолчаниях.
     const res = await fetch("/site-settings.json");
-    if (res.ok) settings = await res.json();
+    if (res.ok) {
+      settings = await res.json();
+      settingsLoaded = true;
+    }
   } catch {
     // нет файла/сети – просто остаёмся на теме и подписях по умолчанию
   }
@@ -286,6 +319,8 @@ async function applyTheme() {
   applyNavLabels();
   applyTabPreferences(settings);
   applySiteName();
+
+  window.SITE_TAG_SET = await resolveTagSet(settings, settingsLoaded);
 
   // Событие шлём последним: к этому моменту и подписи, и порядок вкладок
   // уже на месте, а слушатели (config.js, now.js) точно зарегистрированы –

@@ -504,7 +504,13 @@ function renderTagModal() {
   bulkBtn.classList.toggle("on", tmState.bulk);
   bulkBtn.setAttribute("aria-pressed", String(tmState.bulk));
 
-  document.getElementById("tm-newcat-box").innerHTML = tmState.newCat ? tmCatEditorHtml(null) : "";
+  // Нейтральный набор (новое хранилище, см. NEUTRAL_TAG_NAMES в
+  // config.js) – предложить включить полный набор автора одной кнопкой.
+  document.getElementById("tm-newcat-box").innerHTML =
+    (window.SITE_TAG_SET === "neutral" && !q
+      ? `<p class="tm-dim tm-tagset">${i18n("Здесь короткий набор тегов. У автора TasteID их больше – с жаргоном и игровыми.")}
+          <button type="button" class="tm-link" data-tm-act="author-set">${i18n("Добавить набор автора")}</button></p>`
+      : "") + (tmState.newCat ? tmCatEditorHtml(null) : "");
 
   const shown = [...groups.entries()].filter(([key, tags]) => tags.length || (!q && CAT_LABELS[key] !== undefined));
   document.getElementById("tm-body").innerHTML = shown.length
@@ -560,6 +566,20 @@ async function tmRun(btn, fn, okText) {
 async function tmAction(act, btn) {
   const val = (id) => document.getElementById(id)?.value ?? "";
   switch (act) {
+    case "author-set":
+      await tmRun(
+        btn,
+        async () => {
+          await patchSiteSettings((s) => {
+            s.tagSet = "author";
+          });
+          // applyTheme перечитает настройки и заново разошлёт
+          // site-labels-ready – встроенные теги вернутся в TAGS_MAP.
+          await applyTheme();
+        },
+        i18n("Набор автора добавлен")
+      );
+      return tmRerender();
     case "tag-cancel":
       tmState.editTag = null;
       return tmRerender();

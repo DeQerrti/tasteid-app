@@ -2021,3 +2021,11 @@ i18nRegister({
   "Осты в тему": "Fitting soundtrack",
   "Один дубль": "One-take feel",
 });
+
+// ── Нейтральный набор тегов (add-tags-modal.js) ──
+i18nRegister({
+  "Здесь короткий набор тегов. У автора TasteID их больше – с жаргоном и игровыми.":
+    "This is a short tag set. The TasteID author has more – with slang and gaming ones.",
+  "Добавить набор автора": "Add the author’s set",
+  "Набор автора добавлен": "Author’s set added",
+});
