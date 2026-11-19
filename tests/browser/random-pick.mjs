@@ -1,13 +1,14 @@
 // «Что посмотреть?» (js/now.js: nowOpenRandom): кнопка «Случайный» во
-// вкладке «Статусы».
+// вкладке «Статусы» и полоса «Может, это?» над карточками.
 //
 // Проверяется:
-//   – кнопка есть, когда в статусе больше одного тайтла, и пропадает,
-//     когда под фильтром остался один;
+//   – кнопка есть, когда видно больше одного тайтла, и пропадает, когда
+//     под фильтром остался один; кубик – svg, не смайл;
+//   – выбор показывается полосой, окно отзыва само не открывается;
+//   – «Другой» и повторный кубик не повторяют тайтл подряд;
+//   – «Открыть» – окно того же отзыва, ✕ убирает полосу;
 //   – выбор только из видимого: под чипом «Фильм» – только фильмы;
-//   – открывается окно отзыва с кнопкой «Другой», и «Другой» не повторяет
-//     тайтл подряд;
-//   – обычный клик по карточке открывает окно БЕЗ «Другой».
+//   – сменили чип или статус так, что выбранного не видно, – полосы нет.
 //
 // Запуск: node tests/browser/random-pick.mjs
 
@@ -69,51 +70,70 @@ await page.click('.tab-btn[aria-controls="tab-now"]');
 await page.click('#tab-now .tl-mode-btn[data-mode="planning"]');
 await page.waitForSelector("#tab-now .review-card-wrap", { timeout: 15000 });
 
-const modalTitle = () => page.textContent("#review-modal-title");
-const closeModal = async () => {
-  await page.keyboard.press("Escape");
-  await page.waitForSelector("#review-modal-overlay.hidden", { state: "attached" });
-};
+const pickTitle = () => page.textContent("#now-pick .now-pick-title");
 
 console.log("Кнопка");
 ok(await page.isVisible("#now-random"), "«Случайный» видна (в «Планирую» 6 тайтлов)");
+ok(!(await page.textContent("#now-random")).includes("🎲"), "без смайла – кубик нарисован линией");
+ok(!!(await page.$("#now-random svg.now-dice")), "кубик – svg");
 
-console.log("Выбор из всего статуса");
+console.log("Полоса «Может, это?»");
 await page.click("#now-random");
-await page.waitForSelector("#review-modal-overlay:not(.hidden)");
-const firstPick = await modalTitle();
+await page.waitForSelector("#now-pick");
+const firstPick = await pickTitle();
 ok(
   reviews.some((r) => r.title === firstPick),
-  `открылся отзыв из списка («${firstPick}»)`
+  `над карточками полоса с тайтлом из списка («${firstPick}»)`
 );
-ok(await page.isVisible(".review-reroll-btn"), "в окне есть «Другой»");
-let prev = await modalTitle();
+ok(!(await page.isVisible("#review-modal-overlay")), "окно отзыва само не открывается");
+let prev = firstPick;
 let repeats = 0;
 for (let i = 0; i < 15; i++) {
-  await page.click(".review-reroll-btn");
-  const t = await modalTitle();
+  await page.click('#now-pick [data-pick="again"]');
+  const t = await pickTitle();
   if (t === prev) repeats++;
   prev = t;
 }
 ok(repeats === 0, "«Другой» ни разу не выдал тот же тайтл подряд");
-await closeModal();
+await page.click("#now-random");
+ok((await pickTitle()) !== prev, "повторное нажатие кубика – тоже другой тайтл");
+prev = await pickTitle();
+
+await page.click('#now-pick [data-pick="open"]');
+await page.waitForSelector("#review-modal-overlay:not(.hidden)");
+ok((await page.textContent("#review-modal-title")) === prev, "«Открыть» – окно этого же отзыва");
+await page.keyboard.press("Escape");
+await page.waitForSelector("#review-modal-overlay.hidden", { state: "attached" });
+ok(await page.isVisible("#now-pick"), "после окна полоса на месте");
+await page.click('#now-pick [data-pick="close"]');
+ok(!(await page.$("#now-pick")), "✕ убирает полосу");
 
 console.log("Только видимое: чип «Фильм»");
 await page.click('#now-chips .now-chip[data-type="movie"]');
 const seen = new Set();
 await page.click("#now-random");
-await page.waitForSelector("#review-modal-overlay:not(.hidden)");
-seen.add(await modalTitle());
+await page.waitForSelector("#now-pick");
+seen.add(await pickTitle());
 for (let i = 0; i < 10; i++) {
-  await page.click(".review-reroll-btn");
-  seen.add(await modalTitle());
+  await page.click('#now-pick [data-pick="again"]');
+  seen.add(await pickTitle());
 }
 ok(
   [...seen].every((t) => t.startsWith("Фильм")),
   `только фильмы: ${[...seen].join(", ")}`
 );
 ok(seen.size === 2, "и оба фильма попадаются");
-await closeModal();
+
+console.log("Выбор пропал из списка – полоса уходит");
+await page.click('#now-chips .now-chip[data-type="anime"]');
+ok(!(await page.$("#now-pick")), "сменили чип на «Аниме» – полосы с фильмом нет");
+await page.click("#now-random");
+await page.waitForSelector("#now-pick");
+await page.click('#tab-now .tl-mode-btn[data-mode="current"]');
+await page.waitForTimeout(200);
+ok(!(await page.$("#now-pick")), "сменили статус – полосы нет");
+await page.click('#tab-now .tl-mode-btn[data-mode="planning"]');
+await page.waitForSelector("#tab-now .review-card-wrap");
 
 console.log("Один тайтл под фильтром");
 await page.click('#now-chips .now-chip[data-type="book"]');
@@ -123,12 +143,6 @@ await page.fill("#now-search", "аниме б");
 ok(!(await page.isVisible("#now-random")), "поиск оставил один тайтл – кнопки нет");
 await page.fill("#now-search", "");
 ok(await page.isVisible("#now-random"), "сбросили поиск – кнопка вернулась");
-
-console.log("Обычный клик по карточке");
-await page.click("#tab-now .review-card-wrap");
-await page.waitForSelector("#review-modal-overlay:not(.hidden)");
-ok(!(await page.$(".review-reroll-btn")), "окно с карточки – без «Другой»");
-await closeModal();
 
 ok(!jsErrors.length, "ошибок JS нет" + (jsErrors.length ? ": " + jsErrors.join("; ") : ""));
 

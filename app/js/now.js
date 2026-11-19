@@ -126,16 +126,21 @@ function nowApplyFilter() {
   // Из одного тайтла выбирать нечего – кнопки нет.
   const random = document.getElementById("now-random");
   if (random) random.hidden = visible < 2;
+  nowSyncPick();
 }
 
 // ── «Что посмотреть?» ─────────────────────────
-// Случайный тайтл из открытого статуса (чаще всего «Планирую» или
-// «Отложено» – туда копится больше, чем успеваешь), причём только из
-// того, что сейчас видно: чип типа и поиск сужают выбор – «случайный
-// фильм» это чип «Фильм» и кнопка. Открывается та же модалка отзыва, что
-// и по клику на карточку, плюс кнопка «Другой» в ней (reviewModalReroll в
-// reviews.js) – перебрать варианты, не закрывая окно. Подряд один и тот
-// же тайтл не выпадает.
+// Случайный тайтл из открытого статуса (чаще всего «Отложено» и
+// «Планирую» – туда копится больше, чем успеваешь), причём только из
+// того, что сейчас видно: чип типа и поиск сужают выбор – «случайная
+// манхва» это чип «Манхва» и кнопка. Выбор показывается полосой «Может,
+// это?» над карточками, без окна: «Другой» перебирает варианты на месте,
+// «Открыть» – обычное окно отзыва. Подряд один и тот же тайтл не
+// выпадает. Вариант «Б» owner выбрал по макету (ноябрь 2026) вместо окна
+// отзыва с кнопкой «Другой»; смайл 🎲 он отклонил – выбивался из темы,
+// кубик нарисован линией, как иконки в меню.
+const NOW_DICE_ICON = `<svg class="now-dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r=".6" fill="currentColor"/><circle cx="12" cy="12" r=".6" fill="currentColor"/><circle cx="15.5" cy="15.5" r=".6" fill="currentColor"/></svg>`;
+
 // Сравнение – по ключу карточки, а не по самому объекту: reviews.json
 // перечитывается при заходах на вкладку, и прошлый выбор может оказаться
 // уже другим объектом с теми же данными.
@@ -158,9 +163,62 @@ function nowPickRandom(prev) {
   return choices[Math.floor(Math.random() * choices.length)] || null;
 }
 
+// Последний выбор, пока полоса на экране.
+let nowPicked = null;
+
+function nowPickHtml(r) {
+  const meta = [TYPE_LABELS[r.type] || r.type, r.year].filter(Boolean).join(" · ");
+  return `<img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+    <div class="now-pick-main">
+      <div class="now-pick-kicker">${esc(i18n("Может, это?"))}</div>
+      <div class="now-pick-title">${esc(r.title)}</div>
+      ${meta ? `<div class="now-pick-meta">${esc(meta)}</div>` : ""}
+      <div class="now-pick-btns">
+        <button type="button" class="now-pick-btn now-pick-open" data-pick="open">${esc(i18n("Открыть"))}</button>
+        <button type="button" class="now-pick-btn" data-pick="again">${NOW_DICE_ICON}${esc(i18n("Другой"))}</button>
+      </div>
+    </div>
+    <button type="button" class="icon-btn now-pick-close" data-pick="close" title="${esc(i18n("Скрыть"))}" aria-label="${esc(i18n("Скрыть"))}">✕</button>`;
+}
+
+function nowClosePick() {
+  nowPicked = null;
+  document.getElementById("now-pick")?.remove();
+}
+
 function nowOpenRandom(prev) {
   const r = nowPickRandom(prev);
-  if (r) openReviewModal(r, null, { reroll: () => nowOpenRandom(r) });
+  const body = document.getElementById("now-mode-body");
+  if (!r || !body) return;
+  nowPicked = r;
+  let box = document.getElementById("now-pick");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "now-pick";
+    box.className = "now-pick";
+    box.setAttribute("role", "status");
+    box.addEventListener("click", (e) => {
+      const act = e.target.closest("[data-pick]")?.dataset.pick;
+      if (act === "open" && nowPicked) openReviewModal(nowPicked);
+      if (act === "again") nowOpenRandom(nowPicked);
+      if (act === "close") nowClosePick();
+    });
+    body.before(box);
+  }
+  box.innerHTML = nowPickHtml(r);
+  // Заново проигрываем появление – видно, что выбор сменился, даже если
+  // обложки похожи.
+  box.classList.remove("now-pick-pop");
+  void box.offsetWidth;
+  box.classList.add("now-pick-pop");
+}
+
+// Сменили статус, чип или поиск так, что выбранного больше не видно, –
+// полоса уходит: подсказывать то, чего в списке нет, странно.
+function nowSyncPick() {
+  if (!nowPicked) return;
+  const key = nowReviewKey(nowPicked);
+  if (!nowVisibleReviews().some((r) => nowReviewKey(r) === key)) nowClosePick();
 }
 
 function bindNowTools() {
@@ -172,7 +230,7 @@ function bindNowTools() {
     renderNowChips();
     nowApplyFilter();
   });
-  document.getElementById("now-random")?.addEventListener("click", () => nowOpenRandom(null));
+  document.getElementById("now-random")?.addEventListener("click", () => nowOpenRandom(nowPicked));
   document.getElementById("now-search")?.addEventListener("input", (e) => {
     nowFilter.q = e.target.value;
     nowApplyFilter();
@@ -201,7 +259,7 @@ function nowToolsHtml() {
   return `<div class="now-tools">
     <div class="now-chips" id="now-chips"></div>
     <div class="now-tools-right">
-      <button type="button" id="now-random" class="now-random" title="${esc(i18n("Выбрать случайный тайтл из списка (с учётом фильтра и поиска)"))}" aria-label="${esc(i18n("Случайный"))}" hidden>🎲<span class="now-random-label"> ${esc(i18n("Случайный"))}</span></button>
+      <button type="button" id="now-random" class="now-random" title="${esc(i18n("Выбрать случайный тайтл из списка (с учётом фильтра и поиска)"))}" aria-label="${esc(i18n("Случайный"))}" hidden>${NOW_DICE_ICON}<span class="now-random-label">${esc(i18n("Случайный"))}</span></button>
       <input type="search" id="now-search" class="now-search" value="${esc(nowFilter.q)}" placeholder="${esc(i18n("Поиск по названию"))}" aria-label="${esc(i18n("Поиск по названию"))}">
       <select id="now-year-jump" class="now-sort" data-no-dirty aria-label="${esc(i18n("Перейти к году…"))}" hidden></select>
       <select id="now-sort" class="now-sort" aria-label="${esc(i18n("Сортировка"))}">
@@ -518,6 +576,7 @@ function renderNow({ buckets }) {
   nowState.buckets = buckets;
   nowEnsureMode();
   nowModeBodies = {};
+  nowPicked = null; // полоса «Может, это?» пропадает вместе со старой разметкой
 
   if (isVaultEmpty()) {
     box.innerHTML = firstRunHtml();

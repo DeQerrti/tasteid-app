@@ -2093,5 +2093,5 @@ i18nRegister({
   Случайный: "Random",
   "Выбрать случайный тайтл из списка (с учётом фильтра и поиска)": "Pick a random title from the list (respects the filter and search)",
   Другой: "Another",
-  "Другой случайный тайтл": "Another random title",
+  "Может, это?": "Maybe this one?",
 });
