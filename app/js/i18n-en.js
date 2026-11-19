@@ -2088,4 +2088,10 @@ i18nRegister({
   ". Там же выходят новые версии. Опишите, что делали и что произошло; скриншот и журнал ошибок («Приложение» → «Журнал ошибок») очень помогают.":
     ". New versions are posted there too. Describe what you did and what happened; a screenshot and the error log (App → Error log) help a lot.",
   "Не получилось скопировать журнал.": "Couldn't copy the log.",
+
+  // «Что посмотреть?» – случайный тайтл (now.js, reviews.js)
+  Случайный: "Random",
+  "Выбрать случайный тайтл из списка (с учётом фильтра и поиска)": "Pick a random title from the list (respects the filter and search)",
+  Другой: "Another",
+  "Другой случайный тайтл": "Another random title",
 });

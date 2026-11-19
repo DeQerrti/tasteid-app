@@ -48,10 +48,10 @@
      #/reviews-order (js/routes/reviews-order.js) собственная шапка
      .app-topbar, которая до сих пор жила только там. -->
 <link rel="stylesheet" href="/admin.css?v=20">
-<link rel="stylesheet" href="/themes.css?v=41">
+<link rel="stylesheet" href="/themes.css?v=42">
 <script src="/js/mobile.bundle.js?v=10"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=58"></script>
+<script src="/js/i18n-en.js?v=59"></script>
 <script src="/js/sync.js?v=6"></script>
 <script src="/js/utils.js?v=35"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -1035,6 +1035,10 @@ section.group { margin-bottom: 3.5rem; }
   margin: 1rem 0 0;
 }
 #review-modal-body:has(.review-modal-nav) .review-modal-main .review-modal-title { padding-right: 190px; }
+/* «🎲 Другой» – окно открыто кнопкой «Случайный» в «Статусах» (js/now.js:
+   nowOpenRandom). Кнопка шире квадратных соседей, место под неё – тут. */
+.review-reroll-btn { width: auto; padding: 0 .65rem; gap: .3rem; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+#review-modal-body:has(.review-reroll-btn) .review-modal-main .review-modal-title { padding-right: 200px; }
 .review-meta-row { font-family: 'DM Sans', sans-serif; font-size: .85rem; letter-spacing: .03em; color: var(--text); margin: 0 0 .5rem; }
 .review-format { color: var(--text); }
 #review-modal-body .grade-chip { font-size: 1.2rem; display: inline-flex; align-items: center; gap: .55rem; color: var(--text-hi); }
@@ -1127,7 +1131,8 @@ section.group { margin-bottom: 3.5rem; }
   #review-modal-body .review-modal-cover { width: 120px; grid-row: 1; }
   #review-modal-body .review-modal-title { font-size: 1.5rem; }
   #review-modal-body .review-modal-main .review-modal-title,
-  #review-modal-body:has(.review-modal-nav) .review-modal-main .review-modal-title { padding-right: 0; }
+  #review-modal-body:has(.review-modal-nav) .review-modal-main .review-modal-title,
+  #review-modal-body:has(.review-reroll-btn) .review-modal-main .review-modal-title { padding-right: 0; }
   #review-modal-body .review-modal-header > .review-modal-tags { grid-column: 1 / -1; grid-row: 2; margin-top: 1rem; }
 }
 /* Листание: ‹ 3 / 44 › в верхнем ряду, большие стрелки по бокам окна на
@@ -1156,6 +1161,7 @@ section.group { margin-bottom: 3.5rem; }
   #review-modal-overlay .review-modal-panel { padding: 22px; }
   .review-modal-nav { margin-right: auto; padding-right: 0; gap: 2px; border-right: 0; }
   .review-nav-count { min-width: 2.8rem; }
+  .review-reroll-btn { margin-right: auto; }
 }
 /* Лёгкий сдвиг при листании – видно, в какую сторону пошли. */
 @keyframes reviewSlideNext { from { opacity: .4; transform: translateX(22px); } to { opacity: 1; transform: none; } }
@@ -2482,7 +2488,7 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
 }
 .now-chip .section-count { margin-left: .15rem; }
 .now-tools-right { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-left: auto; min-width: 0; }
-.now-search, .now-sort {
+.now-search, .now-sort, .now-random {
   font-family: 'DM Sans', sans-serif;
   font-size: .82rem;
   color: var(--text-hi);
@@ -2494,6 +2500,11 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
 .now-search { width: 220px; min-width: 0; }
 .now-search::placeholder { color: var(--text-dim); }
 .now-search:focus, .now-sort:focus { outline: none; border-color: var(--accent-line); }
+/* «Случайный» – тот же вид, что у сортировки рядом (см. nowOpenRandom). */
+.now-random { color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+@media (hover: hover) {
+  .now-random:hover { color: var(--text-hi); border-color: var(--border2); }
+}
 .now-sort { color: var(--text-dim); cursor: pointer; }
 /* Класс, а не атрибут hidden – см. nowApplyFilter в js/now.js. */
 .now-hidden { display: none !important; }
@@ -2501,6 +2512,8 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
   .now-tools { gap: .5rem; margin-bottom: .9rem; }
   .now-tools-right { width: 100%; margin-left: 0; }
   .now-search { flex: 1; width: auto; }
+  /* На телефоне – только кубик: с подписью поиску не оставалось места. */
+  .now-random-label { display: none; }
   .now-chip { font-size: .72rem; padding: .28rem .6rem; }
 }
 
@@ -4506,10 +4519,10 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/external-ids.js?v=12"></script>
 <script src="/js/api.js?v=14"></script>
 <script src="/js/cards.js?v=21"></script>
-<script src="/js/now.js?v=18"></script>
+<script src="/js/now.js?v=19"></script>
 <script src="/js/favorites.js?v=22"></script>
 <script src="/js/progress.js?v=2"></script>
-<script src="/js/reviews.js?v=34"></script>
+<script src="/js/reviews.js?v=35"></script>
 <script src="/js/stats.js?v=29"></script>
 <script src="/js/recap.js?v=2"></script>
 <script src="/js/goals.js?v=1"></script>

@@ -778,6 +778,7 @@ function reviewModalBodyHtml(r) {
   return `
     <div class="review-modal-actions">
       ${reviewModalNavHtml()}
+      ${reviewModalRerollHtml()}
       ${cameraButton("reviewExport()", "review-export-btn")}
       ${editBtn}
       <button type="button" class="icon-btn" title="${i18n("Закрыть")}" onclick="closeReviewModal()">✕</button>
@@ -894,6 +895,30 @@ let _reviewModalReview = null;
 // (null), и листать нечего: там «соседний» отзыв ничего не значит.
 let _reviewModalList = null;
 
+// «Что посмотреть?» (nowOpenRandom в now.js): окно открыто случайным
+// выбором – в верхнем ряду кнопка «Другой», которая выбирает следующий,
+// не закрывая окна. Обычное открытие (карточка, «Любимое», статистика)
+// её не показывает.
+let _reviewModalReroll = null;
+
+function reviewModalRerollHtml() {
+  if (!_reviewModalReroll) return "";
+  return `<button type="button" class="icon-btn review-reroll-btn" title="${i18n("Другой случайный тайтл")}" onclick="reviewModalReroll()">🎲 ${i18n("Другой")}</button>`;
+}
+
+function reviewModalReroll() {
+  const reroll = _reviewModalReroll;
+  if (!reroll) return;
+  const panel = document.querySelector("#review-modal-overlay .review-modal-panel");
+  reroll();
+  if (panel) {
+    panel.scrollTop = 0;
+    panel.classList.remove("slide-prev", "slide-next");
+    void panel.offsetWidth;
+    panel.classList.add("slide-next");
+  }
+}
+
 function reviewModalIndex() {
   if (!_reviewModalList || !_reviewModalReview) return -1;
   return _reviewModalList.indexOf(_reviewModalReview);
@@ -947,12 +972,13 @@ function reviewModalStep(dir) {
   }
 }
 
-function openReviewModal(r, list) {
+function openReviewModal(r, list, opts) {
   const overlay = document.getElementById("review-modal-overlay");
   if (!overlay) return;
   // Листают к другому отзыву, пока счётчик прошлого ещё ждёт записи
   // (см. progressFlush в progress.js), – дописать его сейчас.
   progressFlush();
+  _reviewModalReroll = opts?.reroll || null;
   // Повторное открытие при листании: фокус вернуть надо на карточку, с
   // которой окно открыли впервые, а не на уже скрытый элемент.
   if (overlay.classList.contains("hidden")) _reviewModalOpener = document.activeElement;
@@ -1040,6 +1066,7 @@ function closeReviewModal() {
   _reviewModalTitle = null;
   _reviewModalReview = null;
   _reviewModalList = null;
+  _reviewModalReroll = null;
   reviewModalSyncSideArrows();
 }
 

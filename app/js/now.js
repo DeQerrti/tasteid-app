@@ -123,6 +123,44 @@ function nowApplyFilter() {
   }
   empty?.classList.toggle("now-hidden", visible > 0);
   nowSyncYearJump();
+  // Из одного тайтла выбирать нечего – кнопки нет.
+  const random = document.getElementById("now-random");
+  if (random) random.hidden = visible < 2;
+}
+
+// ── «Что посмотреть?» ─────────────────────────
+// Случайный тайтл из открытого статуса (чаще всего «Планирую» или
+// «Отложено» – туда копится больше, чем успеваешь), причём только из
+// того, что сейчас видно: чип типа и поиск сужают выбор – «случайный
+// фильм» это чип «Фильм» и кнопка. Открывается та же модалка отзыва, что
+// и по клику на карточку, плюс кнопка «Другой» в ней (reviewModalReroll в
+// reviews.js) – перебрать варианты, не закрывая окно. Подряд один и тот
+// же тайтл не выпадает.
+// Сравнение – по ключу карточки, а не по самому объекту: reviews.json
+// перечитывается при заходах на вкладку, и прошлый выбор может оказаться
+// уже другим объектом с теми же данными.
+const nowReviewKey = (r) => String(r.id ?? encodeURIComponent(r.title));
+
+function nowVisibleReviews() {
+  const el = nowModeBodies[nowState.mode];
+  if (!el) return [];
+  const byId = new Map((cache.reviews || []).map((r) => [nowReviewKey(r), r]));
+  return [...el.querySelectorAll(".review-card-wrap:not(.now-hidden)")]
+    .filter((wrap) => !wrap.closest(".grid-now.now-hidden"))
+    .map((wrap) => byId.get(wrap.dataset.reviewId))
+    .filter(Boolean);
+}
+
+function nowPickRandom(prev) {
+  const pool = nowVisibleReviews();
+  const prevKey = prev ? nowReviewKey(prev) : null;
+  const choices = pool.length > 1 ? pool.filter((r) => nowReviewKey(r) !== prevKey) : pool;
+  return choices[Math.floor(Math.random() * choices.length)] || null;
+}
+
+function nowOpenRandom(prev) {
+  const r = nowPickRandom(prev);
+  if (r) openReviewModal(r, null, { reroll: () => nowOpenRandom(r) });
 }
 
 function bindNowTools() {
@@ -134,6 +172,7 @@ function bindNowTools() {
     renderNowChips();
     nowApplyFilter();
   });
+  document.getElementById("now-random")?.addEventListener("click", () => nowOpenRandom(null));
   document.getElementById("now-search")?.addEventListener("input", (e) => {
     nowFilter.q = e.target.value;
     nowApplyFilter();
@@ -162,6 +201,7 @@ function nowToolsHtml() {
   return `<div class="now-tools">
     <div class="now-chips" id="now-chips"></div>
     <div class="now-tools-right">
+      <button type="button" id="now-random" class="now-random" title="${esc(i18n("Выбрать случайный тайтл из списка (с учётом фильтра и поиска)"))}" aria-label="${esc(i18n("Случайный"))}" hidden>🎲<span class="now-random-label"> ${esc(i18n("Случайный"))}</span></button>
       <input type="search" id="now-search" class="now-search" value="${esc(nowFilter.q)}" placeholder="${esc(i18n("Поиск по названию"))}" aria-label="${esc(i18n("Поиск по названию"))}">
       <select id="now-year-jump" class="now-sort" data-no-dirty aria-label="${esc(i18n("Перейти к году…"))}" hidden></select>
       <select id="now-sort" class="now-sort" aria-label="${esc(i18n("Сортировка"))}">
