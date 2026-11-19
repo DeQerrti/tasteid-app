@@ -718,7 +718,7 @@ function statsYearFiltersHtml(years) {
         `<button class="tl-filter${String(statsState.year) === String(y) ? " active" : ""}" data-stat-year="${y}">${y}</button>`
     )
     .join("");
-  return `<div class="stat-year-filters">${allBtn}${yearBtns}</div>`;
+  return `<div class="stat-year-filters hscroll">${allBtn}${yearBtns}</div>`;
 }
 
 // «Частые теги» заполняют свою карточку целиком: карточка тянется до
@@ -793,21 +793,10 @@ function statsBindAll() {
   });
   // Годы – одной строкой с прокруткой (owner, ноябрь 2026: при многих
   // годах кнопки шли в 3–4 ряда, а строка ещё и прилипает сверху).
-  // Колесо мыши листает её вбок; выбранный год – в видимой части.
-  const yearRow = box.querySelector(".stat-year-filters");
-  if (yearRow) {
-    yearRow.addEventListener(
-      "wheel",
-      (e) => {
-        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || yearRow.scrollWidth <= yearRow.clientWidth) return;
-        yearRow.scrollLeft += e.deltaY;
-        e.preventDefault();
-      },
-      { passive: false }
-    );
-    const active = yearRow.querySelector(".tl-filter.active");
-    if (active) yearRow.scrollLeft = Math.max(0, active.offsetLeft - yearRow.offsetLeft - yearRow.clientWidth / 2);
-  }
+  // Колесо мыши, затенённый край и выбранный год в видимой части – общий
+  // приём hscrollRow (utils.js), тот же у вкладок «Статусов», «Любимого»
+  // и «Тир-листа».
+  hscrollRow(box.querySelector(".stat-year-filters"));
   box.querySelectorAll(".tl-filter[data-stat-year]").forEach((btn) => {
     btn.addEventListener("click", () => {
       statsState.year = btn.dataset.statYear === "all" ? "all" : parseInt(btn.dataset.statYear);

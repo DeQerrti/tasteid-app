@@ -191,7 +191,11 @@ const inspect = () => {
       ? css(railLabel, "::after").maskImage || css(railLabel, "::after").webkitMaskImage
       : "",
     paperRgb,
-    toggleFits: toggle.scrollWidth <= toggle.clientWidth + 1 || css(toggle).overflowX === "auto",
+    // Кнопки – во внутренней полосе .tl-mode-scroll (hscrollRow, utils.js).
+    toggleFits: (() => {
+      const strip = toggle.querySelector(".tl-mode-scroll");
+      return strip.scrollWidth <= strip.clientWidth + 1 || css(strip).overflowX === "auto";
+    })(),
     gridFits: grid.right <= window.innerWidth + 1,
   };
 };
@@ -494,10 +498,12 @@ const stats = await st.evaluate(() => {
   probe.remove();
   const card = document.querySelector("#tab-stats .sx-card");
   const title = card.querySelector(".section-title");
-  // Вкладку целиком снимает «Сохранить как картинку», а html2canvas маски
-  // не рисует: маска здесь выйдет на снимке сплошным прямоугольником.
+  // Блоки снимает «Сохранить как картинку» (statsExport: .stat-grid), а
+  // html2canvas маски не рисует: маска здесь выйдет на снимке сплошным
+  // прямоугольником. Строка годов над блоками в снимок не входит – у неё
+  // затенённый край маской (.hscroll) законно.
   const masked = [];
-  for (const el of document.querySelectorAll("#tab-stats *")) {
+  for (const el of document.querySelectorAll("#tab-stats .stat-grid *")) {
     for (const pseudo of [null, "::before", "::after"]) {
       const m = css(el, pseudo).maskImage || css(el, pseudo).webkitMaskImage;
       if (m && m !== "none") masked.push(el.className + (pseudo || ""));

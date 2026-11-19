@@ -1122,3 +1122,38 @@ html:not(.kb-nav) *:focus {
   /* Под палец – не меньше 44px (tests/browser/mobile-layout.mjs). */
   .fr-src { min-height: 44px; box-sizing: border-box; }
 }
+
+/* ── Ряд кнопок одной строкой с прокруткой (js/utils.js: hscrollRow) ──
+   Годы «Статистики», вкладки статусов/разделов/тир-листов, чипы типов.
+   Затенение края – маской, и только с той стороны, где есть скрытые
+   кнопки (hs-l/hs-r ставит hscrollRow). Маску «Сохранить как картинку»
+   (html2canvas) не рисует, поэтому .hscroll не кладём внутрь того, что
+   снимается, – сами ряды на снимки не попадают. */
+.hscroll {
+  display: flex;
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  min-width: 0;
+  --hs-fade: 48px;
+}
+.hscroll::-webkit-scrollbar { display: none; }
+.hscroll > * { flex-shrink: 0; }
+.hscroll.hs-r {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--hs-fade)), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - var(--hs-fade)), transparent);
+}
+.hscroll.hs-l {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--hs-fade));
+  mask-image: linear-gradient(90deg, transparent, #000 var(--hs-fade));
+}
+.hscroll.hs-l.hs-r {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--hs-fade), #000 calc(100% - var(--hs-fade)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--hs-fade), #000 calc(100% - var(--hs-fade)), transparent);
+}
+@media (max-width: 700px) {
+  .hscroll { --hs-fade: 32px; }
+}

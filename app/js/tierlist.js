@@ -247,6 +247,7 @@ function tlRender() {
   box.classList.toggle("tl-captions", tlCaptions);
   box.innerHTML = tlModeToggleHtml()
     + (tlState.mode === "titles" ? tlTitlesHtml() : tlCharsHtml(tlState.mode));
+  hscrollAll(box);
   tlBindAll();
 }
 
@@ -297,11 +298,15 @@ function tlModeToggleHtml() {
     isAdmin() && Array.isArray(window.SITE_TIER_COLLECTIONS) && !window.SITE_TIER_COLLECTIONS.some((c) => c.id === "characters")
       ? `<button class="tl-mode-add-btn" type="button" onclick="restoreBuiltinTierCollection()">${i18n("Вернуть «Персонажи»")} ↺</button>`
       : "";
-  return `<div class="tl-mode-toggle">
+  // Кнопки – во внутренней полосе с прокруткой (hscrollRow, utils.js):
+  // своих тир-листов бывает много. Внутренней, а не сама строка: строка
+  // закреплена со сплошным фоном и рисует ветку темы «Мягкая» во всю
+  // ширину – затенённый край у неё самой просвечивал бы карточками.
+  return `<div class="tl-mode-toggle"><div class="tl-mode-scroll hscroll">
     ${modeBtns}
     ${addBtn}
     ${restoreBtn}
-  </div>`;
+  </div></div>`;
 }
 
 async function restoreBuiltinTierCollection() {
@@ -455,7 +460,7 @@ function tlFiltersHtml(itemsForCounts) {
       return `<button type="button" class="now-chip${tlState.filter === val ? " active" : ""}" data-tl-type="${esc(val)}">${esc(label)} <span class="section-count">${n}</span></button>`;
     })
     .join("");
-  return `<div class="tl-filters">${btns}</div>`;
+  return `<div class="tl-filters hscroll">${btns}</div>`;
 }
 
 // Годы – строкой текста под типами, а не выпадающим списком: год
@@ -471,7 +476,7 @@ function tlYearFiltersHtml(itemsForYearScope) {
   const cur = String(tlState.yearFilter);
   const btn = (value, label) =>
     `<button type="button" class="tl-year${cur === String(value) ? " active" : ""}" data-tl-year-btn="${value}">${label}</button>`;
-  return `<div class="tl-years">${btn("all", i18n("Все годы"))}${years.map(y => btn(y, y)).join("")}</div>`;
+  return `<div class="tl-years hscroll">${btn("all", i18n("Все годы"))}${years.map(y => btn(y, y)).join("")}</div>`;
 }
 
 // ══ РЕЖИМ ПЕРСОНАЖЕЙ ══════════════════════════
@@ -569,7 +574,7 @@ function tlCharsHtml(collectionId) {
   // Игры – одной строкой с прокруткой (у owner'а их десяток, переносом
   // они съедали два-три ряда); списки игры и размер – второй строкой.
   return `<div class="tl-head-row">
-    <div class="tl-filters tl-games">${gameButtons}</div>
+    <div class="tl-filters tl-games hscroll">${gameButtons}</div>
     <div class="tl-head-tools">${adminBtn}${tlCaptionsBtnHtml()}${exportBtn}</div>
   </div>
   <div class="tl-char-sub">${listButtons}${size}</div>

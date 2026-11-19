@@ -1374,3 +1374,60 @@ async function startRebindTabKey(tabId, btn) {
   document.addEventListener("keydown", onKey, true);
   document.addEventListener("mousedown", onMouse, true);
 }
+
+// ── Ряд кнопок одной строкой с прокруткой ──────
+// Годы в «Статистике», вкладки статусов, разделы «Любимого», тир-листы,
+// чипы типов: кнопок бывает больше, чем помещается, и переносом они
+// вставали в два-три ряда над списком (а у закреплённой строки ещё и
+// съедали экран). Owner попросил везде так, как уже было у годов в
+// «Статистике» (ноябрь 2026): одна строка, прокрутка вбок, затенённый край.
+//
+// Разметка – класс .hscroll у самого ряда (стили в style.css), вызов –
+// hscrollRow(ряд) после каждой отрисовки и после смены выбранной кнопки:
+//   – колесо мыши листает ряд вбок (у мыши нет горизонтальной прокрутки);
+//   – край затеняется только с той стороны, где правда есть скрытые
+//     кнопки (классы hs-l/hs-r): ряд, который помещается, выглядит как
+//     раньше, а дошли до конца – затенение у этого края пропадает;
+//   – выбранная кнопка (.active) прокручивается в видимую часть, если
+//     оказалась за краем (переключили раздел свайпом или открыли год).
+// Повторный вызов на том же ряду безопасен: слушатели вешаются один раз.
+function hscrollSync(el) {
+  const max = el.scrollWidth - el.clientWidth;
+  el.classList.toggle("hs-l", max > 1 && el.scrollLeft > 1);
+  el.classList.toggle("hs-r", max > 1 && el.scrollLeft < max - 1);
+}
+
+function hscrollRow(el) {
+  if (!el) return;
+  el.classList.add("hscroll");
+  if (!el.dataset.hscrollBound) {
+    el.dataset.hscrollBound = "1";
+    el.addEventListener("scroll", () => hscrollSync(el), { passive: true });
+    el.addEventListener(
+      "wheel",
+      (e) => {
+        if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || el.scrollWidth <= el.clientWidth) return;
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      },
+      { passive: false }
+    );
+    // Ширина ряда меняется вместе с окном (и когда догрузился шрифт).
+    if (typeof ResizeObserver === "function") new ResizeObserver(() => hscrollSync(el)).observe(el);
+  }
+  const active = el.querySelector(".active");
+  if (active) {
+    // По рамкам на экране, а не offsetLeft: у закреплённой строки (sticky)
+    // кнопки отсчитывают offsetLeft от неё самой, у обычной – от раздела.
+    const left = active.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft;
+    const right = left + active.offsetWidth;
+    if (left < el.scrollLeft || right > el.scrollLeft + el.clientWidth) {
+      el.scrollLeft = Math.max(0, left - (el.clientWidth - active.offsetWidth) / 2);
+    }
+  }
+  hscrollSync(el);
+}
+
+function hscrollAll(root) {
+  root?.querySelectorAll(".hscroll").forEach(hscrollRow);
+}

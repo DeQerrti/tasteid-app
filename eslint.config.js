@@ -58,6 +58,8 @@ const sharedBrowserGlobals = [
   "disableAnimations",
   "waitForImages",
   "withTimeout",
+  "hscrollRow",
+  "hscrollAll",
   "createStatusFromImport",
   "csvToObjects",
   "currentSiteSettings",

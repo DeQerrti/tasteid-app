@@ -141,11 +141,14 @@ function renderFavorites({ titles, characters, persons, favData }) {
   // «как показать раздел», а не два (тут и там).
   box.innerHTML = `
     <div class="fav-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.8rem">
-      <div class="tl-mode-toggle" style="margin-bottom:0">${toggleBtns}</div>
+      <div class="tl-mode-toggle" style="margin-bottom:0"><div class="tl-mode-scroll hscroll">${toggleBtns}</div></div>
       <div id="fav-action-link" style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">${cameraBtn}</div>
     </div>
     <div id="fav-mode-body"></div>`;
   bindFavModeToggle();
+  // Своих разделов owner заводит сколько угодно – ряд листается вбок
+  // (hscrollRow, utils.js; полоса внутри – см. tlModeToggleHtml в tierlist.js).
+  hscrollAll(box);
   renderFavModeBody();
 }
 
@@ -305,6 +308,7 @@ function bindFavModeToggle() {
       document.querySelectorAll("#tab-favorites .tl-mode-btn").forEach((b) => {
         b.classList.toggle("active", b.dataset.mode === favState.mode);
       });
+      hscrollRow(document.querySelector("#tab-favorites .tl-mode-scroll"));
       if (favRenderRaf) cancelAnimationFrame(favRenderRaf);
       favRenderRaf = requestAnimationFrame(() => {
         favRenderRaf = null;

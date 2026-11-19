@@ -77,12 +77,17 @@ function renderNowChips() {
   }
   const chip = (key, label, n) =>
     `<button type="button" class="now-chip${nowFilter.type === key ? " active" : ""}" data-type="${esc(key)}" aria-pressed="${nowFilter.type === key}">${esc(label)} <span class="section-count">${n}</span></button>`;
+  // Ряд перерисовывается на каждый клик по чипу – прокрутку оставляем
+  // где была, иначе он прыгал бы в начало (hscrollRow, utils.js).
+  const keep = box.scrollLeft;
   box.innerHTML =
     chip("all", i18n("Все"), items.length) +
     [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([key, n]) => chip(key, TYPE_LABELS[key] || key || "–", n))
       .join("");
+  box.scrollLeft = keep;
+  hscrollRow(box);
 }
 
 // Прячет не подходящие под поиск и тип карточки в уже нарисованном
@@ -257,7 +262,7 @@ function nowToolsHtml() {
   const opt = (value, label) =>
     `<option value="${value}"${nowFilter.sort === value ? " selected" : ""}>${esc(label)}</option>`;
   return `<div class="now-tools">
-    <div class="now-chips" id="now-chips"></div>
+    <div class="now-chips hscroll" id="now-chips"></div>
     <div class="now-tools-right">
       <button type="button" id="now-random" class="now-random" title="${esc(i18n("Выбрать случайный тайтл из списка (с учётом фильтра и поиска)"))}" aria-label="${esc(i18n("Случайный"))}" hidden>${NOW_DICE_ICON}<span class="now-random-label">${esc(i18n("Случайный"))}</span></button>
       <input type="search" id="now-search" class="now-search" value="${esc(nowFilter.q)}" placeholder="${esc(i18n("Поиск по названию"))}" aria-label="${esc(i18n("Поиск по названию"))}">
@@ -339,7 +344,9 @@ function nowModeToggleHtml() {
       return `<button class="tl-mode-btn${nowState.mode === key ? " active" : ""}" data-mode="${esc(key)}">${esc(b.label)} <span class="section-count">${b.items.length}</span></button>`;
     })
     .join("");
-  return `<div class="tl-mode-toggle">${btns}</div>`;
+  // Внутренняя полоса с прокруткой – см. комментарий у tlModeToggleHtml
+  // в tierlist.js (там же почему не сама строка).
+  return `<div class="tl-mode-toggle"><div class="tl-mode-scroll hscroll">${btns}</div></div>`;
 }
 
 // Быстрые повторные клики (перебираешь разделы один за другим) раньше
@@ -459,6 +466,8 @@ function renderNowBody() {
   document.querySelectorAll("#tab-now .tl-mode-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mode === nowState.mode);
   });
+  // Переключили свайпом на статус за краем ряда – показать его кнопку.
+  hscrollRow(document.querySelector("#tab-now .tl-mode-scroll"));
   if (!nowModeBodies[nowState.mode]) {
     const el = document.createElement("div");
     el.innerHTML = nowModeBodyHtml();

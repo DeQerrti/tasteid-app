@@ -532,7 +532,16 @@ const small = await phone.evaluate(() => {
     paperRgb,
     btnCase: css(btn).textTransform,
     branchMask: css(toggle, "::after").maskImage || css(toggle, "::after").webkitMaskImage,
-    fits: toggle.scrollWidth <= toggle.clientWidth + 1,
+    fits: (() => {
+      // Кнопки – во внутренней полосе .tl-mode-scroll: лишние прокручиваются
+      // (hscrollRow, utils.js), а ветка – у строки целиком и не уезжает.
+      const strip = toggle.querySelector(".tl-mode-scroll");
+      const r = strip.getBoundingClientRect();
+      return (
+        r.right <= window.innerWidth + 1 &&
+        (strip.scrollWidth <= strip.clientWidth + 1 || getComputedStyle(strip).overflowX === "auto")
+      );
+    })(),
     cardPad: css(document.querySelector("#tab-now .review-card-wrap .card")).paddingLeft,
     tagBg: css(document.querySelector("#tab-now .type-tag")).backgroundColor,
     navBg: css(document.querySelector("#rail .tab-btn.active")).backgroundColor,
@@ -543,13 +552,13 @@ ok(
   small.btnCase === "none" && /branch\.svg/.test(small.branchMask || ""),
   "вкладки статусов – текстом на ветке"
 );
-ok(small.fits, "вкладки статусов не уезжают за край (переносятся, ветка под ними целиком)");
+ok(small.fits, "вкладки статусов не уезжают за край (лишние – прокруткой, ветка под ними целиком)");
 ok(parseFloat(small.cardPad) >= 3, `карточка – лист гербария с полями (${small.cardPad})`);
 ok(small.tagBg === small.paperRgb, "тип на карточке – бумажным ярлычком");
 ok(small.navBg === small.paperRgb, "выбранный раздел нижней панели – бумажный ярлычок");
 ok(small.navTransform === "none", "и без поворота: в нижней панели ему тесно");
 
-// «Тир-лист» на телефоне: вкладки переносятся, ярлычок полки влезает в
+// «Тир-лист» на телефоне: вкладки не уезжают за край, ярлычок полки влезает в
 // узкую колонку названия.
 await phone.click('.tab-btn[data-label="nav.tierlist"]');
 await phone.waitForSelector("#tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name", {
@@ -562,7 +571,16 @@ const tlSmall = await phone.evaluate(() => {
   const col = name.closest(".tl-label").getBoundingClientRect();
   const r = name.getBoundingClientRect();
   return {
-    fits: toggle.scrollWidth <= toggle.clientWidth + 1,
+    fits: (() => {
+      // Кнопки – во внутренней полосе .tl-mode-scroll: лишние прокручиваются
+      // (hscrollRow, utils.js), а ветка – у строки целиком и не уезжает.
+      const strip = toggle.querySelector(".tl-mode-scroll");
+      const r = strip.getBoundingClientRect();
+      return (
+        r.right <= window.innerWidth + 1 &&
+        (strip.scrollWidth <= strip.clientWidth + 1 || getComputedStyle(strip).overflowX === "auto")
+      );
+    })(),
     inCol: r.left >= col.left - 1 && r.right <= col.right + 1,
   };
 });

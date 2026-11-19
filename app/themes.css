@@ -1744,6 +1744,15 @@
   mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
   -webkit-mask: url("/decor/leaf-up.svg") center bottom / contain no-repeat;
 }
+/* Вкладки – в полосе с прокруткой (.tl-mode-scroll, js/utils.js:
+   hscrollRow), а прокрутка обрезает всё, что ниже её рамки, – лист на
+   ветке тоже. Полоса тянется вниз до ветки, на месте строки это не
+   сказывается (поле отрицательное). Сама ветка – у строки целиком и с
+   кнопками не уезжает. */
+:is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-scroll {
+  padding-bottom: calc(2.2rem + 4px);
+  margin-bottom: calc(-2.2rem - 4px);
+}
 
 /* ── «Статусы»: кнопки типов – тихой строкой, чтобы не спорили с
    вкладками статусов; у выбранной – лист и линия. ── */
@@ -2930,11 +2939,10 @@
    Тот же язык, уменьшенный под карточку втрое уже и под нижнюю панель
    вкладок. Отличия от компьютера:
    – выбранный раздел нижней панели – бумажный ярлычок без поворота;
-   – вкладки статусов переносятся на вторую строку, а не прокручиваются:
-     ветка лежит под ними на всю ширину, а у прокручиваемой строки она
-     уезжала бы вместе с содержимым. Поэтому и лист у выбранной вкладки
-     здесь стоит перед названием (как у кнопок типов), а не на ветке –
-     при двух строках «на ветке» оказалась бы не та вкладка;
+   – лист у выбранной вкладки стоит перед названием (как у кнопок типов),
+     а не на ветке. Вкладки прокручиваются вбок во внутренней полосе
+     (.tl-mode-scroll, ноябрь 2026 – раньше переносились на вторую
+     строку); ветка – у строки целиком и с ними не уезжает;
    – поля, рамки и ярлычки карточек мельче. */
 @media (max-width: 700px) {
   :is([data-skin="soft"], [data-skin="soft-dark"]) #rail .tab-btn.active {
@@ -2955,6 +2963,12 @@
   }
   :is([data-skin="soft"], [data-skin="soft-dark"]) #tab-favorites .fav-head .tl-mode-toggle {
     gap: 0 1.1rem;
+  }
+  /* Листа на ветке здесь нет (он перед названием) – полосе не нужно
+     тянуться вниз. */
+  :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-scroll {
+    padding-bottom: 4px;
+    margin-bottom: -4px;
   }
   :is([data-skin="soft"], [data-skin="soft-dark"]) :is(#tab-now, #tab-favorites, #tab-tierlist) .tl-mode-btn {
     font-size: 0.95rem;

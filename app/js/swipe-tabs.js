@@ -63,7 +63,8 @@
       // (см. её же комментарий у .tl-mode-toggle в index.html)
       // прокручивается горизонтально сам, свайп там должен листать
       // кнопки, а не переключать раздел через одну.
-      if (e.target.closest(".tl-mode-toggle")) return;
+      // То же у любого ряда с прокруткой вбок (.hscroll – чипы типов, годы).
+      if (e.target.closest(".tl-mode-toggle, .hscroll")) return;
       const root = activeSwipeTab();
       if (!root || !root.querySelector(".tl-mode-toggle")) return;
       const p = e.touches[0];
