@@ -498,7 +498,7 @@ function toggleTabEdit(id) {
 // add-status-picker.js). Здесь только хранится и пишется обратно при
 // сохранении, чтобы настроенная подпись не терялась; правится она в
 // выборе статуса у самого отзыва и на вкладке «Подписи».
-let archiveLabel = i18n("Архив");
+let archiveLabel = i18n("Завершено");
 let statusBuckets = [];
 let hiddenStatusesState = new Set();
 // Порядок статусов: js/now.js рендерит их в этом самом порядке.

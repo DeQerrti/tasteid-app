@@ -114,7 +114,7 @@ ok(
   "статусы из файла показаны как есть"
 );
 // Значение из файла → выбранный статус паспорта (в пустом хранилище
-// встроенные: completed – «Архив», current, planning).
+// встроенные: completed – «Завершено», current, planning).
 const mapped = await page.$$eval("[data-status]", (s) =>
   Object.fromEntries(
     s.map((x) => [

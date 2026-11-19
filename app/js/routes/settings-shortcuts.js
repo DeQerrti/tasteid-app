@@ -194,7 +194,7 @@ async function loadCurrentSettings() {
   statusBuckets = settings.statusBuckets
     ? defrostStatusBuckets(JSON.parse(JSON.stringify(settings.statusBuckets)))
     : builtinDefaults;
-  archiveLabel = statuses.archive || i18n("Архив");
+  archiveLabel = statuses.archive || i18n("Завершено");
   hiddenStatusesState = new Set(settings.hiddenStatuses || []);
   statusOrderState = Array.isArray(settings.statusOrder) ? [...settings.statusOrder] : [];
   renderStatusesList();

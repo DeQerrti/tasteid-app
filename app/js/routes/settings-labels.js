@@ -254,7 +254,7 @@ async function saveSettings() {
       // писать их всегда, даже когда они всё ещё равны живому переводу
       // по умолчанию, означало бы замораживать оба на любом сохранении
       // настроек, с любой панели.
-      statuses: archiveLabel !== i18n("Архив") ? { archive: archiveLabel } : {},
+      statuses: archiveLabel !== i18n("Завершено") ? { archive: archiveLabel } : {},
       sections: {
         ...(tierTitlesLabel !== i18n("Тайтлы") ? { tierTitles: tierTitlesLabel } : {}),
         // favSectionLabels на загрузке заполняется значением по умолчанию
