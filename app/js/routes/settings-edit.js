@@ -594,10 +594,9 @@ function settingsViewHtml() {
         <p class="sync-intro about-tmdb">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
 
         <h3 class="about-h" data-i18n>Лицензия</h3>
-        <p class="sync-intro">
-          <span data-i18n>Готовое приложение можно бесплатно скачивать и пользоваться им для себя. Исходный код открыт для просмотра, но копировать и распространять его, в том числе под другим именем, нельзя. Полный текст –</span>
-          <a href="https://github.com/DeQerrti/tasteid-app/blob/main/LICENSE" target="_blank" rel="noopener" data-i18n>на GitHub</a>.
-        </p>
+        <!-- Без ссылки на репозиторий (owner, ноябрь 2026: не хочет лишний
+             раз показывать свой GitHub). -->
+        <p class="sync-intro" data-i18n>Готовое приложение можно бесплатно скачивать и пользоваться им для себя. Исходный код открыт для просмотра, но копировать и распространять его, в том числе под другим именем, нельзя.</p>
         <p class="sync-intro" data-i18n>
           Шрифты (Playfair Display, Cormorant Garamond, DM Sans, Manrope,
           Caveat, Patrick Hand, Pangolin, Shantell Sans) распространяются по
@@ -608,15 +607,11 @@ function settingsViewHtml() {
 
         <!-- Канал в Telegram – основное место: оттуда приложение и
              скачивают, там же чат для ошибок и жалоб (owner, ноябрь 2026).
-             GitHub – запасной путь. -->
+             Ссылки на GitHub здесь нет – owner попросил её убрать. -->
         <h3 class="about-h" data-i18n>Нашли ошибку или есть идея?</h3>
         <p class="sync-intro">
           <span data-i18n>Пишите в канал TasteID в Telegram –</span>
           <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a><span data-i18n>. Там же выходят новые версии. Опишите, что делали и что произошло; скриншот и журнал ошибок («Приложение» → «Журнал ошибок») очень помогают.</span>
-        </p>
-        <p class="sync-intro">
-          <span data-i18n>Можно и</span>
-          <a href="https://github.com/DeQerrti/tasteid-app/issues" target="_blank" rel="noopener" data-i18n>на GitHub</a>.
         </p>
       </div>
 

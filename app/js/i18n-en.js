@@ -1969,20 +1969,18 @@ i18nRegister({
 
 // ── «О приложении» (settings-edit.js) ──
 i18nRegister({
-  "Готовое приложение можно бесплатно скачивать и пользоваться им для себя. Исходный код открыт для просмотра, но копировать и распространять его, в том числе под другим именем, нельзя. Полный текст –":
-    "The finished app is free to download and use for yourself. The source code is open to read, but copying or redistributing it, including under another name, is not allowed. Full text –",
+  "Готовое приложение можно бесплатно скачивать и пользоваться им для себя. Исходный код открыт для просмотра, но копировать и распространять его, в том числе под другим именем, нельзя.":
+    "The finished app is free to download and use for yourself. The source code is open to read, but copying or redistributing it, including under another name, is not allowed.",
   Ещё: "More",
   "Источники данных": "Data sources",
   "Ключи TMDB и Steam и токен синхронизации хранятся только на этом устройстве и никуда, кроме самого сервиса, не отправляются.":
     "TMDB and Steam keys and the sync token are stored only on this device and are sent nowhere except to that service itself.",
   "Куда приложение обращается в сеть": "Where the app connects to",
   Лицензия: "License",
-  "на GitHub": "on GitHub",
   "Названия, годы и обложки при поиске и импорте приходят из AniList, Шикимори, MyAnimeList, TMDB, Steam и Open Library. Обложки и постеры принадлежат их правообладателям.":
     "Titles, years and covers in search and import come from AniList, Shikimori, MyAnimeList, TMDB, Steam and Open Library. Covers and posters belong to their respective owners.",
   "Нашли ошибку или есть идея?": "Found a bug or have an idea?",
   "Пишите в канал TasteID в Telegram –": "Write to the TasteID channel on Telegram –",
-  "Можно и": "Or",
   "Новости и ошибки –": "News and bug reports –",
   "Никакой статистики использования, рекламы и слежки – ни автору, ни кому-либо ещё.":
     "No usage statistics, ads or tracking – not for the author, not for anyone.",
