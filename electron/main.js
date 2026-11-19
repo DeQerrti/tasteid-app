@@ -409,15 +409,32 @@ function appRoutes() {
       return { ok: true };
     },
 
+    // Журнал есть – Проводник с выделенным errors.log. Нет или пустой –
+    // ничего не открываем и говорим «ошибок не было»: раньше открывалась
+    // вся служебная папка (кеши, настройки), и было непонятно, что в ней
+    // искать (owner, ноябрь 2026).
     "POST /api/app/open-error-log": async () => {
       const file = errorLogFile();
-      try {
-        await fs.access(file);
-        shell.showItemInFolder(file);
-      } catch {
-        await shell.openPath(app.getPath("userData"));
-      }
-      return { ok: true };
+      const size = await fs.stat(file).then(
+        (s) => s.size,
+        () => 0
+      );
+      if (!size) return { ok: true, empty: true };
+      shell.showItemInFolder(file);
+      return { ok: true, empty: false };
+    },
+
+    // Текст журнала – для «Скопировать журнал»: вставить в чат проще, чем
+    // искать и перетаскивать файл. Сверху – версия и система, без них по
+    // журналу не понять, о какой сборке речь. Только хвост: в сообщение
+    // Telegram много не влезет, а свежие ошибки – в конце.
+    "POST /api/app/read-error-log": async () => {
+      const text = await fs.readFile(errorLogFile(), "utf8").catch(() => "");
+      if (!text.trim()) return { ok: true, empty: true, text: "" };
+      const tail =
+        text.length > 12000 ? text.slice(text.indexOf("\n", text.length - 12000) + 1) : text;
+      const head = `TasteID ${app.getVersion()} · ${process.platform} ${process.arch}\n`;
+      return { ok: true, empty: false, text: head + tail };
     },
 
     "POST /api/app/pick-vault": async ({ body }) => ({

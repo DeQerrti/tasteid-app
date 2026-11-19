@@ -425,12 +425,44 @@ async function changeVault() {
 }
 
 // Журнал ошибок приложения (errors.log, см. logError в electron/main.js) –
-// открыть папку с ним, чтобы приложить файл к сообщению о проблеме.
+// его прикладывают к сообщению о проблеме в канале. Раньше кнопка молча
+// открывала служебную папку, и было непонятно, что с ней делать
+// (owner, ноябрь 2026): теперь – «ошибок не было», если журнал пуст, а
+// иначе подсказка, что и куда отправить. «Скопировать» – для тех, кому
+// проще вставить текст в чат, чем перетаскивать файл.
+const ERROR_LOG_EMPTY_MSG = () => i18n("Ошибок не было – журнал пуст.");
+
 async function openErrorLog() {
   try {
-    await fetch("/api/app/open-error-log", { method: "POST" });
-  } catch {
-    // Не в Electron – кнопки и так не видно (раздел «Приложение» только там).
+    const res = await fetch("/api/app/open-error-log", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || i18n("Не получилось открыть журнал."));
+    flashStatus(
+      "status-app",
+      true,
+      data.empty
+        ? ERROR_LOG_EMPTY_MSG()
+        : i18n("Открыта папка с выделенным файлом errors.log – перетащите его в сообщение в канале t.me/DeTasteID.")
+    );
+  } catch (e) {
+    flashStatus("status-app", false, e.message);
+  }
+}
+
+async function copyErrorLog() {
+  try {
+    const res = await fetch("/api/app/read-error-log", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || i18n("Не получилось прочитать журнал."));
+    if (data.empty) return flashStatus("status-app", true, ERROR_LOG_EMPTY_MSG());
+    await navigator.clipboard.writeText(data.text);
+    flashStatus(
+      "status-app",
+      true,
+      i18n("Журнал скопирован – вставьте его в сообщение в канале t.me/DeTasteID.")
+    );
+  } catch (e) {
+    flashStatus("status-app", false, e.message || i18n("Не получилось скопировать журнал."));
   }
 }
 

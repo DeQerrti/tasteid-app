@@ -2083,4 +2083,16 @@ i18nRegister({
   "Убрать цель: {type}": "Remove goal: {type}",
   "Уже закончено": "Finished so far",
   "Цель: {type}": "Goal: {type}",
+
+  // Журнал ошибок (settings-app.js)
+  "Ошибок не было – журнал пуст.": "No errors so far – the log is empty.",
+  "Открыта папка с выделенным файлом errors.log – перетащите его в сообщение в канале t.me/DeTasteID.":
+    "A folder with errors.log selected is open – drag the file into a message in the t.me/DeTasteID channel.",
+  "Журнал скопирован – вставьте его в сообщение в канале t.me/DeTasteID.":
+    "Log copied – paste it into a message in the t.me/DeTasteID channel.",
+  "Не получилось открыть журнал.": "Couldn't open the log.",
+  "Не получилось прочитать журнал.": "Couldn't read the log.",
+  "Не получилось скопировать журнал.": "Couldn't copy the log.",
+  "Скопировать журнал": "Copy log",
+  "Скопировать текст ошибок, чтобы вставить его в сообщение": "Copy the error text to paste it into a message",
 });

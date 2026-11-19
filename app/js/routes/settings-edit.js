@@ -419,7 +419,7 @@ function settingsViewHtml() {
           <div class="set-row-main">
             <div class="set-row-title" data-i18n>О программе</div>
             <div class="app-path" id="app-version">–</div>
-            <div class="app-path">
+            <div class="app-path app-hint">
               <span data-i18n>Новости и ошибки –</span>
               <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a><span data-i18n>; журнал ошибок можно приложить к сообщению.</span>
             </div>
@@ -427,6 +427,7 @@ function settingsViewHtml() {
           <div class="set-row-ctl">
             <button class="btn btn-ghost" id="btn-check-update" onclick="checkForUpdateNow()" data-i18n>Проверить обновления</button>
             <button class="btn btn-ghost" onclick="openErrorLog()" title="Файл с ошибками приложения – его можно приложить к сообщению о проблеме" data-i18n data-i18n-title="Файл с ошибками приложения – его можно приложить к сообщению о проблеме">Открыть журнал ошибок</button>
+            <button class="btn btn-ghost" onclick="copyErrorLog()" title="Скопировать текст ошибок, чтобы вставить его в сообщение" data-i18n data-i18n-title="Скопировать текст ошибок, чтобы вставить его в сообщение">Скопировать журнал</button>
           </div>
         </div>
         <div class="status-msg" id="status-update"></div>

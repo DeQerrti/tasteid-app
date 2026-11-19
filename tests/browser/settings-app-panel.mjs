@@ -224,6 +224,60 @@ ok(
 );
 await conn.close();
 
+// Журнал ошибок (openErrorLog/copyErrorLog в settings-app.js). Ответы
+// /api/app/* – подставные: настоящие есть только в Electron (main.js).
+console.log("Журнал ошибок");
+{
+  const p = await openPanel({
+    vaultPath: "C:\\TasteID",
+    zoom: 100,
+    version: "0.7.17",
+    platform: "win32",
+    arch: "x64",
+  });
+  // Буфер обмена в безголовом браузере обратно не читается – запоминаем,
+  // что программа в него положила.
+  await p.evaluate(() => {
+    window.__copied = null;
+    navigator.clipboard.writeText = async (t) => {
+      window.__copied = t;
+    };
+  });
+  let log = "";
+  await p.route("**/api/app/open-error-log", (r) =>
+    r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, empty: !log }) })
+  );
+  await p.route("**/api/app/read-error-log", (r) =>
+    r.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, empty: !log, text: log }),
+    })
+  );
+  const status = () => p.textContent("#status-app");
+  ok(!!(await p.$('#panel-app button[onclick="copyErrorLog()"]')), "есть «Скопировать журнал»");
+  await p.click('#panel-app button[onclick="openErrorLog()"]');
+  await p.waitForFunction(() => document.getElementById("status-app").textContent.trim());
+  ok((await status()).includes("Ошибок не было"), "журнал пуст – так и сказано, без папки");
+  await p.click('#panel-app button[onclick="copyErrorLog()"]');
+  ok((await status()).includes("Ошибок не было"), "копировать пустой журнал – то же");
+
+  log = "TasteID 0.7.17 · win32 x64\n2026-11-19T10:00:00Z [окно] TypeError: x is undefined\n";
+  await p.click('#panel-app button[onclick="openErrorLog()"]');
+  await p.waitForFunction(() =>
+    document.getElementById("status-app").textContent.includes("errors.log")
+  );
+  ok(
+    (await status()).includes("t.me/DeTasteID"),
+    "открыта папка – подсказка, что и куда отправить"
+  );
+  await p.click('#panel-app button[onclick="copyErrorLog()"]');
+  await p.waitForFunction(() =>
+    document.getElementById("status-app").textContent.includes("скопирован")
+  );
+  ok((await p.evaluate(() => window.__copied)) === log, "текст журнала – в буфере обмена");
+  await p.close();
+}
+
 ok(!jsErrors.length, `без ошибок JS${jsErrors.length ? ": " + jsErrors.join("; ") : ""}`);
 
 await browser.close();
