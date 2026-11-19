@@ -104,6 +104,8 @@ const SIDE_TAB_ICON_PATHS = {
   passports: '<rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="10" r="2"/><path d="M14 9h6M14 13h6M6 16h6"/>',
   sync: '<path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>',
   import: '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  // Та же стрелка, что у «Импорта», только наружу.
+  export: '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
   vaults: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0018 0V5"/><path d="M3 12a9 3 0 0018 0"/>',
   app: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
   backup: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
@@ -159,6 +161,7 @@ function settingsViewHtml() {
       <button class="side-tab" data-panel="backup">${sideTabIcon("backup")}${sideTabLabel("История версий")}</button>
       <div class="side-group" data-i18n>Перенос</div>
       <button class="side-tab" data-panel="import">${sideTabIcon("import")}${sideTabLabel("Импорт")}</button>
+      <button class="side-tab" data-panel="export">${sideTabIcon("export")}${sideTabLabel("Экспорт")}</button>
       <button class="side-tab" data-panel="passports">${sideTabIcon("passports")}${sideTabLabel("Обмен")}</button>
       <div class="side-group" data-i18n>Ещё</div>
       <button class="side-tab" data-panel="about">${sideTabIcon("about")}${sideTabLabel("О приложении")}</button>
@@ -505,6 +508,11 @@ function settingsViewHtml() {
         <div id="importPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
       </div>
 
+      <!-- Выгрузка всех записей таблицей (CSV) – js/routes/settings-export.js. -->
+      <div class="panel" id="panel-export">
+        <div id="exportPanel"><p class="panel-intro" data-i18n>Загружаем…</p></div>
+      </div>
+
       <!-- История версий файлов данных. Раньше отдельная страница
            (backup-history.html) – открывалась поверх настроек и обратно
            вела только на главную, а не назад в настройки. Здесь та же
@@ -835,6 +843,7 @@ async function mount(container, params) {
         renderVaultsPanel();
       }
       if (btn.dataset.panel === "import") loadImport();
+      if (btn.dataset.panel === "export") loadExportPanel();
       if (btn.dataset.panel === "app") loadAppPanel();
       if (btn.dataset.panel === "backup") initBackupHistoryPanel();
     });

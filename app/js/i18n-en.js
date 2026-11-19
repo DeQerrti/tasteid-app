@@ -2094,4 +2094,21 @@ i18nRegister({
   "Выбрать случайный тайтл из списка (с учётом фильтра и поиска)": "Pick a random title from the list (respects the filter and search)",
   Другой: "Another",
   "Может, это?": "Maybe this one?",
+
+  // Экспорт в таблицу (routes/settings-export.js)
+  "Без статуса": "No status",
+  "Все записи одним файлом-таблицей (CSV): открывается в Excel, Google Таблицах и Numbers. По строке на тайтл, по столбцу на название, тип, статус, оценку, даты, теги, текст отзыва и ссылки.":
+    "All entries as one spreadsheet file (CSV): opens in Excel, Google Sheets and Numbers. One row per title, with columns for title, type, status, rating, dates, tags, review text and links.",
+  да: "yes",
+  Закончено: "Finished",
+  Отзыв: "Review",
+  "Оценка (звёзд)": "Rating (stars)",
+  "Оценка (из {n})": "Rating (out of {n})",
+  "Пока выгружать нечего – в паспорте нет ни одной записи.": "Nothing to export yet – there are no entries in the passport.",
+  "Скачать таблицу": "Download spreadsheet",
+  Ссылка: "Link",
+  "Ссылка 2": "Link 2",
+  "Что выгрузить": "What to export",
+  "Это копия для чтения: обратно в приложение таблица не загружается. Чтобы перенести всё целиком на другое устройство – резервная копия в «Приложении».":
+    "This is a read-only copy: the spreadsheet can't be loaded back into the app. To move everything to another device, use the backup in “App”.",
 });

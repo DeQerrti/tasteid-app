@@ -187,6 +187,7 @@ const sharedBrowserGlobals = [
   "loadFavorites",
   "loadHtml2Canvas",
   "loadImport",
+  "loadExportPanel",
   "importPreselect",
   "loading",
   "loadNow",
