@@ -421,13 +421,12 @@ function settingsViewHtml() {
             <div class="app-path" id="app-version">–</div>
             <div class="app-path app-hint">
               <span data-i18n>Новости и ошибки –</span>
-              <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a><span data-i18n>; журнал ошибок можно приложить к сообщению.</span>
+              <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a>
             </div>
           </div>
           <div class="set-row-ctl">
             <button class="btn btn-ghost" id="btn-check-update" onclick="checkForUpdateNow()" data-i18n>Проверить обновления</button>
-            <button class="btn btn-ghost" onclick="openErrorLog()" title="Файл с ошибками приложения – его можно приложить к сообщению о проблеме" data-i18n data-i18n-title="Файл с ошибками приложения – его можно приложить к сообщению о проблеме">Открыть журнал ошибок</button>
-            <button class="btn btn-ghost" onclick="copyErrorLog()" title="Скопировать текст ошибок, чтобы вставить его в сообщение" data-i18n data-i18n-title="Скопировать текст ошибок, чтобы вставить его в сообщение">Скопировать журнал</button>
+            <button class="btn btn-ghost" onclick="copyErrorLog()" title="Скопировать ошибки программы, чтобы отправить их в канал" data-i18n data-i18n-title="Скопировать ошибки программы, чтобы отправить их в канал">Журнал ошибок</button>
           </div>
         </div>
         <div class="status-msg" id="status-update"></div>
@@ -605,7 +604,7 @@ function settingsViewHtml() {
         <h3 class="about-h" data-i18n>Нашли ошибку или есть идея?</h3>
         <p class="sync-intro">
           <span data-i18n>Пишите в канал TasteID в Telegram –</span>
-          <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a><span data-i18n>. Там же выходят новые версии. Опишите, что делали и что произошло; скриншот и журнал ошибок («Приложение» → «Открыть журнал ошибок») очень помогают.</span>
+          <a href="https://t.me/DeTasteID" target="_blank" rel="noopener">t.me/DeTasteID</a><span data-i18n>. Там же выходят новые версии. Опишите, что делали и что произошло; скриншот и журнал ошибок («Приложение» → «Журнал ошибок») очень помогают.</span>
         </p>
         <p class="sync-intro">
           <span data-i18n>Можно и</span>

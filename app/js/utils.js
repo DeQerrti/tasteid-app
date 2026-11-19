@@ -1230,12 +1230,15 @@ async function startRebindShortcut(action, btn) {
 }
 // Тост есть не на каждой странице (собственный backupToast – только у
 // backup-history.js) – здесь свой минимальный, без зависимости.
-function backupToastGlobal(text, ok) {
+// ms – сколько держать: длинную подсказку («что дальше делать») за 3,5 с
+// не успеть прочитать.
+function backupToastGlobal(text, ok, ms = 3500) {
   const el = document.createElement("div");
   el.className = "toast " + (ok ? "ok" : "err");
+  el.setAttribute("role", "status");
   el.textContent = text;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(() => el.remove(), ms);
 }
 
 // ── Переключение вкладок – своя клавиша или кнопка мыши ────────

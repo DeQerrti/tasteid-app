@@ -224,7 +224,7 @@ ok(
 );
 await conn.close();
 
-// Журнал ошибок (openErrorLog/copyErrorLog в settings-app.js). Ответы
+// Журнал ошибок (copyErrorLog в settings-app.js). Ответы
 // /api/app/* – подставные: настоящие есть только в Electron (main.js).
 console.log("Журнал ошибок");
 {
@@ -244,35 +244,31 @@ console.log("Журнал ошибок");
     };
   });
   let log = "";
-  await p.route("**/api/app/open-error-log", (r) =>
-    r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, empty: !log }) })
-  );
   await p.route("**/api/app/read-error-log", (r) =>
     r.fulfill({
       contentType: "application/json",
       body: JSON.stringify({ ok: true, empty: !log, text: log }),
     })
   );
-  const status = () => p.textContent("#status-app");
-  ok(!!(await p.$('#panel-app button[onclick="copyErrorLog()"]')), "есть «Скопировать журнал»");
-  await p.click('#panel-app button[onclick="openErrorLog()"]');
-  await p.waitForFunction(() => document.getElementById("status-app").textContent.trim());
-  ok((await status()).includes("Ошибок не было"), "журнал пуст – так и сказано, без папки");
-  await p.click('#panel-app button[onclick="copyErrorLog()"]');
-  ok((await status()).includes("Ошибок не было"), "копировать пустой журнал – то же");
+  const btn = '#panel-app button[onclick="copyErrorLog()"]';
+  const toast = () => p.waitForSelector(".toast", { timeout: 5000 }).then((t) => t.textContent());
+  ok(
+    (await p.$$('#panel-app button[onclick*="ErrorLog"]')).length === 1,
+    "одна кнопка «Журнал ошибок»"
+  );
+  ok((await p.textContent(btn)).trim() === "Журнал ошибок", "так и подписана");
+
+  await p.click(btn);
+  ok((await toast()).includes("Ошибок не было"), "журнал пуст – уведомление «ошибок не было»");
+  ok((await p.evaluate(() => window.__copied)) === null, "в буфер ничего не положено");
+  await p.evaluate(() => document.querySelectorAll(".toast").forEach((t) => t.remove()));
 
   log = "TasteID 0.7.17 · win32 x64\n2026-11-19T10:00:00Z [окно] TypeError: x is undefined\n";
-  await p.click('#panel-app button[onclick="openErrorLog()"]');
-  await p.waitForFunction(() =>
-    document.getElementById("status-app").textContent.includes("errors.log")
-  );
+  await p.click(btn);
+  const msg = await toast();
   ok(
-    (await status()).includes("t.me/DeTasteID"),
-    "открыта папка – подсказка, что и куда отправить"
-  );
-  await p.click('#panel-app button[onclick="copyErrorLog()"]');
-  await p.waitForFunction(() =>
-    document.getElementById("status-app").textContent.includes("скопирован")
+    msg.includes("скопирован") && msg.includes("t.me/DeTasteID"),
+    "уведомление: скопировано, отправьте в канал"
   );
   ok((await p.evaluate(() => window.__copied)) === log, "текст журнала – в буфере обмена");
   await p.close();

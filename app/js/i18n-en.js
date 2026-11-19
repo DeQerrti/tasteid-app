@@ -1982,11 +1982,8 @@ i18nRegister({
     "Titles, years and covers in search and import come from AniList, Shikimori, MyAnimeList, TMDB, Steam and Open Library. Covers and posters belong to their respective owners.",
   "Нашли ошибку или есть идея?": "Found a bug or have an idea?",
   "Пишите в канал TasteID в Telegram –": "Write to the TasteID channel on Telegram –",
-  ". Там же выходят новые версии. Опишите, что делали и что произошло; скриншот и журнал ошибок («Приложение» → «Открыть журнал ошибок») очень помогают.":
-    ". New versions are posted there too. Describe what you did and what happened; a screenshot and the error log (App → Open error log) help a lot.",
   "Можно и": "Or",
   "Новости и ошибки –": "News and bug reports –",
-  "; журнал ошибок можно приложить к сообщению.": "; you can attach the error log to your message.",
   "Никакой статистики использования, рекламы и слежки – ни автору, ни кому-либо ещё.":
     "No usage statistics, ads or tracking – not for the author, not for anyone.",
   "Обложки по ссылкам загружаются с сайтов, где они лежат. Если обложка не загрузилась напрямую, приложение пробует открытый сервис картинок wsrv.nl – он видит адрес этой обложки.":
@@ -2007,10 +2004,7 @@ i18nRegister({
     "Can’t reach the service – check your internet connection and try again.",
   "Сервис долго не отвечает – проверьте интернет и попробуйте ещё раз.":
     "The service is taking too long to respond – check your internet connection and try again.",
-  "Открыть журнал ошибок": "Open error log",
   "О приложении": "About",
-  "Файл с ошибками приложения – его можно приложить к сообщению о проблеме":
-    "A file with the app’s errors – you can attach it to a problem report",
 });
 
 // ── Встроенные теги «Визуал / звук», которым не хватало перевода ──
@@ -2085,14 +2079,13 @@ i18nRegister({
   "Цель: {type}": "Goal: {type}",
 
   // Журнал ошибок (settings-app.js)
-  "Ошибок не было – журнал пуст.": "No errors so far – the log is empty.",
-  "Открыта папка с выделенным файлом errors.log – перетащите его в сообщение в канале t.me/DeTasteID.":
-    "A folder with errors.log selected is open – drag the file into a message in the t.me/DeTasteID channel.",
-  "Журнал скопирован – вставьте его в сообщение в канале t.me/DeTasteID.":
-    "Log copied – paste it into a message in the t.me/DeTasteID channel.",
-  "Не получилось открыть журнал.": "Couldn't open the log.",
   "Не получилось прочитать журнал.": "Couldn't read the log.",
+  "Журнал ошибок": "Error log",
+  "Ошибок не было – всё в порядке.": "No errors so far – all good.",
+  "Журнал ошибок скопирован – вставьте его в сообщение в канале t.me/DeTasteID.":
+    "Error log copied – paste it into a message in the t.me/DeTasteID channel.",
+  "Скопировать ошибки программы, чтобы отправить их в канал": "Copy the app's errors to send them to the channel",
+  ". Там же выходят новые версии. Опишите, что делали и что произошло; скриншот и журнал ошибок («Приложение» → «Журнал ошибок») очень помогают.":
+    ". New versions are posted there too. Describe what you did and what happened; a screenshot and the error log (App → Error log) help a lot.",
   "Не получилось скопировать журнал.": "Couldn't copy the log.",
-  "Скопировать журнал": "Copy log",
-  "Скопировать текст ошибок, чтобы вставить его в сообщение": "Copy the error text to paste it into a message",
 });

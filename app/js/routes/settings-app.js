@@ -424,45 +424,26 @@ async function changeVault() {
   }
 }
 
-// Журнал ошибок приложения (errors.log, см. logError в electron/main.js) –
-// его прикладывают к сообщению о проблеме в канале. Раньше кнопка молча
-// открывала служебную папку, и было непонятно, что с ней делать
-// (owner, ноябрь 2026): теперь – «ошибок не было», если журнал пуст, а
-// иначе подсказка, что и куда отправить. «Скопировать» – для тех, кому
-// проще вставить текст в чат, чем перетаскивать файл.
-const ERROR_LOG_EMPTY_MSG = () => i18n("Ошибок не было – журнал пуст.");
-
-async function openErrorLog() {
-  try {
-    const res = await fetch("/api/app/open-error-log", { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || i18n("Не получилось открыть журнал."));
-    flashStatus(
-      "status-app",
-      true,
-      data.empty
-        ? ERROR_LOG_EMPTY_MSG()
-        : i18n("Открыта папка с выделенным файлом errors.log – перетащите его в сообщение в канале t.me/DeTasteID.")
-    );
-  } catch (e) {
-    flashStatus("status-app", false, e.message);
-  }
-}
-
+// Журнал ошибок приложения (errors.log, см. logError в electron/main.js).
+// Одна кнопка «Журнал ошибок» (owner, ноябрь 2026): ошибок не было –
+// так и говорит; есть – кладёт их текст в буфер обмена и подсказывает
+// вставить в сообщение в канале. Раньше кнопка открывала служебную папку
+// программы, и было непонятно, что с ней делать. Ответ – всплывающим
+// уведомлением: строка под кнопками на узком окне уезжала из виду.
 async function copyErrorLog() {
   try {
     const res = await fetch("/api/app/read-error-log", { method: "POST" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || i18n("Не получилось прочитать журнал."));
-    if (data.empty) return flashStatus("status-app", true, ERROR_LOG_EMPTY_MSG());
+    if (data.empty) return backupToastGlobal(i18n("Ошибок не было – всё в порядке."), true);
     await navigator.clipboard.writeText(data.text);
-    flashStatus(
-      "status-app",
+    backupToastGlobal(
+      i18n("Журнал ошибок скопирован – вставьте его в сообщение в канале t.me/DeTasteID."),
       true,
-      i18n("Журнал скопирован – вставьте его в сообщение в канале t.me/DeTasteID.")
+      8000
     );
   } catch (e) {
-    flashStatus("status-app", false, e.message || i18n("Не получилось скопировать журнал."));
+    backupToastGlobal(e.message || i18n("Не получилось скопировать журнал."), false);
   }
 }
 
