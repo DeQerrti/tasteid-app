@@ -95,6 +95,18 @@ await new Promise((done, fail) => {
 });
 const base = `http://127.0.0.1:${port}`;
 
+// Главная – и дождаться стартовой вкладки. Приложение открывает последнюю
+// вкладку (tasteid-last-tab), но узнаёт её только когда загрузит настройки
+// (window.themeReady, затем клик в index.html). Нажатие на вкладку раньше
+// этого перебивалось: во втором проходе темы приложение возвращало
+// тир-лист, на котором закончился первый, и ожидание карточки в
+// «Статусах» упиралось в таймаут (CI, ноябрь 2026).
+async function gotoHome() {
+  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => window.themeReady !== undefined);
+  await page.evaluate(() => Promise.resolve(window.themeReady));
+}
+
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
 const jsErrors = [];
@@ -109,7 +121,7 @@ for (const name of ["leaf.svg", "leaf-up.svg", "branch.svg", "fern-top.svg", "fe
 for (const theme of ["soft-dark", "soft"]) {
   console.log(`Тема ${theme}`);
   writeFileSync(join(vaultDir, "site-settings.json"), JSON.stringify({ theme }));
-  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await gotoHome();
   await page.click('.tab-btn[data-label="nav.now"]');
   // Видимую: во втором проходе первой в разметке бывает карточка соседнего
   // (скрытого) статуса – ожидание первой попавшейся время от времени
@@ -320,7 +332,7 @@ for (const theme of ["soft-dark", "soft"]) {
 
   // «Любимое»: окно записи – тот же лист дневника; редактор порядка –
   // листы гербария; редактор записи – поля строкой, заголовки ярлычками.
-  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await gotoHome();
   await page.click('.tab-btn[data-label="nav.favorites"]');
   await page.click('#tab-favorites .tl-mode-btn[data-mode="favPersons"]');
   await page.waitForSelector("#tab-favorites .card-char", { timeout: 10000 });
@@ -377,7 +389,7 @@ for (const theme of ["soft-dark", "soft"]) {
 
   // «Статистика»: годы тихой строкой, заголовки блоков – ярлычками,
   // счётчики – через пунктир.
-  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await gotoHome();
   await page.click('.tab-btn[data-label="nav.stats"]');
   await page.waitForSelector("#tab-stats .sx-card > .section-title", { timeout: 10000 });
   const st = await page.evaluate(() => {
@@ -437,7 +449,7 @@ for (const theme of ["soft-dark", "soft"]) {
 
   // «Тир-лист»: вкладки на ветке, кнопки типов и годы тихой строкой,
   // «Подписи» – строкой, название полки – бумажным ярлычком.
-  await page.goto(base + "/", { waitUntil: "domcontentloaded" });
+  await gotoHome();
   await page.click('.tab-btn[data-label="nav.tierlist"]');
   await page.waitForSelector("#tab-tierlist .tl-row:not(.tl-row-empty) .tl-label-name", {
     timeout: 10000,
