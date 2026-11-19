@@ -111,7 +111,10 @@ for (const theme of ["soft-dark", "soft"]) {
   writeFileSync(join(vaultDir, "site-settings.json"), JSON.stringify({ theme }));
   await page.goto(base + "/", { waitUntil: "domcontentloaded" });
   await page.click('.tab-btn[data-label="nav.now"]');
-  await page.waitForSelector("#tab-now .review-card-wrap", { timeout: 10000 });
+  // Видимую: во втором проходе первой в разметке бывает карточка соседнего
+  // (скрытого) статуса – ожидание первой попавшейся время от времени
+  // упиралось в таймаут в CI.
+  await page.waitForSelector("#tab-now .review-card-wrap >> visible=true", { timeout: 10000 });
 
   // Ярлычок выбранного раздела проявляется плавно – ждём конца перехода.
   await page.waitForTimeout(500);
