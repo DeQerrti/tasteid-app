@@ -720,7 +720,7 @@ function statsMoreSheet() {
   actionSheet(siteLabel("nav", "stats", i18n("Статистика")), [
     ...(hasRecap ? [{ label: `${i18n("Итоги")} ✦`, run: () => openRecap() }] : []),
     { label: i18n("Цели"), run: () => openGoals() },
-    { icon: cameraIcon(), label: i18n("Сохранить как картинку"), run: () => openStatsExportModal() },
+    { label: i18n("Сохранить как картинку"), run: () => openStatsExportModal() },
   ]);
 }
 

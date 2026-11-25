@@ -51,9 +51,9 @@
 <link rel="stylesheet" href="/themes.css?v=44">
 <script src="/js/mobile.bundle.js?v=10"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=64"></script>
+<script src="/js/i18n-en.js?v=65"></script>
 <script src="/js/sync.js?v=6"></script>
-<script src="/js/utils.js?v=38"></script>
+<script src="/js/utils.js?v=39"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
 <script src="/js/focus-modal.js?v=1"></script>
 <script src="/js/image-lightbox.js?v=2"></script>
@@ -2769,6 +2769,106 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
   :is(html:not([data-skin]), html[data-skin^="classic"]) :is(#tab-now, #tab-favorites) .tl-mode-btn .section-count { margin: 0; font-size: .7rem; }
 }
 
+/* ══ ТИР-ЛИСТ НА ТЕЛЕФОНЕ ══
+   owner, ноябрь 2026, по макету: было четыре ряда до первого тира
+   (тир-листы + «Новый тир-лист», «Редактор»/«Подписи»/камера справа с
+   пустотой слева, типы или игры, годы или списки). Теперь тир-листы –
+   строкой и «⋯» (tlMoreSheet), размер – значком ⇕ рядом с «⋯» (tlRender
+   переносит туда .tl-size), списки игры – строкой капсул на всю ширину,
+   листается. Раскладка – всем темам, вид вкладок – классической. */
+.tl-more-btn, .tl-size-pop-val { display: none; }
+@media (max-width: 700px) {
+  #tab-tierlist > .tl-mode-toggle { flex-wrap: nowrap; align-items: center; gap: .2rem; }
+  #tab-tierlist > .tl-mode-toggle .tl-mode-scroll { flex: 1 1 auto; min-width: 0; }
+  #tab-tierlist > .tl-mode-toggle :is(#tl-add-collection-btn, .tl-mode-add-btn) { display: none; }
+  #tab-tierlist .tl-more-btn,
+  #tab-tierlist > .tl-mode-toggle .tl-size > .tl-tool-btn {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0;
+    color: var(--text); background: none; border: 0; border-radius: 50%; cursor: pointer;
+  }
+  .tl-more-btn svg { width: 21px; height: 21px; }
+  .tl-more-btn:active { background: var(--surface2); }
+  #tab-tierlist > .tl-mode-toggle .tl-size { flex: none; margin: 0; }
+  /* В строке – только значок; число – в окошке рядом с ползунком. */
+  #tab-tierlist > .tl-mode-toggle .tl-size > .tl-tool-btn { font-size: 0; }
+  #tab-tierlist > .tl-mode-toggle .tl-size > .tl-tool-btn::before { content: "⇕"; font-size: 1.25rem; line-height: 1; }
+  #tab-tierlist > .tl-mode-toggle .tl-size-pop { width: min(300px, calc(100vw - 32px)); z-index: 40; }
+  #tab-tierlist .tl-size-pop-val { display: inline; font-family: 'DM Sans', sans-serif; font-size: .75rem; color: var(--text); font-variant-numeric: tabular-nums; min-width: 3.4em; text-align: right; }
+  #tab-tierlist .tl-head-tools { display: none; }
+  #tab-tierlist .tl-head-row > .tl-filters { flex: 1 1 100%; }
+  #tab-tierlist .tl-char-sub:not(:has(.tl-list-btn)) { display: none; }
+  #tab-tierlist .tl-char-sub .tl-char-lists { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  #tab-tierlist .tl-char-sub .tl-char-lists::-webkit-scrollbar { display: none; }
+  #tab-tierlist .tl-list-btn { flex: none; white-space: nowrap; }
+  #tab-tierlist .tl-years { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+}
+@media (max-width: 700px) {
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-tierlist > .tl-mode-toggle {
+    align-items: stretch; padding-bottom: 0; margin-bottom: .9rem;
+    border-bottom: 1px solid var(--border);
+    /* Щель под чертой – см. «ВКЛАДКИ НА ТЕЛЕФОНЕ». */
+    box-shadow: 0 .9rem 0 var(--bg);
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-tierlist > .tl-mode-toggle > :is(.tl-more-btn, .tl-size) { align-self: center; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-tierlist .tl-mode-scroll { gap: 1.35rem; padding-bottom: 0; margin-bottom: 0; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-tierlist .tl-mode-btn {
+    flex: none; display: inline-flex; align-items: baseline; min-height: 46px; padding: .75rem 0 .55rem;
+    font-size: 1.08rem; letter-spacing: .01em; text-transform: none;
+    color: var(--text-dim); background: none; border: 0; border-radius: 0; box-shadow: none;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-tierlist .tl-mode-btn.active { color: var(--text-hi); background: none; box-shadow: inset 0 -2px 0 var(--red); }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-tierlist .tl-list-btn {
+    min-height: 40px; padding: .3rem .9rem; border-radius: 20px;
+    font-size: .8rem; letter-spacing: 0; text-transform: none;
+  }
+}
+
+/* ══ РЕДАКТОР ТИР-ЛИСТА НА ТЕЛЕФОНЕ (#/chars-edit) ══
+   Шапка: «Сохранить» и «⋯» (ceMoreSheet) вместо трёх крупных кнопок в
+   два ряда. Внутри темы подпись тира (название, цвет, ✕) – полосой
+   сверху, а не колонкой слева в треть ширины: персонажам – весь экран.
+   Селекторы с .ce-view – базовые правила редактора стоят ниже по файлу. */
+.ce-bar-actions { display: flex; align-items: center; gap: .5rem; margin-left: auto; flex-wrap: wrap; min-width: 0; }
+.ce-more-btn { display: none; }
+@media (max-width: 700px) {
+  .app-topbar:has(.ce-bar-actions) { flex-wrap: nowrap; }
+  .app-topbar:has(.ce-bar-actions) #header-sub { display: none; }
+  .ce-bar-actions { flex-wrap: nowrap; gap: .2rem; }
+  .ce-bar-actions > .ce-bar-extra { display: none; }
+  .ce-bar-actions .ce-more-btn {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 44px; height: 44px; padding: 0;
+    color: var(--text); background: none; border: 0; border-radius: 50%; cursor: pointer;
+  }
+  .ce-more-btn svg { width: 21px; height: 21px; }
+  main.ce-view .tl-editor-row { flex-direction: column; }
+  main.ce-view .tl-editor-label {
+    width: auto; flex-direction: row; justify-content: flex-start; gap: .6rem;
+    padding: .35rem 2.8rem .35rem .8rem; border-right: 0; border-bottom: 1px solid var(--border);
+  }
+  main.ce-view .tl-editor-label .tl-label-input { width: auto; flex: 1 1 auto; text-align: left; font-size: 1rem; }
+  main.ce-view .tl-editor-label .tl-color-input { width: 28px; height: 28px; flex: none; }
+  /* ✕ тира на компьютере – по наведению; пальцем навести нельзя, на
+     телефоне он виден всегда (удаление всё равно спрашивает). */
+  main.ce-view .tl-editor-row > .tl-row-del {
+    display: flex; top: .25rem; right: .25rem; width: 40px; height: 40px;
+    background: none; border: 0; font-size: .85rem;
+  }
+  main.ce-view .tl-editor-cards { padding: .5rem; }
+}
+@media (max-width: 700px) {
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .ce-bar-actions #btn-save {
+    min-height: 40px; padding: .4rem 1.1rem; border-radius: 20px;
+    font-family: 'DM Sans', sans-serif; font-size: .85rem; font-weight: 600; text-transform: none; letter-spacing: 0;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) main.ce-view .list-tab {
+    min-height: 40px; padding: .3rem .9rem; border-radius: 20px;
+    font-family: 'DM Sans', sans-serif; font-size: .8rem; letter-spacing: 0; text-transform: none;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) main.ce-view :is(.list-tab-edit, .list-tab-del) { width: 40px; padding: 0; border: 0; background: none; }
+}
+
 /* ══ ШТОРКА СНИЗУ (utils.js: actionSheet) ══ */
 .action-sheet-back { position: fixed; inset: 0; z-index: 9000; background: rgba(0, 0, 0, .55); }
 .action-sheet {
@@ -4917,13 +5017,13 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/api.js?v=14"></script>
 <script src="/js/cards.js?v=23"></script>
 <script src="/js/now.js?v=23"></script>
-<script src="/js/favorites.js?v=26"></script>
+<script src="/js/favorites.js?v=27"></script>
 <script src="/js/progress.js?v=2"></script>
 <script src="/js/reviews.js?v=38"></script>
-<script src="/js/stats.js?v=32"></script>
+<script src="/js/stats.js?v=33"></script>
 <script src="/js/recap.js?v=4"></script>
 <script src="/js/goals.js?v=2"></script>
-<script src="/js/tierlist.js?v=19"></script>
+<script src="/js/tierlist.js?v=20"></script>
 <script src="/js/backup-history.js?v=4"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и
      «Импорт» маршрута #/settings-edit (js/routes/settings-edit.js).
@@ -4952,7 +5052,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/swipe-tabs.js?v=2" defer></script>
 <script src="/js/router.js?v=2"></script>
 <script src="/js/routes/reviews-order.js?v=6"></script>
-<script src="/js/routes/chars-edit.js?v=7"></script>
+<script src="/js/routes/chars-edit.js?v=8"></script>
 <script src="/js/routes/favorites-edit.js?v=8"></script>
 <script src="/js/routes/backup-history.js?v=1"></script>
 <script src="/js/routes/add.js?v=16"></script>

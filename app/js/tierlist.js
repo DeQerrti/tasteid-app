@@ -247,6 +247,14 @@ function tlRender() {
   box.classList.toggle("tl-captions", tlCaptions);
   box.innerHTML = tlModeToggleHtml()
     + (tlState.mode === "titles" ? tlTitlesHtml() : tlCharsHtml(tlState.mode));
+  // Телефон: размер – значком рядом с «⋯», а строка под играми остаётся
+  // целиком спискам (их бывает сколько угодно). Переносим сам узел, а не
+  // рисуем второй: у кнопки и ползунка id, слушатели вешает tlBindAll.
+  if (window.matchMedia?.("(max-width: 700px)").matches) {
+    const size = box.querySelector(".tl-char-sub .tl-size");
+    const toggle = box.querySelector(".tl-mode-toggle");
+    if (size && toggle) toggle.insertBefore(size, toggle.querySelector(".tl-more-btn"));
+  }
   hscrollAll(box);
   tlBindAll();
 }
@@ -302,11 +310,36 @@ function tlModeToggleHtml() {
   // своих тир-листов бывает много. Внутренней, а не сама строка: строка
   // закреплена со сплошным фоном и рисует ветку темы «Мягкая» во всю
   // ширину – затенённый край у неё самой просвечивал бы карточками.
+  // «⋯» – только телефону (CSS): там «Новый тир-лист», «Редактор»,
+  // «Подписи» и камера уходят в шторку (tlMoreSheet), а строка остаётся
+  // одними тир-листами.
   return `<div class="tl-mode-toggle"><div class="tl-mode-scroll hscroll">
     ${modeBtns}
     ${addBtn}
     ${restoreBtn}
-  </div></div>`;
+  </div><button type="button" class="tl-more-btn" onclick="tlMoreSheet()" title="${esc(i18n("Ещё"))}" aria-label="${esc(i18n("Ещё"))}" aria-haspopup="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg></button></div>`;
+}
+
+// Шторка «⋯» на телефоне (owner, ноябрь 2026, по макету): то же, что
+// кнопки справа на компьютере; «Сохранить как картинку» – последним,
+// как во всех шторках.
+function tlMoreSheet() {
+  const box = document.getElementById("tab-tierlist");
+  const editor = box?.querySelector(".tl-head-tools a.admin-add-btn");
+  const caps = box?.querySelector(".tl-captions-btn");
+  const cam = box?.querySelector("#tl-export-btn");
+  const add = document.getElementById("tl-add-collection-btn");
+  const restore = [...(box?.querySelectorAll(".tl-mode-add-btn") || [])].find((b) => b !== add);
+  const title = box?.querySelector(".tl-mode-btn.active")?.textContent.trim() || "";
+  actionSheet(title, [
+    ...(editor ? [{ label: i18n("Редактор"), run: () => (location.hash = editor.getAttribute("href")) }] : []),
+    ...(caps
+      ? [{ label: i18n("Подписи"), count: tlCaptions ? i18n("вкл") : i18n("выкл"), active: tlCaptions, run: () => caps.click() }]
+      : []),
+    ...(add ? [{ label: i18n("Новый тир-лист"), run: () => openCollectionModal() }] : []),
+    ...(restore ? [{ label: restore.textContent.trim(), run: () => restoreBuiltinTierCollection() }] : []),
+    ...(cam ? [{ label: i18n("Сохранить как картинку"), run: () => cam.click() }] : []),
+  ]);
 }
 
 async function restoreBuiltinTierCollection() {
@@ -565,6 +598,7 @@ function tlCharsHtml(collectionId) {
     <div class="tl-size-pop" id="tl-size-pop" hidden>
       <span class="tl-size-lbl">${i18n("Размер")}</span>
       <input type="range" min="80" max="1000" value="${tlCharHeight}" step="10" id="tl-char-size-slider" aria-label="${i18n("Размер")}">
+      <span class="tl-size-pop-val" id="tl-char-size-val2">${tlCharHeight}px</span>
     </div>
   </div>`;
 
@@ -698,6 +732,8 @@ function tlBindAll() {
       tlCharHeight = parseInt(slider.value);
       localStorage.setItem("tl-char-height", tlCharHeight);
       document.getElementById("tl-char-size-val").textContent = tlCharHeight + "px";
+      const val2 = document.getElementById("tl-char-size-val2");
+      if (val2) val2.textContent = tlCharHeight + "px";
       document.querySelectorAll(".tl-char-poster").forEach(el => {
         el.style.height = tlCharHeight + "px";
       });

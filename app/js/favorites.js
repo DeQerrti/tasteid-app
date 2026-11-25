@@ -184,13 +184,13 @@ function updateFavActionLink() {
 
 const favSvg = (d) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const FAV_PLUS_ICON = favSvg('<path d="M12 5v14M5 12h14"/>');
 const FAV_MORE_ICON = favSvg(
   '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>'
 );
-const FAV_ORDER_ICON = favSvg('<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>');
 
-// Меню «⋯» на телефоне: то же, что кнопки справа на компьютере.
+// Меню «⋯» на телефоне: то же, что кнопки справа на компьютере. Без
+// значков и «Сохранить как картинку» последним – как во всех шторках
+// (owner, ноябрь 2026).
 function favMoreSheet() {
   const mode = favState.mode;
   const admin = isAdmin();
@@ -199,12 +199,12 @@ function favMoreSheet() {
   const go = (hash) => () => (location.hash = hash);
   actionSheet(title, [
     ...(admin && mode !== "favTitles"
-      ? [{ icon: FAV_PLUS_ICON, label: i18n("Добавить"), run: go(`#/favorites-edit?type=${encodeURIComponent(favType)}`) }]
+      ? [{ label: i18n("Добавить"), run: go(`#/favorites-edit?type=${encodeURIComponent(favType)}`) }]
       : []),
     ...(admin
-      ? [{ icon: FAV_ORDER_ICON, label: i18n("Изменить порядок"), run: go(`#/favorites-order?section=${encodeURIComponent(mode)}`) }]
+      ? [{ label: i18n("Изменить порядок"), run: go(`#/favorites-order?section=${encodeURIComponent(mode)}`) }]
       : []),
-    { icon: cameraIcon(), label: i18n("Сохранить как картинку"), run: () => openFavExportModal() },
+    { label: i18n("Сохранить как картинку"), run: () => openFavExportModal() },
   ]);
 }
 

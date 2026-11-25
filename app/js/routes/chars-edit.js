@@ -166,11 +166,12 @@ async function mount(container, params) {
     <header class="app-topbar">
       <a href="#" class="logo topbar-back" id="ce-back"><span class="arrow">&larr;</span>TasteID</a>
       <h1 class="topbar-title" id="header-sub">${esc(COLLECTION_LABEL ? `${i18n("Редактор")}: ${COLLECTION_LABEL}` : "")}</h1>
-      <div style="display:flex;align-items:center;gap:.5rem;margin-left:auto;flex-wrap:wrap;min-width:0">
+      <div class="ce-bar-actions">
         <span class="status-msg" id="status-msg"></span>
-        <button class="btn btn-green" id="btn-save" onclick="saveAll()">${i18n("Сохранить всё")}</button>
-        <button class="btn btn-ghost" onclick="renameCurrentCollection()" data-i18n>Переименовать тир-лист</button>
-        <button class="btn btn-ghost" onclick="deleteCurrentCollection()" data-i18n>Удалить тир-лист</button>
+        <button class="btn btn-green" id="btn-save" onclick="saveAll()">${ceSaveLabel()}</button>
+        <button class="btn btn-ghost ce-bar-extra" onclick="renameCurrentCollection()" data-i18n>Переименовать тир-лист</button>
+        <button class="btn btn-ghost ce-bar-extra" onclick="deleteCurrentCollection()" data-i18n>Удалить тир-лист</button>
+        <button type="button" class="ce-more-btn" onclick="ceMoreSheet()" title="${i18n("Ещё")}" aria-label="${i18n("Ещё")}" aria-haspopup="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg></button>
       </div>
     </header>
     <main class="ce-view">
@@ -2167,7 +2168,21 @@ async function saveAll() {
     status.textContent = i18n("Ошибка сети: ") + e.message;
   }
   btn.disabled = false;
-  btn.textContent = i18n("Сохранить всё");
+  btn.textContent = ceSaveLabel();
+}
+
+// Телефон (owner, ноябрь 2026): в шапке – «Сохранить», как в других
+// редакторах; «Переименовать» и «Удалить тир-лист» – в шторке «⋯»
+// (раньше три крупные кнопки в два ряда под шапкой).
+function ceSaveLabel() {
+  return window.matchMedia?.("(max-width: 700px)").matches ? i18n("Сохранить") : i18n("Сохранить всё");
+}
+
+function ceMoreSheet() {
+  actionSheet(COLLECTION_LABEL || i18n("Тир-лист"), [
+    { label: i18n("Переименовать тир-лист"), run: () => renameCurrentCollection() },
+    { label: i18n("Удалить тир-лист"), run: () => deleteCurrentCollection() },
+  ]);
 }
 
 registerRoute("#/chars-edit", { mount, unmount });

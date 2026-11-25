@@ -1505,3 +1505,6 @@ function closeActionSheet() {
   document.removeEventListener("keydown", actionSheetOnKey, true);
   document.querySelectorAll(".action-sheet, .action-sheet-back").forEach((el) => el.remove());
 }
+// Смена экрана (кнопка «Назад» телефона, переход по ссылке) – шторка
+// закрывается: иначе она оставалась висеть поверх нового экрана.
+window.addEventListener("hashchange", closeActionSheet);

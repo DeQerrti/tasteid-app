@@ -566,6 +566,8 @@ i18nRegister({
   "Или загрузить с телефона": "Or upload from your phone",
   "Изменить порядок": "Reorder",
   все: "all",
+  вкл: "on",
+  выкл: "off",
   "Или загрузить файл": "Or upload a file",
   "Оригинальное качество (без сжатия)": "Original quality (no compression)",
   Импорт: "Import",
