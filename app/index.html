@@ -48,7 +48,7 @@
      #/reviews-order (js/routes/reviews-order.js) собственная шапка
      .app-topbar, которая до сих пор жила только там. -->
 <link rel="stylesheet" href="/admin.css?v=20">
-<link rel="stylesheet" href="/themes.css?v=43">
+<link rel="stylesheet" href="/themes.css?v=44">
 <script src="/js/mobile.bundle.js?v=10"></script>
 <script src="/js/i18n.js?v=1"></script>
 <script src="/js/i18n-en.js?v=62"></script>
@@ -2531,6 +2531,96 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
   .now-chip { font-size: .72rem; padding: .28rem .6rem; }
 }
 
+/* ══ СТАТУСЫ НА ТЕЛЕФОНЕ: два ряда вместо трёх ══
+   owner, ноябрь 2026 (макет «Было / Стало»): до первой обложки стояли
+   три ряда кнопок – статусы, типы, затем кубик + поиск + сортировка, –
+   почти четверть экрана. Теперь поиск, сортировка, «к году» и кубик –
+   квадратные значки в конце строки типов. Лупа раскрывает поле на месте
+   чипов (js/now.js: bindNowTools), сортировка – настоящий <select>,
+   прозрачный поверх значка, так что список – обычный системный.
+   На компьютере значков нет, обёртки .now-select-wrap прозрачны для
+   вёрстки (display: contents) – там всё как было. */
+.now-search-btn, .now-select-wrap > .now-tool-icon { display: none; }
+.now-select-wrap { display: contents; }
+.now-select-wrap[hidden] { display: none; }
+.now-tool-icon { width: 17px; height: 17px; flex: none; }
+@media (max-width: 700px) {
+  .now-tools { flex-wrap: nowrap; gap: .4rem; }
+  .now-chips { flex: 1 1 auto; flex-wrap: nowrap; }
+  .now-chip { white-space: nowrap; }
+  .now-tools-right { width: auto; flex: none; flex-wrap: nowrap; gap: .4rem; }
+  /* Значки – тем же видом, что кубик (.now-random); у тем со своим видом
+     кубика значки добавлены в их правила в themes.css. */
+  .now-icon-btn {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; flex: none;
+    color: var(--text-dim);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .now-icon-btn[hidden] { display: none; }
+  .now-select-wrap > .now-tool-icon { display: block; }
+  .now-random { width: 44px; height: 44px; padding: 0; justify-content: center; flex: none; }
+  .now-search-btn { order: 1; }
+  .now-sort-wrap { order: 2; }
+  .now-year-wrap { order: 3; }
+  .now-random { order: 4; }
+  /* Сам список – прозрачный поверх значка во всю его площадь. */
+  .now-select-wrap > select {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; min-height: 0;
+    opacity: 0; cursor: pointer;
+  }
+  /* Сильнее правил тем для значков (themes.css), чтобы подсветка была видна в любой. */
+  #tab-now .now-tools .now-sort-on { color: var(--text-hi); border-color: var(--accent-line); background: var(--accent-fill); }
+  /* Поле поиска – только раскрытое (по лупе или с набранным текстом). */
+  .now-search { display: none; }
+  .now-searching .now-chips,
+  .now-searching .now-search-btn { display: none; }
+  .now-searching .now-tools-right { flex: 1 1 auto; min-width: 0; }
+  .now-searching .now-search { display: block; flex: 1 1 auto; width: auto; min-width: 0; order: 0; }
+
+  /* Выбран тип – подпись типа на обложках прячется (js/now.js:
+     nowApplyFilter ставит .now-typed). */
+  #tab-now.now-typed .type-tag { display: none; }
+
+  /* Год на карточке не обрезается в «202…»: год целиком, у даты нет
+     «с» (js/cards.js: manualCard), а если и так не влезает (дата с
+     годом – «30.08.25») – уходит второй строкой. */
+  #tab-now .card-meta-now { flex-wrap: wrap; gap: 0 .35rem; }
+  #tab-now .card-meta-main { flex: none; overflow: visible; }
+  #tab-now .card-meta-pre { display: none; }
+}
+/* Классическая тема: статусы – одной полосой во всю ширину, поровну, у
+   выбранного красная черта снизу (по макету). У остальных тем вкладки
+   нарисованы по-своему в themes.css – их не трогаем. */
+@media (max-width: 700px) {
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-now > .tl-mode-toggle { margin-bottom: .6rem; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-now .tl-mode-scroll {
+    display: flex; gap: 0; width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-now .tl-mode-btn {
+    flex: 1 0 auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem;
+    min-height: 48px;
+    font-size: .74rem; letter-spacing: .04em;
+    padding: .45rem .6rem;
+    background: none;
+    border: 0; border-right: 1px solid var(--border); border-radius: 0;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-now .tl-mode-btn:last-child { border-right: 0; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-now .tl-mode-btn .section-count { margin: 0; font-size: .72rem; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-now .tl-mode-btn.active {
+    background: var(--surface2);
+    box-shadow: inset 0 -2px 0 var(--red);
+  }
+}
+
 /* Заголовок года в списке (js/now.js: yearGroupsHtml). Счётчик рядом с
    годом – сколько карточек этого года видно сейчас. scroll-margin –
    чтобы «Перейти к году» не прятал заголовок под полосу окна в Electron
@@ -4558,8 +4648,8 @@ main.fe-view > .status-msg:empty { display: none; }
      «mergeIds is not defined». -->
 <script src="/js/external-ids.js?v=12"></script>
 <script src="/js/api.js?v=14"></script>
-<script src="/js/cards.js?v=22"></script>
-<script src="/js/now.js?v=22"></script>
+<script src="/js/cards.js?v=23"></script>
+<script src="/js/now.js?v=23"></script>
 <script src="/js/favorites.js?v=24"></script>
 <script src="/js/progress.js?v=2"></script>
 <script src="/js/reviews.js?v=37"></script>

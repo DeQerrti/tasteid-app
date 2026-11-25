@@ -98,6 +98,10 @@ function renderNowChips() {
 function nowApplyFilter() {
   const el = nowModeBodies[nowState.mode];
   if (!el) return;
+  // Выбран тип – подпись типа на каждой обложке ничего не добавляет
+  // (на телефоне она закрывает добрую половину верха обложки); CSS
+  // прячет её по этому классу только на узком экране.
+  document.getElementById("tab-now")?.classList.toggle("now-typed", nowFilter.type !== "all");
   const q = normTitle(nowFilter.q);
   let visible = 0;
   el.querySelectorAll(".grid-now").forEach((grid) => {
@@ -145,6 +149,12 @@ function nowApplyFilter() {
 // отзыва с кнопкой «Другой»; смайл 🎲 он отклонил – выбивался из темы,
 // кубик нарисован линией, как иконки в меню.
 const NOW_DICE_ICON = `<svg class="now-dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r=".6" fill="currentColor"/><circle cx="12" cy="12" r=".6" fill="currentColor"/><circle cx="15.5" cy="15.5" r=".6" fill="currentColor"/></svg>`;
+
+// Значки строки инструментов на телефоне (см. nowToolsHtml) – линией,
+// как кубик и иконки меню.
+const NOW_SEARCH_ICON = `<svg class="now-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>`;
+const NOW_SORT_ICON = `<svg class="now-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>`;
+const NOW_YEAR_ICON = `<svg class="now-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`;
 
 // Сравнение – по ключу карточки, а не по самому объекту: reviews.json
 // перечитывается при заходах на вкладку, и прошлый выбор может оказаться
@@ -240,6 +250,18 @@ function bindNowTools() {
     nowFilter.q = e.target.value;
     nowApplyFilter();
   });
+  // Телефон: лупа раскрывает поле на месте чипов типов; поле пустое и
+  // ушёл фокус – снова лупа. С набранным текстом поле так и остаётся
+  // открытым – видно, что список сейчас отфильтрован.
+  const tools = document.querySelector("#tab-now .now-tools");
+  const search = document.getElementById("now-search");
+  document.getElementById("now-search-btn")?.addEventListener("click", () => {
+    tools?.classList.add("now-searching");
+    search?.focus();
+  });
+  search?.addEventListener("blur", () => {
+    if (!search.value) tools?.classList.remove("now-searching");
+  });
   // Выбор года прокручивает и тут же возвращается к «Перейти к году…» –
   // иначе повторно выбрать тот же год было бы нельзя.
   document.getElementById("now-year-jump")?.addEventListener("change", (e) => {
@@ -251,6 +273,9 @@ function bindNowTools() {
   // разбивает список по годам, см. nowModeBodyHtml).
   document.getElementById("now-sort")?.addEventListener("change", (e) => {
     nowFilter.sort = e.target.value;
+    // Не та сортировка, что по умолчанию, – значок подсвечен (телефон):
+    // самого выбранного текста на значке не видно.
+    e.target.closest(".now-select-wrap")?.classList.toggle("now-sort-on", nowFilter.sort !== "date");
     nowModeBodies = {};
     const container = document.getElementById("now-mode-body");
     if (container) container.replaceChildren();
@@ -261,17 +286,24 @@ function bindNowTools() {
 function nowToolsHtml() {
   const opt = (value, label) =>
     `<option value="${value}"${nowFilter.sort === value ? " selected" : ""}>${esc(label)}</option>`;
-  return `<div class="now-tools">
+  // Значки и обёртки .now-select-wrap нужны только телефону: там поиск,
+  // сортировка и «к году» – квадратные значки в одной строке с типами
+  // (owner, ноябрь 2026: до первой обложки было три ряда кнопок). На
+  // компьютере обёртка – display: contents, значки спрятаны, всё как было.
+  // Сам <select> остаётся настоящим и лежит прозрачным поверх значка:
+  // нажатие открывает обычный системный список.
+  return `<div class="now-tools${nowFilter.q ? " now-searching" : ""}">
     <div class="now-chips hscroll" id="now-chips"></div>
     <div class="now-tools-right">
       <button type="button" id="now-random" class="now-random" title="${esc(i18n("Выбрать случайный тайтл из списка (с учётом фильтра и поиска)"))}" aria-label="${esc(i18n("Случайный"))}" hidden>${NOW_DICE_ICON}<span class="now-random-label">${esc(i18n("Случайный"))}</span></button>
+      <button type="button" id="now-search-btn" class="now-icon-btn now-search-btn" title="${esc(i18n("Поиск по названию"))}" aria-label="${esc(i18n("Поиск по названию"))}">${NOW_SEARCH_ICON}</button>
       <input type="search" id="now-search" class="now-search" value="${esc(nowFilter.q)}" placeholder="${esc(i18n("Поиск по названию"))}" aria-label="${esc(i18n("Поиск по названию"))}">
-      <select id="now-year-jump" class="now-sort" data-no-dirty aria-label="${esc(i18n("Перейти к году…"))}" hidden></select>
-      <select id="now-sort" class="now-sort" aria-label="${esc(i18n("Сортировка"))}">
+      <span class="now-icon-btn now-select-wrap now-year-wrap" hidden>${NOW_YEAR_ICON}<select id="now-year-jump" class="now-sort" data-no-dirty aria-label="${esc(i18n("Перейти к году…"))}"></select></span>
+      <span class="now-icon-btn now-select-wrap now-sort-wrap${nowFilter.sort !== "date" ? " now-sort-on" : ""}">${NOW_SORT_ICON}<select id="now-sort" class="now-sort" aria-label="${esc(i18n("Сортировка"))}">
         ${opt("date", i18n("Сначала недавние"))}
         ${opt("title", i18n("По названию"))}
         ${opt("year", i18n("По году выхода"))}
-      </select>
+      </select></span>
     </div>
   </div>`;
 }
@@ -424,7 +456,9 @@ function nowSyncYearJump() {
   if (!select) return;
   const el = nowModeBodies[nowState.mode];
   const dividers = el ? [...el.querySelectorAll(".year-divider:not(.now-hidden)")] : [];
-  select.hidden = dividers.length < 2;
+  // Прячется обёртка вместе со значком (на телефоне выбор года – значок,
+  // см. nowToolsHtml), а не один <select>.
+  (select.closest(".now-select-wrap") || select).hidden = dividers.length < 2;
   select.innerHTML =
     `<option value="">${esc(i18n("Перейти к году…"))}</option>` +
     dividers

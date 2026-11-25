@@ -112,7 +112,12 @@ function manualCard(r, index) {
   // всего остального, что уже начато («В процессе», «Отложено», свои
   // статусы), – когда начато. Раньше «с …» показывалось только у статуса
   // «В процессе», и отложенное оставалось вовсе без даты.
+  // dateHtml – та же дата разметкой: предлог «с» – отдельным span, чтобы
+  // на телефоне его можно было спрятать (в узкой колонке «2026 с 30.08»
+  // не помещалось, и год обрезался в «202…»). Предлог берём из перевода
+  // целиком, а не пишем «с» руками: в английском он «since».
   let watchBadge = "";
+  let dateHtml = "";
   if (r.status === "completed") {
     const startStr = r.date_start ? fmtDateStr(r.date_start, true) : null;
     const endStr   = r.date_end   ? fmtDateStr(r.date_end,   true) : null;
@@ -127,8 +132,20 @@ function manualCard(r, index) {
     }
   } else if (r.status && r.status !== "planning" && r.date_start) {
     const s = fmtDateStr(r.date_start, true);
-    if (s) watchBadge = i18n("с {date}", { date: s });
+    if (s) {
+      watchBadge = i18n("с {date}", { date: s });
+      const at = watchBadge.indexOf(s);
+      if (at >= 0) {
+        const pre = watchBadge.slice(0, at);
+        const post = watchBadge.slice(at + s.length);
+        dateHtml =
+          (pre ? `<span class="card-meta-pre">${esc(pre)}</span>` : "") +
+          esc(s) +
+          (post ? `<span class="card-meta-pre">${esc(post)}</span>` : "");
+      }
+    }
   }
+  if (watchBadge && !dateHtml) dateHtml = esc(watchBadge);
 
   const editId = r.id ?? encodeURIComponent(r.title);
   const pencil = isAdmin()
@@ -159,7 +176,7 @@ function manualCard(r, index) {
         ${metaMain || watchBadge
           ? `<div class="card-meta card-meta-now">
               <span class="card-meta-main">${esc(metaMain)}</span>
-              ${watchBadge ? `<span class="card-meta-date">${esc(watchBadge)}</span>` : ""}
+              ${watchBadge ? `<span class="card-meta-date" title="${esc(watchBadge)}">${dateHtml}</span>` : ""}
             </div>`
           : ""}
         ${info ? `<div class="card-grade-line">${gradeInlineHtml(info)}</div>` : ""}

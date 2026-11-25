@@ -1792,7 +1792,7 @@
 }
 
 /* ── «Статусы»: поиск и сортировка – строкой, как в дневнике ── */
-:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort, .now-random) {
+:is([data-skin="soft"], [data-skin="soft-dark"]) #tab-now :is(.now-search, .now-sort, .now-random, .now-icon-btn) {
   background-color: transparent;
   border: 0;
   border-bottom: 1px solid var(--border2);
@@ -3352,7 +3352,7 @@
 }
 
 /* Поиск – рамка от руки, сортировка – подчёркнутая строка с галочкой. */
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now :is(.now-search, .now-sort, .now-random) {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now :is(.now-search, .now-sort, .now-random, .now-icon-btn) {
   font-family: "Shantell Sans", "Pangolin", sans-serif;
   font-size: 0.88rem;
   color: var(--text);
@@ -3371,7 +3371,7 @@
     var(--doodle-caret) right 0.2rem center / 14px 11px no-repeat,
     var(--doodle-under) 0 100% / 100% 10px no-repeat;
 }
-:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now .now-random {
+:is([data-skin="doodle"], [data-skin="doodle-dark"]) #tab-now :is(.now-random, .now-icon-btn) {
   background: var(--doodle-under) 0 100% / 100% 10px no-repeat;
   padding: 0.35rem 0.3rem 0.45rem;
 }
