@@ -4795,6 +4795,77 @@ main.fe-view > .status-msg:empty { display: none; }
 }
 :where(.set-view) .pal-reset:hover { color: var(--text-hi); }
 :where(.set-view) .pal-foot { display: flex; align-items: center; gap: 16px; margin-top: 14px; flex-wrap: wrap; }
+
+/* ══ НАСТРОЙКИ НА ТЕЛЕФОНЕ ══
+   owner, ноябрь 2026, по макету.
+   Ошибки сенсорного экрана: общее правило «поля и кнопки не ниже 44px
+   под палец» (style.css, pointer: coarse) растягивало ползунок, у
+   которого полоска – это фон самого <input>, в серый прямоугольник с
+   квадратиком, а переключатель – в квадрат с кружком в углу. Полоска
+   ползунка теперь рисуется линией посередине (при любой высоте), у
+   переключателя нажимается вся высота 44px, а сама дорожка – 44×24. */
+:where(.set-view) .app-zoom-slider {
+  height: 24px;
+  background: linear-gradient(var(--border2), var(--border2)) center / 100% 3px no-repeat;
+}
+@media (pointer: coarse) {
+  /* input[type=range] – сильнее правил полей в темах (themes.css). */
+  html .set-view input[type="range"].app-zoom-slider {
+    border: 0; padding: 0; box-shadow: none; border-radius: 0;
+    background: linear-gradient(var(--border2), var(--border2)) center / 100% 3px no-repeat;
+  }
+  .set-view .app-zoom-slider::-webkit-slider-thumb { width: 22px; height: 22px; border-radius: 50%; }
+  .set-view .app-zoom-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; }
+  .set-view button.set-switch {
+    width: 52px; height: 44px; min-width: 52px; padding: 0;
+    background: none; border: 0;
+  }
+  .set-view .set-switch::before {
+    content: ""; position: absolute; left: 4px; top: 10px; width: 44px; height: 24px; box-sizing: border-box;
+    border: 1px solid var(--border2); border-radius: 12px; background: var(--surface2);
+    transition: background .15s, border-color .15s;
+  }
+  .set-view .set-switch:is([aria-checked="true"], [aria-checked="mixed"])::before { background: var(--accent-fill); border-color: var(--red); }
+  .set-view .set-switch i { top: 13px; left: 7px; z-index: 1; }
+  /* Горячие клавиши – клавиатуре; на телефоне раздел ни к чему. */
+  .set-view .side-tab[data-panel="shortcuts"] { display: none; }
+}
+@media (max-width: 720px) {
+  /* «На главную» – со стрелкой, как «‹ Все настройки» внутри разделов. */
+  #sidebar a.back#se-back { display: flex; align-items: center; gap: 8px; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+  #sidebar a.back#se-back::before { content: "‹"; font-size: 1.35em; line-height: 1; font-weight: 400; }
+  .set-view .row:has(> .app-zoom-slider) .app-zoom-slider { flex: 1 1 140px; width: auto; }
+}
+/* Вид – классической теме: строки одной карточкой, значки без рамок,
+   кнопки капсулами, заголовки групп и подписи – без капса и курсива. */
+@media (max-width: 720px) {
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view h2.section-h:not(.set-sec-toggle) {
+    margin: 22px 0 8px; padding: 0 4px;
+    font-family: 'DM Sans', sans-serif; font-style: normal; font-size: .86rem; font-weight: 600; letter-spacing: 0; color: var(--text);
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view h2.section-h.set-sec-toggle { font-family: 'DM Sans', sans-serif; font-style: normal; font-size: .9rem; font-weight: 600; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view label { font-size: .74rem; letter-spacing: 0; text-transform: none; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select) {
+    border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: .92rem;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view :is(input, textarea)::placeholder { font-family: 'DM Sans', sans-serif; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view .btn {
+    border-radius: 20px; min-height: 40px; padding: .45rem 1rem;
+    font-family: 'DM Sans', sans-serif; font-size: .84rem; letter-spacing: 0; text-transform: none;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view :is(#tabsList, #statusesList, #favSectionsList, #tierModesList, #statsList, #vaultsList, #typeColorsList, #shelvesList):not(:empty) {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0 6px; overflow: hidden;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view .tab-row { border-bottom: 1px solid var(--border); padding: 2px 0; gap: 2px; min-height: 48px; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view .tab-row:last-child { border-bottom: 0; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view .tab-row .tab-name { font-family: 'DM Sans', sans-serif; font-size: .92rem; color: var(--text-hi); }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view .tab-row.is-hidden .tab-name { color: var(--text-dim); }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view .tab-row :is(.icon-btn, .eye-btn) {
+    width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0;
+    border: 0; background: none; color: var(--text-dim); opacity: 1; border-radius: 50%;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .set-view .tab-row .drag-handle { color: var(--border2); padding: 0 4px; }
+}
 </style>
 </head>
 <body>
