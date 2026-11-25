@@ -84,6 +84,7 @@ function statsRender() {
     <button type="button" class="tl-filter stat-goals-btn" onclick="openGoals()">${i18n("Цели")}</button>
     ${years.length ? `<button type="button" class="tl-filter stat-recap-btn" onclick="openRecap()">${i18n("Итоги")} ✦</button>` : ""}
     ${cameraButton("openStatsExportModal()", "stats-export-btn")}
+    <button type="button" class="stat-more-btn" onclick="statsMoreSheet()" title="${esc(i18n("Ещё"))}" aria-label="${esc(i18n("Ещё"))}" aria-haspopup="menu">${STATS_MORE_ICON}</button>
   </div>`;
 
   const d = statsData(reviews, completed, year);
@@ -706,6 +707,21 @@ function statsFixLoneCards() {
   for (const row of rows.values()) {
     if (row.length === 1 && !row[0].classList.contains("w12")) row[0].classList.add("sx-solo");
   }
+}
+
+// Телефон (owner, ноябрь 2026, по макету): «Цели», «Итоги ✦» и камера
+// стояли вторым рядом под годами, слева от них было пусто. Там они
+// спрятаны CSS-ом, а в конце строки годов – «⋯» с шторкой, как в
+// «Любимом». На компьютере «⋯» нет, кнопки как раньше.
+const STATS_MORE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg>`;
+
+function statsMoreSheet() {
+  const hasRecap = !!document.querySelector("#tab-stats .stat-recap-btn");
+  actionSheet(siteLabel("nav", "stats", i18n("Статистика")), [
+    ...(hasRecap ? [{ label: `${i18n("Итоги")} ✦`, run: () => openRecap() }] : []),
+    { label: i18n("Цели"), run: () => openGoals() },
+    { icon: cameraIcon(), label: i18n("Сохранить как картинку"), run: () => openStatsExportModal() },
+  ]);
 }
 
 function statsYearFiltersHtml(years) {

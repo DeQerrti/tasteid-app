@@ -406,6 +406,18 @@ function recapHtml() {
 function recapRender() {
   const box = document.getElementById("recap-body");
   if (box) box.innerHTML = recapHtml();
+  recapYearIntoView(box);
+}
+
+// На телефоне годы – одной строкой с прокруткой (index.html): выбранный
+// год прокручиваем в видимую часть, иначе ранний год оставался за краем.
+// Только сама строка – окно по высоте не двигается.
+function recapYearIntoView(box) {
+  const row = box?.querySelector(".recap-years");
+  const active = row?.querySelector(".active");
+  if (!row || !active || row.scrollWidth <= row.clientWidth) return;
+  const left = active.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft;
+  row.scrollLeft = Math.max(0, left - (row.clientWidth - active.offsetWidth) / 2);
 }
 
 function recapEnsureOverlay() {

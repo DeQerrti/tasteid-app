@@ -1553,9 +1553,21 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
   .recap-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 700px) {
-  .recap-overlay { padding: calc(var(--app-titlebar, 0px) + 12px) 10px 90px; }
-  .recap-top { grid-template-columns: 1fr auto; }
+  /* Фон сплошной: сквозь полупрозрачный проглядывала статистика под окном. */
+  .recap-overlay { padding: calc(var(--app-titlebar, 0px) + 6px) 10px 90px; background: var(--bg); backdrop-filter: none; }
+  /* Название и значки – одной строкой. У «Целей» в шапке пустой <div>
+     (средняя колонка компьютера) – на телефоне он занимал место значков,
+     и ✕ уезжал под название. */
+  .recap-top { grid-template-columns: minmax(0, 1fr) auto; gap: .6rem; }
+  .recap-top > div:empty { display: none; }
+  .recap-title { grid-column: 1; grid-row: 1; }
+  .recap-actions { grid-column: 2; grid-row: 1; gap: 0; }
+  .recap-actions .icon-btn { width: 44px; height: 44px; border: 0; background: none; color: var(--text); }
   .recap-views { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; }
+  /* Годы – одной строкой с прокруткой, а не рядами. */
+  .recap-years { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
+  .recap-years::-webkit-scrollbar { display: none; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .recap-years { gap: 1.3rem; padding: 0 .1rem; border-bottom: 1px solid var(--border); }
   .recap-view { flex: 1; padding: .4rem .2rem; }
   .recap-counters { grid-template-columns: repeat(2, 1fr); }
   .recap-facts, .recap-cmp-cols { grid-template-columns: 1fr; }
@@ -1757,13 +1769,43 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
   .sx-grow { grid-template-columns: minmax(6rem, 34%) minmax(0, 1fr) 2rem; }
 }
 
-/* Телефон: годы – своей строкой во всю ширину (рядом с «Целями»,
-   «Итогами» и камерой их помещалось два), кнопки – второй строкой
-   справа. Растушёвка края пошире, под палец. */
+/* «⋯» – только телефону. */
+.stat-more-btn { display: none; }
+/* Телефон (owner, ноябрь 2026, по макету): годы – одной строкой с
+   прокруткой (как и раньше – решение owner'а), а «Цели», «Итоги ✦» и
+   камера, стоявшие вторым рядом с пустотой слева, – в шторке «⋯» в конце
+   строки (statsMoreSheet, stats.js). Вид годов вкладками с чертой – как у
+   статусов и разделов «Любимого» – только классической теме. */
 @media (max-width: 700px) {
-  #tab-stats .stat-toolbar { flex-wrap: wrap; justify-content: flex-end; }
-  #tab-stats .stat-year-filters { flex-basis: 100%; }
+  #tab-stats .stat-toolbar { flex-wrap: nowrap; justify-content: flex-start; gap: .2rem; }
+  #tab-stats .stat-year-filters { flex: 1 1 auto; min-width: 0; }
+  #tab-stats .stat-toolbar > :is(.stat-goals-btn, .stat-recap-btn, #stats-export-btn) { display: none; }
+  #tab-stats .stat-toolbar > .stat-more-btn {
+    display: inline-flex; align-items: center; justify-content: center; flex: none; align-self: center;
+    width: 44px; height: 44px; padding: 0;
+    color: var(--text); background: none; border: 0; border-radius: 50%; cursor: pointer;
+  }
+  .stat-more-btn svg { width: 21px; height: 21px; }
+  .stat-more-btn:active { background: var(--surface2); }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-stats > .stat-toolbar {
+    align-items: stretch; padding-bottom: 0; border-bottom: 1px solid var(--border);
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-stats .stat-year-filters { gap: 1.3rem; padding-bottom: 0; margin-bottom: 0; }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-stats .stat-year-filters .tl-filter,
+  :is(html:not([data-skin]), html[data-skin^="classic"]) .recap-years .tl-filter {
+    flex: none; min-height: 44px; padding: .72rem 0 .55rem;
+    font-family: 'Cormorant Garamond', serif; font-size: 1.08rem; font-weight: 600; letter-spacing: .01em;
+    color: var(--text-dim); background: none; border: 0; border-radius: 0; box-shadow: none;
+  }
+  :is(html:not([data-skin]), html[data-skin^="classic"]) :is(#tab-stats .stat-year-filters, .recap-years) .tl-filter.active {
+    color: var(--text-hi); background: none; box-shadow: inset 0 -2px 0 var(--red);
+  }
 }
+
+/* «Лицо вкуса»: обложка – кнопка, а кнопка ставит содержимое по центру
+   по высоте; у соседа с названием в три строки ячейка выше, и обложки
+   в ряду вставали на разную высоту (owner прислал скриншот). */
+.sx-face { display: flex; flex-direction: column; justify-content: flex-start; }
 
 /* Очень широкие экраны (2K при масштабе 100%, 4K): вкладка
    увеличивается целиком, в пропорциях Full HD, и потолок ширины
@@ -4871,9 +4913,9 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/favorites.js?v=26"></script>
 <script src="/js/progress.js?v=2"></script>
 <script src="/js/reviews.js?v=38"></script>
-<script src="/js/stats.js?v=31"></script>
-<script src="/js/recap.js?v=3"></script>
-<script src="/js/goals.js?v=1"></script>
+<script src="/js/stats.js?v=32"></script>
+<script src="/js/recap.js?v=4"></script>
+<script src="/js/goals.js?v=2"></script>
 <script src="/js/tierlist.js?v=19"></script>
 <script src="/js/backup-history.js?v=4"></script>
 <!-- passports.js / import-formats.js / import.js – панели «Паспорта» и

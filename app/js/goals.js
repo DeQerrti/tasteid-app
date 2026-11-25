@@ -203,6 +203,7 @@ function goalsHtml() {
 function goalsRender() {
   const box = document.getElementById("goals-body");
   if (box) box.innerHTML = goalsHtml();
+  recapYearIntoView(box);
 }
 
 async function goalsSave(mutate) {
