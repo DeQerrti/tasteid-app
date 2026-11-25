@@ -1789,6 +1789,8 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
   .stat-more-btn:active { background: var(--surface2); }
   :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-stats > .stat-toolbar {
     align-items: stretch; padding-bottom: 0; border-bottom: 1px solid var(--border);
+    /* Щель под чертой – см. «ВКЛАДКИ НА ТЕЛЕФОНЕ». */
+    margin-bottom: .9rem; box-shadow: 0 .9rem 0 var(--bg);
   }
   :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-stats .stat-year-filters { gap: 1.3rem; padding-bottom: 0; margin-bottom: 0; }
   :is(html:not([data-skin]), html[data-skin^="classic"]) #tab-stats .stat-year-filters .tl-filter,
@@ -2736,10 +2738,15 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
   .fav-ico svg { width: 21px; height: 21px; }
   .fav-ico:active { background: var(--surface2); }
 
+  /* Черта – у нижнего края закреплённой строки, а отступ под ней –
+     margin, он прозрачный: при прокрутке карточки просвечивали в этой
+     щели между чертой и содержимым (owner заметил, ноябрь 2026). Тень
+     цвета фона ровно на высоту отступа закрывает щель. */
   :is(html:not([data-skin]), html[data-skin^="classic"]) :is(#tab-now > .tl-mode-toggle, #tab-favorites > .fav-head) {
     padding-bottom: 0;
     margin-bottom: .9rem;
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 .9rem 0 var(--bg);
   }
   :is(html:not([data-skin]), html[data-skin^="classic"]) :is(#tab-now, #tab-favorites) .tl-mode-scroll {
     gap: 1.35rem;
