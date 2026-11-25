@@ -47,11 +47,11 @@
      add.html и т.д.), теперь ещё и для маршрутов SPA-роутера: у
      #/reviews-order (js/routes/reviews-order.js) собственная шапка
      .app-topbar, которая до сих пор жила только там. -->
-<link rel="stylesheet" href="/admin.css?v=20">
+<link rel="stylesheet" href="/admin.css?v=21">
 <link rel="stylesheet" href="/themes.css?v=44">
 <script src="/js/mobile.bundle.js?v=10"></script>
 <script src="/js/i18n.js?v=1"></script>
-<script src="/js/i18n-en.js?v=63"></script>
+<script src="/js/i18n-en.js?v=64"></script>
 <script src="/js/sync.js?v=6"></script>
 <script src="/js/utils.js?v=38"></script>
 <script src="/js/gallery-modal.js?v=1"></script>
@@ -2298,16 +2298,80 @@ body:has(#goals-overlay:not(.hidden)) .review-modal-overlay { z-index: 950; }
 .rv-year { grid-column: 1 / -1; margin-top: .9rem; scroll-margin-top: calc(var(--app-titlebar, 0px) + 8rem); }
 .reviews-grid > .rv-year:first-child { margin-top: .2rem; }
 .rv-noanim .card { animation: none !important; }
+/* Значки и счётчик строки – только телефону (ниже). */
+.rv-count, .rv-ico-btn, .rv-pop-back, .rv-dd-btn > .rv-ico, .rv-add > .rv-ico { display: none; }
+
+/* ══ ОТЗЫВЫ НА ТЕЛЕФОНЕ ══
+   owner, ноябрь 2026, по макету: раньше до первой обложки было четыре
+   ряда (поиск, фильтры, «Сначала новые» + «Добавить», счётчик). Теперь
+   одна строка: слева «214 отзывов», справа лупа, сортировка, «Фильтры» и
+   «+». Лупа раскрывает поле на месте счётчика (.rv-searching, reviews.js),
+   «Фильтры» – шторка со строками Тип / Оценка / Теги / Ссылки
+   (rvFiltersSheet), сами списки – тоже шторкой снизу. Под строкой – только
+   выбранные фильтры капсулами с ✕. Строка снова закреплена: она теперь
+   в один ряд, а не на пол-экрана. Раскладка – всем темам. */
 @media (max-width: 700px) {
-  /* На телефоне строка в несколько рядов и закреплённой занимала бы
-     пол-экрана – там она обычная; списки открываются листом снизу. */
-  .rv-sticky { position: static; box-shadow: none; }
-  .rv-search { flex-basis: 100%; max-width: none; }
-  .rv-dd-btn { padding: .5rem .65rem; font-size: .72rem; }
+  .rv-sticky { padding-bottom: .5rem; }
+  /* .rv-sticky – сильнее «Мягкой» темы, у которой промежутки шире. */
+  #tab-reviews .rv-sticky .rv-bar { flex-wrap: nowrap; gap: .3rem; }
   .rv-bar-gap { display: none; }
-  .rv-bar > .rv-dd[data-dd="sort"] { margin-left: auto; }
-  .rv-pop, .rv-pop-right { position: fixed; left: 10px; right: 10px; top: auto; bottom: 76px; width: auto; max-height: 65vh; min-width: 0; z-index: 90; }
+  .rv-bar > .rv-dd:not([data-dd="sort"]) { order: 9; width: 0; flex: none; }
+  .rv-bar > .rv-dd:not([data-dd="sort"]) > .rv-dd-btn { display: none; }
+  .rv-count {
+    display: block; order: 0; flex: 1 1 auto; min-width: 0; padding-left: .2rem;
+    font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+  }
+  .rv-search { display: none; order: 0; flex: 1 1 auto; max-width: none; min-width: 0; }
+  #tab-reviews.rv-searching .rv-search { display: block; }
+  #tab-reviews.rv-searching :is(.rv-count, .rv-search-btn) { display: none; }
+  .rv-search kbd { display: none; }
+  .rv-search-btn { order: 1; }
+  .rv-bar > .rv-dd[data-dd="sort"] { order: 2; }
+  .rv-filters-btn { order: 3; position: relative; }
+  .rv-bar > .rv-add { order: 4; }
+  /* #tab-reviews .rv-bar – сильнее правил тем для кнопок строки (themes.css). */
+  #tab-reviews .rv-bar :is(.rv-ico-btn, .rv-dd[data-dd="sort"] > .rv-dd-btn, .rv-add) {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 42px; height: 42px; min-width: 42px; min-height: 42px; padding: 0;
+    color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 50%;
+    cursor: pointer; text-decoration: none;
+  }
+  #tab-reviews .rv-bar .rv-ico { display: block; width: 19px; height: 19px; flex: none; }
+  #tab-reviews .rv-bar .rv-dd[data-dd="sort"] > .rv-dd-btn::after,
+  #rv-sort-label, .rv-add-text { display: none; }
+  #tab-reviews .rv-bar .rv-filters-btn.active { color: var(--text-hi); border-color: var(--accent-line); background: var(--accent-fill); }
+  .rv-filters-n {
+    position: absolute; top: -3px; right: -3px;
+    min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+    background: var(--red); color: #fff;
+    font: 600 .62rem/17px 'DM Sans', sans-serif; text-align: center;
+  }
+  .rv-filters-n[hidden] { display: none; }
+  /* Под строкой – только выбранные фильтры; счётчик уже в строке. */
+  .rv-sub { min-height: 0; margin-top: .45rem; }
+  .rv-sub .rv-result { display: none; }
+  .rv-sub:not(.rv-sub-has-chips) { display: none; }
+
+  /* Списки фильтров и сортировки – шторкой снизу. Подложка и сама шторка
+     живут внутри закреплённой строки (у неё свой слой), поэтому, пока
+     список открыт, строка поднимается над всем, а нижняя панель вкладок
+     уходит под подложку. */
+  .rv-sticky:has(.rv-pop:not(.hidden)) { z-index: 9000; }
+  body:has(#tab-reviews .rv-pop:not(.hidden)) nav#rail { z-index: 0; }
+  .rv-sticky:has(.rv-pop:not(.hidden)) > .rv-pop-back {
+    display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, .55);
+  }
+  .rv-pop, .rv-pop-right {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+    width: auto; min-width: 0; max-height: 72vh; z-index: 1;
+    padding: .4rem .6rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    border: 1px solid var(--border2); border-bottom: 0; border-radius: 16px 16px 0 0;
+  }
+  .rv-pop::before { content: ""; display: block; width: 36px; height: 4px; margin: .2rem auto .6rem; border-radius: 2px; background: var(--border2); }
   .rv-pop-tags { width: auto; }
+  .rv-pop .rv-opt { min-height: 46px; font-size: .9rem; }
 }
 
   /* ══ TIERLIST MODE TOGGLE ════════════════════════ */
@@ -4804,9 +4868,9 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/api.js?v=14"></script>
 <script src="/js/cards.js?v=23"></script>
 <script src="/js/now.js?v=23"></script>
-<script src="/js/favorites.js?v=25"></script>
+<script src="/js/favorites.js?v=26"></script>
 <script src="/js/progress.js?v=2"></script>
-<script src="/js/reviews.js?v=37"></script>
+<script src="/js/reviews.js?v=38"></script>
 <script src="/js/stats.js?v=31"></script>
 <script src="/js/recap.js?v=3"></script>
 <script src="/js/goals.js?v=1"></script>
@@ -4842,7 +4906,7 @@ main.fe-view > .status-msg:empty { display: none; }
 <script src="/js/routes/chars-edit.js?v=7"></script>
 <script src="/js/routes/favorites-edit.js?v=8"></script>
 <script src="/js/routes/backup-history.js?v=1"></script>
-<script src="/js/routes/add.js?v=15"></script>
+<script src="/js/routes/add.js?v=16"></script>
 <script src="/js/routes/add-tags-modal.js?v=5"></script>
 <script src="/js/routes/add-source-picker.js?v=2"></script>
 <script src="/js/routes/add-type-picker.js?v=3"></script>

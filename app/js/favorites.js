@@ -173,14 +173,12 @@ function updateFavActionLink() {
         : `<a href="#/favorites-edit?type=${encodeURIComponent(favType)}" class="admin-add-btn">${i18n("Добавить")}</a>`) +
       `<a href="#/favorites-order?section=${encodeURIComponent(mode)}" class="admin-add-btn">${i18n("Порядок")}</a>`;
   // На телефоне три кнопки рядом с разделами не помещались (разделов
-  // бывает и десять – owner заводит свои): там вместо них «+» и «⋯»,
+  // бывает и десять – owner заводит свои): там вместо них один «⋯»,
   // остальное – в шторке снизу (favMoreSheet). На компьютере значки
   // спрятаны CSS-ом, видны кнопки как раньше.
-  const phoneIcons =
-    (admin && mode !== "favTitles"
-      ? `<a href="#/favorites-edit?type=${encodeURIComponent(favType)}" class="fav-ico" title="${esc(i18n("Добавить"))}" aria-label="${esc(i18n("Добавить"))}">${FAV_PLUS_ICON}</a>`
-      : "") +
-    `<button type="button" class="fav-ico" onclick="favMoreSheet()" title="${esc(i18n("Ещё"))}" aria-label="${esc(i18n("Ещё"))}" aria-haspopup="menu">${FAV_MORE_ICON}</button>`;
+  // Только «⋯»: отдельный «+» рядом owner убрал (ноябрь 2026) – «Добавить»
+  // и так первым пунктом в шторке.
+  const phoneIcons = `<button type="button" class="fav-ico" onclick="favMoreSheet()" title="${esc(i18n("Ещё"))}" aria-label="${esc(i18n("Ещё"))}" aria-haspopup="menu">${FAV_MORE_ICON}</button>`;
   el.innerHTML = cameraButton("openFavExportModal()", "fav-camera-btn") + actionLink + phoneIcons;
 }
 

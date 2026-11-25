@@ -2,7 +2,7 @@
 //
 // Проверяется:
 //   – разделов много (свои заводятся в настройках) – они одной строкой,
-//     строка листается, выбранный раздел виден; «+» и «⋯» – в той же
+//     строка листается, выбранный раздел виден; «⋯» (одно, без отдельного «+») – в той же
 //     строке, кнопок «Добавить» / «Порядок» / камеры на телефоне не видно;
 //   – «⋯» открывает шторку: «Добавить», «Изменить порядок», «Сохранить
 //     как картинку»; касание мимо закрывает; «Изменить порядок» ведёт в
@@ -141,12 +141,12 @@ ok(row.oneLine && row.scrolls, "разделы – одной строкой, с
 ok(row.activeSeen, "выбранный раздел виден");
 const head = await box(phone, "#tab-favorites .fav-head .tl-mode-toggle");
 const more = await box(phone, '#fav-action-link .fav-ico[aria-haspopup="menu"]');
-const plus = await box(phone, '#fav-action-link a.fav-ico[href*="favorites-edit"]');
+const plusOutside = await phone.$("#fav-action-link a.fav-ico");
 ok(
-  Math.abs(more.top - head.top) < head.height && Math.abs(plus.top - head.top) < head.height,
-  "«+» и «⋯» – в строке разделов"
+  Math.abs(more.top - head.top) < head.height && !plusOutside,
+  "«⋯» – в строке разделов, отдельного «+» нет"
 );
-ok(more.right <= 390 && plus.width >= 40, "значки на экране и не мельче 40px");
+ok(more.right <= 390 && more.width >= 40, "«⋯» на экране и не мельче 40px");
 ok(
   !(await visible(phone, "#fav-action-link .admin-add-btn")) &&
     !(await visible(phone, "#fav-camera-btn")),

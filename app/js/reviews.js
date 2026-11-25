@@ -186,7 +186,13 @@ function rvOptHtml(kind, on, label, count, { dot = "", attrs = "" } = {}) {
 function renderReviews(reviews) {
   rvAllReviews = reviews;
 
-  const adminBtn = isAdmin() ? `<a href="#/add" class="admin-add-btn">${i18n("Добавить")}</a>` : "";
+  // Телефон (owner, ноябрь 2026, по макету): всё в одну строку – слева
+  // счётчик, справа лупа, сортировка, «Фильтры» и «+». Значки и счётчик
+  // в разметке всегда, на компьютере их прячет CSS («ОТЗЫВЫ НА ТЕЛЕФОНЕ»
+  // в index.html), там строка как раньше.
+  const adminBtn = isAdmin()
+    ? `<a href="#/add" class="admin-add-btn rv-add" aria-label="${esc(i18n("Добавить"))}"><span class="rv-add-text">${i18n("Добавить")}</span>${RV_PLUS_ICON}</a>`
+    : "";
   const dd = (key, label, popClass = "") =>
     `<div class="rv-dd" data-dd="${key}">
       <button type="button" class="rv-filter-btn rv-dd-btn" aria-haspopup="true" aria-expanded="false">${esc(label)}<span class="rv-dd-n"></span></button>
@@ -201,7 +207,11 @@ function renderReviews(reviews) {
   // так видно в боковой панели. «Добавить» – в конце строки фильтров.
   box.innerHTML = `
     <div class="rv-sticky">
+      <div class="rv-pop-back" aria-hidden="true"></div>
       <div class="rv-bar">
+        <span class="rv-count" id="rv-count"></span>
+        <button type="button" class="rv-ico-btn rv-search-btn" id="rv-search-btn" title="${esc(i18n("Поиск"))}" aria-label="${esc(i18n("Поиск"))}">${RV_SEARCH_ICON}</button>
+        <button type="button" class="rv-ico-btn rv-filters-btn" id="rv-filters-btn" title="${esc(i18n("Фильтры"))}" aria-label="${esc(i18n("Фильтры"))}" aria-haspopup="menu">${RV_FILTER_ICON}<span class="rv-filters-n" hidden></span></button>
         <div class="rv-search">
           <input
             type="text"
@@ -220,7 +230,7 @@ function renderReviews(reviews) {
         ${dd("sources", siteLabel("filters", "source", i18n("Ссылки")))}
         <span class="rv-bar-gap"></span>
         <div class="rv-dd" data-dd="sort">
-          <button type="button" class="rv-filter-btn rv-dd-btn" aria-haspopup="true" aria-expanded="false"><span id="rv-sort-label"></span></button>
+          <button type="button" class="rv-filter-btn rv-dd-btn" aria-haspopup="true" aria-expanded="false" title="${esc(i18n("Сортировка"))}"><span id="rv-sort-label"></span>${RV_SORT_ICON}</button>
           <div class="rv-pop rv-pop-right hidden"></div>
         </div>
         ${adminBtn}
@@ -262,7 +272,53 @@ function renderReviews(reviews) {
   // ниже закрывает по клику «снаружи»).
   box.querySelectorAll(".rv-pop").forEach((p) => p.addEventListener("click", (e) => e.stopPropagation()));
 
+  // Телефон: лупа раскрывает поле на месте счётчика; пустое поле без
+  // фокуса – снова лупа, с текстом – остаётся открытым (как в «Статусах»).
+  box.classList.toggle("rv-searching", !!searchInput.value);
+  document.getElementById("rv-search-btn")?.addEventListener("click", () => {
+    box.classList.add("rv-searching");
+    searchInput.focus();
+  });
+  searchInput.addEventListener("blur", () => {
+    if (!searchInput.value) box.classList.remove("rv-searching");
+  });
+  document.getElementById("rv-filters-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    rvFiltersSheet();
+  });
+
   applyRvFilters(reviews);
+}
+
+const rvSvg = (d) =>
+  `<svg class="rv-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const RV_SEARCH_ICON = rvSvg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>');
+const RV_SORT_ICON = rvSvg('<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>');
+const RV_PLUS_ICON = rvSvg('<path d="M12 5v14M5 12h14"/>');
+const RV_FILTER_ICON = rvSvg(
+  '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'
+);
+
+// Шторка «Фильтры» (телефон): строки Тип / Оценка / Теги / Ссылки с тем,
+// что выбрано; строка открывает обычный список фильтра – на телефоне он
+// тоже шторкой (CSS). Выбор – отложенно: клик по шторке ещё всплывает до
+// document, а там closeRvPops() сразу закрыл бы только что открытый список.
+function rvFiltersSheet() {
+  const kinds = [
+    ["types", siteLabel("filters", "type", i18n("Тип")), (v) => TYPE_LABELS[v] || v],
+    ["grades", siteLabel("filters", "grade", i18n("Оценка")), (v) => GRADES[v]?.name || v],
+    ["tags", siteLabel("filters", "tags", i18n("Теги")), (v) => tagLabel(v)],
+    ["sources", siteLabel("filters", "source", i18n("Ссылки")), (v) => SOURCE_LABELS[v] || v],
+  ];
+  const open = (dd) => () =>
+    setTimeout(() => document.querySelector(`#tab-reviews .rv-dd[data-dd="${dd}"] .rv-dd-btn`)?.click(), 0);
+  actionSheet(i18n("Фильтры"), [
+    ...kinds.map(([dd, label, name]) => {
+      const sel = rvState[dd] || [];
+      return { label, count: sel.length ? sel.map(name).join(", ") : i18n("все"), active: sel.length > 0, run: open(dd) };
+    }),
+    ...(rvFiltersActive() ? [{ label: i18n("Сбросить всё"), run: () => resetRvFilters() }] : []),
+  ]);
 }
 
 function closeRvPops() {
@@ -543,6 +599,18 @@ function applyRvFilters(reviews) {
         : "") +
       (active ? `<button type="button" class="rv-reset">${esc(i18n("Сбросить всё"))}</button>` : "") +
       `<span class="rv-result">${esc(countText)}</span>`;
+    sub.classList.toggle("rv-sub-has-chips", !!(rvState.types.length + rvState.grades.length + rvState.tags.length + rvState.sources.length));
+    // Телефон: тот же счётчик – в строке со значками, число на «Фильтрах».
+    const count = document.getElementById("rv-count");
+    if (count) count.textContent = countText;
+    const n = rvState.types.length + rvState.grades.length + rvState.tags.length + rvState.sources.length;
+    const fb = document.getElementById("rv-filters-btn");
+    if (fb) {
+      fb.classList.toggle("active", n > 0);
+      const badge = fb.querySelector(".rv-filters-n");
+      badge.hidden = !n;
+      badge.textContent = n ? String(n) : "";
+    }
     sub.onclick = (e) => {
       if (e.target.closest(".rv-reset")) return resetRvFilters();
       const c = e.target.closest(".rv-chip");

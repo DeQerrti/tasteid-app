@@ -201,8 +201,10 @@ async function mount(container, params) {
             <div class="cover-block hidden" id="cover-panel">
               <div class="cover-preview-col">
                 <img id="cover-img" class="cover-preview" onclick="openCoverGallery()" title="${i18n("Все обложки этого отзыва")}">
-                <button type="button" class="btn btn-ghost cover-focus-btn hidden" id="cover-focus-btn" onclick="openFocusPickerForCover()">${i18n("Область картинки")}</button>
-                <button type="button" class="btn btn-ghost ed-gallery-btn" onclick="openCoverGallery()">${i18n("Все обложки этого отзыва")}</button>
+                <div class="cover-links">
+                  <button type="button" class="btn btn-ghost cover-focus-btn hidden" id="cover-focus-btn" onclick="openFocusPickerForCover()">${i18n("Область картинки")}</button>
+                  <button type="button" class="btn btn-ghost ed-gallery-btn" onclick="openCoverGallery()">${i18n("Все обложки этого отзыва")}</button>
+                </div>
               </div>
               <input type="hidden" id="f-cover-focus" value="50% 50%">
               <div class="cover-controls">
@@ -596,6 +598,8 @@ async function mount(container, params) {
 }
 
 function unmount() {
+  edCatOpen.clear();
+  edCatShut.clear();
   // Раньше здесь звали discardScratchCoverBackup() – резервную копию
   // обложки, сделанную во время редактирования, но так и не
   // сохранённую вместе с отзывом (закрыли редактор без сохранения),
@@ -763,10 +767,16 @@ function renderEdPreview() {
 // Обе кнопки сохранения (в шапке и внизу формы) – одна подпись и одно
 // состояние: «Сохранить отзыв» / «Сохранить изменения» / «Сохраняем…».
 function setSaveButtonsLabel(text, disabled = false) {
+  // На телефоне в шапке – просто «Сохранить»: «Сохранить изменения» не
+  // помещалось рядом с «← TasteID» (нижней кнопки там нет, см. index.html).
+  const narrow = window.matchMedia?.("(max-width: 700px)").matches;
   for (const id of ["btn-save", "btn-save-bottom"]) {
     const btn = document.getElementById(id);
     if (!btn) continue;
-    btn.textContent = text;
+    btn.textContent =
+      narrow && id === "btn-save" && (text === i18n("Сохранить отзыв") || text === i18n("Сохранить изменения"))
+        ? i18n("Сохранить")
+        : text;
     btn.disabled = disabled;
   }
 }
@@ -947,15 +957,47 @@ function renderTagsGrid() {
     tagsGrid.innerHTML = "";
     return;
   }
+  // Телефон (owner, ноябрь 2026): категория свёрнута в строку с числом,
+  // если в ней ничего не выбрано, – вместо стены из сотни тегов. Свёрнуто
+  // только CSS-ом на узком экране (.ed-cat-shut), на компьютере всё
+  // раскрыто, как было. При поиске раскрыто всё найденное. Что человек
+  // открыл или закрыл сам, помнится до ухода из редактора.
   tagsGrid.innerHTML = [...byCat.entries()]
-    .map(
-      ([cat, tags]) => `<div class="ed-cat">
-        <div class="ed-cat-name">${esc(CAT_LABELS[cat] || cat || i18n("Без категории"))}</div>
+    .map(([cat, tags]) => {
+      const picked = tags.filter((tag) => selectedTags.has(tag)).length;
+      const shut = !q && (edCatShut.has(cat) || (!picked && !edCatOpen.has(cat)));
+      const n = picked ? i18n("выбрано: {n}", { n: picked }) : String(tags.length);
+      return `<div class="ed-cat${shut ? " ed-cat-shut" : ""}" data-cat="${esc(cat)}">
+        <div class="ed-cat-name" role="button" tabindex="0" aria-expanded="${!shut}">${esc(CAT_LABELS[cat] || cat || i18n("Без категории"))}<span class="ed-cat-n">${esc(n)}</span></div>
         <div class="ed-cat-tags">${tags.map((tag) => tagToggleHtml(tag, selectedTags.has(tag))).join("")}</div>
-      </div>`
-    )
+      </div>`;
+    })
     .join("");
+  if (!tagsGrid.dataset.catBound) {
+    tagsGrid.dataset.catBound = "1";
+    const toggleCat = (name) => {
+      const box = name.closest(".ed-cat");
+      const cat = box.dataset.cat;
+      const shut = box.classList.toggle("ed-cat-shut");
+      name.setAttribute("aria-expanded", String(!shut));
+      (shut ? edCatShut : edCatOpen).add(cat);
+      (shut ? edCatOpen : edCatShut).delete(cat);
+    };
+    tagsGrid.addEventListener("click", (e) => {
+      const name = e.target.closest(".ed-cat-name");
+      if (name) toggleCat(name);
+    });
+    tagsGrid.addEventListener("keydown", (e) => {
+      const name = e.target.closest(".ed-cat-name");
+      if (!name || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      toggleCat(name);
+    });
+  }
 }
+// Категории, которые человек сам раскрыл / свернул (см. renderTagsGrid).
+const edCatOpen = new Set();
+const edCatShut = new Set();
 
 function normTagQuery(value) {
   return String(value || "")
