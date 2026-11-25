@@ -60,6 +60,8 @@ const sharedBrowserGlobals = [
   "withTimeout",
   "hscrollRow",
   "hscrollAll",
+  "actionSheet",
+  "closeActionSheet",
   "createStatusFromImport",
   "csvToObjects",
   "currentSiteSettings",

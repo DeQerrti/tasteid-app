@@ -61,9 +61,11 @@
     section = asked && known.includes(asked) ? asked : "favTitles";
 
     root.innerHTML = `
-      <header class="app-topbar">
+      <header class="app-topbar ed-bar">
         <a href="#" class="logo topbar-back" id="ro-back"><span class="arrow">&larr;</span>TasteID</a>
-        <h1 class="topbar-title">${i18n("Редактор порядка")}</h1>
+        <div class="ed-bar-title"><h1 class="topbar-title">${i18n("Редактор порядка")}</h1></div>
+        <span class="save-status ro-head-status" id="ro-save-status" role="status"></span>
+        <button type="button" class="btn ed-save" id="ro-btn-save" hidden>${i18n("Сохранить")}</button>
       </header>
       <main class="ro-view">
         <div id="ro-content">
@@ -71,6 +73,11 @@
         </div>
       </main>`;
 
+    // «Сохранить» – в шапке, как в редакторе записи (owner, ноябрь 2026):
+    // раньше кнопка стояла только под последней карточкой, и на телефоне
+    // после перетаскивания приходилось листать весь список вниз. Видна,
+    // когда есть что сохранять (см. render).
+    on(document.getElementById("ro-btn-save"), "click", save);
     on(document.getElementById("ro-back"), "click", (e) => {
       e.preventDefault();
       leaveRO();
@@ -202,13 +209,10 @@
     content.innerHTML = `
       <h2 class="section-title">${esc(sectionTitle(section))}</h2>
       <p class="hint">${i18n("Перетащите карточки, чтобы изменить порядок. Нажмите «Сохранить», когда готово.")}</p>
-      <div id="ro-grids">${grids}</div>
-      <div class="save-bar">
-        <button class="btn-save" id="ro-btn-save">${i18n("Сохранить порядок")}</button>
-        <span class="save-status" id="ro-save-status"></span>
-      </div>`;
+      <div id="ro-grids">${grids}</div>`;
 
-    on(document.getElementById("ro-btn-save"), "click", save);
+    const saveBtn = document.getElementById("ro-btn-save");
+    if (saveBtn) saveBtn.hidden = false;
     document.querySelectorAll("#ro-grids .dnd-grid").forEach(bindDnd);
   }
 
@@ -321,7 +325,7 @@
     }
 
     btn.disabled = false;
-    btn.textContent = i18n("Сохранить порядок");
+    btn.textContent = i18n("Сохранить");
   }
 
   registerRoute("#/reviews-order", { mount, unmount });

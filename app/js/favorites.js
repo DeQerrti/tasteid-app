@@ -140,9 +140,9 @@ function renderFavorites({ titles, characters, persons, favData }) {
   // её же комментарий у favModeBodies ниже): один источник правды на
   // «как показать раздел», а не два (тут и там).
   box.innerHTML = `
-    <div class="fav-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1.8rem">
-      <div class="tl-mode-toggle" style="margin-bottom:0"><div class="tl-mode-scroll hscroll">${toggleBtns}</div></div>
-      <div id="fav-action-link" style="display:flex;gap:.5rem;align-items:center;flex-shrink:0">${cameraBtn}</div>
+    <div class="fav-head">
+      <div class="tl-mode-toggle"><div class="tl-mode-scroll hscroll">${toggleBtns}</div></div>
+      <div id="fav-action-link">${cameraBtn}</div>
     </div>
     <div id="fav-mode-body"></div>`;
   bindFavModeToggle();
@@ -172,7 +172,42 @@ function updateFavActionLink() {
         ? ""
         : `<a href="#/favorites-edit?type=${encodeURIComponent(favType)}" class="admin-add-btn">${i18n("Добавить")}</a>`) +
       `<a href="#/favorites-order?section=${encodeURIComponent(mode)}" class="admin-add-btn">${i18n("Порядок")}</a>`;
-  el.innerHTML = cameraButton("openFavExportModal()", "fav-camera-btn") + actionLink;
+  // На телефоне три кнопки рядом с разделами не помещались (разделов
+  // бывает и десять – owner заводит свои): там вместо них «+» и «⋯»,
+  // остальное – в шторке снизу (favMoreSheet). На компьютере значки
+  // спрятаны CSS-ом, видны кнопки как раньше.
+  const phoneIcons =
+    (admin && mode !== "favTitles"
+      ? `<a href="#/favorites-edit?type=${encodeURIComponent(favType)}" class="fav-ico" title="${esc(i18n("Добавить"))}" aria-label="${esc(i18n("Добавить"))}">${FAV_PLUS_ICON}</a>`
+      : "") +
+    `<button type="button" class="fav-ico" onclick="favMoreSheet()" title="${esc(i18n("Ещё"))}" aria-label="${esc(i18n("Ещё"))}" aria-haspopup="menu">${FAV_MORE_ICON}</button>`;
+  el.innerHTML = cameraButton("openFavExportModal()", "fav-camera-btn") + actionLink + phoneIcons;
+}
+
+const favSvg = (d) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const FAV_PLUS_ICON = favSvg('<path d="M12 5v14M5 12h14"/>');
+const FAV_MORE_ICON = favSvg(
+  '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>'
+);
+const FAV_ORDER_ICON = favSvg('<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>');
+
+// Меню «⋯» на телефоне: то же, что кнопки справа на компьютере.
+function favMoreSheet() {
+  const mode = favState.mode;
+  const admin = isAdmin();
+  const favType = mode === "favCharacters" ? "character" : mode === "favPersons" ? "person" : mode;
+  const title = document.querySelector("#tab-favorites .tl-mode-btn.active")?.firstChild?.textContent.trim() || "";
+  const go = (hash) => () => (location.hash = hash);
+  actionSheet(title, [
+    ...(admin && mode !== "favTitles"
+      ? [{ icon: FAV_PLUS_ICON, label: i18n("Добавить"), run: go(`#/favorites-edit?type=${encodeURIComponent(favType)}`) }]
+      : []),
+    ...(admin
+      ? [{ icon: FAV_ORDER_ICON, label: i18n("Изменить порядок"), run: go(`#/favorites-order?section=${encodeURIComponent(mode)}`) }]
+      : []),
+    { icon: cameraIcon(), label: i18n("Сохранить как картинку"), run: () => openFavExportModal() },
+  ]);
 }
 
 // Кэш уже отрисованных разделов – та же причина, что решили для

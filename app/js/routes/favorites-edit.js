@@ -63,6 +63,13 @@ async function mount(container, params) {
   // с перетаскиванием здесь больше нет: порядок раздела меняется на
   // отдельной странице сеткой (#/favorites-order), а сама запись
   // удаляется кнопкой внизу формы (fe-danger).
+  //
+  // Телефон (owner, ноябрь 2026): «с компьютера» там неправда, а длинная
+  // подсказка в поиске обрезалась на полуслове – что ищется, объясняет
+  // строка под полем. Раскладка для телефона – в index.html («ФОРМА
+  // ЗАПИСИ НА ТЕЛЕФОНЕ»).
+  const feOnPhone = !!window.Capacitor?.isNativePlatform?.();
+  const feNarrow = window.matchMedia?.("(max-width: 700px)").matches;
   container.innerHTML = `
     <header class="app-topbar ed-bar">
       <a href="#" class="logo topbar-back" id="fe-back"><span class="arrow">&larr;</span>TasteID</a>
@@ -97,7 +104,7 @@ async function mount(container, params) {
               <button type="button" class="btn btn-ghost" onclick="openFavImageGallery()">${i18n("Все картинки")}</button>
             </div>
             <div class="field">
-              <label>${i18n("Или загрузить с компьютера")}</label>
+              <label>${feOnPhone ? i18n("Или загрузить с телефона") : i18n("Или загрузить с компьютера")}</label>
               <label class="btn btn-ghost file-btn">
                 <input type="file" id="f-image-upload" accept="image/*" onchange="updateFileBtnName(this); uploadFavImage()">
                 <span>${i18n("Выбрать файл")}</span>
@@ -115,7 +122,7 @@ async function mount(container, params) {
                искать там нечего, блок прячет onTypeChange(). -->
           <div class="fe-lookup" id="fe-lookup">
             <div class="fe-lookup-row">
-              <input type="search" id="fe-lookup-q" data-no-dirty onkeydown="if (event.key === 'Enter') { event.preventDefault(); feLookupSearch(); }" placeholder="${i18n("Найти на AniList – имя персонажа или человека")}" aria-label="${i18n("Найти на AniList")}">
+              <input type="search" id="fe-lookup-q" data-no-dirty onkeydown="if (event.key === 'Enter') { event.preventDefault(); feLookupSearch(); }" placeholder="${feNarrow ? i18n("Найти на AniList") : i18n("Найти на AniList – имя персонажа или человека")}" aria-label="${i18n("Найти на AniList")}">
               <button type="button" class="btn btn-ghost" id="fe-lookup-btn" onclick="feLookupSearch()">${i18n("Найти")}</button>
             </div>
             <div class="fe-lookup-hint" id="fe-lookup-hint">${i18n("Заполнит имя, картинку и «откуда» или роль, а ещё привяжет ваши отзывы на тайтлы и уже добавленных в «Любимое» людей и персонажей.")}</div>

@@ -1458,3 +1458,50 @@ function hscrollRow(el) {
 function hscrollAll(root) {
   root?.querySelectorAll(".hscroll").forEach(hscrollRow);
 }
+
+// ── Шторка снизу (телефон) ───────────────────────
+// Список действий, выезжающий от нижнего края, как меню «⋯» в
+// приложениях телефона. Первой появилась в «Любимом» (owner, ноябрь
+// 2026): там у раздела три действия – «Добавить», «Порядок», «Сохранить
+// как картинку», – и тремя кнопками рядом с разделами им не хватало
+// места. items: [{ label, icon?, count?, active?, run }]. Закрывается
+// касанием мимо, Esc и кнопкой «Назад» браузера не трогается – шторка
+// живёт до первого выбора.
+function actionSheet(title, items) {
+  closeActionSheet();
+  const back = document.createElement("div");
+  back.className = "action-sheet-back";
+  const box = document.createElement("div");
+  box.className = "action-sheet";
+  box.setAttribute("role", "menu");
+  if (title) box.setAttribute("aria-label", title);
+  box.innerHTML =
+    (title ? `<div class="action-sheet-title">${esc(title)}</div>` : "") +
+    items
+      .map(
+        (it, i) =>
+          `<button type="button" role="menuitem" class="action-sheet-item${it.active ? " active" : ""}" data-i="${i}">${it.icon || ""}<span class="action-sheet-label">${esc(it.label)}</span>${it.count != null ? `<span class="action-sheet-count">${esc(String(it.count))}</span>` : ""}</button>`
+      )
+      .join("");
+  back.addEventListener("click", closeActionSheet);
+  box.addEventListener("click", (e) => {
+    const btn = e.target.closest(".action-sheet-item");
+    if (!btn) return;
+    closeActionSheet();
+    items[btn.dataset.i]?.run?.();
+  });
+  document.addEventListener("keydown", actionSheetOnKey, true);
+  document.body.append(back, box);
+  box.querySelector(".action-sheet-item")?.focus({ preventScroll: true });
+}
+
+function actionSheetOnKey(e) {
+  if (e.key !== "Escape") return;
+  e.stopPropagation();
+  closeActionSheet();
+}
+
+function closeActionSheet() {
+  document.removeEventListener("keydown", actionSheetOnKey, true);
+  document.querySelectorAll(".action-sheet, .action-sheet-back").forEach((el) => el.remove());
+}

@@ -563,6 +563,9 @@ i18nRegister({
   "Или загрузить файл – сожмётся и сконвертируется в WebP автоматически.":
     "Or upload a file – it will be compressed and converted to WebP automatically.",
   "Или загрузить с компьютера": "Or upload from your computer",
+  "Или загрузить с телефона": "Or upload from your phone",
+  "Ещё": "More",
+  "Изменить порядок": "Reorder",
   "Или загрузить файл": "Or upload a file",
   "Оригинальное качество (без сжатия)": "Original quality (no compression)",
   Импорт: "Import",
