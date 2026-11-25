@@ -59,7 +59,7 @@ function fillForm(r) {
   // компьютера или сохранённых как резервная копия, – превью в этом
   // случае берём из неё (см. тот же разбор у previewAvatar() в
   // favorites-edit.js).
-  previewCover(r.cover || r.cover_backup || "");
+  previewCover(r.cover_backup || r.cover || "");
 
   selectedGrade = r.grade !== undefined && r.grade !== null ? r.grade : null;
   renderGradeInput();

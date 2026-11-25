@@ -119,7 +119,7 @@ const recapDaysWord = (n) => plural(n, [i18n("день"), i18n("дня"), i18n("
 const recapTitlesWord = (n) => plural(n, [i18n("тайтл"), i18n("тайтла"), i18n("тайтлов")]);
 
 function recapImg(r) {
-  return `<img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>`;
+  return `<img ${coverImgAttrs(r.cover, r.cover_backup)} alt="" style="object-position:${esc(r.cover_focus || "50% 50%")}">`;
 }
 
 function recapGradeLine(g) {

@@ -12,9 +12,11 @@ function normTitle(s) {
 // Обработка не открывшихся обложек живёт в js/utils.js: там один
 // делегированный слушатель на весь документ, а шаблоны просто ставят
 // data-fallback / data-placeholder через imgFallbackAttrs().
-// Здесь – только удобная обёртка под вертикальный постер.
-function coverFallbackAttrs(cover, coverBackup) {
-  return imgFallbackAttrs(cover, coverBackup, PH_TALL);
+// Здесь – только удобная обёртка под вертикальный постер. Отдаёт и src
+// (сначала копия с диска, потом ссылка – см. imgAttrs в utils.js), так что
+// в шаблоне отдельный src="…" рядом не нужен.
+function coverImgAttrs(cover, coverBackup) {
+  return imgAttrs(cover, coverBackup, PH_TALL);
 }
 
 // Оценка карточки – из собственного r.grade самого отзыва. Раньше
@@ -150,7 +152,7 @@ function manualCard(r, index) {
     <div class="card" style="animation-delay:0ms${gradeColorStyle(info)}">
       <div class="card-poster">
         ${typeTag}
-        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+        <img ${coverImgAttrs(r.cover, r.cover_backup)} alt="" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}">
       </div>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>

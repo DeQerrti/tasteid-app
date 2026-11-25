@@ -288,15 +288,13 @@ function statsData(reviews, completed, year) {
 }
 
 // src и атрибуты подстраховки – как у карточек во всём приложении
-// (coverFallbackAttrs/imgFallbackAttrs): битая внешняя ссылка на живой
+// (coverImgAttrs/imgAttrs): копия с диска первой, внешняя ссылка – запасная; на живой
 // странице сама меняется на резервную копию, а снимок (statsExport →
 // proxyImagesToDataUrls) берёт копию с диска сразу. Без них снимок ходил
 // за внешними ссылками, часть сайтов (TMDB, Hardcover) не отдаёт картинки
 // чужой странице (CORS) – и на картинке статистики были пустые места.
-const statsCoverAttrs = (r) =>
-  `src="${esc(r.cover || r.cover_backup || PH_TALL)}" ${coverFallbackAttrs(r.cover, r.cover_backup)}`;
-const statsImageAttrs = (e) =>
-  `src="${esc(e.image || e.image_backup || PH_SQ)}" ${imgFallbackAttrs(e.image, e.image_backup, PH_SQ)}`;
+const statsCoverAttrs = (r) => coverImgAttrs(r.cover, r.cover_backup);
+const statsImageAttrs = (e) => imgAttrs(e.image, e.image_backup, PH_SQ);
 function statsGradeHtml(g, extra = "") {
   return `<span class="sx-grade" style="--gc:${esc(g.color)}">${esc(g.name)}${extra}</span>`;
 }

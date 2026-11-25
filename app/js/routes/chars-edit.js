@@ -471,7 +471,7 @@ function renderSidebar() {
     .map(
       (t) => `
     <div class="title-item${t.id === activeId ? " active" : ""}" draggable="true" data-title-id="${esc(t.id)}" onclick="selectTitle(${jsArg(t.id)})">
-      <img class="title-item-cover" src="${esc(t.cover || t.cover_backup || "")}" alt="" data-hide-on-error>
+      <img class="title-item-cover" ${imgAttrs(t.cover, t.cover_backup, "")} alt="" data-hide-on-error>
       <div class="title-item-name">${esc(t.title)}</div>
       <button class="title-item-edit" onclick="openEditTitleForm(event,${jsArg(t.id)})" title="${i18n("Редактировать")}">✎</button>
       <button class="title-item-del" onclick="deleteTitle(event,${jsArg(t.id)})" title="${i18n("Удалить")}">✕</button>
@@ -988,7 +988,7 @@ function renderTierRow(title, list, tier, ti) {
       (ch, ci) => `
     <div class="char-card" draggable="true"
       data-title="${esc(title.id)}" data-list="${esc(list.id)}" data-tier="${ti}" data-char="${ci}">
-      <img src="${esc(ch.img || ch.img_backup || "")}" alt="${esc(ch.name)}" style="height:${ceCharHeight}px" ${imgFallbackAttrs(ch.img, ch.img_backup, CHAR_PLACEHOLDER)}>
+      <img ${imgAttrs(ch.img, ch.img_backup, CHAR_PLACEHOLDER)} alt="${esc(ch.name)}" style="height:${ceCharHeight}px">
       <div class="char-card-name">${esc(ch.name)}</div>
       <button class="char-card-del" onclick="deleteChar(${jsArg(title.id)},${jsArg(list.id)},${ti},${ci})">✕</button>
     </div>

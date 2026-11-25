@@ -130,12 +130,11 @@
   function itemHtml(r, i) {
     if (section === "favTitles") {
       const PH = imagePlaceholder(120, 180);
-      const cover = r.cover || r.cover_backup || PH;
       const label = TYPE_LABELS[r.type] || r.type || "–";
       return `<div class="dnd-item" draggable="true" data-id="${r.id}">
         <div class="dnd-item-num">${i + 1}</div>
-        <img src="${esc(cover)}" alt="${esc(r.title)}"
-          loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${imgFallbackAttrs(r.cover, r.cover_backup, PH)}>
+        <img ${imgAttrs(r.cover, r.cover_backup, PH)} alt="${esc(r.title)}"
+          loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}">
         <div class="dnd-item-body">
           <div class="dnd-item-title">${esc(r.title)}</div>
           <div class="dnd-item-type">${esc(label)}</div>
@@ -146,8 +145,8 @@
     const sub = r.type === "person" ? SUBTYPE_LABELS[r.subtype] || "" : r.from || "";
     return `<div class="dnd-item" draggable="true" data-id="${r.id}">
       <div class="dnd-item-num">${i + 1}</div>
-      <img src="${esc(r.image || r.image_backup || PH)}" alt="${esc(r.name)}"
-        loading="lazy" style="object-position:${esc(r.image_focus || "50% 50%")}" ${imgFallbackAttrs(r.image, r.image_backup, PH)}>
+      <img ${imgAttrs(r.image, r.image_backup, PH)} alt="${esc(r.name)}"
+        loading="lazy" style="object-position:${esc(r.image_focus || "50% 50%")}">
       <div class="dnd-item-body">
         <div class="dnd-item-title">${esc(r.name)}</div>
         ${sub ? `<div class="dnd-item-type">${esc(sub)}</div>` : ""}

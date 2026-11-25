@@ -938,7 +938,7 @@ function renderLinkedTitles() {
         .map(
           (r) => `
     <div class="linked-title-chip" draggable="true" data-id="${r.id}" title="${i18n("Перетащить")}">
-      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" loading="lazy">
+      <img ${coverImgAttrs(r.cover, r.cover_backup)} alt="" loading="lazy">
       <span>${esc(r.title)}</span>
       <button type="button" class="linked-title-del" title="${i18n("Удалить")}" onclick="removeLinkedTitle(${r.id})">✕</button>
     </div>`
@@ -1050,7 +1050,7 @@ function renderTitleLinkResults() {
         .map(
           (r) => `
     <div class="linked-title-result" onclick="addLinkedTitle(${r.id})">
-      <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" loading="lazy">
+      <img ${coverImgAttrs(r.cover, r.cover_backup)} alt="" loading="lazy">
       <span>${esc(r.title)}</span>
     </div>`
         )
@@ -1113,7 +1113,7 @@ function renderLinkedFavoritesGroup(groupId) {
         .map(
           (e) => `
     <div class="linked-title-chip linked-fav-chip" draggable="true" data-id="${e.id}" data-group="${esc(groupId)}" title="${i18n("Перетащить")}">
-      <img src="${esc(e.image || e.image_backup || PH_SQ)}" alt="" loading="lazy">
+      <img ${imgAttrs(e.image, e.image_backup, PH_SQ)} alt="" loading="lazy">
       <span>${esc(e.name)}</span>
       <button type="button" class="linked-title-del" title="${i18n("Удалить")}" onclick="removeLinkedFavorite(${e.id})">✕</button>
     </div>`
@@ -1223,7 +1223,7 @@ function renderFavoriteLinkResults() {
         .map(
           (e) => `
     <div class="linked-title-result linked-fav-result" onclick="addLinkedFavorite(${e.id})">
-      <img src="${esc(e.image || e.image_backup || PH_SQ)}" alt="" loading="lazy">
+      <img ${imgAttrs(e.image, e.image_backup, PH_SQ)} alt="" loading="lazy">
       <span>${esc(e.name)}</span>
     </div>`
         )

@@ -784,7 +784,7 @@ function reviewModalBodyHtml(r) {
     </div>
     <div id="review-modal-capture">
       <div class="review-modal-header">
-        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}"${coverClickable} style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+        <img ${coverImgAttrs(r.cover, r.cover_backup)} alt="${esc(r.title)}"${coverClickable} style="object-position:${esc(r.cover_focus || "50% 50%")}">
         <div class="review-modal-main">
           <div class="review-modal-title" id="review-modal-title">${esc(r.title)}</div>
           ${metaLine ? `<div class="review-meta-row"><span class="review-format">${metaLine}</span></div>` : ""}
@@ -1268,7 +1268,7 @@ function reviewCard(r, i) {
         ${typeLabel ? `<span class="type-tag tag-manual">${esc(typeLabel)}</span>` : ""}
         ${rewatchHtml}
         ${dateBadgeHtml}
-        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+        <img ${coverImgAttrs(r.cover, r.cover_backup)} alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}">
       </div>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>

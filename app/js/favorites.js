@@ -336,7 +336,7 @@ function favTitleCard(r, index, forExport) {
     <div class="card" style="animation-delay:0ms${gradeColorStyle(info)}">
       <div class="card-poster">
         <span class="type-tag ${tagClass}">${esc(tagLabel)}</span>
-        <img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+        <img ${coverImgAttrs(r.cover, r.cover_backup)} alt="${esc(r.title)}" loading="lazy" style="object-position:${esc(r.cover_focus || "50% 50%")}">
       </div>
       <div class="card-body">
         <div class="card-title">${esc(r.title)}</div>
@@ -354,8 +354,6 @@ function favTitleCard(r, index, forExport) {
 // Карточка персонажа или персоны (из favorites.json).
 // Лейблы ролей – из общего SUBTYPE_LABELS (js/config.js).
 function favPersonCard(r, index) {
-  const img = r.image || r.image_backup || PH_SQ;
-
   const subLine = r.type === "person"
     ? (SUBTYPE_LABELS[r.subtype] || i18n("Персона"))
     : (r.from || "");
@@ -370,7 +368,7 @@ function favPersonCard(r, index) {
   // картинку». Контур самой картинки (outline) в снимок не попадал.
   return `<div class="card card-char" data-fav-id="${r.id}"
       style="animation-delay:${Math.min(index * 25, 500)}ms">
-    <div class="card-poster"><img src="${esc(img)}" alt="${esc(r.name)}" loading="lazy" style="object-position:${esc(r.image_focus || "50% 50%")}" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}></div>
+    <div class="card-poster"><img ${imgAttrs(r.image, r.image_backup, PH_SQ)} alt="${esc(r.name)}" loading="lazy" style="object-position:${esc(r.image_focus || "50% 50%")}"></div>
     <div class="card-body">
       <div class="card-title">${esc(r.name)}</div>
       ${sub}
@@ -551,7 +549,7 @@ function favPersonModalBodyHtml(r) {
     </div>
     <div id="fav-modal-capture">
       <div class="review-modal-header">
-        <img src="${esc(r.image || r.image_backup || PH_SQ)}" alt="${esc(r.name)}"${imgClickable} style="object-position:${esc(r.image_focus || "50% 50%")}" ${imgFallbackAttrs(r.image, r.image_backup, PH_SQ)}>
+        <img ${imgAttrs(r.image, r.image_backup, PH_SQ)} alt="${esc(r.name)}"${imgClickable} style="object-position:${esc(r.image_focus || "50% 50%")}">
         <div>
           <div class="review-modal-title" id="fav-modal-title">${esc(r.name)}</div>
           ${subLine ? `<div class="review-meta-row"><span class="review-format">${esc(subLine)}</span></div>` : ""}

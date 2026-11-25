@@ -405,7 +405,6 @@ function tlTitlesHtml() {
       for (let i = 0; i < items.length; i++) {
         const { review: r, poster, posterBackup } = items[i];
         const placeholder = imagePlaceholder(72, 108, r.title.slice(0, 2));
-        const src = poster || posterBackup || placeholder;
         html += `<div class="tl-poster"
             data-tl-idx="${itemIdx.get(items[i])}"
             data-tl-title="${esc(r.title)}"
@@ -415,8 +414,7 @@ function tlTitlesHtml() {
             data-tl-year="${esc(String(r.year || ""))}"
             data-tl-type="${esc(tlTypeLabel(tlInferType(r)))}"
             style="animation-delay:${Math.min(i * 18, 400)}ms">
-          <img src="${esc(src)}" alt="${esc(r.title)}" loading="lazy"
-            ${imgFallbackAttrs(poster, posterBackup, placeholder)}>
+          <img ${imgAttrs(poster, posterBackup, placeholder)} alt="${esc(r.title)}" loading="lazy">
         </div>`;
       }
     }
@@ -545,8 +543,7 @@ function tlCharsHtml(collectionId) {
             data-tl-year=""
             data-tl-type="${esc(game.title)}"
             style="height:${tlCharHeight}px;animation-delay:${Math.min(i * 18, 400)}ms">
-          <img src="${esc(ch.img || ch.img_backup || "")}" alt="${esc(ch.name)}" loading="lazy"
-            ${imgFallbackAttrs(ch.img, ch.img_backup, imagePlaceholder(100, 150))}>
+          <img ${imgAttrs(ch.img, ch.img_backup, imagePlaceholder(100, 150))} alt="${esc(ch.name)}" loading="lazy">
         </div>`;
       }
     }

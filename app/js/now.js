@@ -173,7 +173,7 @@ let nowPicked = null;
 
 function nowPickHtml(r) {
   const meta = [TYPE_LABELS[r.type] || r.type, r.year].filter(Boolean).join(" · ");
-  return `<img src="${esc(r.cover || r.cover_backup || PH_TALL)}" alt="" style="object-position:${esc(r.cover_focus || "50% 50%")}" ${coverFallbackAttrs(r.cover, r.cover_backup)}>
+  return `<img ${coverImgAttrs(r.cover, r.cover_backup)} alt="" style="object-position:${esc(r.cover_focus || "50% 50%")}">
     <div class="now-pick-main">
       <div class="now-pick-kicker">${esc(i18n("Может, это?"))}</div>
       <div class="now-pick-title">${esc(r.title)}</div>
