@@ -137,6 +137,13 @@ function parseLocalDate(str) {
 // раньше и о periods не знают. У незавершённой записи у последнего
 // отрезка конца нет – он идёт сейчас.
 
+// Текст, по которому ищут запись («Отзывы», «Статусы»): название и
+// оригинальные названия из базы тайтлов (alt_titles, см. js/alt-titles.js) –
+// «Frieren» находит «Фрирен».
+function reviewSearchText(r) {
+  return [r?.title, ...(r?.alt_titles?.names || [])].filter(Boolean).join("\n");
+}
+
 // Дней в отрезке, оба края включительно: 9→10 ноября – 2 дня.
 function datesSpanDays(a, b) {
   return Math.round((parseLocalDate(b) - parseLocalDate(a)) / 86400000) + 1;

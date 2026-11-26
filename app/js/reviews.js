@@ -532,7 +532,8 @@ function rvMatches(r) {
     if (!ok) return false;
   }
   if (rvState.search) {
-    const hay = [r.title, r.review_full, r.preview, ...(r.tags || [])].filter(Boolean).join("\n").toLowerCase();
+    // reviewSearchText – название и оригинальные (alt_titles, js/alt-titles.js).
+    const hay = [reviewSearchText(r), r.review_full, r.preview, ...(r.tags || [])].filter(Boolean).join("\n").toLowerCase();
     if (!hay.includes(rvState.search)) return false;
   }
   return true;

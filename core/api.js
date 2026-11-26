@@ -179,7 +179,7 @@ async function saveReview({ vault, body }) {
     // счётчика серий (progress), ни порядка в «Любимом» (fav_order), ни
     // старого поля favorites; старая версия приложения на телефоне не знает
     // полей новой. Стереть поле можно явно – прислать его со значением null.
-    const merged = { ...list[idx], ...review };
+    const merged = closeLastPeriod({ ...list[idx], ...review });
     if (list[idx].id !== undefined) merged.id = list[idx].id;
     // Даты в записи – с точностью до дня, и у записей одного дня порядок
     // в «Отзывах» – это порядок в файле (sortReviews ниже сортирует
@@ -202,11 +202,28 @@ async function saveReview({ vault, body }) {
     review.id = merged.id;
   } else {
     review.id = newRecordId(list);
-    list.unshift(review);
+    list.unshift(closeLastPeriod(review));
   }
 
   await vault.writeJson("reviews.json", sortReviews(list));
   return { ok: true, id: review.id };
+}
+
+// Отрезки дат (periods, см. reviewPeriods в app/js/utils.js): у
+// незавершённой записи последний отрезок открыт – конца у него нет.
+// Запись становится «завершено» не только в редакторе (он закрывает
+// отрезок сам), но и кнопкой «Отметить завершённым» в счётчике серий
+// (app/js/progress.js), и старой версией приложения на телефоне – они
+// про отрезки не знают и присылают только date_end. Без этого отрезок
+// оставался открытым, и окно отзыва снова считало дни по календарю, с
+// перерывами. Конец ставится, только если он не раньше начала отрезка.
+function closeLastPeriod(r) {
+  const p = Array.isArray(r.periods) ? r.periods : null;
+  const last = p?.[p.length - 1];
+  if (r.status === "completed" && last && !last.end && r.date_end && r.date_end >= last.start) {
+    r.periods = [...p.slice(0, -1), { ...last, end: r.date_end }];
+  }
+  return r;
 }
 
 async function deleteReview({ vault, body }) {
@@ -388,6 +405,39 @@ async function setCoverBackups({ vault, body }) {
     const it = byId.get(String(r.id));
     if (!it || r.cover !== it.cover || r.cover_backup) continue;
     r.cover_backup = it.cover_backup;
+    updated++;
+  }
+  if (updated) await vault.writeJson("reviews.json", list);
+  return { ok: true, updated };
+}
+
+// Оригинальные названия для поиска (app/js/alt-titles.js; owner, ноябрь
+// 2026: «Frieren» не находило «Фрирен»). Пачкой и одной записью файла, а
+// не save-review на каждый тайтл: сотни перезаписей съели бы историю
+// версий (как и set-cover-backups выше). alt_titles = { src, names }:
+// src – откуда взято (номер в базе или «название|год» для поиска TMDB),
+// по нему страница видит, что запись не поменялась и спрашивать заново
+// не нужно. Запись, которую успели переименовать, пока шёл запрос, не
+// трогаем – названия могли прийти от другого тайтла.
+async function setAltTitles({ vault, body }) {
+  const items = Array.isArray(body?.items) ? body.items : [];
+  const byId = new Map();
+  for (const it of items) {
+    if (!it || it.id === undefined || typeof it.src !== "string" || typeof it.title !== "string")
+      continue;
+    const names = (Array.isArray(it.names) ? it.names : [])
+      .filter((n) => typeof n === "string" && n.trim())
+      .map((n) => n.trim().slice(0, 300))
+      .slice(0, 20);
+    byId.set(String(it.id), { src: it.src.slice(0, 300), names, title: it.title });
+  }
+  if (!byId.size) return { ok: true, updated: 0 };
+  const list = await vault.readJson("reviews.json", []);
+  let updated = 0;
+  for (const r of list) {
+    const it = byId.get(String(r.id));
+    if (!it || r.title !== it.title) continue;
+    r.alt_titles = { src: it.src, names: it.names };
     updated++;
   }
   if (updated) await vault.writeJson("reviews.json", list);
@@ -1733,6 +1783,7 @@ export const ROUTES = {
   "POST /api/delete-review": deleteReview,
   "POST /api/import-reviews": importReviews,
   "POST /api/set-cover-backups": setCoverBackups,
+  "POST /api/set-alt-titles": setAltTitles,
   "POST /api/save-favorite": saveFavorite,
   "POST /api/save-chars-tier": saveCharsTier,
   "POST /api/delete-tier-collection": deleteTierCollection,

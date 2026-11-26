@@ -106,6 +106,67 @@ test("завершённое последним встаёт первым сре
   });
 });
 
+// «Отметить завершённым» в счётчике серий присылает только статус и
+// date_end – последний отрезок дат (periods) оставался открытым, и окно
+// отзыва считало дни по календарю, с перерывами.
+test("завершение закрывает последний отрезок дат", async () => {
+  await withServer(async ({ api, root }) => {
+    const periods = [
+      { start: "2026-01-01", end: "2026-01-05" },
+      { start: "2026-11-20", end: null },
+    ];
+    const { data } = await api("POST", "/api/save-review", {
+      title: "С перерывом",
+      type: "anime",
+      status: "current",
+      date_start: "2026-01-01",
+      periods,
+    });
+    await api("POST", "/api/save-review", {
+      _editId: data.id,
+      title: "С перерывом",
+      status: "completed",
+      date_end: "2026-11-26",
+    });
+    const [r] = JSON.parse(await fs.readFile(path.join(root, "reviews.json"), "utf8"));
+    assert.deepEqual(r.periods, [periods[0], { start: "2026-11-20", end: "2026-11-26" }]);
+  });
+});
+
+test("оригинальные названия пишутся пачкой и не попадают к переименованной записи", async () => {
+  await withServer(async ({ api, root }) => {
+    const a = (
+      await api("POST", "/api/save-review", { title: "Фрирен", type: "anime", ids: { anilist: 1 } })
+    ).data.id;
+    const b = (
+      await api("POST", "/api/save-review", {
+        title: "Бойцовский клуб",
+        type: "movie",
+        year: "1999",
+      })
+    ).data.id;
+    const c = (await api("POST", "/api/save-review", { title: "Новое имя", type: "anime" })).data
+      .id;
+    const res = await api("POST", "/api/set-alt-titles", {
+      items: [
+        { id: a, title: "Фрирен", src: "anilist:1", names: ["Sousou no Frieren", "Frieren"] },
+        { id: b, title: "Бойцовский клуб", src: "q:Бойцовский клуб|1999", names: ["Fight Club"] },
+        { id: c, title: "Старое имя", src: "anilist:2", names: ["Чужое"] },
+      ],
+    });
+    assert.equal(res.data.updated, 2);
+    const byId = new Map(
+      JSON.parse(await fs.readFile(path.join(root, "reviews.json"), "utf8")).map((r) => [r.id, r])
+    );
+    assert.deepEqual(byId.get(a).alt_titles, {
+      src: "anilist:1",
+      names: ["Sousou no Frieren", "Frieren"],
+    });
+    assert.deepEqual(byId.get(b).alt_titles.names, ["Fight Club"]);
+    assert.equal(byId.get(c).alt_titles, undefined);
+  });
+});
+
 test("временный файл не остаётся после записи", async () => {
   await withServer(async ({ api, root }) => {
     await api("POST", "/api/save-review", { title: "Berserk", type: "manga" });

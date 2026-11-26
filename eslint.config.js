@@ -285,6 +285,7 @@ const sharedBrowserGlobals = [
   "reviewActiveDays",
   "reviewModalBodyHtml",
   "reviewPeriods",
+  "reviewSearchText",
   "rgbToHsl",
   "runImport",
   "rvBindCardClicks",

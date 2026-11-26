@@ -138,9 +138,24 @@ function manualCard(r, index) {
       if (at >= 0) {
         const pre = watchBadge.slice(0, at);
         const post = watchBadge.slice(at + s.length);
+        // Дата прошлого года («08.01.20») на телефоне в «Статусах» не
+        // влезала рядом с годом выхода и уходила второй строкой – карточки
+        // в ряду выходили с подписью на разной высоте. Там она короче –
+        // месяц и год («01.20», CSS в index.html прячет полную); день
+        // остаётся в окне отзыва.
+        const d = parseLocalDate(r.date_start);
+        const monthYear =
+          d.getFullYear() === new Date().getFullYear()
+            ? ""
+            : I18N_CURRENT === "ru"
+              ? `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getFullYear()).slice(2)}`
+              : d.toLocaleDateString(dateLocale(), { month: "short", year: "2-digit" });
+        const dateText = monthYear
+          ? `<span class="card-date-full">${esc(s)}</span><span class="card-date-short">${esc(monthYear)}</span>`
+          : esc(s);
         dateHtml =
           (pre ? `<span class="card-meta-pre">${esc(pre)}</span>` : "") +
-          esc(s) +
+          dateText +
           (post ? `<span class="card-meta-pre">${esc(post)}</span>` : "");
       }
     }
@@ -164,7 +179,7 @@ function manualCard(r, index) {
   const metaMain = r.year ? String(r.year) : "";
   const typeTag = tagLabel !== "–" ? `<span class="type-tag tag-manual">${esc(tagLabel)}</span>` : "";
 
-  return `<div class="review-card-wrap" data-review-id="${esc(editId)}" data-type="${esc(r.type || "")}" data-title="${esc(normTitle(r.title))}" tabindex="0" role="button" aria-label="${esc(r.title)}" style="animation-delay:${Math.min(index * 25, 600)}ms">
+  return `<div class="review-card-wrap" data-review-id="${esc(editId)}" data-type="${esc(r.type || "")}" data-title="${esc(normTitle(reviewSearchText(r)))}" tabindex="0" role="button" aria-label="${esc(r.title)}" style="animation-delay:${Math.min(index * 25, 600)}ms">
     ${pencil}
     <div class="card" style="animation-delay:0ms${gradeColorStyle(info)}">
       <div class="card-poster">

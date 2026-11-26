@@ -1993,8 +1993,10 @@ i18nRegister({
     "Covers from links are loaded from the sites that host them. If a cover fails to load directly, the app tries the open image service wsrv.nl – it sees that cover's address.",
   "Шрифты (Playfair Display, Cormorant Garamond, DM Sans, Manrope, Caveat, Patrick Hand, Pangolin, Shantell Sans) распространяются по лицензии SIL Open Font License 1.1 – её текст лежит рядом со шрифтами, в файле fonts/OFL.txt. Внутри приложения также Electron, Capacitor, sharp и html2canvas – каждый под своей открытой лицензией.":
     "The fonts (Playfair Display, Cormorant Garamond, DM Sans, Manrope, Caveat, Patrick Hand, Pangolin, Shantell Sans) are licensed under the SIL Open Font License 1.1 – its text is next to the fonts, in fonts/OFL.txt. The app also includes Electron, Capacitor, sharp and html2canvas – each under its own open-source license.",
-  "AniList, Шикимори, MyAnimeList, TMDB, Steam, Open Library – только когда вы ищете тайтл или импортируете список: туда уходят поисковый запрос или ваш ник на этом сервисе.":
-    "AniList, Shikimori, MyAnimeList, TMDB, Steam, Open Library – only when you search for a title or import a list: they receive the search query or your username on that service.",
+  "AniList, Шикимори, MyAnimeList, TMDB, Steam, Open Library – когда вы ищете тайтл или импортируете список: туда уходят поисковый запрос или ваш ник на этом сервисе.":
+    "AniList, Shikimori, MyAnimeList, TMDB, Steam, Open Library – when you search for a title or import a list: they receive the search query or your username on that service.",
+  "Кроме того, один раз для каждого тайтла AniList, Шикимори и TMDB (если введён ключ) получают номер тайтла или название и год фильма – чтобы поиск находил его и по оригинальному названию.":
+    "Also, once per title, AniList, Shikimori and TMDB (if you entered a key) receive the title's number or a film's name and year – so search finds it by its original title too.",
   "GitHub – проверка обновлений; синхронизация (ваш приватный репозиторий) и «Обмен по коду» (секретная ссылка: её может открыть любой, у кого она есть), только если вы их включили.":
     "GitHub – update checks; sync (your private repository) and “Share by code” (a secret link: anyone who has it can open it), only if you turned them on.",
   "TasteID – личный каталог просмотренного, прочитанного и пройденного. Все данные лежат у вас: в папке на компьютере или во внутренней памяти телефона. Своего сервера у приложения нет.":
