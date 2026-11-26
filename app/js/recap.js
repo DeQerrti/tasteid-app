@@ -53,10 +53,11 @@ const recapRaw = (r) => r.date_end || r.date_start || r.date;
 const recapShelf = (r) => gradeToShelf(r.grade);
 const recapScore = (r) => gradeScore(recapShelf(r)); // 1 – лучшая полка
 const recapGrade = (r) => reviewGradeInfo(r)?.grade || null;
-const recapDays = (r) =>
-  r.date_start && r.date_end
-    ? Math.round((parseLocalDate(r.date_end) - parseLocalDate(r.date_start)) / 86400000)
-    : null;
+// Дней просмотра, оба края включительно, без перерывов между отрезками
+// (reviewActiveDays в js/utils.js) – так же, как пишет окно отзыва. Раньше
+// здесь была разница дат без +1, и «Дольше всего» показывало на день
+// меньше, чем окно того же отзыва.
+const recapDays = (r) => reviewActiveDays(r);
 
 function recapCompleted() {
   return (cache.reviews || []).filter((r) => statsIsCompleted(r) && recapRaw(r));
@@ -103,8 +104,8 @@ function recapData(y) {
     graded,
     best: graded.filter((r) => top2.includes(recapShelf(r))),
     worst: graded.filter((r) => low2.includes(recapShelf(r))),
-    longest: timed[0] && recapDays(timed[0]) > 0 ? timed[0] : null,
-    oneDay: timed.filter((r) => recapDays(r) === 0),
+    longest: timed[0] && recapDays(timed[0]) > 1 ? timed[0] : null,
+    oneDay: timed.filter((r) => recapDays(r) === 1),
     written: list.filter((r) => (r.review_full || r.preview || "").trim()).length,
     fav: list.filter((r) => r.favorite),
   };

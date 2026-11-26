@@ -2114,4 +2114,21 @@ i18nRegister({
   "Что выгрузить": "What to export",
   "Это копия для чтения: обратно в приложение таблица не загружается. Чтобы перенести всё целиком на другое устройство – резервная копия в «Приложении».":
     "This is a read-only copy: the spreadsheet can't be loaded back into the app. To move everything to another device, use the backup in “App”.",
+
+  // ── Отрезки дат (редактор отзыва и окно отзыва) ──
+  "+ Ещё отрезок – если был перерыв": "+ Another stretch – if you took a break",
+  "Начало": "Start",
+  "Конец": "End",
+  "идёт сейчас": "ongoing",
+  "Убрать отрезок": "Remove stretch",
+  "Всего {days}": "Total {days}",
+  "(а от первого дня до последнего – {days})": "(first to last day – {days})",
+  "У отрезка {n} нет даты начала": "Stretch {n} has no start date",
+  "У отрезка {n} нет даты конца": "Stretch {n} has no end date",
+  "В отрезке {n} начало позже конца": "Stretch {n} starts after it ends",
+  "Отрезок {n} начинается раньше, чем кончился предыдущий": "Stretch {n} starts before the previous one ends",
+  "{n}-й заход": "stretch {n}",
+  "заход": "stretch",
+  "захода": "stretches",
+  "заходов": "stretches",
 });

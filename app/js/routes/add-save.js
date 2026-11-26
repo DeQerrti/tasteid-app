@@ -38,8 +38,17 @@ async function saveReview() {
   const url2 = document.getElementById("f-url2").value.trim() || null;
   const source2 = document.getElementById("f-source2").value || null;
 
-  const dateStart = document.getElementById("f-date-start")?.value || null;
-  const dateEnd = document.getElementById("f-date-end")?.value || null;
+  // Даты – из отрезков (edPeriodsForSave в add.js): с одним отрезком это
+  // те же «Начато»/«Завершено», с несколькими – первое начало и последний
+  // конец плюс сами отрезки в periods.
+  const dates = edPeriodsForSave();
+  if (dates.error) {
+    setStatus("err", dates.error);
+    dates.focus?.focus();
+    return;
+  }
+  const dateStart = dates.start;
+  const dateEnd = dates.end;
   // Даты в формате ГГГГ-ММ-ДД сравниваются как строки. Начало позже
   // конца – почти всегда опечатка или след старой автоподстановки
   // «сегодня» (см. updateDateFields() в add.js); молча записать такое
@@ -88,6 +97,9 @@ async function saveReview() {
     date_start: dateStart,
     rewatch_count: parseInt(document.getElementById("rewatch-count").value, 10) || 0,
     date_end: dateEnd,
+    // null, а не «не присылать»: сервер дополняет запись (saveReview в
+    // core/api.js), и без явного null убранные отрезки остались бы в файле.
+    periods: dates.periods,
     review_full: reviewFull || null,
     grade: selectedGrade,
     tags: [...selectedTags],

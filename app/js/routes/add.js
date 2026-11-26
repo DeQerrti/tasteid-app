@@ -580,6 +580,11 @@ async function mount(container, params) {
   mainEl.addEventListener("change", (e) => {
     if (!e.target.closest("[data-no-dirty]")) markAddDirty();
   });
+  // Отрезки дат (см. updateDateFields): #dates-section живёт, пока жив
+  // вид, и умирает вместе с ним – снимать обработчики не нужно.
+  const datesEl = document.getElementById("dates-section");
+  datesEl.addEventListener("input", edPeriodInput);
+  datesEl.addEventListener("click", edPeriodClick);
   // Предпросмотр есть только там, где подключён js/cards.js (см.
   // renderEdPreview) – в одиночном add.html блок остаётся скрытым.
   document.getElementById("ed-preview-wrap").hidden = typeof manualCard !== "function";
@@ -636,6 +641,7 @@ function unmount() {
   noTagsOnCard = false;
   editingId = null;
   editingIds = {};
+  edPeriods = null;
   fromPassportModal = false;
   setAddDirty(false);
 }
@@ -786,11 +792,124 @@ function setSaveButtonsLabel(text, disabled = false) {
 
 // ── Даты в зависимости от статуса ──────────────
 // Заголовок раздела рисует общая обёртка .sec-head, здесь только поля.
+//
+// Дат может быть несколько отрезков (смотрел 5 дней, бросил на полгода,
+// досмотрел за 3 – это 8 дней, а не 180; owner, ноябрь 2026; как это
+// хранится – см. reviewPeriods() в js/utils.js). edPeriods – отрезки в
+// форме по порядку, хотя бы один. С одним отрезком раздел выглядит ровно
+// как раньше: «Начато» / «Завершено». У первого «Начала» id f-date-start,
+// у последнего «Конца» – f-date-end: по ним, как и раньше, читает даты
+// предпросмотр карточки (editorDraftReview).
+//
+// edStartShown/edEndShown – были ли эти поля на экране до перерисовки.
+// Раньше то же самое узнавали по наличию самих <input> в разметке.
+let edPeriods = null;
+let edStartShown = false;
+let edEndShown = false;
+
+// Из записи – в форму (fillForm). У сохранённого отзыва показываем ровно
+// те даты, что лежат в файле: поле, которое уже на экране, сегодняшней
+// датой не добивается (см. updateDateFields ниже).
+function edSetPeriods(r) {
+  const p = reviewPeriods(r);
+  edPeriods = p
+    ? p.map((x) => ({ start: x.start || null, end: x.end || null }))
+    : [{ start: r.date_start || null, end: r.date_end || null }];
+  const status = document.getElementById("f-status").value;
+  edStartShown = status !== "planning";
+  edEndShown = status === "completed";
+}
+
+const edDaysText = (n) => `${n} ${plural(n, [i18n("день"), i18n("дня"), i18n("дней")])}`;
+
+function edPeriodDays(x) {
+  return x.start && x.end && x.start <= x.end ? edDaysText(datesSpanDays(x.start, x.end)) : "";
+}
+
+// «Всего 8 дней (а от первого дня до последнего – 180 дней)» – только у
+// завершённого и только когда отрезков больше одного.
+function edPeriodsSumHtml() {
+  if (edPeriods.length < 2 || document.getElementById("f-status").value !== "completed") return "";
+  const p = edPeriods.filter((x) => x.start && x.end && x.start <= x.end);
+  if (!p.length) return "";
+  const total = p.reduce((s, x) => s + datesSpanDays(x.start, x.end), 0);
+  const whole = datesSpanDays(p[0].start, p[p.length - 1].end);
+  return (
+    i18n("Всего {days}", { days: `<b>${edDaysText(total)}</b>` }) +
+    (whole > total
+      ? ` <span>${i18n("(а от первого дня до последнего – {days})", { days: edDaysText(whole) })}</span>`
+      : "")
+  );
+}
+
+function edPeriodsHtml(completed) {
+  const many = edPeriods.length > 1;
+  const lastI = edPeriods.length - 1;
+  const rows = edPeriods
+    .map((x, i) => {
+      const startId = i === 0 ? ' id="f-date-start"' : "";
+      const endId = i === lastI ? ' id="f-date-end"' : "";
+      const hasEnd = completed || i < lastI;
+      if (!many) {
+        // Один отрезок – прежняя разметка (.grid, те же подписи).
+        const startLabel = completed
+          ? `${i18n("Начато")} <span style="font-size:.6rem;opacity:.5">${i18n("(необязательно)")}</span>`
+          : i18n("Начато");
+        const endField = hasEnd
+          ? `<div class="field">
+            <label>${i18n("Завершено")}</label>
+            <input type="date"${endId} data-k="end" value="${x.end || ""}">
+          </div>`
+          : "";
+        return `<div class="grid ed-period" data-i="0">
+          <div class="field">
+            <label>${startLabel}</label>
+            <input type="date"${startId} data-k="start" value="${x.start || ""}">
+          </div>
+          ${endField}
+        </div>`;
+      }
+      const end = hasEnd
+        ? `<input type="date"${endId} data-k="end" value="${x.end || ""}">`
+        : `<span class="ed-period-now">${i18n("идёт сейчас")}</span>`;
+      return `<div class="ed-period ed-period-many" data-i="${i}">
+        <span class="ed-period-n">${i + 1}</span>
+        <div class="field"><label>${i18n("Начало")}</label><input type="date"${startId} data-k="start" value="${x.start || ""}"></div>
+        <div class="field"><label>${i18n("Конец")}</label>${end}</div>
+        <span class="ed-period-days">${hasEnd ? edPeriodDays(x) : ""}</span>
+        <button type="button" class="icon-btn ed-period-del" title="${i18n("Убрать отрезок")}" aria-label="${i18n("Убрать отрезок")}">✕</button>
+      </div>`;
+    })
+    .join("");
+  const hint =
+    !many && completed
+      ? `<div class="hint">${i18n("Если смотрели один день – заполните только «Завершено» или укажите одинаковые даты, на карточке покажется одна дата.")}</div>`
+      : "";
+  return `<div class="ed-periods">${rows}</div>${hint}
+    <div class="ed-period-foot">
+      <button type="button" class="tm-link ed-period-add">${i18n("+ Ещё отрезок – если был перерыв")}</button>
+      <span class="ed-period-sum">${edPeriodsSumHtml()}</span>
+    </div>`;
+}
+
 function updateDateFields() {
   const status = document.getElementById("f-status").value;
   const section = document.getElementById("dates-section");
   const wrap = document.getElementById("sec-dates");
   const today = todayLocalISO();
+  const completed = status === "completed";
+  if (!edPeriods) edPeriods = [{ start: null, end: null }];
+
+  // «Планирую» – дат ещё нет, прячем раздел целиком, чтобы кнопка
+  // «Добавить дату» не предлагала заполнить бессмысленное поле.
+  if (status === "planning") {
+    section.innerHTML = "";
+    wrap.hidden = true;
+    edStartShown = edEndShown = false;
+    renderEdPreview();
+    return;
+  }
+  wrap.hidden = false;
 
   // Сегодняшняя дата подставляется только в поле, которого ещё не было
   // на экране (новый отзыв, переход из «Планирую»), и никогда – в «Начато»
@@ -800,47 +919,90 @@ function updateDateFields() {
   // позже самого «Завершено» (21 такая запись в реальном хранилище).
   // Поле, которое человек сам очистил, при смене статуса тоже остаётся
   // пустым.
-  const startEl = document.getElementById("f-date-start");
-  const endEl = document.getElementById("f-date-end");
-  const prevStart = startEl ? startEl.value : status === "completed" ? "" : today;
-  const prevEnd = endEl ? endEl.value : today;
+  if (!edStartShown) edPeriods[0].start = completed ? null : today;
+  if (completed && !edEndShown) edPeriods[edPeriods.length - 1].end = today;
+  edStartShown = true;
+  edEndShown = completed;
 
-  // «Планирую» – дат ещё нет, прячем раздел целиком, чтобы кнопка
-  // «Добавить дату» не предлагала заполнить бессмысленное поле.
-  if (status === "planning") {
-    section.innerHTML = "";
-    wrap.hidden = true;
-    renderEdPreview();
-    return;
-  }
-  wrap.hidden = false;
-
-  if (status === "completed") {
-    section.innerHTML = `
-      <div class="grid">
-        <div class="field">
-          <label>${i18n("Начато")} <span style="font-size:.6rem;opacity:.5">${i18n("(необязательно)")}</span></label>
-          <input type="date" id="f-date-start" value="${prevStart}">
-        </div>
-        <div class="field">
-          <label>${i18n("Завершено")}</label>
-          <input type="date" id="f-date-end" value="${prevEnd}">
-        </div>
-      </div>
-      <div class="hint">${i18n("Если смотрели один день – заполните только «Завершено» или укажите одинаковые даты, на карточке покажется одна дата.")}</div>`;
-    renderEdPreview();
-    return;
-  }
-
-  // current, onhold и любой свой статус – только дата начала.
-  section.innerHTML = `
-    <div class="grid">
-      <div class="field">
-        <label>${i18n("Начато")}</label>
-        <input type="date" id="f-date-start" value="${prevStart}">
-      </div>
-    </div>`;
+  section.innerHTML = edPeriodsHtml(completed);
   renderEdPreview();
+}
+
+// Поля отрезков – правка на месте, без перерисовки: иначе дата теряла бы
+// фокус посреди ввода. Обработчики вешает mount() на #dates-section.
+function edPeriodInput(e) {
+  const input = e.target.closest("input[data-k]");
+  const row = input?.closest(".ed-period");
+  if (!row) return;
+  const x = edPeriods[Number(row.dataset.i)];
+  x[input.dataset.k] = input.value || null;
+  const days = row.querySelector(".ed-period-days");
+  if (days && row.querySelector('input[data-k="end"]')) days.textContent = edPeriodDays(x);
+  const sum = document.querySelector("#dates-section .ed-period-sum");
+  if (sum) sum.innerHTML = edPeriodsSumHtml();
+}
+
+function edPeriodClick(e) {
+  const add = e.target.closest(".ed-period-add");
+  const del = e.target.closest(".ed-period-del");
+  if (!add && !del) return;
+  const completed = document.getElementById("f-status").value === "completed";
+  let focusSel = null;
+  if (add) {
+    // У незавершённого новый отрезок – это «продолжил сейчас»: начало –
+    // сегодня, а конец прошлого отрезка (теперь он виден) человек
+    // впишет сам – его мы не знаем.
+    edPeriods.push({ start: completed ? null : todayLocalISO(), end: null });
+    const n = edPeriods.length - 1;
+    focusSel = completed
+      ? `.ed-period[data-i="${n}"] input[data-k="start"]`
+      : `.ed-period[data-i="${n - 1}"] input[data-k="end"]`;
+  } else {
+    edPeriods.splice(Number(del.closest(".ed-period").dataset.i), 1);
+  }
+  document.getElementById("dates-section").innerHTML = edPeriodsHtml(completed);
+  markAddDirty();
+  renderEdPreview();
+  if (focusSel) document.querySelector(`#dates-section ${focusSel}`)?.focus();
+}
+
+// Отрезки для сохранения (add-save.js): пустые строки отбрасываются,
+// остальные проверяются. Возвращает { start, end, periods } – date_start,
+// date_end и periods записи (periods – null, если отрезок один) – или
+// { error, focus }.
+function edPeriodsForSave() {
+  const status = document.getElementById("f-status").value;
+  if (status === "planning" || !edPeriods) return { start: null, end: null, periods: null };
+  const completed = status === "completed";
+  const lastI = edPeriods.length - 1;
+  const rows = edPeriods
+    .map((x, i) => ({ start: x.start || null, end: completed || i < lastI ? x.end || null : null, i }))
+    .filter((x) => x.start || x.end);
+  const field = (i, k) =>
+    document.querySelector(`#dates-section .ed-period[data-i="${i}"] input[data-k="${k}"]`);
+  if (rows.length > 1) {
+    for (let k = 0; k < rows.length; k++) {
+      const x = rows[k];
+      const n = k + 1;
+      if (!x.start) return { error: i18n("У отрезка {n} нет даты начала", { n }), focus: field(x.i, "start") };
+      if (!x.end && (completed || k < rows.length - 1))
+        return { error: i18n("У отрезка {n} нет даты конца", { n }), focus: field(x.i, "end") };
+      if (x.end && x.start > x.end)
+        return { error: i18n("В отрезке {n} начало позже конца", { n }), focus: field(x.i, "start") };
+      if (k > 0 && x.start <= rows[k - 1].end)
+        return {
+          error: i18n("Отрезок {n} начинается раньше, чем кончился предыдущий", { n }),
+          focus: field(x.i, "start"),
+        };
+    }
+  }
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  return {
+    start: first?.start || null,
+    end: completed ? last?.end || null : null,
+    periods: rows.length > 1 ? rows.map(({ start, end }) => ({ start, end })) : null,
+  };
 }
 
 // ── Оценки – вид зависит от шкалы, настроенной в настройках ──

@@ -765,8 +765,40 @@ function reviewModalBodyHtml(r) {
   const isFinished = !r.status || r.status === "completed";
   let datesHtml = "";
   const note = (text) => `<span class="review-dates-note">· ${esc(text)}</span>`;
+  const daysWord = (n) => `${n} ${plural(n, [i18n("день"), i18n("дня"), i18n("дней")])}`;
+  // «9 ноября → 23 ноября 2024 г.»; оба в одном году – год один раз.
+  const rangeHtml = (a, b) => {
+    if (!b || a === b) return `<span>${esc(fmtLongDate(a))}</span>`;
+    const sameYear = parseLocalDate(a).getFullYear() === parseLocalDate(b).getFullYear();
+    const left = sameYear
+      ? parseLocalDate(a).toLocaleDateString(dateLocale(), { day: "numeric", month: "long" })
+      : fmtLongDate(a);
+    return `<span>${esc(left)}</span><span class="review-dates-arrow">→</span><span>${esc(fmtLongDate(b))}</span>`;
+  };
+  // Несколько отрезков (reviewPeriods в js/utils.js; вариант «А» по
+  // макету, owner, ноябрь 2026): строка та же – первый день → последний,
+  // но дни – сумма отрезков, без перерывов, и рядом «2 захода», по
+  // нажатию раскрывающее сами отрезки.
+  const periods = reviewPeriods(r);
   if (!isFinished) {
-    if (r.date_start) datesHtml = `<span>${esc(i18n("с {date}", { date: fmtLongDate(r.date_start) }))}</span>${note(i18n("в процессе"))}`;
+    if (r.date_start)
+      datesHtml =
+        `<span>${esc(i18n("с {date}", { date: fmtLongDate(r.date_start) }))}</span>${note(i18n("в процессе"))}` +
+        (periods ? note(i18n("{n}-й заход", { n: periods.length })) : "");
+  } else if (periods && periods[periods.length - 1].end) {
+    const total = reviewActiveDays(r);
+    const n = periods.length;
+    const list = periods
+      .map(
+        (x) =>
+          `<div class="review-period">${rangeHtml(x.start, x.end)}${x.end ? note(daysWord(datesSpanDays(x.start, x.end))) : ""}</div>`
+      )
+      .join("");
+    datesHtml =
+      rangeHtml(periods[0].start, periods[n - 1].end) +
+      (total ? note(daysWord(total)) : "") +
+      `<button type="button" class="review-periods-btn" aria-expanded="false" onclick="this.setAttribute('aria-expanded', this.closest('.review-dates').classList.toggle('open'))">${esc(`${n} ${plural(n, [i18n("заход"), i18n("захода"), i18n("заходов")])}`)}</button>` +
+      `<div class="review-periods">${list}</div>`;
   } else if (r.date_start && r.date_end && r.date_start !== r.date_end) {
     const days = Math.round((parseLocalDate(r.date_end) - parseLocalDate(r.date_start)) / 86400000) + 1;
     // Оба в одном году – год пишем один раз, в конце («9 ноября → 23 ноября

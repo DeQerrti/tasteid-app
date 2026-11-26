@@ -454,6 +454,41 @@ main.add-view.ed .tag-toggle.active { color: var(--text-hi); border-color: var(-
 }
 
 main.add-view.ed .btn-save.ed-save-bottom { margin-top: .4rem; }
+
+/* ── Отрезки дат (updateDateFields в js/routes/add.js) ──
+   Один отрезок – прежняя .grid. Несколько – строка «№ · Начало · Конец ·
+   дни · ✕», подписи полей только над первой строкой. */
+.ed-periods { display: flex; flex-direction: column; gap: .55rem; }
+.ed-period-many { display: flex; align-items: flex-end; gap: .6rem; }
+.ed-period-many > .field { flex: 0 1 210px; min-width: 0; margin-bottom: 0; }
+.ed-period-many + .ed-period-many label { display: none; }
+.ed-period-n, .ed-period-days {
+  font-family: 'DM Sans', sans-serif; font-size: .75rem; color: var(--text-dim);
+  padding-bottom: .75rem;
+}
+.ed-period-n { width: 1rem; flex-shrink: 0; text-align: center; }
+.ed-period-days { min-width: 4.2rem; white-space: nowrap; }
+.ed-period-many .ed-period-del { margin-bottom: .45rem; }
+.ed-period-now {
+  display: block; padding: .65rem .2rem;
+  font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text-dim);
+}
+.ed-period-foot {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1.2rem;
+  margin: .7rem 0 1rem;
+}
+.ed-period-sum { font-family: 'DM Sans', sans-serif; font-size: .8rem; color: var(--text); }
+.ed-period-sum:empty { display: none; }
+.ed-period-sum b { color: var(--text-hi); font-weight: 600; }
+.ed-period-sum span { color: var(--text-dim); }
+#dates-section .hint + .ed-period-foot { margin-top: -.5rem; }
+/* Телефон: два поля даты делят строку поровну, дни у каждой строки не
+   помещаются – их видно в итоге «Всего N дней» под строками. */
+@media (max-width: 700px) {
+  .ed-period-many { gap: .45rem; }
+  .ed-period-many > .field { flex: 1 1 0; }
+  .ed-period-days { display: none; }
+}
 main.add-view.ed .danger-zone { margin-top: 0; }
 
 /* ── Узкий экран и модалка «Добавить себе»: одна колонка ── */

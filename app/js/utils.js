@@ -128,6 +128,37 @@ function parseLocalDate(str) {
   return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(str);
 }
 
+// ── Отрезки просмотра ──────────────────────────
+// Посмотрел 5 дней, бросил на полгода, досмотрел за 3 – это 8 дней, а не
+// 180 (owner, ноябрь 2026). Такие записи хранят r.periods: [{start, end}]
+// по порядку; поле есть, только когда отрезков больше одного. date_start и
+// date_end при этом остаются – первое начало и последний конец, – поэтому
+// карточки, год в «Отзывах», статистика, цели и экспорт работают как
+// раньше и о periods не знают. У незавершённой записи у последнего
+// отрезка конца нет – он идёт сейчас.
+
+// Дней в отрезке, оба края включительно: 9→10 ноября – 2 дня.
+function datesSpanDays(a, b) {
+  return Math.round((parseLocalDate(b) - parseLocalDate(a)) / 86400000) + 1;
+}
+
+// Отрезки записи или null, если он один (обычные «Начато»/«Завершено»).
+function reviewPeriods(r) {
+  const p = Array.isArray(r?.periods) ? r.periods.filter((x) => x && x.start) : [];
+  return p.length > 1 ? p : null;
+}
+
+// Сколько дней шёл просмотр – сумма отрезков, без перерывов. null, если
+// посчитать не из чего (нет одной из дат).
+function reviewActiveDays(r) {
+  const p = reviewPeriods(r);
+  if (p) {
+    const done = p.filter((x) => x.end);
+    return done.length ? done.reduce((sum, x) => sum + datesSpanDays(x.start, x.end), 0) : null;
+  }
+  return r?.date_start && r?.date_end ? datesSpanDays(r.date_start, r.date_end) : null;
+}
+
 // ── Приложение или обычный браузер ─────────────
 // В этом репозитории – только приложение (Electron/мобилка), сайта
 // tasteid.ru здесь нет и никогда не будет: /api/app/info отвечает

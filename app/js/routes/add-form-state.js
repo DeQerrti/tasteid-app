@@ -46,14 +46,12 @@ function fillForm(r) {
   // файле, – пустое поле остаётся пустым. Раньше здесь пустота
   // заменялась сегодняшней датой, и простое «открыл → сохранил»
   // записывало в отзыв дату, которой человек никогда не вводил (см.
-  // тот же разбор у updateDateFields() в add.js).
+  // тот же разбор у updateDateFields() в add.js). Несколько отрезков
+  // (r.periods) – туда же, edSetPeriods.
+  edSetPeriods(r);
   updateDateFields();
-  const startEl = document.getElementById("f-date-start");
-  const endEl = document.getElementById("f-date-end");
-  if (startEl) startEl.value = r.date_start || "";
   const rewatchEl = document.getElementById("rewatch-count");
   if (rewatchEl) rewatchEl.value = r.rewatch_count || 0;
-  if (endEl) endEl.value = r.date_end || "";
 
   // Внешняя ссылка (r.cover) обычно пуста у обложек, загруженных с
   // компьютера или сохранённых как резервная копия, – превью в этом
@@ -77,6 +75,7 @@ function resetToNew() {
   editingId = null;
   editingIds = {};
   coverGallery = [];
+  edPeriods = null; // отрезки дат прошлого отзыва (см. updateDateFields в add.js)
   document.getElementById("edit-banner").style.display = "none";
   document.getElementById("danger-zone").hidden = true;
   document.getElementById("page-subtitle").textContent = i18n("Добавить отзыв");
