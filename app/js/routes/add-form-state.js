@@ -160,7 +160,13 @@ async function initAddPage(params) {
     }
     // В модалке своя шапка ни к чему: логотип и «На главную» дублируют
     // крестик самой модалки, а места странице и так отведено немного.
-    if (fromPassportModal) document.querySelector(".app-topbar")?.classList.add("hidden");
+    // Без шапки нет и её «Сохранить» – тогда, и только тогда, нужна
+    // нижняя кнопка (в остальных случаях она скрыта: шапка липкая,
+    // owner попросил убрать дубль, ноябрь 2026).
+    if (fromPassportModal) {
+      document.querySelector(".app-topbar")?.classList.add("hidden");
+      document.getElementById("btn-save-bottom").hidden = false;
+    }
     fillForm({
       title: params.get("title") || "",
       type: params.get("type") || "",

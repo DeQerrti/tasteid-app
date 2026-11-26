@@ -228,7 +228,17 @@ ok(
 ok(await desk.isVisible("#rv-sort-label"), "у сортировки – подпись");
 await desk.goto(`${base}/#/add?edit=1`);
 await desk.waitForSelector("#tags-grid .ed-cat");
-ok(await desk.isVisible("#btn-save-bottom"), "нижняя «Сохранить» на месте");
+ok(!(await desk.isVisible("#btn-save-bottom")), "нижней «Сохранить» нет – только в шапке");
+// Шапка липкая и в окне Electron прилипает под полосой кнопок окна
+// (--app-titlebar из electron/chrome.js), а не уезжает под неё.
+await desk.addStyleTag({ content: ":root { --app-titlebar: 32px; } body { padding-top: 32px; }" });
+await desk.mouse.wheel(0, 1500);
+await desk.waitForTimeout(300);
+const barTop = (await box(desk, ".ed-bar")).top;
+ok(
+  (await desk.evaluate(() => scrollY)) > 0 && Math.abs(barTop - 32) < 1,
+  `после прокрутки шапка под полосой окна (top=${barTop})`
+);
 ok(await desk.isVisible("#tags-grid .ed-cat .tag-toggle"), "категории тегов раскрыты");
 await desk.close();
 

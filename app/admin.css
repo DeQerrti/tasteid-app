@@ -26,7 +26,11 @@
   padding: 14px 24px;
   border-bottom: 1px solid var(--border);
   position: sticky;
-  top: 0;
+  /* Не 0: в окне Electron сверху лежит полоса под кнопки окна
+     (html::before из electron/chrome.js, высота --app-titlebar), и
+     прилипшая к нулю шапка наполовину уезжала под неё – было видно
+     только нижний край кнопок «Новый отзыв»/«Сохранить». */
+  top: var(--app-titlebar, 0px);
   z-index: 20;
   background: var(--bg);
 }
