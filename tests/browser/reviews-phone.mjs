@@ -74,6 +74,25 @@ const reviews = [
     date_end: "2025-03-02",
     review_full: "Текст",
   },
+  // Не завершено, есть только текст (описание тайтла) – в «Отзывы» не
+  // попадает (owner, ноябрь 2026).
+  {
+    id: 5,
+    title: "Игра отложенная",
+    type: "game",
+    status: "onhold",
+    year: "2026",
+    review_full: "Описание",
+  },
+  // Свой статус («брошено»), но с оценкой – в «Отзывах» есть.
+  {
+    id: 6,
+    title: "Игра брошенная",
+    type: "game",
+    status: "dropped",
+    year: "2026",
+    grade: "rezonans",
+  },
 ];
 
 const dir = mkdtempSync(join(tmpdir(), "tasteid-rv-phone-"));
@@ -135,7 +154,18 @@ ok(
   boxes.slice(1).every((b) => b.width >= 40 && b.height >= 40),
   "кнопки не мельче 40px"
 );
-ok((await phone.textContent("#rv-count")).includes("4"), "в строке – число отзывов");
+ok((await phone.textContent("#rv-count")).includes("5"), "в строке – число отзывов");
+const titles = await phone.$$eval("#rv-grid .review-card-wrap", (els) =>
+  els.map((e) => e.textContent)
+);
+ok(
+  !titles.some((t) => t.includes("Игра отложенная")),
+  "«отложено» только с текстом – не в «Отзывах»"
+);
+ok(
+  titles.some((t) => t.includes("Игра брошенная")),
+  "незавершённое с оценкой – в «Отзывах»"
+);
 ok(!(await phone.isVisible("#rv-search")), "поле поиска свёрнуто");
 ok(
   !(await phone.isVisible('.rv-dd[data-dd="types"] .rv-dd-btn')),
@@ -184,7 +214,7 @@ ok(await phone.isVisible("#rv-sub .rv-chip"), "под строкой – кап�
 await phone.click("#rv-sub .rv-chip");
 await phone.waitForTimeout(250);
 ok(
-  (await shown(phone)) === 4 && !(await phone.isVisible("#rv-sub")),
+  (await shown(phone)) === 5 && !(await phone.isVisible("#rv-sub")),
   "капсула снимает фильтр, пустой ряд под строкой исчезает"
 );
 
