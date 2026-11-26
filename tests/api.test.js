@@ -72,6 +72,40 @@ test("запись переживает перезапуск и попадает
   });
 });
 
+// Endfield завершили раньше Zenless в тот же день, а первым в «Отзывах»
+// стоял Endfield: правка оставляла запись на старом месте в файле, а у
+// записей одного дня порядок – файловый.
+test("завершённое последним встаёт первым среди записей своего дня", async () => {
+  await withServer(async ({ api, root }) => {
+    const add = async (title) =>
+      (
+        await api("POST", "/api/save-review", {
+          title,
+          type: "gacha",
+          status: "current",
+          date_start: "2026-01-01",
+        })
+      ).data.id;
+    const a = await add("Первая");
+    const b = await add("Вторая"); // в файле теперь: Вторая, Первая
+    const read = async () =>
+      JSON.parse(await fs.readFile(path.join(root, "reviews.json"), "utf8")).map((r) => r.title);
+    const finish = (id) =>
+      api("POST", "/api/save-review", {
+        _editId: id,
+        title: id === a ? "Первая" : "Вторая",
+        status: "completed",
+        date_end: "2026-11-26",
+      });
+    await finish(b);
+    await finish(a);
+    assert.deepEqual(await read(), ["Первая", "Вторая"]);
+    // Правка без смены даты и статуса – место не меняется.
+    await api("POST", "/api/save-review", { _editId: b, title: "Вторая", review_full: "текст" });
+    assert.deepEqual(await read(), ["Первая", "Вторая"]);
+  });
+});
+
 test("временный файл не остаётся после записи", async () => {
   await withServer(async ({ api, root }) => {
     await api("POST", "/api/save-review", { title: "Berserk", type: "manga" });

@@ -544,11 +544,16 @@ function rvSorted(list) {
   const byDateDesc = (a, b) => rvDateOf(b).localeCompare(rvDateOf(a));
   const num = (v) => (typeof v === "number" ? v : null);
   switch (rvState.sort) {
-    case "date-asc":
+    case "date-asc": {
+      // Внутри одного дня список в файле идёт от последнего завершённого к
+      // первому (saveReview в core/api.js переносит запись в начало), так
+      // что для «сначала старые» этот порядок нужно перевернуть.
+      const pos = new Map(list.map((r, i) => [r, i]));
       return [...list].sort((a, b) => {
         const da = rvDateOf(a), db = rvDateOf(b);
-        return !da ? (db ? 1 : 0) : !db ? -1 : da.localeCompare(db);
+        return (!da ? (db ? 1 : 0) : !db ? -1 : da.localeCompare(db)) || pos.get(b) - pos.get(a);
       });
+    }
     case "grade":
       return [...list].sort((a, b) => rvGradeIndex(a) - rvGradeIndex(b) || byDateDesc(a, b));
     case "title":

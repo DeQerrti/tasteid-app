@@ -181,7 +181,24 @@ async function saveReview({ vault, body }) {
     // полей новой. Стереть поле можно явно – прислать его со значением null.
     const merged = { ...list[idx], ...review };
     if (list[idx].id !== undefined) merged.id = list[idx].id;
-    list[idx] = merged;
+    // Даты в записи – с точностью до дня, и у записей одного дня порядок
+    // в «Отзывах» – это порядок в файле (sortReviews ниже сортирует
+    // устойчиво). Правка оставляла запись на её старом месте, и
+    // завершённое сегодня вставало после завершённого раньше в тот же
+    // день (owner, ноябрь 2026: Endfield → потом Zenless, а первым
+    // показывался Endfield). Теперь запись, у которой сменилась дата или
+    // которая только что стала «завершено», переезжает в начало файла –
+    // первой среди своего дня, как и новая запись.
+    const dayOf = (r) => r.date_end || r.date_start || r.date || null;
+    const moved =
+      dayOf(merged) !== dayOf(list[idx]) ||
+      (merged.status === "completed" && list[idx].status !== "completed");
+    if (moved) {
+      list.splice(idx, 1);
+      list.unshift(merged);
+    } else {
+      list[idx] = merged;
+    }
     review.id = merged.id;
   } else {
     review.id = newRecordId(list);
