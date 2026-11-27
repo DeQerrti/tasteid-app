@@ -484,7 +484,15 @@ function appRoutes() {
       const entry = vaults.find((v) => v.id === body.id);
       if (!entry) throw new Error(tr("Хранилище не найдено"));
       try {
-        await shell.trashItem(entry.path);
+        // Папки может уже не быть (удалили вручную, перенесли): тогда
+        // shell.trashItem падает с «Failed to parse path», и запись
+        // навсегда застревала в списке. Переносить нечего – просто
+        // убираем запись.
+        const exists = await fs.access(entry.path).then(
+          () => true,
+          () => false,
+        );
+        if (exists) await shell.trashItem(entry.path);
       } catch (e) {
         throw new Error(tr("Не получилось удалить папку: ") + e.message);
       }
